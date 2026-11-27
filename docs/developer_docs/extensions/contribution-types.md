@@ -70,6 +70,10 @@ carries no contributions at all.
 | `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons | `ListViewItemProps` |
 | `listView.{chart,dashboard,dataset}.deleteConfirmation` | In the dialog that asks the reader to confirm deleting an item | `{ assetId }` |
 | `listView.dashboard.statusCell` | Beside a dashboard row's published-or-draft status | `ListViewItemProps` |
+| `listView.rls.nameCell` | Beside a rule's name, in the Row Level Security list | `{ assetId }` |
+| `listView.rls.actions` | In a rule row's action buttons | `{ assetId }` |
+| `listView.rls.deleteConfirmation` | In the dialog that asks the reader to confirm deleting a rule | `{ assetId }` |
+| `rls.ruleForm` | Above the form in the Add Rule and Edit Rule modal | `{ assetId? }` |
 | `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) | — |
 
 A location marked — renders its component with no props. Whatever such a
@@ -207,6 +211,32 @@ it — or before describing the asset as though it were live.
 Prefer `nameCell` over a column of your own for anything that is usually
 absent. An always-empty column costs every reader width on every row, whereas
 nothing beside a name takes no space at all.
+
+#### Row-level security rules
+
+A rule's row carries the same `views.ListViewItemProps` as any other list row,
+with `assetId` the rule's primary key. `archived` is never set: rules are
+deleted outright rather than archived, so there is no second list for them.
+
+A rule is created and edited in a modal rather than on a page of its own, so
+the form is the surface's own region rather than one of the list's cells, and
+`rls.ruleForm` renders above it -- where a reader needs to be told the rule is
+held for review before they start editing, rather than after.
+
+It is handed `{ assetId?: number }`, which is deliberately not
+`ListViewItemProps`: a rule being added has no primary key yet, and an absent
+`assetId` is what tells a view it is looking at a creation rather than an edit.
+
+```tsx
+const RuleNotice = ({ assetId }: { assetId?: number }) =>
+  assetId === undefined ? <NewRuleNotice /> : <RuleStatus ruleId={assetId} />;
+
+views.registerView(
+  { id: 'acme.reviews.ruleForm', name: 'Review status' },
+  'rls.ruleForm',
+  RuleNotice,
+);
+```
 
 ### Commands
 

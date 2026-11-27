@@ -25,6 +25,11 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import {
+  registerTestView,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+import { ViewLocations } from 'src/core/viewLocations';
 import RowLevelSecurityModal, {
   RowLevelSecurityModalProps,
 } from './RowLevelSecurityModal';
@@ -130,7 +135,7 @@ const mockGetTablesResult = {
   ],
 };
 
-fetchMock.get(getRuleEndpoint, mockGetRuleResult);
+fetchMock.get(getRuleEndpoint, mockGetRuleResult, { name: 'getRule' });
 fetchMock.get(getRelatedSubjectsEndpoint, mockGetSubjectsResult);
 fetchMock.get(getRelatedTablesEndpoint, mockGetTablesResult);
 fetchMock.post(postRuleEndpoint, {}, { name: postRuleEndpoint });
@@ -311,5 +316,81 @@ describe('Rule modal', () => {
       },
       { timeout: 10000 },
     );
+  });
+  describe('contributed views', () => {
+    afterEach(() => {
+      cleanupExtensions();
+    });
+
+    test('renders a contributed view above the form when adding a rule', async () => {
+      registerTestView(
+        ViewLocations.rls.ruleForm,
+        'test.rls.ruleForm.add',
+        'Rule form',
+        ({ assetId }: any) => <span>{`form-${assetId}`}</span>,
+      );
+      await renderAndWait(addNewRuleDefaultProps);
+
+      // A rule being added has no id yet, which is what tells a contributed
+      // view it is looking at a creation rather than an edit.
+      expect(screen.getByText('form-undefined')).toBeInTheDocument();
+    });
+
+    test('hands a contributed view the rule id when editing', async () => {
+      registerTestView(
+        ViewLocations.rls.ruleForm,
+        'test.rls.ruleForm.edit',
+        'Rule form',
+        ({ assetId }: any) => <span>{`form-${assetId}`}</span>,
+      );
+      await renderAndWait({
+        ...addNewRuleDefaultProps,
+        rule: {
+          id: 1,
+          name: 'test rule',
+          filter_type: FilterType.Base,
+          tables: [{ id: 1, table_name: 'birth_names' }],
+          subjects: [],
+        },
+      });
+
+      expect(await screen.findByText('form-1')).toBeInTheDocument();
+    });
+
+    test('hands a contributed view the rule id even if the rule cannot be fetched', async () => {
+      // The id comes from the row the list handed over, not from the fetched
+      // rule: until the fetch resolves -- and for good, if it never does --
+      // the form state is the empty default, and a view reading the id from
+      // there would take an edit for a creation.
+      fetchMock.modifyRoute('getRule', {
+        response: { status: 404, body: { message: 'Rule not found' } },
+      });
+      registerTestView(
+        ViewLocations.rls.ruleForm,
+        'test.rls.ruleForm.fetch-failed',
+        'Rule form',
+        ({ assetId }: any) => <span>{`form-${assetId}`}</span>,
+      );
+      await renderAndWait({
+        ...addNewRuleDefaultProps,
+        rule: {
+          id: 1,
+          name: 'test rule',
+          filter_type: FilterType.Base,
+          tables: [{ id: 1, table_name: 'birth_names' }],
+          subjects: [],
+        },
+      });
+
+      expect(await screen.findByText('form-1')).toBeInTheDocument();
+      fetchMock.modifyRoute('getRule', { response: mockGetRuleResult });
+    });
+
+    test('renders the form unchanged when nothing is registered', async () => {
+      await renderAndWait(addNewRuleDefaultProps);
+
+      expect(screen.getByText('Add Rule')).toBeInTheDocument();
+      expect(screen.getByTestId('rule-name-test')).toBeInTheDocument();
+    });
   });
 });

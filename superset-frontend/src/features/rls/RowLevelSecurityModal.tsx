@@ -37,6 +37,8 @@ import SubjectPicker, {
   normalizeSubjectsToPickerValues,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import { FILTER_OPTIONS } from './constants';
 import { FilterType, RLSObject, TableObject } from './types';
 
@@ -358,6 +360,26 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       }
     >
       <StyledSectionContainer>
+        {/* Above the form rather than beside a field: what a contributed view
+            has to say here is about the rule as a whole -- that it is held for
+            review, or that saving will hold it -- and the reader needs that
+            before they start editing, not after.
+
+            `assetId` is the only prop, and it is absent while a rule is being
+            added, which is what tells a view it is looking at a creation.
+            Nothing else is passed, because nothing else cannot be derived.
+
+            Read from the `rule` prop rather than from `currentRule`:
+            `currentRule` is the empty default until the fetch resolves, so a
+            view would see an edit as a creation for as long as the rule is
+            loading -- and for good, if the fetch fails. It also outlives the
+            modal's own reset, so an add opened straight after an edit would
+            start on the previous rule's id. `rule` carries the id the moment
+            the list hands it over, and is null for an add. */}
+        <ViewListExtension
+          viewId={ViewLocations.rls.ruleForm}
+          viewProps={{ assetId: rule?.id }}
+        />
         <div className="main-section">
           <StyledInputContainer>
             <LabeledErrorBoundInput

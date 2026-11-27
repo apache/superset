@@ -30,6 +30,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import userEvent from '@testing-library/user-event';
+import {
+  registerTestView,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+import { ViewLocations } from 'src/core/viewLocations';
 import RowLevelSecurityList from '.';
 
 const ruleListEndpoint = 'glob:*/api/v1/rowlevelsecurity/?*';
@@ -312,5 +317,94 @@ describe('RuleList RTL', () => {
 
     const modalAfterClick = screen.queryByTestId('rls-modal-title');
     expect(modalAfterClick).toBeInTheDocument();
+  });
+  describe('contributed views', () => {
+    afterEach(() => {
+      cleanupExtensions();
+    });
+
+    // Each location renders once per row, so the assertions check the id the
+    // row handed the view rather than just that something rendered -- a slot
+    // wired to the wrong row is the failure that matters here.
+    test('renders a contributed view in the name cell of every row', async () => {
+      registerTestView(
+        ViewLocations.listView.rls.nameCell,
+        'test.rls.nameCell',
+        'Name cell',
+        () => <span>name-cell</span>,
+      );
+      await renderAndWait();
+
+      expect(screen.getAllByText('name-cell')).toHaveLength(2);
+    });
+
+    test('hands the name cell the id of its own row', async () => {
+      registerTestView(
+        ViewLocations.listView.rls.nameCell,
+        'test.rls.nameCellProps',
+        'Name cell props',
+        ({ assetId }: any) => <span>{`rule-${assetId}`}</span>,
+      );
+      await renderAndWait();
+
+      expect(screen.getByText('rule-1')).toBeInTheDocument();
+      expect(screen.getByText('rule-2')).toBeInTheDocument();
+    });
+
+    test('renders a contributed view in the actions cell', async () => {
+      registerTestView(
+        ViewLocations.listView.rls.actions,
+        'test.rls.actions',
+        'Actions',
+        ({ assetId }: any) => <span>{`action-${assetId}`}</span>,
+      );
+      await renderAndWait();
+
+      expect(screen.getByText('action-1')).toBeInTheDocument();
+      expect(screen.getByText('action-2')).toBeInTheDocument();
+    });
+
+    test('renders a contributed view in the delete confirmation', async () => {
+      registerTestView(
+        ViewLocations.listView.rls.deleteConfirmation,
+        'test.rls.deleteConfirmation',
+        'Delete confirmation',
+        ({ assetId }: any) => <span>{`blocked-${assetId}`}</span>,
+      );
+      await renderAndWait();
+
+      expect(screen.queryByText('blocked-1')).not.toBeInTheDocument();
+
+      const [firstDelete] = await screen.findAllByTestId('rls-list-trash-icon');
+      await userEvent.click(firstDelete);
+
+      expect(await screen.findByText('blocked-1')).toBeInTheDocument();
+      expect(screen.queryByText('blocked-2')).not.toBeInTheDocument();
+    });
+
+    test('keeps the contributed view out of the truncated name text', async () => {
+      registerTestView(
+        ViewLocations.listView.rls.nameCell,
+        'test.rls.nameCellBox',
+        'Name cell box',
+        () => <span>name-tag</span>,
+      );
+      await renderAndWait();
+
+      // The name column carries antd's `ellipsis`. The truncation has to apply
+      // to the name and not to what an extension put beside it, so the two sit
+      // in separate boxes -- a view nested inside the clipped text would
+      // disappear behind the ellipsis on a long rule name.
+      const nameText = screen.getByText('rule 1');
+      const [tag] = screen.getAllByText('name-tag');
+      expect(nameText).not.toContainElement(tag);
+    });
+
+    test('renders the rule name unchanged when nothing is registered', async () => {
+      await renderAndWait();
+
+      expect(screen.getByText('rule 1')).toBeInTheDocument();
+      expect(screen.getByText('rule 2')).toBeInTheDocument();
+    });
   });
 });

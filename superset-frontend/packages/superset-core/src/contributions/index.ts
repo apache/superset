@@ -93,7 +93,8 @@ export type ExploreLocation =
   | 'panel';
 
 /**
- * Valid locations within a list view (charts, dashboards, datasets).
+ * Valid locations within a list view (charts, dashboards, datasets,
+ * row-level security rules).
  */
 export type ListViewLocation =
   /**
@@ -129,7 +130,25 @@ export type ListViewLocation =
 /**
  * The list views that accept contributions.
  */
-export type ListViewScope = 'chart' | 'dashboard' | 'dataset';
+export type ListViewScope = 'chart' | 'dashboard' | 'dataset' | 'rls';
+
+/**
+ * Valid locations on the row-level security surface outside its list.
+ *
+ * A rule is created and edited in a modal rather than on a page of its own,
+ * so the form is a scope of its own rather than one of the list's cells.
+ */
+export type RlsLocation =
+  /**
+   * Above the rule form, inside the add/edit modal.
+   *
+   * For what the reader needs before they start editing rather than after:
+   * that the rule is held for review, or that saving it will hold it. The
+   * view is given the rule's `assetId`, which is absent while a rule is
+   * being added -- that absence is what tells a view it is looking at a
+   * creation.
+   */
+  'ruleForm';
 
 /**
  * Valid locations within the navigation bar.
@@ -188,6 +207,7 @@ export interface ViewContributions {
   listView?: Partial<
     Record<ListViewScope, Partial<Record<ListViewLocation, View[]>>>
   >;
+  rls?: Partial<Record<RlsLocation, View[]>>;
   navbar?: Partial<Record<NavbarLocation, View[]>>;
   home?: Partial<Record<HomeLocation, View[]>>;
 }

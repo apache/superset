@@ -31,6 +31,7 @@ import {
   type ListViewProps,
   type ListViewFilters,
   type ListViewFetchDataConfig as FetchDataConfig,
+  ListViewTitleCell,
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -49,6 +50,8 @@ import {
 } from 'src/views/CRUD/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 
 interface RLSProps {
   addDangerToast: (msg: string) => void;
@@ -140,6 +143,25 @@ function RowLevelSecurityList(props: RLSProps) {
     () => [
       {
         accessor: 'name',
+        // The accessor stays, so sorting and filtering are unchanged; the cell
+        // renders the same text and makes room beside it for a contributed
+        // view -- a rule held for review has to say so where it is listed.
+        Cell: ({ row: { original } }: any) => (
+          <ListViewTitleCell
+            trailing={
+              // Beside the name rather than in a column of its own: anything
+              // an extension shows here is absent for most rows most of the
+              // time, and an always-empty column costs every reader width.
+              // `trailing` keeps it clear of the title's ellipsis.
+              <ViewListExtension
+                viewId={ViewLocations.listView.rls.nameCell}
+                viewProps={{ assetId: original.id }}
+              />
+            }
+          >
+            {original.name}
+          </ListViewTitleCell>
+        ),
         Header: t('Name'),
         layout: 'title',
         id: 'name',
@@ -220,6 +242,10 @@ function RowLevelSecurityList(props: RLSProps) {
                     <>
                       {t('Are you sure you want to delete')}{' '}
                       <b>{original.name}</b>
+                      <ViewListExtension
+                        viewId={ViewLocations.listView.rls.deleteConfirmation}
+                        viewProps={{ assetId: original.id }}
+                      />
                     </>
                   }
                   onConfirm={handleDelete}
@@ -240,6 +266,10 @@ function RowLevelSecurityList(props: RLSProps) {
                   )}
                 </ConfirmStatusChange>
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.rls.actions}
+                viewProps={{ assetId: original.id }}
+              />
             </div>
           );
         },
