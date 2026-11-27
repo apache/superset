@@ -1,0 +1,154 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Per-country handling of far-flung territories.
+#
+# Two operations per country, both build-time:
+# - repositions: territories moved into insets near the mainland
+# - drop_outside_bbox: territories outside this bbox dropped entirely
+#
+# At chart-render time, the "show flying islands" toggle controls which
+# repositioned/dropped territories are visible:
+#   - ON (default): the chart's renderer applies the repositions defined
+#     here, OR uses the composite_projection if specified (preferred when
+#     available — see geoAlbersUsa for example).
+#   - OFF: territories matched by EITHER `repositions` OR
+#     `drop_outside_bbox` are filtered out of the rendered feature set.
+#
+# Schema:
+#   countries:
+#     <ISO3>:
+#       composite_projection: <d3 projection name>   # optional, takes
+#         # precedence over repositions when the renderer supports it
+#       repositions:
+#         - description: human-readable why
+#           match: { name: <feature name>, ... }
+#           offset: [x, y]                # required; degrees
+#           scale: <number>               # optional; default 1.0
+#           simplify: <number>            # optional; mapshaper -simplify factor
+#       drop_outside_bbox:
+#         description: human-readable why
+#         nw: [lon, lat]                  # northwest corner
+#         se: [lon, lat]                  # southeast corner
+#
+# Match semantics: same as name_overrides.yaml — all conditions AND'd.
+# `match.name: { in: [a, b, c] }` matches any of a, b, c.
+
+countries:
+
+  # -------------------------------------------------------------------
+  # USA — Hawaii, Alaska
+  # D3's geoAlbersUsa handles these natively at render time. We still
+  # ship build-time repositions as a fallback for renderers that don't
+  # support composite projections.
+  # -------------------------------------------------------------------
+  USA:
+    composite_projection: geoAlbersUsa
+    repositions:
+      - description: Bring Hawaii in alongside California
+        match: { name: Hawaii }
+        offset: [51, 5.5]
+      - description: Shrink and reposition Alaska below the lower 48
+        match: { name: Alaska }
+        offset: [35, -34]
+        scale: 0.35
+
+  # -------------------------------------------------------------------
+  # Norway — Svalbard
+  # -------------------------------------------------------------------
+  NOR:
+    repositions:
+      - description: Bring Svalbard in closer to mainland Norway
+        match: { name: Svalbard }
+        offset: [-12, -8]
+        scale: 0.5
+
+  # -------------------------------------------------------------------
+  # Portugal — Atlantic islands
+  # -------------------------------------------------------------------
+  PRT:
+    repositions:
+      - description: Pull the Azores closer to mainland
+        match: { name: Azores }
+        offset: [11, 0]
+      - description: Pull Madeira closer; small extra simplify because dense coastline
+        match: { name: Madeira }
+        offset: [6, 2]
+        simplify: 0.015
+
+  # -------------------------------------------------------------------
+  # Spain — Canary Islands
+  # -------------------------------------------------------------------
+  ESP:
+    repositions:
+      - description: Bring Canary Islands closer to mainland Spain
+        match:
+          name: { in: ["Las Palmas", "Santa Cruz de Tenerife"] }
+        offset: [3, 7]
+
+  # -------------------------------------------------------------------
+  # France — Overseas DROMs (Départements et régions d'outre-mer)
+  # For the full France-with-Overseas composite (incl. PYF, ATF, WLF,
+  # NCL, SPM), see composite_maps.yaml.
+  # -------------------------------------------------------------------
+  FRA:
+    composite_projection: geoConicEqualAreaFrance   # if available in renderer
+    repositions:
+      - description: Reposition Guadeloupe near mainland France
+        match: { name: Guadeloupe }
+        offset: [57.4, 25.4]
+        scale: 1.5
+      - description: Reposition Martinique near mainland France
+        match: { name: Martinique }
+        offset: [58.4, 27.1]
+        scale: 1.5
+      - description: Reposition French Guiana (shrunk significantly — it's larger than mainland France)
+        match: { name: "Guyane française" }
+        offset: [52, 37.7]
+        scale: 0.35
+      - description: Reposition La Réunion
+        match: { name: "La Réunion" }
+        offset: [-55, 62.8]
+        scale: 1.5
+      - description: Reposition Mayotte
+        match: { name: Mayotte }
+        offset: [-43, 54.3]
+        scale: 1.5
+
+  # -------------------------------------------------------------------
+  # Netherlands — drop Caribbean territories
+  # The Caribbean Netherlands (Bonaire, Sint Eustatius, Saba) and the
+  # constituent countries (Aruba, Curaçao, Sint Maarten) are far from
+  # mainland NL. The notebook drops them rather than repositioning;
+  # we preserve that editorial choice.
+  # -------------------------------------------------------------------
+  NLD:
+    drop_outside_bbox:
+      description: Drop Caribbean Netherlands & ABC islands; keep mainland + Frisian islands
+      nw: [-20, 60]
+      se: [20, 20]
+
+  # -------------------------------------------------------------------
+  # United Kingdom — drop British Overseas Territories
+  # Same pattern as NLD — drop (don't reposition) territories far from
+  # the British Isles.
+  # -------------------------------------------------------------------
+  GBR:
+    drop_outside_bbox:
+      description: Drop British Overseas Territories; keep British Isles
+      nw: [-10, 60]
+      se: [20, 20]

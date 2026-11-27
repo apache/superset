@@ -84,6 +84,7 @@
     { "path": "./plugins/plugin-chart-calendar" },
     { "path": "./plugins/plugin-chart-chord" },
     { "path": "./plugins/plugin-chart-country-map" },
+    { "path": "./plugins/plugin-chart-country-map-v2" },
     { "path": "./plugins/plugin-chart-horizon" },
     { "path": "./plugins/plugin-chart-paired-t-test" },
     { "path": "./plugins/plugin-chart-parallel-coordinates" },

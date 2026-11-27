@@ -1,0 +1,207 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Multi-country composite maps that pull features from several Admin 0
+# records into a single GeoJSON output, repositioning each into insets.
+#
+# The canonical example is "France with Overseas" — mainland France plus
+# 5 DROM departments (already part of FRA Admin 0) plus territories from
+# 5 separate Admin 0 records (PYF, ATF, WLF, NCL, SPM) all repositioned
+# around the mainland into one composite map.
+#
+# Build script reads each composite definition and:
+#   1. Loads the base country at the requested admin level
+#   2. Applies base_repositions to specified features
+#   3. For each addition: pulls the feature from another Admin 0 record,
+#      optionally drops sub-polygons by index, repositions, dissolves
+#   4. Outputs a single GeoJSON keyed by the composite's identifier
+#   5. Plugin exposes it in the country picker with `display_name`
+#
+# Schema:
+#   composites:
+#     <composite_id>:
+#       description: human-readable
+#       display_name: text shown in UI dropdown
+#       admin_level: 0 | 1                 # which level the composite represents
+#       base:
+#         adm0_a3: <ISO3>
+#       base_repositions:                  # optional; applied to base features
+#         - description: human-readable
+#           match: { name: <feature name>, ... }
+#           offset: [x, y]
+#           scale: <number>                # optional
+#           drop_parts: [<int>, ...]       # optional; drop sub-polygon indices
+#           group: true                    # optional; if match yields multiple
+#                                          # features, transform them as a single
+#                                          # MultiPolygon then split back out
+#                                          # (preserves per-feature attributes)
+#                                          # Used for metropolitan-area zoom-ins
+#                                          # like Paris + petite couronne
+#       additions:                         # features pulled from other Admin 0 records
+#         - description: human-readable
+#           from:
+#             adm0_a3: <ISO3 source>
+#             match: { ... }               # which feature(s) to pull
+#             dissolve: true               # optional; merge all matched features
+#           drop_parts: [<int>, ...]       # optional
+#           reposition:
+#             offset: [x, y]
+#             scale: <number>              # optional
+#           set:                           # optional; override attributes on
+#             name: <new name>             # the added/dissolved feature
+#             iso_3166_2: <code>
+#             [...]
+
+composites:
+
+  # -------------------------------------------------------------------
+  # France with Overseas — mainland France + DROMs + sister Admin 0
+  # territories under French sovereignty, all repositioned into a single
+  # frame. Most complex composite; templates the schema for others.
+  # -------------------------------------------------------------------
+  france_overseas:
+    description: |
+      Mainland France plus all overseas territories (DROMs + COMs +
+      Polynesia + Southern Lands + Wallis-Futuna + New Caledonia +
+      Saint-Pierre-et-Miquelon) shown in one composite map.
+    display_name: "France (with overseas)"
+    admin_level: 1
+    base:
+      adm0_a3: FRA
+    base_repositions:
+      # The 5 overseas DROMs (départements et régions d'outre-mer) — already
+      # part of FRA Admin 0 in NE. Repositioned aggressively for layout.
+      - description: Reposition Guadeloupe near mainland
+        match: { name: Guadeloupe }
+        offset: [53.2, 29.0]
+        scale: 1.5
+      - description: Reposition Martinique near mainland
+        match: { name: Martinique }
+        offset: [52.8, 27.5]
+        scale: 1.5
+      - description: Reposition French Guiana (shrunk — it's vast)
+        match: { name: "Guyane française" }
+        offset: [45.0, 35.5]
+        scale: 0.3
+      - description: Reposition La Réunion
+        match: { name: "La Réunion" }
+        offset: [-58.2, 60.5]
+        scale: 1.5
+      - description: Reposition Mayotte
+        match: { name: Mayotte }
+        offset: [-50.5, 52.2]
+        scale: 2.0
+
+      # Paris + petite couronne — metropolitan zoom-in.
+      # The 4 inner Paris-region departments are tiny and overlap visually
+      # at country scale. Group them into one MultiPolygon, translate up
+      # and right, scale 3x to make them visible. Splits back into 4
+      # individual features after transform (preserving attrs).
+      - description: Zoom in on Paris and the petite couronne (Hauts-de-Seine, Seine-Saint-Denis, Val-de-Marne)
+        match:
+          name: { in: ["Paris", "Hauts-de-Seine", "Seine-Saint-Denis", "Val-de-Marne"] }
+        group: true
+        offset: [6.3, 2.3]
+        scale: 3.0
+
+    additions:
+      # French Polynesia — only the Windward Islands (Tahiti area), and
+      # we drop the second sub-polygon (Rimatuu) to avoid visual conflict
+      # with Corsica when laid out.
+      - description: Add Tahiti (Windward Islands) from French Polynesia, drop Rimatuu sub-polygon
+        from:
+          adm0_a3: PYF
+          match: { name: "Windward Islands" }
+        drop_parts: [1]
+        reposition:
+          offset: [158.2, 57.3]
+          scale: 2.0
+        set:
+          name: "Polynésie française"
+          iso_3166_2: FR-PF
+
+      # French Southern and Antarctic Lands — Kerguelen Islands only.
+      - description: Add Archipel des Kerguelen from French Southern Lands
+        from:
+          adm0_a3: ATF
+          match: { name: "Archipel des Kerguelen" }
+        reposition:
+          offset: [-63.5, 88.5]
+          scale: 0.9
+        set:
+          name: "Terres australes et antarctiques françaises"
+          iso_3166_2: FR-TF
+
+      # Wallis and Futuna — dissolve Alo + Uvea into one shape.
+      - description: Add Wallis and Futuna (dissolved)
+        from:
+          adm0_a3: WLF
+          dissolve: true
+        reposition:
+          offset: [170, 52.5]
+          scale: 4.0
+        set:
+          name: "Wallis et Futuna"
+          iso_3166_2: FR-WF
+
+      # New Caledonia — dissolve all subdivisions.
+      - description: Add New Caledonia (dissolved)
+        from:
+          adm0_a3: NCL
+          dissolve: true
+        reposition:
+          offset: [-165.5, 60.4]
+          scale: 0.4
+        set:
+          name: "Nouvelle-Calédonie"
+          iso_3166_2: FR-NC
+
+      # Saint-Pierre and Miquelon — dissolved
+      - description: Add Saint-Pierre-et-Miquelon (dissolved)
+        from:
+          adm0_a3: SPM
+          dissolve: true
+        reposition:
+          offset: [48, 4]
+          scale: 3.0
+        set:
+          name: "Saint-Pierre-et-Miquelon"
+          iso_3166_2: FR-PM
+
+      # Saint Martin (French part) — small Caribbean island
+      - description: Add Saint Martin (French part)
+        from:
+          adm0_a3: MAF
+          match: { admin: "Saint Martin" }
+        reposition:
+          offset: [54.8, 30.3]
+          scale: 5.0
+        set:
+          name: "Saint-Martin"
+          iso_3166_2: FR-MF
+
+      # Saint Barthélémy — small Caribbean island, scaled up significantly
+      - description: Add Saint Barthélémy (heavily scaled — it's tiny)
+        from:
+          adm0_a3: BLM
+          match: { admin: "Saint Barthelemy" }
+        reposition:
+          offset: [54.5, 30]
+          scale: 8.0
+        set:
+          name: "Saint-Barthélémy"
+          iso_3166_2: FR-BL
