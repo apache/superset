@@ -4483,6 +4483,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
+#, python-format
+msgid "Could not export results to CSV: %(error)s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr ""
 
