@@ -8138,6 +8138,9 @@ msgstr ""
 msgid "If you don't save, changes will be lost."
 msgstr ""
 
+msgid "If you were not expecting this reset, contact your administrator; your password will not change unless you use the link above."
+msgstr ""
+
 msgid "Ignore cache when generating report"
 msgstr ""
 
@@ -15383,6 +15386,9 @@ msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
 
 msgid "The password provided when connecting to a database is not valid."
+msgstr ""
+
+msgid "The password reset email could not be sent. Please try again."
 msgstr ""
 
 msgid "The password reset was successful"
