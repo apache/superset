@@ -178,9 +178,56 @@ Helper to safely read .Values.supersetNode.connections.<key> without erroring wh
 {{- coalesce .Values.cache.user (index $conn "redis_user") "" -}}
 {{- end -}}
 
+{{/*
+Name of the Secret that holds the password for the bundled Redis.
+Derived from the release name so both this chart and the Redis subchart
+(which tpl-renders redis.auth.existingSecret) resolve the same value.
+*/}}
+{{- define "superset.redis.authSecretName" -}}
+{{- printf "%s-redis-auth" .Release.Name -}}
+{{- end -}}
+
+{{/*
+Whether this chart manages the bundled Redis password automatically.
+True when Redis features are enabled, the bundled Redis is deployed, auth is
+on, and redis.auth.existingSecret still points at the chart-managed Secret.
+Operators pointing existingSecret elsewhere keep full ownership.
+*/}}
+{{- define "superset.redis.manageAuth" -}}
+{{- $existing := tpl (default "" .Values.redis.auth.existingSecret) . -}}
+{{- if and .Values.cache.enabled .Values.redis.enabled .Values.redis.auth.enabled (eq $existing (include "superset.redis.authSecretName" .)) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Managed Redis password, memoized on the root context so every consumer in a
+single render receives the same value. Reuses the stored value on upgrade
+(looked up from the auth Secret) and otherwise generates a new one.
+*/}}
+{{- define "superset.redis.managedPassword" -}}
+{{- if not (hasKey $ "_supersetRedisPassword") -}}
+{{- $secretName := include "superset.redis.authSecretName" . -}}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace $secretName -}}
+{{- $pw := "" -}}
+{{- if and $existing $existing.data (index $existing.data "redis-password") -}}
+{{- $pw = index $existing.data "redis-password" | b64dec -}}
+{{- else -}}
+{{- $pw = randAlphaNum 40 -}}
+{{- end -}}
+{{- $_ := set $ "_supersetRedisPassword" $pw -}}
+{{- end -}}
+{{- index $ "_supersetRedisPassword" -}}
+{{- end -}}
+
 {{- define "superset.redis.password" -}}
 {{- $conn := include "_superset.legacyConn" . | fromJson -}}
-{{- coalesce .Values.cache.password (index $conn "redis_password") "" -}}
+{{- $explicit := coalesce .Values.cache.password (index $conn "redis_password") "" -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if include "superset.redis.manageAuth" . -}}
+{{- include "superset.redis.managedPassword" . -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "superset.redis.cacheDb" -}}

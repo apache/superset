@@ -52,9 +52,19 @@ extraLabels: {}
 # Component-specific podAnnotations will be merged with these global annotations
 globalPodAnnotations: {}
 
-# -- User ID directive. This user must have enough permissions to run the bootstrap script
-# Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
-runAsUser: 0
+# -- User ID the pods run as. Defaults to the non-root `superset` user (1000)
+# shipped by the official image. The web pod additionally asserts
+# `runAsNonRoot: true` whenever this is non-zero. Set to 0 only if your
+# bootstrapScript needs root (e.g. to install system packages at startup).
+runAsUser: 1000
+
+# -- NetworkPolicy settings for chart-managed dependencies
+networkPolicies:
+  # -- Create NetworkPolicies that restrict ingress to bundled dependencies
+  # (currently the bundled Redis) to the Superset pods only. Has no effect on
+  # a bring-your-own Redis (`redis.enabled: false`) or without a CNI that
+  # enforces NetworkPolicy.
+  enabled: true
 
 # -- Specify rather or not helm should create the secret described in `secret-env.yaml` template
 secretEnv:
@@ -1336,12 +1346,16 @@ redis:
   ##
   auth:
     ## Enable password authentication
-    enabled: false
+    enabled: true
     ## The name of an existing secret that contains the redis password.
-    existingSecret: ""
+    ## Defaults to a chart-managed Secret: when left at this value the chart
+    ## generates a random password (or uses cache.password if set) and wires
+    ## it through to Superset's cache and Celery broker connections. Point this
+    ## at your own Secret to take full ownership of the Redis password.
+    existingSecret: '{{ .Release.Name }}-redis-auth'
     ## Name of the key containing the secret.
     existingSecretKey: ""
-    ## Redis password
+    ## Redis password (ignored when existingSecret is set)
     password: superset
   ##
   ## Master configuration

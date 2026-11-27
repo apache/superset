@@ -80,6 +80,9 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+        {{- if ne (int .Values.runAsUser) 0 }}
+        runAsNonRoot: true
+        {{- end }}
         {{- if .Values.supersetNode.podSecurityContext }}
           {{- toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
         {{- end }}

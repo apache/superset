@@ -19,6 +19,40 @@
 
 # Upgrading the Superset Helm Chart
 
+## Upgrading to chart 0.23.0
+
+Chart 0.23.0 hardens several defaults. Review these before upgrading:
+
+### 1. Bundled Redis now requires authentication
+
+`redis.auth.enabled` now defaults to `true`. When the bundled Redis is used
+(`redis.enabled: true`) the chart generates a random password into a managed
+Secret (`<release>-redis-auth`) on first install, reuses it on subsequent
+upgrades, and wires it through to Superset's cache and Celery broker
+connections automatically. No action is needed for the default setup.
+
+- To supply your own password, set `cache.password` (it is stored in the same
+  managed Secret and used by both Superset and the bundled Redis).
+- To manage the Secret entirely yourself, point `redis.auth.existingSecret` at
+  your own Secret (key `redis-password`) and set `cache.password` so Superset
+  can authenticate.
+- A bring-your-own Redis (`redis.enabled: false`) is unaffected; configure
+  `cache.password` / `cache.user` as before.
+
+### 2. Pods run as a non-root user by default
+
+`runAsUser` now defaults to `1000` (the non-root `superset` user shipped by the
+official image) instead of `0`, and the web pod asserts `runAsNonRoot: true`.
+If your `bootstrapScript` installs system packages or otherwise needs root,
+set `runAsUser: 0` to restore the previous behavior.
+
+### 3. NetworkPolicy for the bundled Redis
+
+A NetworkPolicy restricting ingress to the bundled Redis to the Superset pods
+is created by default (`networkPolicies.enabled: true`). It only takes effect
+with a CNI that enforces NetworkPolicy and has no effect on a bring-your-own
+Redis. Set `networkPolicies.enabled: false` to opt out.
+
 ## Upgrading to chart 0.20.0
 
 Chart 0.20.0 introduces a structured connection schema. The old keys listed below are **DEPRECATED** — they still work (auto-mapped to the new keys at render time) and a deprecation warning is printed in `helm install`/`helm upgrade` NOTES, but they will be removed in a future release. Migrate as soon as possible.
