@@ -195,14 +195,13 @@ function getCategoryScale(
   return scale;
 }
 
-/** Returns the categorical colour for a category, with the given opacity (0–255). */
+/** Returns the categorical colour for a category, fully opaque like other categorical deck.gl charts. */
 export function createCategoryColor(
   colorScheme: string | undefined,
-  alpha: number,
   sliceId?: number,
 ): (category: string) => RGBAColor {
   const scale = getCategoryScale(colorScheme, sliceId);
-  return category => hexToRGB(scale(category, sliceId), alpha);
+  return category => hexToRGB(scale(category, sliceId));
 }
 
 export interface ColorAccessor {
@@ -234,11 +233,14 @@ export function createColorAccessor(
       'vector-tile-category',
       categoryPropertySpec,
     );
-    // Opacity follows the fixed colour, as in other categorical deck.gl charts.
-    const colorFor = createCategoryColor(colorScheme, fillColor[3], sliceId);
+    const colorFor = createCategoryColor(colorScheme, sliceId);
     return {
       getColor: feature => colorFor(readCategory(feature)),
-      updateTrigger: JSON.stringify([expression, colorScheme, fillColor[3]]),
+      updateTrigger: JSON.stringify([
+        expression,
+        colorScheme,
+        CategoricalColorNamespace.getNamespace().forcedItems,
+      ]),
     };
   }
 

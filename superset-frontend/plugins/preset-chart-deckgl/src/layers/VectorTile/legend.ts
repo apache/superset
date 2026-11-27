@@ -31,8 +31,88 @@ export const MAX_LEGEND_CATEGORIES = 10;
 
 export type LegendCategories = LegendProps['categories'];
 
-/** deck.gl adds `dataInWGS84` (the tile's features as GeoJSON) to MVT tiles. */
-type LoadedTile = { dataInWGS84?: Feature[] | null };
+/** Binary features from @loaders.gl/mvt; only the fields the legend reads. */
+type BinaryGeometry = {
+  positions: { value: ArrayLike<number>; size: number };
+  featureIds: { value: ArrayLike<number> };
+  numericProps?: Record<string, { value: ArrayLike<number> }>;
+  properties?: Record<string, unknown>[];
+};
+
+/** A loaded MVT tile: binary features, or GeoJSON when deck.gl skips binary mode. */
+type LoadedTile = {
+  content?:
+    | Feature[]
+    | {
+        points?: BinaryGeometry;
+        lines?: BinaryGeometry;
+        polygons?: BinaryGeometry;
+      }
+    | null;
+};
+
+/** True when a tile-local position (0–1) is inside the tile, not in the buffer. */
+const isInsideTile = (x: number, y: number) =>
+  x >= 0 && x < 1 && y >= 0 && y < 1;
+
+/**
+ * Reads a property for each feature straight from binary tile data, without
+ * converting geometry. Features whose first vertex lies in the tile buffer are
+ * skipped, so points near tile edges are counted once.
+ */
+function readBinaryValues(
+  geometry: BinaryGeometry,
+  property: string,
+  skipBufferCopies: boolean,
+): unknown[] {
+  const ids = geometry.featureIds.value;
+  const { value: positions, size } = geometry.positions;
+  const numeric = geometry.numericProps?.[property]?.value;
+  const values: unknown[] = [];
+  for (let i = 0; i < ids.length; i += 1) {
+    const isFirstVertex = i === 0 || ids[i] !== ids[i - 1];
+    if (
+      isFirstVertex &&
+      (!skipBufferCopies ||
+        isInsideTile(positions[i * size], positions[i * size + 1]))
+    ) {
+      values.push(
+        numeric ? numeric[i] : geometry.properties?.[ids[i]]?.[property],
+      );
+    }
+  }
+  return values;
+}
+
+/**
+ * Reads a property for each feature straight from binary tile data, without
+ * converting geometry. Points copied into a tile's buffer are skipped so each
+ * is counted once; lines and polygons spanning several tiles are counted once
+ * per tile, since the tile server cuts them at tile edges.
+ */
+
+export function readTileValues(tiles: unknown[], property: string): unknown[] {
+  return tiles.flatMap(tile => {
+    const { content } = tile as LoadedTile;
+    if (!content) {
+      return [];
+    }
+    if (Array.isArray(content)) {
+      return content.map(feature => feature.properties?.[property]);
+    }
+    return [
+      ...(content.points
+        ? readBinaryValues(content.points, property, true)
+        : []),
+      ...(content.lines
+        ? readBinaryValues(content.lines, property, false)
+        : []),
+      ...(content.polygons
+        ? readBinaryValues(content.polygons, property, false)
+        : []),
+    ];
+  });
+}
 
 /** Category text for a value; the same text the colour expression produces. */
 const toCategory = (value: unknown): string =>
@@ -43,14 +123,13 @@ const toCategory = (value: unknown): string =>
  * first, with a final "+ N more" row when some are left out.
  */
 export function buildCategoryLegend(
-  features: Feature[],
-  property: string,
+  values: unknown[],
   colorFor: (category: string) => RGBAColor,
   maxRows = MAX_LEGEND_CATEGORIES,
 ): LegendCategories {
   const counts = new Map<string, number>();
-  features.forEach(feature => {
-    const category = toCategory(feature.properties?.[property]);
+  values.forEach(value => {
+    const category = toCategory(value);
     counts.set(category, (counts.get(category) ?? 0) + 1);
   });
   const sorted = [...counts.entries()].sort(
@@ -97,15 +176,9 @@ export function getLegendCategories(
     colorSchemeType === COLOR_SCHEME_TYPES.categorical_palette &&
     colorProperty
   ) {
-    // Read here, not in onViewportLoad: deck.gl attaches dataInWGS84 to newly
-    // loaded tiles only after that callback runs.
-    const features = tiles.flatMap(
-      tile => (tile as LoadedTile).dataInWGS84 ?? [],
-    );
     return buildCategoryLegend(
-      features,
-      colorProperty,
-      createCategoryColor(settings.colorScheme, settings.fillColor[3], sliceId),
+      readTileValues(tiles, colorProperty),
+      createCategoryColor(settings.colorScheme, sliceId),
     );
   }
 
