@@ -36,12 +36,12 @@ superset mcp run --port 5009
 
 import warnings
 
-# authlib.jose is deprecated in authlib 1.3+ in favour of joserfc, but fastmcp
-# still imports it internally. This filter must live here — it runs when any
-# superset.mcp_service submodule is first imported, which is before fastmcp
-# triggers the authlib.jose import. Placed in __init__.py so both the
-# production server path and test imports get it without duplicating the
-# filterwarnings call in every affected module.
+# authlib.jose is deprecated in authlib 1.3+ in favour of joserfc, but
+# jwt_verifier (and fastmcp releases before 4.2.6) still import it. This filter
+# must live here — it runs when any superset.mcp_service submodule is first
+# imported, which is before anything triggers the authlib.jose import. Placed
+# in __init__.py so both the production server path and test imports get it
+# without duplicating the filterwarnings call in every affected module.
 #
 # authlib.deprecate registers ``simplefilter("always", AuthlibDeprecationWarning)``
 # at import time, which lands in front of any filter registered earlier and
@@ -49,7 +49,7 @@ import warnings
 # already installed and ours is inserted in front of it.
 try:
     import authlib.deprecate  # noqa: F401
-except ImportError:  # authlib arrives transitively via fastmcp
+except ImportError:  # authlib is only installed with the fastmcp extra
     pass
 
 warnings.filterwarnings(

@@ -1516,7 +1516,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["pyodbc"],
+        "pypi_packages": ["databricks-dbapi[odbc]", "pyodbc"],
         "connection_string": (
             "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1528,6 +1528,17 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from SQL endpoint settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/crflynn/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
@@ -1560,7 +1571,7 @@ class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
-        "pypi_packages": ["pyhive"],
+        "pypi_packages": ["databricks-dbapi[hive]", "pyhive", "thrift"],
         "connection_string": (
             "databricks+pyhive://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1572,6 +1583,17 @@ class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from cluster settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/crflynn/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
