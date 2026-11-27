@@ -129,6 +129,7 @@ export const getLayer = ({
     updateTriggers: {
       getFillColor: updateTrigger,
       getLineColor: updateTrigger,
+      getTileData: sourceLayer,
     },
     onViewportLoad: onViewportLoad && (tiles => onViewportLoad([...tiles])),
     getPointRadius: POINT_RADIUS_PX,
@@ -164,11 +165,13 @@ function VectorTile({
     containerRef.current?.setTooltip(tooltip);
   }, []);
   const [viewportTiles, setViewportTiles] = useState<unknown[]>([]);
+  const needsViewportTiles =
+    formData.color_scheme_type === COLOR_SCHEME_TYPES.categorical_palette;
   const layer = getLayer({
     formData,
     payload: {},
     setTooltip,
-    onViewportLoad: setViewportTiles,
+    onViewportLoad: needsViewportTiles ? setViewportTiles : undefined,
   });
 
   const legendCategories = useMemo(

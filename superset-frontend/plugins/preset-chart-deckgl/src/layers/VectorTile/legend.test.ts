@@ -45,7 +45,7 @@ test('caps the rows and summarises the rest', () => {
   const features = ['a', 'b', 'c', 'd'].map(category => feature({ category }));
   const legend = buildCategoryLegend(features, 'category', () => RED, 2);
   expect(Object.keys(legend)).toEqual(['a', 'b', '+ 2 more']);
-  expect(legend['+ 2 more'].color).toBeUndefined();
+  expect(legend['+ 2 more'].color).toEqual([0, 0, 0, 0]);
 });
 
 test('fixed colour has no legend', () => {

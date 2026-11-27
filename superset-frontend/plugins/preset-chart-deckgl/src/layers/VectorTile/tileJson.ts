@@ -38,6 +38,14 @@ const NUMERIC_TILE_TYPE =
 export const isNumericTileType = (type?: string): boolean =>
   type === undefined || NUMERIC_TILE_TYPE.test(type.trim());
 
+const isHttpUrl = (value: string): boolean => {
+  try {
+    return ['http:', 'https:'].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Lists properties from a TileJSON document's `vector_layers`. Uses only the
  * source layer's fields when one is given, otherwise merges every layer's.
@@ -128,7 +136,7 @@ export function useTileJsonProperties(
 
   useEffect(() => {
     const trimmedUrl = url?.trim();
-    if (!trimmedUrl) {
+    if (!trimmedUrl || !isHttpUrl(trimmedUrl)) {
       setState(NO_PROPERTIES);
       return undefined;
     }

@@ -121,7 +121,7 @@ To use the chart:
 1. Serve Mapbox Vector Tiles (MVT) at a URL containing `{z}`, `{x}` and `{y}`. Optionally,
    also serve a TileJSON document, which the chart uses to list the properties in the tiles.
 2. Allow cross-origin requests from Superset on the tile server. Martin allows them by default.
-3. Add the tile server to `connect-src` in both `TALISMAN_CONFIG` and `TALISMAN_CONFIG_DEV`.
+3. Add the tile server to `connect-src` in both `TALISMAN_CONFIG` and `TALISMAN_DEV_CONFIG`.
    Otherwise, the browser blocks the requests and the chart shows an empty map.
 
 ```python

@@ -63,7 +63,7 @@ export function buildCategoryLegend(
   });
   const hidden = sorted.length - maxRows;
   if (hidden > 0) {
-    categories[t('+ %s more', hidden)] = { color: undefined, enabled: true };
+    categories[t('+ %s more', hidden)] = { color: [0, 0, 0, 0], enabled: true };
   }
   return categories;
 }

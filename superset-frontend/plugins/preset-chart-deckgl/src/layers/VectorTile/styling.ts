@@ -66,10 +66,16 @@ export function buildBreakpointExpression(
     ['all', ['>=', value, minValue], ['<=', value, maxValue]],
     toRgbaExpression(color),
   ]);
+  const raw: ExpressionSpecification = ['get', property];
   return [
     'case',
-    // Checked before to-number, which turns null into 0.
-    ['==', ['get', property], null],
+    // Checked before to-number, which turns null and '' into 0 and booleans into 0/1.
+    [
+      'any',
+      ['==', raw, null],
+      ['==', raw, ''],
+      ['==', ['typeof', raw], 'boolean'],
+    ],
     toRgbaExpression(fallback),
     ...ranges,
     toRgbaExpression(fallback),
@@ -164,22 +170,28 @@ const categoryPropertySpec: StylePropertySpecification = {
 };
 
 type CategoryScale = ReturnType<typeof CategoricalColorNamespace.getScale>;
-const categoryScales = new Map<string, CategoryScale>();
+type CachedScale = { scale: CategoryScale; forcedItems: object };
+const categoryScales = new Map<string, CachedScale>();
 
 /**
  * Returns one colour scale per chart and palette. getScale() builds a new
  * scale on every call, and a new scale forgets which colour each value has.
+ * The scale is rebuilt when the namespace's custom label colours are replaced.
  */
 function getCategoryScale(
   colorScheme: string | undefined,
   sliceId: number | undefined,
 ): CategoryScale {
   const key = `${sliceId ?? ''}:${colorScheme ?? ''}`;
-  let scale = categoryScales.get(key);
-  if (!scale) {
-    scale = CategoricalColorNamespace.getScale(colorScheme);
-    categoryScales.set(key, scale);
+  const { forcedItems } = CategoricalColorNamespace.getNamespace();
+  const cached = categoryScales.get(key);
+  // Dashboards replace the forced-colour object when they apply custom label
+  // colours; a scale built before that would keep the old colours.
+  if (cached?.forcedItems === forcedItems) {
+    return cached.scale;
   }
+  const scale = CategoricalColorNamespace.getScale(colorScheme);
+  categoryScales.set(key, { scale, forcedItems });
   return scale;
 }
 
