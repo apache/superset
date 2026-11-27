@@ -142,7 +142,12 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
             # be strings. ``map`` escapes each category once and keeps the
             # categorical dtype; if two categories escape to the same text it
             # returns a plain column instead, which writes the same values.
-            df.isetitem(position, column.map(escape_values))
+            # ``map`` re-infers the categories' dtype, which would rewrite
+            # object categories holding no strings (a big integer as a float,
+            # a timestamp without its time), so a column is only mapped when
+            # one of its categories needs escaping, as for the axis levels.
+            if needs_escaping(column.cat.categories):
+                df.isetitem(position, column.map(escape_values))
         elif pd.api.types.is_string_dtype(column.dtype):
             df.isetitem(
                 position,

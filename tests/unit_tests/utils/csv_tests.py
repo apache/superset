@@ -305,6 +305,35 @@ def test_df_to_escaped_csv_categorical_column() -> None:
     )
 
 
+def test_df_to_escaped_csv_categorical_without_strings_is_untouched() -> None:
+    """
+    Categorical columns with nothing to escape are written as before.
+
+    Mapping the categories re-infers their dtype, which would turn object
+    categories holding a big integer into a rounded float and drop the time
+    from timestamps.
+    """
+
+    def object_categorical(values: list[Any]) -> pd.Categorical:
+        categories = pd.Index(values, dtype=object)
+        return pd.Categorical.from_codes(
+            range(len(values)), dtype=pd.CategoricalDtype(categories)
+        )
+
+    df = pd.DataFrame(
+        {
+            "number": object_categorical([2**53 + 1, 0.5]),
+            "moment": object_categorical(
+                [pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-02")]
+            ),
+        }
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
+        "number,moment\n9007199254740993,2024-01-01 00:00:00\n0.5,2024-01-02 00:00:00\n"
+    )
+
+
 def test_df_to_escaped_csv_object_columns_without_strings() -> None:
     """
     Object columns holding no strings are written exactly as before escaping.
