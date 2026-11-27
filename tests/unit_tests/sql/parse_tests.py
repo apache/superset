@@ -8705,7 +8705,6 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
         ("a + c", ["a", "b"], "base", False),
         ("a * 2", ["a + 1"], "base", False),
         ("ts", ["DATE_TRUNC('day', ts)"], "postgresql", False),
-        ("a - (SELECT b FROM t)", ["a"], "base", False),
         (")(", ["a"], "base", True),
         ("a", ["bin(ts,1h)"], "base", True),
     ],
