@@ -315,6 +315,7 @@ export const TableBrowser = ({
   manuallyOpenedNodesRef.current = manuallyOpenedNodes;
 
   // Collapse the previously previewed table when a different table is selected.
+  const treeSelectedSchemaRef = useRef<string | undefined>(undefined);
   const handlePreviewTable = useCallback(
     (table: TableReference) => {
       const tableId = `table:${dbId}:${table.schema}:${table.table_name}`;
@@ -326,6 +327,8 @@ export const TableBrowser = ({
         );
       }
       selectedTableIdRef.current = tableId;
+      treeSelectedSchemaRef.current =
+        dbId && table.schema ? `schema:${dbId}:${table.schema}` : undefined;
       onPreviewTable?.(table);
     },
     [dbId, onPreviewTable],
@@ -347,7 +350,11 @@ export const TableBrowser = ({
     const schemaId = dbId && schema ? `schema:${dbId}:${schema}` : undefined;
     if (revealedSchemaRef.current === schemaId) return;
     revealedSchemaRef.current = schemaId;
-    setSearchTerm('');
+    const fromTree = treeSelectedSchemaRef.current === schemaId;
+    treeSelectedSchemaRef.current = undefined;
+    if (!fromTree) {
+      setSearchTerm('');
+    }
     if (!schemaId) return;
     setManuallyOpenedNodes(previous => ({ ...previous, [schemaId]: true }));
     handleToggle(schemaId, true);

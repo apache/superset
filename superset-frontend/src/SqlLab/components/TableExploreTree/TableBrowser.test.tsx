@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import fetchMock from 'fetch-mock';
 import { Tree } from 'react-arborist';
 import {
@@ -358,4 +358,39 @@ test('marks tables that already have a dataset when existingTableKeys is provide
   expect(
     await screen.findByLabelText('This table already has a dataset'),
   ).toBeVisible();
+});
+
+test('keeps the search filter when clicking a table updates schema from the tree', async () => {
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    result: ['public', 'sales'],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/tables/*', {
+    result: [{ label: 'orders', value: 'orders', type: 'table' }],
+    count: 1,
+  });
+  fetchMock.get('glob:*/api/v1/database/1/table_metadata/*', {
+    columns: [{ name: 'id', type: 'INTEGER' }],
+  });
+  fetchMock.get('glob:*/api/v1/database/1/table_metadata/extra/*', {});
+
+  function PreviewWrapper() {
+    const [schema, setSchema] = useState<string | undefined>('public');
+    return (
+      <TableBrowser
+        dbId={1}
+        schema={schema}
+        onPreviewTable={table => setSchema(table.schema)}
+      />
+    );
+  }
+
+  render(<PreviewWrapper />, { useRedux: true });
+  await userEvent.click(await screen.findByText('sales'));
+  await screen.findByText('orders');
+  const searchInput = screen.getByPlaceholderText(
+    'Enter a part of the object name',
+  );
+  await userEvent.type(searchInput, 'orders');
+  await userEvent.click(screen.getAllByText('orders')[0]);
+  expect(searchInput).toHaveValue('orders');
 });
