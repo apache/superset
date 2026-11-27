@@ -47,6 +47,8 @@ ERROR_NO_QUERY_CONTEXT = "no-query-context"
 # Direct downloads only: the chart's queries have no row bound known before
 # they run, so only a background export can include it.
 ERROR_UNBOUNDED = "unbounded-query"
+# The chart uses a visualization semantic views don't support yet.
+ERROR_UNSUPPORTED_CHART_TYPE = "unsupported-chart-type"
 ERROR_GENERAL = "general-exception"
 
 
@@ -105,13 +107,23 @@ def errored_groups(errored: dict[str, list[str]]) -> list[tuple[str, list[str]]]
             "determined before they run. Ask an administrator to enable "
             "background exports to include them."
         ),
+        ERROR_UNSUPPORTED_CHART_TYPE: __(
+            "The following charts were omitted because their chart type is not "
+            "yet supported on semantic views. To include them, switch each chart "
+            "to a supported type such as Table, Bar or Line."
+        ),
         ERROR_GENERAL: __(
             "The following charts were omitted because an error occurred while "
             "exporting them:"
         ),
     }
     fallback = __("The following charts could not be exported:")
-    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_UNBOUNDED, ERROR_GENERAL]
+    ordered = [
+        ERROR_NO_QUERY_CONTEXT,
+        ERROR_UNBOUNDED,
+        ERROR_UNSUPPORTED_CHART_TYPE,
+        ERROR_GENERAL,
+    ]
     reasons = ordered + [reason for reason in errored if reason not in ordered]
     return [
         (str(notes.get(reason, fallback)), labels)

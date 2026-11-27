@@ -18,17 +18,20 @@
 """A set of constants and methods to manage permissions and security"""
 
 import datetime
+import functools
 import logging
 import re
 import time
 from collections import defaultdict
 from collections.abc import Set as AbstractSet
+from contextlib import contextmanager
 from math import ceil
 from types import SimpleNamespace
 from typing import (
     Any,
     Callable,
     cast,
+    Iterator,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -36,7 +39,17 @@ from typing import (
 )
 from urllib.parse import quote
 
-from flask import abort, current_app, Flask, g, has_app_context, Request, Response
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    g,
+    has_app_context,
+    has_request_context,
+    Request,
+    request,
+    Response,
+)
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
@@ -86,7 +99,9 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
+from werkzeug.local import LocalProxy
 
+from superset.charts.query_mode import is_tree_query_mode
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -275,6 +290,28 @@ def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -
     for row, row_id in zip(data.get("result", []), ids, strict=False):
         if row_id in extra_editors_by_id:
             row["extra_editors"] = extra_editors_by_id[row_id]
+
+
+_VIEW_ACCESS_ANSWERS = "_view_access_answers"
+
+
+def remember_view_access(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Let ``can_access`` reuse its answers for the rest of the request.
+
+    Meant for the read-only requests that look up a dashboard. Their access
+    checks ask the same few questions -- ``all_datasource_access``,
+    ``all_database_access``, the database, catalog and schema permissions --
+    once per member dataset, and each answer is a query against the role
+    tables. Requests without it ask every time.
+    """
+
+    @functools.wraps(f)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        request.__dict__.setdefault(_VIEW_ACCESS_ANSWERS, {})
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
@@ -593,7 +630,8 @@ class SupersetUserApi(UserApi):
         here (to obtain its id) and syncing its ``Subject`` row alongside it
         means both writes ride the same transaction and commit together,
         instead of the subject sync needing a second, separate commit after
-        the fact.
+        the fact. The forced-password-change flag is raised the same way: the
+        new account starts on a password the administrator chose.
         """
         super().pre_add(item)
         from superset.daos.user import UserDAO
@@ -601,6 +639,7 @@ class SupersetUserApi(UserApi):
         self.datamodel.session.add(item)
         self.datamodel.session.flush()
         UserDAO._sync_subject(item)
+        self._require_password_change(item.id)
 
     def pre_update(self, item: Model, data: dict[str, Any]) -> None:
         """Same reasoning as ``pre_add``: ``UserApi.put`` calls ``pre_update``
@@ -616,14 +655,46 @@ class SupersetUserApi(UserApi):
             # An admin-initiated password change via this endpoint (the
             # Users list edit modal) must invalidate the target account's
             # other outstanding sessions, the same as the self-service
-            # ``/me/`` path. The forced-change flag is deliberately left
-            # alone: a temporary password set by an admin still has to be
-            # replaced by the user at next login.
+            # ``/me/`` path. The password is a temporary one the admin chose,
+            # so the target also has to replace it at next login -- unless the
+            # admin is editing their own account.
             from superset.security.session_invalidation import (
                 invalidate_sessions_for_user,
             )
 
             invalidate_sessions_for_user(item.id)
+            acting_user = getattr(self.appbuilder.sm, "current_user", None)
+            if getattr(acting_user, "id", None) != item.id:
+                self._require_password_change(item.id)
+            else:
+                # An admin replacing their own password has chosen it, the
+                # same as the self-service ``/me/`` path.
+                from superset.security.password_change import (
+                    clear_password_must_change,
+                )
+
+                clear_password_must_change(item.id)
+
+    @staticmethod
+    def _require_password_change(user_id: int) -> None:
+        """Flag ``user_id`` to change their password at next login.
+
+        Only when ``ENABLE_FORCE_PASSWORD_CHANGE`` is on, so turning the
+        setting on later does not retroactively lock out every account an
+        administrator ever set a password for, and only under ``AUTH_DB``:
+        with any other auth type the password set here is not the one users
+        sign in with. Writes without committing: FAB commits the user change
+        right after ``pre_add``/``pre_update``.
+        """
+        config = current_app.config
+        if (
+            not config.get("ENABLE_FORCE_PASSWORD_CHANGE")
+            or config.get("AUTH_TYPE", AUTH_DB) != AUTH_DB
+        ):
+            return
+        from superset.security.password_change import write_password_must_change
+
+        write_password_must_change(user_id)
 
     @expose("/", methods=["POST"])
     @protect()
@@ -1256,9 +1327,21 @@ def _collect_sortable_identifiers(
     return allowed
 
 
+def _is_tree_mode_chart(stored_chart: "Slice") -> bool:
+    """Read the Tree capability from the stored chart, never the request."""
+    return is_tree_query_mode(
+        {
+            "viz_type": stored_chart.viz_type,
+            "query_mode": stored_chart.params_dict.get("query_mode"),
+        }
+    )
+
+
 def _collect_stored_orderby_entries(
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> set[str]:
     """
     Frozen saved orderby entries a guest may replay exactly.
@@ -1266,6 +1349,11 @@ def _collect_stored_orderby_entries(
     allowed: set[str] = {
         freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
     }
+    if is_tree_mode:
+        allowed.update(
+            freeze_value(entry)
+            for entry in stored_chart.params_dict.get("tree_orderby") or []
+        )
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
             allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
@@ -1372,6 +1460,8 @@ def _orderby_modified(
     query_context: "QueryContext",
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> bool:
     """
     Whether any order-by clause sorts by a term the stored chart does not already
@@ -1383,7 +1473,7 @@ def _orderby_modified(
     """
     visible_targets = _collect_sortable_identifiers(stored_chart, stored_query_context)
     stored_orderby_entries = _collect_stored_orderby_entries(
-        stored_chart, stored_query_context
+        stored_chart, stored_query_context, is_tree_mode=is_tree_mode
     )
     form_data = query_context.form_data or {}
     # Both ``form_data`` and each ``QueryObject`` can carry an order-by, and in
@@ -1768,6 +1858,8 @@ def _columns_metrics_modified(
     form_data: dict[str, Any],
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> bool:
     """
     Whether the requested columns/metrics/group-by read beyond what the stored
@@ -1786,6 +1878,8 @@ def _columns_metrics_modified(
         ("groupby", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
     ]:
         is_metric = key == "metrics"
+        if is_tree_mode:
+            stored_params_keys += ("tree_metrics" if is_metric else "tree_columns",)
 
         # Requested column values additionally collapse a frontend-synthesized
         # ``BASE_AXIS`` x-axis to the column it references (see
@@ -2039,6 +2133,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # query_context was present is the key signal for the missing/stale case.
     # Use ``is not None`` so an empty-but-present stored context reads as present.
     stored_context_state = "present" if stored_query_context is not None else "missing"
+    is_tree_mode = _is_tree_mode_chart(stored_chart)
 
     # Each comparator guards one facet of the payload against the stored chart;
     # the first one that objects rejects the request, with its reason logged
@@ -2063,7 +2158,11 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ),
         (
             lambda: _columns_metrics_modified(
-                query_context, form_data, stored_chart, stored_query_context
+                query_context,
+                form_data,
+                stored_chart,
+                stored_query_context,
+                is_tree_mode=is_tree_mode,
             ),
             "columns/metrics/group-by not a subset of the stored chart",
         ),
@@ -2075,7 +2174,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ),
         (
             lambda: _orderby_modified(
-                query_context, stored_chart, stored_query_context
+                query_context,
+                stored_chart,
+                stored_query_context,
+                is_tree_mode=is_tree_mode,
             ),
             "order-by references a term not on the stored chart",
         ),
@@ -2538,15 +2640,88 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Note this method adds protection from has_access failing from missing
         permission/view entries.
 
+        Within a request that ``remember_view_access`` marks -- a dashboard
+        lookup -- each answer is reused for the rest of that request, and
+        within a ``cache_permission_checks`` scope for the rest of that scope;
+        every other call asks the role tables. The request's memo hangs off the
+        request object, not ``flask.g``, which outlives a request when an app
+        context is pushed outside one, and it is keyed by the user object
+        itself, unwrapped from flask-login's ``current_user`` proxy, so no
+        answer can reach another user.
+
         :param permission_name: The FAB permission name
         :param view_name: The FAB view-menu name
         :returns: Whether the user can access the FAB permission/view
         """
 
         user = g.user
-        if user.is_anonymous:
-            return self.is_item_public(permission_name, view_name)
-        return self._has_view_access(user, permission_name, view_name)
+        cached: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        key: tuple[str, str] = (permission_name, view_name)
+        if cached is not None and cached[0] is user and key in cached[1]:
+            return cached[1][key]
+        allowed: bool = (
+            self.is_item_public(permission_name, view_name)
+            if user.is_anonymous
+            else self._remembered_view_access(user, permission_name, view_name)
+        )
+        if cached is not None and cached[0] is user:
+            cached[1][key] = allowed
+        return allowed
+
+    def _remembered_view_access(
+        self, user: Any, permission_name: str, view_name: str
+    ) -> bool:
+        """
+        Answer for a signed-in user, reusing the answers of a marked request.
+
+        :param user: The user as bound to ``g.user``, possibly flask-login's proxy
+        :param permission_name: The FAB permission name
+        :param view_name: The FAB view-menu name
+        :returns: Whether the user can access the FAB permission/view
+        """
+        if isinstance(user, LocalProxy):
+            user = user._get_current_object()
+        memos = (
+            request.__dict__.get(_VIEW_ACCESS_ANSWERS)
+            if has_request_context()
+            else None
+        )
+        if memos is None:
+            return self._has_view_access(user, permission_name, view_name)
+
+        owner, answers = memos.get(id(user), (None, {}))
+        if owner is not user:
+            answers = {}
+            memos[id(user)] = (user, answers)
+        key = (permission_name, view_name)
+        if key not in answers:
+            answers[key] = self._has_view_access(user, permission_name, view_name)
+        return answers[key]
+
+    @contextmanager
+    def cache_permission_checks(self) -> Iterator[None]:
+        """Memoize exact permission checks during one read-only serialization.
+
+        Do not use around permission writes or authentication changes. The cache
+        belongs to the Flask context and the ``g.user`` binding at scope entry.
+        Reassigning that binding bypasses it; a re-login behind the same
+        LocalProxy would not. The read-only list dump does not authenticate.
+        The cache is discarded even if serialization fails, and custom
+        security-manager overrides still run normally.
+        """
+        previous: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        g._permission_check_cache = (getattr(g, "user", None), {})
+        try:
+            yield
+        finally:
+            if previous is None:
+                g.pop("_permission_check_cache", None)
+            else:
+                g._permission_check_cache = previous
 
     def can_access_catalog_scoped(
         self,
@@ -4141,6 +4316,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_id: int,
         database_name: str,
     ) -> None:
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
         view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
         self._delete_pvm_on_sqla_event(
@@ -4157,10 +4336,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.permission_model.name == "catalog_access",
                 )
             )
-            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
+            .filter(
+                self.viewmenu_model.name.startswith(
+                    f"[{database_name}].[", autoescape=True
+                )
+            )
             .all()
         )
+        # A different database can extend the same bracket-delimited prefix.
+        foreign_prefixes = [
+            f"[{name}]."
+            for (name,) in self.session.query(Database.database_name).filter(
+                Database.id != database_id,
+                Database.database_name.startswith(
+                    f"{database_name}].", autoescape=True
+                ),
+            )
+        ]
         for schema_pvm in schema_pvms:
+            if any(
+                schema_pvm.view_menu.name.startswith(prefix)
+                for prefix in foreign_prefixes
+            ):
+                continue
             self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
 
     def _update_vm_database_access(
@@ -4196,13 +4394,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_updated_pvm = self.find_permission_view_menu(
             "database_access", new_view_menu_name
         )
-        if new_updated_pvm:
+        if new_updated_pvm and new_updated_pvm.id != db_pvm.id:
             logger.info(
                 "New permission [%s] already exists, deleting the previous",
                 new_view_menu_name,
             )
-            self._delete_vm_database_access(
-                mapper, connection, target.id, old_database_name
+            # Mapper events cannot flush ORM relationship changes: merge grants
+            # through the event connection before deleting the source PVM.
+            source_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id == db_pvm.id
+                    )
+                ).scalars()
+            )
+            destination_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id
+                        == new_updated_pvm.id
+                    )
+                ).scalars()
+            )
+            for role_id in source_roles - destination_roles:
+                connection.execute(
+                    assoc_permissionview_role.insert().values(
+                        role_id=role_id, permission_view_id=new_updated_pvm.id
+                    )
+                )
+            # Leave schema/catalog grants for permission sync to migrate.
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "database_access", old_view_menu_name
             )
             return None
         connection.execute(
@@ -5716,18 +5938,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if sql and database:
             query = Query(
-                database=database,
                 sql=sql,
                 schema=schema,
                 catalog=catalog,
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            # This ephemeral Query must never be persisted; with
-            # cascade_backrefs=False it is not added to the session in the
-            # first place, so only expunge if something else added it.
-            if query in self.session:
-                self.session.expunge(query)
+            # Avoid backref events: a read-only access check must not dirty the
+            # database and evict its cached engines on the next session flush.
+            set_committed_value(query, "database", database)
 
         # When only ``database`` is provided, enforce database-level access
         # here so the call is not a no-op.

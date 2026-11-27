@@ -474,3 +474,48 @@ test('creationKind survives for pre_tracking and imported variants', () => {
     expect((entries[0] as SaveGroup).creationKind).toBe(kind);
   });
 });
+
+test.each([true, false])(
+  'archive and adjacent update stay separate (archive first: %s)',
+  archiveFirst => {
+    const archive = record({
+      source: 'related',
+      kind: '__archive__',
+      operation: 'announce',
+      version_uuid: null,
+      path: null,
+      to_value: null,
+      transaction_id: archiveFirst ? 12 : 11,
+    });
+    const update = record({
+      source: 'related',
+      transaction_id: archiveFirst ? 11 : 12,
+    });
+    const entries = buildTimeline([archive, update]);
+    expect(entries).toHaveLength(2);
+    expect(
+      entries.map(entry => entry.type === 'related' && entry.records.length),
+    ).toEqual([1, 1]);
+  },
+);
+
+test('bulk archives retain one row per chart and deduplicate overlapping pages', () => {
+  const archives = ['a', 'b', 'c'].map(entity_uuid =>
+    record({
+      source: 'related',
+      kind: '__archive__',
+      operation: 'announce',
+      entity_uuid,
+      version_uuid: null,
+      path: null,
+      to_value: null,
+    }),
+  );
+  const entries = buildTimeline(mergeActivityPages(archives, archives));
+  expect(entries).toHaveLength(3);
+  expect(
+    entries.every(
+      entry => entry.type === 'related' && !entry.rollupEntityNames,
+    ),
+  ).toBe(true);
+});

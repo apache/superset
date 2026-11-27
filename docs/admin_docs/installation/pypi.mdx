@@ -126,6 +126,20 @@ First, start by installing `apache_superset`:
 pip install apache_superset
 ```
 
+When installing from a source checkout instead of PyPI, first build the frontend
+assets, which a checkout does not include:
+`(cd superset-frontend && npm ci && npm run build)`. Then install the core package
+from the same checkout together with Superset. From the repository root, run:
+
+```bash
+python -m pip install ./superset-core .
+```
+
+This keeps the application's core APIs and dependency requirements aligned with
+the source revision. The published core package may belong to a different release.
+For an editable development installation, see the
+[development setup](/developer-docs/contributing/development-setup#flask-server).
+
 Then, define mandatory configurations, SECRET_KEY and FLASK_APP:
 
 ```bash

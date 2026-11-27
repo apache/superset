@@ -63,7 +63,8 @@ def history_counts(session: Session) -> dict[str, int]:
         table.name: session.scalar(sa.select(sa.func.count()).select_from(table))
         for table in Model.metadata.tables.values()
         if table.name.endswith("_version")
-        or table.name in {"version_transaction", "version_changes"}
+        or table.name
+        in {"version_transaction", "version_changes", "version_chart_archive_scope"}
     }
 
 
