@@ -16,6 +16,7 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import base64
 import gc
 import sqlite3
 from contextlib import nullcontext
@@ -27,6 +28,7 @@ import pandas as pd
 import pytest
 import sqlalchemy.exc
 from flask import current_app
+from freezegun import freeze_time
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy import (
@@ -3457,6 +3459,75 @@ def test_engine_information_keeps_declared_patterns() -> None:
     }
 
 
+def _jwt(exp: int) -> str:
+    """An HS256-shaped token with the given ``exp`` and a fake, decodable signature."""
+    claims = json.dumps({"sub": "service-account", "exp": exp}).encode()
+    payload = base64.urlsafe_b64encode(claims).rstrip(b"=").decode()
+    return f"eyJhbGciOiJIUzI1NiJ9.{payload}.c2lnbmF0dXJlXYZabcde"
+
+
+@freeze_time("2026-11-05T12:00:00Z")
+def test_stored_secret_expirations() -> None:
+    """
+    Each stored sensitive JWT with an exp claim is listed with its expiry and
+    whether it has passed; other secrets, such as a PEM key, are not.
+    """
+    pem = (
+        "-----BEGIN PRIVATE KEY-----\n"
+        + "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC" * 20
+        + "\n-----END PRIVATE KEY-----\n"
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(
+            {
+                "expiring": f"  {_jwt(1_794_312_000)}  ",
+                "expired": _jwt(1_762_257_600),
+                "private_key": pem,
+                "password": "hunter2",
+            }
+        ),
+    )
+
+    assert database.stored_secret_expirations() == {
+        "$.expired": {"expires_at": "2025-11-04T12:00:00+00:00", "expired": True},
+        "$.expiring": {"expires_at": "2026-11-10T12:00:00+00:00", "expired": False},
+    }
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra",
+    [None, "", "{oops", "[1, 2]", "{}", json.dumps({"password": "hunter2"})],
+)
+def test_stored_secret_expirations_none(encrypted_extra: str | None) -> None:
+    """
+    No stored JWT, or a missing or malformed `encrypted_extra`, gives no entries.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=encrypted_extra,
+    )
+
+    assert database.stored_secret_expirations() == {}
+
+
+def test_stored_secret_expirations_only_declared_fields() -> None:
+    """
+    A JWT outside the engine's declared sensitive paths is not listed.
+    """
+    database = Database(
+        database_name="druid",
+        sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+        encrypted_extra=json.dumps(
+            {"connect_args": {"scheme": _jwt(1_794_312_000), "jwt": "token"}}
+        ),
+    )
+
+    assert database.stored_secret_expirations() == {}
+
+
 def _embedded_snowflake_database(
     *,
     username: str = "embedded_svc",
@@ -4557,6 +4628,90 @@ def test_a_rejected_fallback_credential_is_logged_on_the_raw_connection_path(
         assert rejections[0].args[3] == "OperationalError"
     else:
         assert rejections == []
+
+
+def _encrypted_pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
+@pytest.mark.parametrize(
+    "body, passphrase, exception",
+    [
+        ("right", "wrong-passphrase", "ValueError"),
+        ("right", "", "TypeError"),
+        ("not a PEM key", "right-passphrase", "ValueError"),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_is_refused_like_a_rejected_sign_in(
+    mocker: MockerFixture, body: str, passphrase: str, exception: str
+) -> None:
+    """
+    A key pair is decoded before any engine exists, so its failure never reaches
+    the engine's ``handle_error`` listener. The engine spec refuses the
+    guest itself: logged once for administrators, naming only the error's class,
+    and a handled 400 with the fixed embedded refusal message -- not a 500.
+    """
+    from superset.exceptions import SupersetErrorException
+    from superset.utils.error_sanitization import (
+        GENERIC_ERROR_MESSAGE,
+        sanitize_superset_error,
+    )
+
+    pem = _encrypted_pem("right-passphrase") if body == "right" else body
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": pem,
+        "privatekey_pass": passphrase,
+    }
+    database.encrypted_extra = json.dumps(extra)
+    database.id = 12
+
+    mocker.patch("superset.models.core._ENGINE_CACHE", {})
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    warning = mocker.patch("superset.models.core.logger.warning")
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=True)
+
+    assert excinfo.value.status == 400
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    # An error type Superset authors survives redaction with its fixed message.
+    sanitized = sanitize_superset_error(excinfo.value.error, required=True).message
+    assert sanitized == excinfo.value.error.message
+    assert sanitized != str(GENERIC_ERROR_MESSAGE)
+    create_engine_mock.assert_not_called()
+
+    # Logged once, by the engine spec's refusal, naming only the error's class.
+    refusals = [call for call in warning.call_args_list if "Refused" in call.args[0]]
+    assert len(refusals) == 1
+    assert refusals[0].args[1:3] == ("snowflake_db", 12)
+    assert f"({exception})" in refusals[0].args[3]
+    assert not [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    rendered = refusals[0].args[0] % refusals[0].args[1:]
+    for secret in (pem, passphrase, "embedded_svc"):
+        if secret:
+            assert secret not in rendered
+            assert secret not in str(excinfo.value.error.message)
 
 
 def test_a_rejection_reported_by_two_paths_is_logged_once(

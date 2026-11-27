@@ -42,6 +42,54 @@ test('marks semantic dimensions as groupable for drill by', () => {
   ]);
 });
 
+test('collapses time grain variants into one labelled dimension', () => {
+  expect(
+    semanticViewDimensionsToColumns([
+      {
+        name: 'Orders.order_date',
+        type: 'timestamp[us]',
+        grain: 'Month',
+        verbose_name: 'Monthly order date',
+      },
+      {
+        name: 'Orders.order_date',
+        type: 'date32[day]',
+        grain: null,
+        verbose_name: 'Order date',
+      },
+      {
+        name: 'Orders.order_date',
+        type: 'timestamp[us]',
+        grain: 'Day',
+        verbose_name: 'Order date',
+      },
+      { name: 'Orders.order_ts', type: 'timestamp[us]', grain: 'Hour' },
+      {
+        name: 'Orders.ship_date',
+        type: 'date32[day]',
+        verbose_name: 'Order date',
+      },
+    ]),
+  ).toEqual([
+    expect.objectContaining({
+      column_name: 'Orders.order_date',
+      verbose_name: 'Order date',
+      type: 'date32[day]',
+      groupby: true,
+    }),
+    expect.objectContaining({
+      column_name: 'Orders.order_ts',
+      verbose_name: undefined,
+      groupby: true,
+    }),
+    expect.objectContaining({
+      column_name: 'Orders.ship_date',
+      verbose_name: 'Order date',
+      groupby: true,
+    }),
+  ]);
+});
+
 test('maps the structure payload', async () => {
   fetchMock.get('glob:*/api/v1/semantic_view/501/structure', {
     result: {

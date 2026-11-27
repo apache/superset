@@ -1918,6 +1918,82 @@ def test_chart_display_labels_exclude_hidden_table_controls(
     }
 
 
+@pytest.mark.parametrize(
+    "query_mode, expected",
+    [
+        ("aggregate", {"region": "Region", "revenue": "Revenue"}),
+        ("raw", {"metro": "Metro area"}),
+    ],
+)
+def test_table_v2_display_labels_ignore_retained_tree_mirrors(
+    query_mode: str, expected: dict[str, str]
+) -> None:
+    """dormant Tree settings do not change Aggregate/Raw display labels."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        query_mode=query_mode,
+        all_columns=["metro"],
+        groupby=["region"],
+        metrics=["revenue"],
+        tree_columns=["cost_center"],
+        tree_metrics=["margin"],
+        tree_orderby=[["cost_center", True]],
+    )
+    chart.viz_type = "ag-grid-table"
+    assert saved_chart_display_labels(table, chart) == expected
+
+
+def test_tree_mode_display_labels_use_all_level_mirrors() -> None:
+    """child display labels come from Tree mirrors, not dormant controls."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        query_mode="tree",
+        tree_columns=["region", "metro"],
+        groupby=["cost_center"],
+        all_columns=["cost_center"],
+        metrics=["revenue"],
+    )
+    chart.viz_type = "ag-grid-table"
+    assert saved_chart_display_labels(table, chart) == {
+        "region": "Region",
+        "metro": "Metro area",
+    }
+    assert (
+        table._active_display_form_data({"query_mode": "tree"}, "ag-grid-table") == {}
+    )
+
+
+@pytest.mark.parametrize("query_context_present", [False, True])
+def test_data_for_slices_includes_tree_child_column_labels(
+    query_context_present: bool,
+) -> None:
+    """Include child columns that the parent page query does not select."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        query_mode="tree",
+        levels=[{"columns": ["region"]}, {"columns": ["metro"]}],
+        tree_columns=["region", "metro"],
+    )
+    chart.viz_type = "ag-grid-table"
+    if query_context_present:
+        chart.query_context = json.dumps({"queries": [{"columns": ["region"]}]})
+
+    data = table.data_for_slices([chart])
+
+    assert data["verbose_map"] == {
+        "__timestamp": "Time",
+        "region": "Region",
+        "metro": "Metro area",
+    }
+    assert {column["column_name"] for column in data["columns"]} == {"region", "metro"}
+
+
 @pytest.mark.parametrize("model_viz_type", [None, "tree_chart", "table"])
 def test_chart_display_labels_share_saved_viz_type_resolution(
     model_viz_type: str | None,

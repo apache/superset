@@ -26,15 +26,17 @@ import {
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { EChartsCoreOption } from 'echarts/core';
+import type { CustomSeriesRenderItem } from 'echarts';
 import { Refs } from '../types';
-import { sanitizeHtml as escapeHtml } from '../utils/series';
 import { EchartsBulletChartProps, BulletChartTransformedProps } from './types';
+import { sanitizeHtml as escapeHtml } from '../utils/series';
 import {
   getColorLuminance,
   tokenizeToNumericArray,
   tokenizeToStringArray,
 } from './utils';
 import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
+import { getMetricValue } from '../utils/metricBounds';
 
 // Foregrounds for band labels drawn over a custom fill, chosen from the fill's
 // own luminance so they stay readable in both light and dark themes.
@@ -58,6 +60,29 @@ const wcagContrast = (luminanceA: number, luminanceB: number): number => {
   return (lighter + 0.05) / (darker + 0.05);
 };
 const MEASURE_BAR_FRACTION = 0.28;
+// Per-row range bands (relative ranges) fill this share of their row.
+const ROW_BAND_FRACTION = 0.7;
+// The target tick stands taller than the measure bar, like d3-bullet.
+const TARGET_TICK_FRACTION = MEASURE_BAR_FRACTION * 1.8;
+
+// Draws one range band from data [start, end, rowIndex] within its row.
+const renderRowBand: CustomSeriesRenderItem = (_params, api) => {
+  const row = Number(api.value(2));
+  const start = api.coord([api.value(0), row]);
+  const end = api.coord([api.value(1), row]);
+  const rowSize = api.size ? (api.size([0, 1]) as number[])[1] : 0;
+  const height = rowSize * ROW_BAND_FRACTION;
+  return {
+    type: 'rect',
+    shape: {
+      x: start[0],
+      y: start[1] - height / 2,
+      width: Math.max(end[0] - start[0], 0),
+      height,
+    },
+    style: api.style(),
+  };
+};
 // Small pixel gap below the measure bar so the target/marker symbol doesn't
 // touch its edge.
 const MARKER_GAP_BELOW_BAR_PX = 12;
@@ -76,6 +101,8 @@ export default function transformProps(
     markerLabels: rawMarkerLabels,
     markerLines: rawMarkerLines,
     markerLineLabels: rawMarkerLineLabels,
+    targetMetric,
+    rangesRelative,
     yAxisFormat,
     showLabels,
     showLegend,
@@ -97,9 +124,30 @@ export default function transformProps(
   // the largest row drives the default band and the axis extent
   const measure = Math.max(...measures);
 
+  // Each row's own target, read from the same grouped query as the measure.
+  const targetLabel = targetMetric ? getMetricLabel(targetMetric) : '';
+  const targets = categories.map((_, i) =>
+    getMetricValue(rows[i], targetMetric),
+  );
+  const definedTargets = targets.filter(
+    (value): value is number => value !== undefined,
+  );
+
   // Match the legacy default: a single band up to 110% of the measure.
-  const explicitRanges = tokenizeToNumericArray(rawRanges);
-  const ranges = explicitRanges ?? [0, measure * 1.1];
+  const typedRanges = tokenizeToNumericArray(rawRanges);
+  const ranges = typedRanges ?? [0, measure * 1.1];
+  // Relative ranges are percentages of each row's target, so every row
+  // gets its own thresholds; otherwise all rows share the typed ones.
+  const relativeRanges = Boolean(
+    rangesRelative && typedRanges && definedTargets.length,
+  );
+  const rowRanges = categories.map((_, i) => {
+    if (!relativeRanges) return ranges;
+    const target = targets[i];
+    return target === undefined
+      ? []
+      : ranges.map(percent => (target * percent) / 100);
+  });
   const rangeLabels = tokenizeToStringArray(rawRangeLabels) ?? [];
   const markers = tokenizeToNumericArray(rawMarkers) ?? [];
   const markerLabels = tokenizeToStringArray(rawMarkerLabels) ?? [];
@@ -108,14 +156,22 @@ export default function transformProps(
 
   const formatter = getNumberFormatter(yAxisFormat);
 
+  const allRangeValues = rowRanges.flat();
   const axisMin = Math.min(
     0,
     ...measures,
-    ...ranges,
+    ...allRangeValues,
+    ...definedTargets,
     ...markers,
     ...markerLines,
   );
-  let axisMax = Math.max(...measures, ...ranges, ...markers, ...markerLines);
+  let axisMax = Math.max(
+    ...measures,
+    ...allRangeValues,
+    ...definedTargets,
+    ...markers,
+    ...markerLines,
+  );
   if (axisMax === axisMin) {
     // All values identical (e.g. an empty result measuring 0) would produce a
     // zero-width axis domain; expand it so the chart still renders.
@@ -139,9 +195,10 @@ export default function transformProps(
       label: rangeLabels[i],
       // Colors only apply to user-entered ranges; the automatic fallback band
       // must not pick up a stale `range_colors` entry kept from earlier edits.
-      color: explicitRanges ? rangeColors?.[i] || undefined : undefined,
+      color: typedRanges ? rangeColors?.[i] || undefined : undefined,
+      index: i,
     }))
-    .filter(({ value }) => value > axisMin)
+    .filter(({ value }) => relativeRanges || value > axisMin)
     .sort((a, b) => b.value - a.value);
   // Each band's label sits inside its own top-right corner: the visible strip
   // of a nested band ends at its threshold, so the label lands inside the
@@ -197,10 +254,13 @@ export default function transformProps(
   // Which labeled range a measure falls within, for the bar tooltip. Range
   // labels render at band edges, so naming the containing band on hover
   // disambiguates which side of a boundary a value sits on.
-  const ascendingRanges = [...ranges]
-    .map((value, i) => ({ value, label: rangeLabels[i] }))
-    .sort((a, b) => a.value - b.value);
-  const containingRangeLabel = (value: number): string | undefined => {
+  const containingRangeLabel = (
+    value: number,
+    row: number,
+  ): string | undefined => {
+    const ascendingRanges = rowRanges[row]
+      .map((threshold, i) => ({ value: threshold, label: rangeLabels[i] }))
+      .sort((a, b) => a.value - b.value);
     const hit = ascendingRanges.find(range => value <= range.value);
     if (hit?.label) return hit.label;
     const last = ascendingRanges[ascendingRanges.length - 1];
@@ -214,10 +274,12 @@ export default function transformProps(
   const markerLabelAt = (index: number, labels: string[], values: number[]) =>
     labels[index] ? labels[index] : formatter(values[index]);
 
+  const formatThreshold = (value: number) =>
+    relativeRanges ? `${value}% ${t('of target')}` : formatter(value);
   const rangeName = (value: number, i: number) =>
     rangeLabels[i]
-      ? `${rangeLabels[i]}: \u2264 ${formatter(value)}`
-      : `\u2264 ${formatter(value)}`;
+      ? `${rangeLabels[i]}: \u2264 ${formatThreshold(value)}`
+      : `\u2264 ${formatThreshold(value)}`;
   const markerName = (value: number, i: number, labels: string[]) =>
     labels[i] ? `${labels[i]}: ${formatter(value)}` : String(formatter(value));
 
@@ -226,6 +288,7 @@ export default function transformProps(
   // widths and reserve grid space for it.
   const legendNames = [
     metricLabel,
+    ...(definedTargets.length ? [targetLabel] : []),
     ...ranges.map(rangeName),
     ...markers.map((value, i) => markerName(value, i, markerLabels)),
     ...markerLines.map((value, i) => markerName(value, i, markerLineLabels)),
@@ -249,6 +312,56 @@ export default function transformProps(
   const markerOffsetPx = Math.round(
     (MEASURE_BAR_FRACTION / 2) * rowHeight + MARKER_GAP_BELOW_BAR_PX,
   );
+
+  // Relative ranges differ per row, so they are drawn as per-row rectangles
+  // instead of the chart-wide markArea used for typed ranges. Each shares its
+  // name with the range's hover series so one legend entry toggles both.
+  const rowBandSeries = relativeRanges
+    ? sortedRanges.map(({ value, index, color }, i) => ({
+        name: rangeName(value, index),
+        type: 'custom',
+        silent: true,
+        renderItem: renderRowBand,
+        encode: { x: [0, 1], y: 2 },
+        // A custom `range_colors` entry wins, as for the markArea bands.
+        itemStyle: {
+          color: color || bandFills[Math.min(i, bandFills.length - 1)],
+        },
+        data: rowRanges.flatMap((thresholds, row) =>
+          thresholds.length ? [[axisMin, thresholds[index], row]] : [],
+        ),
+        z: 1,
+      }))
+    : [];
+
+  // One target tick per row that has a target value.
+  const targetSeries = definedTargets.length
+    ? [
+        {
+          name: targetLabel,
+          type: 'scatter',
+          data: targets.flatMap((target, row) =>
+            target === undefined
+              ? []
+              : [
+                  {
+                    value: [target, row],
+                    tooltip: {
+                      formatter: () =>
+                        sanitizeHtml(
+                          `${grouped ? `${escapeHtml(categories[row])} \u2014 ` : ''}${escapeHtml(targetLabel)}: <b>${escapeHtml(formatter(target))}</b>`,
+                        ),
+                    },
+                  },
+                ],
+          ),
+          symbol: 'rect',
+          symbolSize: [3, Math.max(TARGET_TICK_FRACTION * rowHeight, 8)],
+          itemStyle: { color: theme.colorText },
+          z: 25,
+        },
+      ]
+    : [];
 
   const echartOptions: EChartsCoreOption = {
     animation: false,
@@ -297,19 +410,24 @@ export default function transformProps(
             const prefix = grouped
               ? `${escapeHtml(categories[i])} \u2014 `
               : '';
-            const band = containingRangeLabel(measures[i]);
+            const band = containingRangeLabel(measures[i], i);
             const bandLine = band
               ? `<br/>${escapeHtml(t('Range'))}: ${escapeHtml(band)}`
               : '';
+            const target = targets[i];
+            const targetLine =
+              target === undefined
+                ? ''
+                : `<br/>${escapeHtml(targetLabel)}: ${escapeHtml(formatter(target))}`;
             return sanitizeHtml(
-              `${prefix}${escapeHtml(metricLabel)}: <b>${escapeHtml(formatter(measures[i]))}</b>${bandLine}`,
+              `${prefix}${escapeHtml(metricLabel)}: <b>${escapeHtml(formatter(measures[i]))}</b>${targetLine}${bandLine}`,
             );
           },
         },
         z: 10,
         markArea: {
           silent: true,
-          data: bands.map(band => [
+          data: (relativeRanges ? [] : bands).map(band => [
             {
               name: band.name,
               itemStyle: band.itemStyle,
@@ -323,18 +441,27 @@ export default function transformProps(
       // Invisible hover targets at each range threshold: per-item tooltips
       // (markArea is not reliably hoverable), optional on-chart labels, and a
       // named legend entry each.
+      ...rowBandSeries,
+      ...targetSeries,
       ...ranges.map((value, index) => ({
         name: rangeName(value, index),
         type: 'scatter',
-        data: categories.map((_, row) => ({
-          value: [value, row],
-          tooltip: {
-            formatter: () =>
-              sanitizeHtml(
-                `${escapeHtml(rangeLabels[index] || '')} \u2264 <b>${escapeHtml(formatter(value))}</b>`,
-              ),
-          },
-        })),
+        data: categories.flatMap((_, row) => {
+          const threshold = rowRanges[row][index];
+          return threshold === undefined
+            ? []
+            : [
+                {
+                  value: [threshold, row],
+                  tooltip: {
+                    formatter: () =>
+                      sanitizeHtml(
+                        `${escapeHtml(rangeLabels[index] || '')} \u2264 <b>${escapeHtml(formatter(threshold))}</b>`,
+                      ),
+                  },
+                },
+              ];
+        }),
         symbol: 'rect',
         symbolSize: [14, 40],
         itemStyle: { color: 'transparent' },

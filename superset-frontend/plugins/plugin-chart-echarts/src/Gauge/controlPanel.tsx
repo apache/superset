@@ -26,6 +26,7 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
+import { boundMetricControl } from '../utils/metricBounds';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -43,6 +44,29 @@ const config: ControlPanelConfig = {
           },
         ],
         ['metric'],
+        [
+          boundMetricControl(
+            'min_metric',
+            t('Min from metric'),
+            t(
+              'Optional metric whose value sets the start of the gauge axis. ' +
+                'Overrides Min when it returns a number. With Group by, the ' +
+                'smallest value across groups is used.',
+            ),
+          ),
+        ],
+        [
+          boundMetricControl(
+            'max_metric',
+            t('Max from metric'),
+            t(
+              'Optional metric whose value sets the end of the gauge axis, ' +
+                'e.g. a target or capacity. Overrides Max when it returns a ' +
+                'number. With Group by, all gauges share one axis, so the ' +
+                'largest value across groups is used.',
+            ),
+          ),
+        ],
         ['adhoc_filters'],
         [
           {
@@ -71,7 +95,9 @@ const config: ControlPanelConfig = {
               default: DEFAULT_FORM_DATA.minVal,
               renderTrigger: true,
               label: t('Min'),
-              description: t('Minimum value on the gauge axis'),
+              description: t(
+                'Minimum value on the gauge axis. Ignored when Min from metric returns a value.',
+              ),
             },
           },
           {
@@ -82,7 +108,9 @@ const config: ControlPanelConfig = {
               default: DEFAULT_FORM_DATA.maxVal,
               renderTrigger: true,
               label: t('Max'),
-              description: t('Maximum value on the gauge axis'),
+              description: t(
+                'Maximum value on the gauge axis. Ignored when Max from metric returns a value.',
+              ),
             },
           },
         ],
@@ -274,6 +302,20 @@ const config: ControlPanelConfig = {
               ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.intervals,
+            },
+          },
+        ],
+        [
+          {
+            name: 'intervals_relative',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Interval bounds as percentages'),
+              description: t(
+                'Read interval bounds as percentages of the axis range, e.g. 50,80,100, so the colored intervals follow a min or max that comes from a metric.',
+              ),
+              renderTrigger: true,
+              default: DEFAULT_FORM_DATA.intervalsRelative,
             },
           },
         ],

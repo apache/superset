@@ -29,7 +29,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import Boolean, Column, column, Integer, types
+from sqlalchemy import Boolean, Column, column, Integer, text, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
@@ -231,6 +231,55 @@ def test_convert_inspector_columns(
     assert convert_inspector_columns(cols) == expected_result
 
 
+def test_convert_inspector_columns_stringifies_sql_expressions() -> None:
+    float_type = types.Float()
+    date_type = types.Date()
+    string_type = types.String()
+    cols = cast(
+        list[SQLAColumnType],
+        [
+            {
+                "name": "total",
+                "type": float_type,
+                "nullable": False,
+                "comment": None,
+                "clickhouse_alias": text("price * qty"),
+            },
+            {
+                "name": "day",
+                "type": date_type,
+                "clickhouse_materialized": text("toDate(ts)"),
+                "clickhouse_ttl": text("day + toIntervalDay(30)"),
+            },
+            {"name": "note", "type": string_type, "server_default": text("'x'")},
+        ],
+    )
+
+    assert convert_inspector_columns(cols) == [
+        {
+            "column_name": "total",
+            "name": "total",
+            "type": float_type,
+            "nullable": False,
+            "comment": None,
+            "clickhouse_alias": "price * qty",
+        },
+        {
+            "column_name": "day",
+            "name": "day",
+            "type": date_type,
+            "clickhouse_materialized": "toDate(ts)",
+            "clickhouse_ttl": "day + toIntervalDay(30)",
+        },
+        {
+            "column_name": "note",
+            "name": "note",
+            "type": string_type,
+            "server_default": "'x'",
+        },
+    ]
+
+
 def test_select_star(mocker: MockerFixture) -> None:
     """
     Test the ``select_star`` method.
@@ -330,13 +379,6 @@ def test_get_catalog_from_engine_params_no_database() -> None:
     url = make_url("postgresql://user:pw@host/")
     connect_args = {"database": "ignored"}
     assert BaseEngineSpec.get_catalog_from_engine_params(url, connect_args) is None
-
-
-def test_prepare_identifier_returns_name_unchanged() -> None:
-    name = "physical_column"
-
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
 
 
 def test_quote_table() -> None:
@@ -1918,6 +1960,31 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
     assert info["supports_offset"] is True
 
 
+def test_public_information_exposes_the_partition_mapping_capability() -> None:
+    """
+    The dataset editor re-derives partition mapping support from this when the
+    owner switches a dataset to another database.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    base = BaseEngineSpec.get_public_information()
+    assert base["supports_partition_filter_mapping"] is False
+    assert base["partition_value_transform_default"] is None
+
+    hive = HiveEngineSpec.get_public_information()
+    assert hive["supports_partition_filter_mapping"] is True
+    assert hive["partition_value_transform_default"] is None
+
+    class EngineWithDefault(BaseEngineSpec):
+        partition_value_transform_default = "bucket(:value)"
+
+    assert (
+        EngineWithDefault.get_public_information()["partition_value_transform_default"]
+        == "bucket(:value)"
+    )
+
+
 def _parameters(encryption: bool) -> BasicParametersType:
     parameters: dict[str, Any] = {
         "username": "user",
@@ -2454,6 +2521,33 @@ def test_expand_nested_columns_default_returns_input() -> None:
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
 
 
+def test_make_label_compatible_with_database(mocker: MockerFixture) -> None:
+    """
+    The database's maximum column name length decides when a label is hashed.
+    """
+
+    class ShortLabelsEngineSpec(BaseEngineSpec):
+        max_column_name_length = 10
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_max_column_name_length(database) is None
+    assert ShortLabelsEngineSpec.get_max_column_name_length(database) == 10
+
+    assert ShortLabelsEngineSpec.make_label_compatible("short", database) == "short"
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "63a949e13b"
+    )
+
+    mocker.patch.object(
+        ShortLabelsEngineSpec, "get_max_column_name_length", return_value=None
+    )
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "a longer label"
+    )
+
+
 def test_encrypted_extra_hints_disabled_or_unusable_input() -> None:
     """
     No hints are produced for a missing or malformed value, or a length of zero.
@@ -2484,6 +2578,8 @@ def test_encrypted_extra_hints_bigquery_private_key() -> None:
             "path": "$.credentials_info.private_key",
             "label": "Service Account Private Key",
             "suffix": "Ab3dE",
+            "expires_at": None,
+            "expired": None,
         }
     ]
 
@@ -2514,6 +2610,8 @@ def test_encrypted_extra_hints_label_falls_back_to_last_path_segment(
             "path": "$.credentials.token",
             "label": "token",
             "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
         }
     ]
 

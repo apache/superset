@@ -388,10 +388,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "result": database_connection_schema.dump(database, many=False),
         }
         # editors get the sensitive fields stored for this database, not the
-        # engine's declared patterns
+        # engine's declared patterns, and when each stored JWT expires
         if database and (information := response["result"].get("engine_information")):
             information["encrypted_extra_sensitive_fields"] = (
                 database.stored_sensitive_fields()
+            )
+            information["encrypted_extra_expirations"] = (
+                database.stored_secret_expirations()
             )
         try:
             if database and database.ssh_tunnel:
@@ -427,7 +430,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
           description: >-
             Returns the label and last characters of each sensitive field in
             the database's encrypted extra, so that a stored secret can be told
-            apart from another one without revealing it. The number of
+            apart from another one without revealing it. A JWT also gets the
+            expiry its unverified exp claim states. The number of
             characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty
             when it is 0 or less.
           parameters:
@@ -1196,6 +1200,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -1227,7 +1233,27 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # Partition info is engine-agnostic at this layer: the generic dispatch
         # passes it to the engine spec, which decides whether to use it. Non-ODPS
         # specs ignore the parameter.
-        payload = database.db_engine_spec.get_table_metadata(database, table, partition)
+        try:
+            payload = database.db_engine_spec.get_table_metadata(
+                database, table, partition
+            )
+        except SQLAlchemyError as ex:
+            # Reflection (get_pk_constraint/get_foreign_keys/get_indexes/
+            # get_table_comment) issues catalog queries tailored to the
+            # declared dialect. A customer database that only partially
+            # implements that dialect (e.g. a postgres-wire-protocol engine
+            # missing pg_catalog.pg_index columns SQLAlchemy's postgres
+            # dialect queries) raises here - that's the target
+            # database's limitation, not a Superset bug: answer with a
+            # typed 422 and a warning instead of an unhandled 500 + ERROR,
+            # matching the sibling table_metadata_deprecated endpoint above.
+            logger.warning(
+                "table_metadata: reflection failed for database=%s table=%s",
+                pk,
+                table_name,
+                exc_info=True,
+            )
+            return self.response_422(error_msg_from_exception(ex))
 
         return self.response(200, **payload)
 
@@ -1308,7 +1334,20 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
 
-        payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+        try:
+            payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+        except SQLAlchemyError as ex:
+            # Failures talking to the customer's database (e.g. unreachable or
+            # overloaded workers) are not Superset errors; log below ERROR so they
+            # are not reported to error trackers.
+            logger.warning(
+                "Failed to fetch extra metadata for table %s on database %s: %s",
+                table,
+                pk,
+                ex,
+            )
+            self.incr_stats("error", self.table_extra_metadata.__name__)
+            return self.response_422(error_msg_from_exception(ex))
 
         return self.response(200, **payload)
 

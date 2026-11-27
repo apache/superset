@@ -277,6 +277,7 @@ def test_models_publish_one_catalog_field_and_use_implicit_value_default() -> No
         assert host.column_names == ["event_time"]
         assert {grain["duration"] for grain in host.get_time_grains()} == {"P1D", "P1M"}
         assert host.columns[0].column_name == "event_time"
+        values: MagicMock
         with (
             patch.object(HostView, "implementation", view),
             patch.object(

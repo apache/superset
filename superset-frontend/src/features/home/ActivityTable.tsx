@@ -63,6 +63,8 @@ interface ActivityProps {
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
   isFetchingActivityData: boolean;
+  /** Bumped by the parent after a delete, so the Edited tab refetches too. */
+  refreshKey?: number;
 }
 
 const Styles = styled.div`
@@ -82,8 +84,19 @@ const isDashboardEntity = (entity: ActivityObject) =>
   ('item_type' in entity && entity.item_type === 'dashboard');
 
 const getEntityTitle = (entity: ActivityObject) => {
-  if ('dashboard_title' in entity) return entity.dashboard_title || UNTITLED;
-  if ('slice_name' in entity) return entity.slice_name || UNTITLED;
+  // Entities from the chart/dashboard APIs carry a locale-resolved name
+  // alongside the canonical one; entities from the activity log arrive with
+  // item_title already resolved.
+  if ('dashboard_title' in entity) {
+    const localized =
+      'localized_title' in entity ? entity.localized_title : undefined;
+    return localized || entity.dashboard_title || UNTITLED;
+  }
+  if ('slice_name' in entity) {
+    const localized =
+      'localized_name' in entity ? entity.localized_name : undefined;
+    return localized || entity.slice_name || UNTITLED;
+  }
   if ('label' in entity) return entity.label || UNTITLED;
   return entity.item_title || UNTITLED;
 };
@@ -129,6 +142,7 @@ export default function ActivityTable({
   activityData,
   user,
   isFetchingActivityData,
+  refreshKey,
 }: ActivityProps) {
   const [editedCards, setEditedCards] = useState<ActivityData[]>();
   const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
@@ -155,7 +169,7 @@ export default function ActivityTable({
       isMounted = false;
       setIsFetchingEditedCards(false);
     };
-  }, [activeChild, user.userId]);
+  }, [activeChild, user.userId, refreshKey]);
 
   const tabs = [
     {

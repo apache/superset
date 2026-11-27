@@ -83,6 +83,17 @@ The optional username flag **-u** sets the user used for the datasource import. 
 superset import_datasources -p <path / filename> -u 'admin'
 ```
 
+## Renaming a Database During Import
+
+When an overwrite import changes an existing database's name, its dataset and chart
+schema and catalog permission strings follow the new name. Existing role grants
+move to the renamed permissions. If a destination database, schema or catalog
+permission already exists, grants are combined without removing roles already
+granted that permission. Case-only renames preserve grants on case-insensitive
+metadata databases. Permissions belonging
+to other databases with overlapping name prefixes are left unchanged, including
+when the original database is deleted.
+
 ## Importing a Directory of Assets
 
 The `import_directory` command imports a directory of exported assets (databases, datasets,
@@ -229,3 +240,30 @@ databases:
           - column_name: ds
             verbose_name: datetime
 ```
+
+### Troubleshooting imports
+
+A failed dashboard import identifies the affected asset when available and gives
+an action for the failure. Check credentials for authentication errors, database
+and network settings for connection errors, and access grants for permission
+errors. If an import reports a missing driver, ask an administrator to install it
+on the server. Import does not test every connection; a successful import does
+not confirm that its driver is installed or its credentials work.
+Catalog restrictions require a compatible destination connection or catalog.
+
+The import dialog remains available after an error. Correct the reported problem
+and retry, or select a different export. Selecting or removing a file clears
+credentials and overwrite choices from the previous file. Re-export a damaged
+bundle or one with missing asset references from a compatible Superset version.
+Re-exporting does not fix a database
+connection or permission problem. Existing password and other credential prompts
+still appear when the bundle needs secrets.
+
+For an unexpected error, give an administrator the displayed reference and the
+import time. The reference identifies the original server log entry. Driver
+messages, SQL statements, connection strings, and credentials are not included in
+the new import failure messages.
+
+Database, dataset, and saved-query import dialogs also allow retry and show a
+general recovery step. Detailed asset context and log references apply to
+dashboard imports.

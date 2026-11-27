@@ -53,6 +53,7 @@ class AmbiguousDimensionError(QueryObjectValidationError):
 def dimensions_by_name(dimensions: Iterable[Dimension]) -> dict[str, Dimension]:
     """Validate unique names without resolving an unused field's default."""
     result: dict[str, Dimension] = {}
+    dimension: Dimension
     for dimension in dimensions:
         previous: Dimension | None = result.get(dimension.name)
         if previous is not None and previous != dimension:
@@ -96,6 +97,7 @@ def resolve_dimensions(
     """Select only used fields, keeping omitted and explicitly raw distinct."""
     catalog: dict[str, Dimension] = dimensions_by_name(dimensions)
     selected: dict[str, DimensionSelection] = {}
+    name: str
     for name in catalog if names is None else names:
         if name not in catalog:
             raise GrainSelectionError(

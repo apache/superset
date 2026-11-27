@@ -97,9 +97,11 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
         ("IN", [None, "a", None, "a"], [None, "a"]),
         ("NOT IN", [None, "a", None, "a"], ["b"]),
         ("IN", ["a"], ["a"]),
-        ("NOT IN", ["a"], ["b"]),
+        ("NOT IN", ["a"], [None, "b"]),
+        ("NOT IN", ["a", "b"], [None]),
+        ("NOT IN", ["<empty string>"], [None, "a", "b"]),
         ("==", "a", ["a"]),
-        ("!=", "a", ["b"]),
+        ("!=", "a", [None, "b"]),
         ("IN", [], []),
         ("NOT IN", [], [None, "a", "b"]),
     ],
@@ -167,17 +169,48 @@ def test_provider_receives_empty_membership_beside_other_filters(
             Operator(operator),
             frozenset(),
         ),
-        Filter(
-            PredicateType.WHERE, DimensionSelection(CATEGORY), Operator.NOT_EQUALS, "b"
+        OrFilter(
+            frozenset(
+                {
+                    Filter(
+                        PredicateType.WHERE,
+                        DimensionSelection(CATEGORY),
+                        Operator.NOT_EQUALS,
+                        "b",
+                    ),
+                    Filter(
+                        PredicateType.WHERE,
+                        DimensionSelection(CATEGORY),
+                        Operator.IS_NULL,
+                        None,
+                    ),
+                }
+            )
         ),
     }
 
 
 @pytest.mark.parametrize("is_rowcount", [False, True])
+@pytest.mark.parametrize("is_extra", [False, True])
+@pytest.mark.parametrize(
+    "operator,value",
+    [
+        ("IN", ["a", None]),
+        ("NOT IN", ["a"]),
+        ("!=", "a"),
+        ("NOT LIKE", "a%"),
+        ("NOT ILIKE", "A%"),
+        ("NOT LIKE", ""),
+        ("NOT ILIKE", ""),
+    ],
+)
 def test_provider_receives_mixed_null_membership_without_opt_in(
     is_rowcount: bool,
+    is_extra: bool,
+    operator: str,
+    value: FilterValues,
 ) -> None:
-    """Grouped predicates are mandatory for table and row-count execution."""
+    """User exclusions reach table and row-count providers as flat NULL groups."""
     datasource: MagicMock = MagicMock()
     datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY}
@@ -195,7 +228,14 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=datasource,
         columns=["category"],
-        filters=[{"col": "category", "op": "IN", "val": ["a", None]}],
+        filters=[
+            {
+                "col": "category",
+                "op": operator,
+                "val": value,
+                "isExtra": is_extra,
+            }
+        ],
     )
     query.is_rowcount = is_rowcount
     get_results(query)
@@ -213,8 +253,10 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
                     Filter(
                         PredicateType.WHERE,
                         DimensionSelection(CATEGORY),
-                        Operator.IN,
-                        frozenset({"a"}),
+                        Operator(operator),
+                        frozenset({"a"})
+                        if operator in {"IN", "NOT IN"}
+                        else cast(str, value),
                     ),
                     Filter(
                         PredicateType.WHERE,
@@ -243,7 +285,7 @@ def test_or_group_is_hashable_and_keeps_predicate_stage(stage: PredicateType) ->
     assert len({group, OrFilter(frozenset({null, leaf}))}) == 1
     assert {child.type for child in group.filters} == {stage}
     with pytest.raises(FrozenInstanceError):
-        group.filters = frozenset()  # type: ignore[misc]  # Exercise runtime freezing.
+        setattr(group, "filters", frozenset())  # noqa: B010
 
 
 @pytest.mark.parametrize(

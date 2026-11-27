@@ -753,6 +753,38 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["rowcount"] == 0
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_get_samples_renders_url_params(test_client, login_as_admin):
+    """
+    Drill to detail renders ``url_param()`` with the dashboard URL params it
+    is opened with, not with the macro's default.
+    """
+    dataset = SqlaTable(
+        table_name="url_param_virtual_dataset",
+        sql="SELECT '{{ url_param('tenant', 'default_tenant') }}' AS tenant",
+        database=get_example_database(),
+    )
+    TableColumn(column_name="tenant", type="VARCHAR(255)", table=dataset)
+    db.session.add(dataset)
+    db.session.commit()
+    try:
+        uri = (
+            f"/datasource/samples?datasource_id={dataset.id}"
+            "&datasource_type=table&force=true"
+        )
+
+        rv = test_client.post(uri, json={"url_params": {"tenant": "zenda"}})
+        assert rv.status_code == 200
+        assert rv.json["result"]["data"] == [{"tenant": "zenda"}]
+
+        rv = test_client.post(uri, json={})
+        assert rv.status_code == 200
+        assert rv.json["result"]["data"] == [{"tenant": "default_tenant"}]
+    finally:
+        db.session.delete(dataset)
+        db.session.commit()
+
+
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_get_samples_with_time_filter(test_client, login_as_admin, physical_dataset):
     uri = (
