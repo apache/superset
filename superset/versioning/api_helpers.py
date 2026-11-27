@@ -527,6 +527,9 @@ def restore_version_endpoint(
     # pylint: disable=import-outside-toplevel
     # Deferred: restore.py pulls the model/versioning graph (same
     # bootstrap-cycle rationale as this module's other local imports).
+    from superset.commands.dashboard.exceptions import (
+        DashboardRefreshPolicyInvalidError,
+    )
     from superset.versioning.restore import (
         ChartPurgedDuringRestoreError,
         MissingDatasourceError,
@@ -536,6 +539,8 @@ def restore_version_endpoint(
 
     try:
         result = command_cls(entity_uuid, version_uuid).run()
+    except DashboardRefreshPolicyInvalidError as ex:
+        return api.response(422, message=ex.normalized_messages(), errors=ex.errors)
     except command_cls.not_found_exc:
         return api.response_404()
     except command_cls.forbidden_exc:

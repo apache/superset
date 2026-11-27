@@ -220,7 +220,7 @@ def test_dashboard_importer_attaches_default_viewers(app_context) -> None:
     from superset.commands.dashboard.importers.v1 import utils as dashboard_utils
 
     viewer = _group_subject()
-    dashboard = SimpleNamespace(id=1, editors=[], viewers=[])
+    dashboard = SimpleNamespace(id=1, editors=[], viewers=[], params_dict={})
 
     with (
         patch.object(dashboard_utils, "find_existing_for_import", return_value=None),

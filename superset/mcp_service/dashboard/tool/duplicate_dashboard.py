@@ -287,7 +287,7 @@ async def _resolve_source(
         openWorldHint=False,
     ),
 )
-async def duplicate_dashboard(
+async def duplicate_dashboard(  # noqa: C901
     request: DuplicateDashboardRequest, ctx: Context
 ) -> DuplicateDashboardResponse:
     """
@@ -313,6 +313,7 @@ async def duplicate_dashboard(
         DashboardForbiddenError,
         DashboardInvalidError,
         DashboardLayoutInvalidError,
+        DashboardRefreshPolicyInvalidError,
     )
 
     try:
@@ -397,6 +398,17 @@ async def duplicate_dashboard(
             error=(
                 "The source dashboard layout contains invalid chart references. "
                 "Repair the source layout before duplicating the dashboard."
+            ),
+        )
+    except DashboardRefreshPolicyInvalidError as exc:
+        return DuplicateDashboardResponse(
+            error=(
+                f"Dashboard '{request.dashboard_id}' could not be duplicated "
+                "because its refresh settings are invalid: "
+                + "; ".join(
+                    f"{error['field']}: {error['message']}"
+                    for error in exc.errors or []
+                )
             ),
         )
     except DashboardInvalidError:

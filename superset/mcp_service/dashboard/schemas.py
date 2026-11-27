@@ -1130,7 +1130,9 @@ class GenerateDashboardRequest(BaseModel):
             "default False — set True for interactive dashboards), "
             "shared_label_colors (list of label names for cross-chart "
             "color consistency). Merged shallowly into the defaults; pass "
-            "only the keys you want to override."
+            "only the keys you want to override. "
+            "Use positive whole seconds or null for the minimum_refresh_interval "
+            "and maximum_refresh_interval bounds in auto_refresh_policy."
         ),
     )
     css: str | None = Field(
@@ -1268,7 +1270,9 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
             "Optional overrides applied on top of the existing "
             "json_metadata. Merged shallowly — pass only the keys you "
             "want to change (e.g. label_colors, color_scheme, "
-            "cross_filters_enabled)."
+            "cross_filters_enabled). "
+            "Use positive whole seconds or null for the minimum_refresh_interval "
+            "and maximum_refresh_interval bounds in auto_refresh_policy."
         ),
     )
     css: str | None = Field(

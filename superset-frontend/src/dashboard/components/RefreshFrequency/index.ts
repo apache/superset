@@ -22,7 +22,21 @@ export {
   REFRESH_FREQUENCY_OPTIONS,
   CUSTOM_REFRESH_FREQUENCY,
   getRefreshFrequencyOptions,
+  getBoundSeconds,
+  getAllowedRefreshOptions,
+  getEffectiveRefreshFrequency,
   validateRefreshFrequency,
   getRefreshWarningMessage,
 } from './RefreshFrequencySelect';
 export type { RefreshFrequencyOption } from './RefreshFrequencySelect';
+export {
+  POLICY_KEY,
+  MINIMUM_KEY,
+  MAXIMUM_KEY,
+  ALLOWED_KEY,
+  isPlainObject,
+  formatBound,
+  getStandardSeconds,
+  getRefreshPolicyErrors,
+} from './refreshPolicy';
+export type { RefreshBoundKey, RefreshPolicyError } from './refreshPolicy';

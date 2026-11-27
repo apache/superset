@@ -189,6 +189,14 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
     dashboard's custom tags. Inputs are assumed pre-validated by
     ``_validate_update_request``.
     """
+    from superset import is_feature_enabled
+    from superset.dashboards.refresh_policy import (
+        log_refresh_policy_change,
+        POLICY_KEY,
+        stored_metadata,
+    )
+
+    old_policy = stored_metadata(dashboard.json_metadata).get(POLICY_KEY)
     changed: list[str] = []
 
     if request.dashboard_title is not None:
@@ -220,7 +228,13 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
 
     metadata_overrides: dict[str, Any] = _collect_metadata_overrides(request)
     if metadata_overrides:
-        dashboard.json_metadata = _merge_json_metadata(dashboard, metadata_overrides)
+        metadata = json.loads(_merge_json_metadata(dashboard, metadata_overrides))
+        if (
+            is_feature_enabled("AUTO_REFRESH_POLICY")
+            and metadata.get(POLICY_KEY) is None
+        ):
+            metadata.pop(POLICY_KEY, None)
+        dashboard.json_metadata = json.dumps(metadata)
         changed.append("json_metadata")
 
     if request.css is not None:
@@ -236,10 +250,16 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         update_tags(ObjectType.dashboard, dashboard.id, dashboard.tags, request.tags)
         changed.append("tags")
 
+    log_refresh_policy_change(
+        dashboard.id,
+        old_policy,
+        stored_metadata(dashboard.json_metadata).get(POLICY_KEY),
+        "mcp_update",
+    )
     return changed
 
 
-def _validate_update_request(
+def _validate_update_request(  # noqa: C901
     dashboard: Any, request: UpdateDashboardRequest
 ) -> DashboardError | None:
     """Pre-flight validation mirroring the REST update path.
@@ -286,6 +306,25 @@ def _validate_update_request(
         _collect_metadata_overrides(request)
     except ValueError as ex:
         return DashboardError(error=str(ex), error_type="InvalidRequest")
+
+    from superset.dashboards.refresh_policy import (
+        check_refresh_policy,
+        POLICY_KEY,
+        refresh_settings_changed,
+        stored_metadata,
+    )
+
+    metadata = json.loads(
+        _merge_json_metadata(dashboard, _collect_metadata_overrides(request))
+    )
+    stored = stored_metadata(dashboard.json_metadata)
+    if refresh_settings_changed(metadata, stored) and (
+        errors := check_refresh_policy(metadata, stored.get(POLICY_KEY))
+    ):
+        return DashboardError(
+            error="; ".join(f"{error.field}: {error.message}" for error in errors),
+            error_type="InvalidRefreshPolicy",
+        )
 
     if request.tags is not None:
         try:

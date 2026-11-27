@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -26,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-23 15:13+0530\n"
+"POT-Creation-Date: 2026-11-26 08:16+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -201,6 +200,10 @@ msgid "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParame
 msgstr ""
 
 #, python-format
+msgid "%(interval)s isn't a standard interval. Select one from the list."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr ""
 
@@ -291,7 +294,15 @@ msgid "%s %s"
 msgstr ""
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 #, python-format
@@ -443,6 +454,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s hour"
+msgid_plural "%s hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
 msgstr[0] ""
@@ -450,6 +467,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s imported"
+msgstr ""
+
+#, python-format
+msgid "%s is no longer in the admin's list. Viewers get the intervals inside it."
 msgstr ""
 
 #, python-format
@@ -481,6 +502,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s minute"
+msgid_plural "%s minutes"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -976,6 +1003,9 @@ msgstr ""
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 
+msgid "A configured Teams destination key is required"
+msgstr ""
+
 msgid "A dashboard filter or display control has incompatible semantic selections. Dynamic group-by is unsupported on versioned semantic views; remove this chart from that control's scope. For other filters or controls, reset and reselect fields or saved values. If it targets another semantic view, remove this chart from its scope."
 msgstr ""
 
@@ -989,6 +1019,10 @@ msgid "A database with the same name already exists."
 msgstr ""
 
 msgid "A date is required when using custom date shift"
+msgstr ""
+
+#, python-format
+msgid "A default of %s is set, but auto-refresh is off. Pick \"Don't refresh\"."
 msgstr ""
 
 msgid "A description for your dashboard"
@@ -1797,6 +1831,9 @@ msgstr ""
 msgid "Allow DDL and DML"
 msgstr ""
 
+msgid "Allow auto-refresh"
+msgstr ""
+
 msgid "Allow changing catalogs"
 msgstr ""
 
@@ -2406,10 +2443,7 @@ msgstr ""
 msgid "Archived by"
 msgstr ""
 
-msgid ""
-"Archived charts and dashboards may still depend on this dataset, including "
-"assets you cannot view. Archiving or permanently deleting this dataset can "
-"prevent those assets from working after they are recovered."
+msgid "Archived charts and dashboards may still depend on this dataset, including assets you cannot view. Archiving or permanently deleting this dataset can prevent those assets from working after they are recovered."
 msgstr ""
 
 msgid "Archived items must be recovered before they can be opened."
@@ -2569,6 +2603,12 @@ msgid "Auto refresh set to %s seconds"
 msgstr ""
 
 msgid "Auto-detect"
+msgstr ""
+
+msgid "Auto-refresh isn't allowed on this dashboard. Set refresh frequency to \"Don't refresh\"."
+msgstr ""
+
+msgid "Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval."
 msgstr ""
 
 msgid "Autocomplete"
@@ -5274,6 +5314,9 @@ msgid "Default message"
 msgstr ""
 
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
+msgstr ""
+
+msgid "Default refresh frequency"
 msgstr ""
 
 msgid "Default row expansion depth"
@@ -8228,6 +8271,9 @@ msgstr ""
 msgid "Inside top right"
 msgstr ""
 
+msgid "Install the notification bot in the approved team before delivery. You can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr ""
 
@@ -8280,6 +8326,12 @@ msgstr ""
 msgid "Invalid SQL: %(error)s"
 msgstr ""
 
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
+
 #, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
 msgstr ""
@@ -8316,6 +8368,9 @@ msgstr ""
 
 #, python-format
 msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
+msgid "Invalid dashboard metadata."
 msgstr ""
 
 msgid "Invalid date/timestamp format"
@@ -9097,6 +9152,9 @@ msgstr ""
 msgid "Long dashed"
 msgstr ""
 
+msgid "Longest interval"
+msgstr ""
+
 msgid "Longitude"
 msgstr ""
 
@@ -9766,6 +9824,9 @@ msgstr ""
 msgid "Must be one of: {choices}."
 msgstr ""
 
+msgid "Must be true or false."
+msgstr ""
+
 msgid "Must be unique"
 msgstr ""
 
@@ -9961,6 +10022,9 @@ msgstr ""
 msgid "No applied filters"
 msgstr ""
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 msgid "No archived items"
 msgstr ""
 
@@ -10067,6 +10131,9 @@ msgstr ""
 msgid "No items"
 msgstr ""
 
+msgid "No limit"
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -10143,6 +10210,9 @@ msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
+msgstr ""
+
+msgid "No standard interval fits between the shortest and longest interval. Widen the range."
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -10515,6 +10585,9 @@ msgstr ""
 msgid "Only exact match is available for non-string columns."
 msgstr ""
 
+msgid "Only intervals between the shortest and longest are offered."
+msgstr ""
+
 msgid "Only proceed if you trust the destination or its source."
 msgstr ""
 
@@ -10591,10 +10664,10 @@ msgstr ""
 msgid "Open in SQL Lab"
 msgstr ""
 
-msgid "Open in Superset"
+msgid "Open in SQL lab"
 msgstr ""
 
-msgid "Open in SQL lab"
+msgid "Open in Superset"
 msgstr ""
 
 msgid "Open page"
@@ -11639,7 +11712,21 @@ msgid "Refresh frequency"
 msgstr ""
 
 #, python-format
+msgid "Refresh frequency must be %(maximum)s or less."
+msgstr ""
+
+#, python-format
+msgid "Refresh frequency must be %(minimum)s or greater."
+msgstr ""
+
+msgid "Refresh frequency must be 0 or a whole number of seconds."
+msgstr ""
+
+#, python-format
 msgid "Refresh frequency must be at least %s seconds"
+msgstr ""
+
+msgid "Refresh frequency must be one of the standard intervals."
 msgstr ""
 
 msgid "Refresh interval"
@@ -12946,6 +13033,9 @@ msgstr ""
 msgid "Select all items"
 msgstr ""
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr ""
 
@@ -13389,6 +13479,22 @@ msgstr ""
 msgid "Set refresh frequency for current session only."
 msgstr ""
 
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows %(first)s to %(last)s."
+msgstr ""
+
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows %s or longer."
+msgstr ""
+
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows %s."
+msgstr ""
+
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows up to %s."
+msgstr ""
+
 msgid "Set the automatic refresh frequency for this dashboard."
 msgstr ""
 
@@ -13446,6 +13552,12 @@ msgid "Shift start date"
 msgstr ""
 
 msgid "Short description must be unique for this layer"
+msgstr ""
+
+msgid "Shortest interval"
+msgstr ""
+
+msgid "Shortest interval must be shorter than or equal to the longest interval."
 msgstr ""
 
 msgid "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality."
@@ -14548,6 +14660,30 @@ msgstr ""
 msgid "Tasks will appear here as background operations are executed."
 msgstr ""
 
+msgid "Teams delivery is unavailable. Contact your administrator to check the integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
+
 msgid "Template"
 msgstr ""
 
@@ -15293,6 +15429,18 @@ msgid "The sample row limit was reached. This %s may contain more rows."
 msgstr ""
 
 #, python-format
+msgid "The saved default (%s) is longer than the longest interval. Pick another."
+msgstr ""
+
+#, python-format
+msgid "The saved default (%s) is shorter than the shortest interval. Pick another."
+msgstr ""
+
+#, python-format
+msgid "The saved default (%s) isn't one of the standard intervals. Pick another."
+msgstr ""
+
+#, python-format
 msgid "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query."
 msgstr ""
 
@@ -15866,6 +16014,12 @@ msgstr ""
 msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
+msgid "These saved refresh settings are invalid. You can still Save. Fix them in Advanced settings."
+msgstr ""
+
+msgid "These settings are kept and checked again when you turn auto-refresh back on."
+msgstr ""
+
 #, python-format
 msgid "This %(schedule)s executes as another user. Only admins can change its content; set the Run As field to your own account to make this change."
 msgstr ""
@@ -16242,6 +16396,9 @@ msgstr ""
 
 #, python-format
 msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or ask an administrator to update the execution account's access."
+msgstr ""
+
+msgid "This saved Teams destination is unavailable. Ask your administrator to restore it or choose another destination."
 msgstr ""
 
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
@@ -16918,6 +17075,9 @@ msgstr ""
 msgid "Unable to interpret the time offset: %(offset)s. Use a relative time such as \"1 month ago\"."
 msgstr ""
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 msgid "Unable to load columns for the selected table."
 msgstr ""
 
@@ -17032,6 +17192,9 @@ msgid "Unknown column used in orderby: %(col)s"
 msgstr ""
 
 msgid "Unknown error"
+msgstr ""
+
+msgid "Unknown field."
 msgstr ""
 
 msgid "Unknown input format"
@@ -17224,6 +17387,12 @@ msgid "Use a log scale"
 msgstr ""
 
 msgid "Use a log scale for the Y-axis"
+msgstr ""
+
+msgid "Use a refresh policy"
+msgstr ""
+
+msgid "Use a whole number of seconds."
 msgstr ""
 
 msgid "Use an encrypted connection to the database"
@@ -17522,6 +17691,9 @@ msgid "Viewer"
 msgstr ""
 
 msgid "Viewers"
+msgstr ""
+
+msgid "Viewers can't turn on auto-refresh for this dashboard, including embedded users."
 msgstr ""
 
 msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
@@ -17986,6 +18158,9 @@ msgid "Window must not exceed %(max)s"
 msgstr ""
 
 msgid "With a subheader"
+msgstr ""
+
+msgid "Without a policy, viewers can pick any interval, including Custom."
 msgstr ""
 
 msgid "Word Cloud"
@@ -19584,66 +19759,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-#, python-format
-msgid "%s (Bot installation required)"
-msgstr ""
-
-#, python-format
-msgid "%s (Unavailable)"
-msgstr ""
-
-msgid ""
-"Install the notification bot in the approved team before delivery. You "
-"can save this alert, but delivery requires an active installation."
-msgstr ""
-
-msgid "No approved Teams destinations are configured. Contact your administrator."
-msgstr ""
-
-msgid "Select an approved Teams channel"
-msgstr ""
-
-msgid ""
-"Teams delivery is unavailable. Contact your administrator to check the "
-"integration configuration and optional Teams dependency."
-msgstr ""
-
-msgid "Teams delivery requires an alert with attachments disabled."
-msgstr ""
-
-msgid "Teams destination"
-msgstr ""
-
-msgid ""
-"This saved Teams destination is unavailable. Ask your administrator to "
-"restore it or choose another destination."
-msgstr ""
-
-msgid "Unable to load Teams destinations. Try reopening this dialog."
-msgstr ""
-
-msgid "A configured Teams destination key is required"
-msgstr ""
-
-msgid "Invalid Teams deployment configuration"
-msgstr ""
-
-msgid "Invalid Teams recipient configuration"
-msgstr ""
-
-msgid "Teams deployment is not configured"
-msgstr ""
-
-msgid "Teams destination is not approved"
-msgstr ""
-
-msgid "Teams destination keys must be unique within a schedule"
-msgstr ""
-
-msgid "Teams recipients require an alert schedule"
-msgstr ""
-
-msgid "Teams recipients require disabled attachments (NONE format)"
 msgstr ""
