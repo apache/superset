@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 17:00+0530\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -196,22 +196,22 @@ msgid "% calculation"
 msgstr "% calcul"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% din"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% din coloană"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% din totalul coloanei"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% din totalul general"
 
@@ -222,7 +222,7 @@ msgid "% of parent"
 msgstr "% din părinte"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% din totalul rândului"
 
@@ -422,7 +422,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1332,6 +1340,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "O listă separată prin virgulă a schemelor în care fișierele sunt permise "
 "să fie încărcate."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2404,6 +2415,9 @@ msgstr "Conținut alerte"
 
 msgid "Alert ended grace period."
 msgstr "Alerta a încheiat perioada de grație."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "Alerta a eșuat"
@@ -7165,6 +7179,9 @@ msgstr "Valoare Implicită"
 msgid "Default color"
 msgstr "Culoare implicită"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -7196,6 +7213,9 @@ msgstr ""
 "Lățime minimă implicită a coloanei în pixeli, lățimea reală poate fi încă"
 " mai mare decât aceasta dacă celelalte coloane nu au nevoie de mult "
 "spațiu"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -9234,6 +9254,10 @@ msgstr "Extinde"
 msgid "Expand %s"
 msgstr "Extinde %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Extinde Tot"
 
@@ -10459,6 +10483,9 @@ msgstr "Nume complet"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Ecranul complet nu este acceptat în acest browser."
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Grafic Pâlnie"
 
@@ -10847,8 +10874,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "În câte compartimente ar trebui grupate datele."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Câte perioade în viitor vrem să prezicem"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Câte valori de top să selectezi"
@@ -11245,6 +11284,11 @@ msgstr "Interior sus stânga"
 msgid "Inside top right"
 msgstr "Interior sus dreapta"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensitate"
 
@@ -11313,6 +11357,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL Invalid: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -13525,6 +13575,9 @@ msgstr "Nicio adnotare încă"
 msgid "No applied filters"
 msgstr "Fără filtre aplicate"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -14402,6 +14455,9 @@ msgstr "Deschide în SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Deschide în SQL lab"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -14481,7 +14537,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Avertisment opțional despre utilizarea acestui indicator"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -17536,6 +17592,9 @@ msgstr "Selectează toate datele"
 msgid "Select all items"
 msgstr "Selectează toate elementele"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr "Selectează catalog sau tastează pentru a căuta cataloage"
 
@@ -19854,6 +19913,32 @@ msgid "Tasks will appear here as background operations are executed."
 msgstr ""
 "Sarcinile vor apărea aici pe măsură ce operațiunile din fundal sunt "
 "executate."
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 msgid "Template"
 msgstr "Șablon"
@@ -22886,6 +22971,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23922,6 +24012,9 @@ msgstr ""
 "Nu se poate interpreta decalajul de timp: %(offset)s. Folosiți un timp "
 "relativ, de exemplu „1 month ago”."
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Unable to load columns for the selected table."
@@ -24651,7 +24744,7 @@ msgid "Value transform"
 msgstr "Transformarea valorii"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -24665,7 +24758,7 @@ msgstr ""
 "paginarea pe server este activată."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

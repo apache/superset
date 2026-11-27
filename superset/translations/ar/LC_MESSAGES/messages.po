@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 17:00+0530\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -203,22 +203,22 @@ msgid "% calculation"
 msgstr "حساب ٪"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% من"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% من العمود"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% من إجمالي العمود"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% من الإجمالي الكلي"
 
@@ -229,7 +229,7 @@ msgid "% of parent"
 msgstr "% من الأصل"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% من إجمالي الصف"
 
@@ -435,7 +435,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1421,6 +1429,9 @@ msgstr "الأعمدة المراد تحليلها كتواريخ"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "قائمة مفصولة بفواصل من المخططات التي يسمح للملفات بالتحميل إليها."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2468,6 +2479,9 @@ msgstr "محتويات الملصق"
 
 msgid "Alert ended grace period."
 msgstr "انتهت فترة السماح للتنبيه."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "فشل التنبيه"
@@ -7289,6 +7303,9 @@ msgstr "القيمة الافتراضية"
 msgid "Default color"
 msgstr "القيمة الافتراضية"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 #, fuzzy
 msgid "Default datetime column"
 msgstr "التاريخ والوقت الافتراضي"
@@ -7313,6 +7330,9 @@ msgid ""
 msgstr ""
 "الحد الأدنى الافتراضي لعرض العمود بالبكسل، قد يظل العرض الفعلي أكبر من "
 "هذا إذا كانت الأعمدة الأخرى لا تحتاج إلى مساحة كبيرة"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -9479,6 +9499,10 @@ msgstr "قم بالتوسع"
 msgid "Expand %s"
 msgstr "توسيع %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "قم بتوسيع الكل"
@@ -10724,6 +10748,9 @@ msgstr "الأسم بالكامل "
 msgid "Fullscreen is not supported in this browser."
 msgstr "تطبيق Drill by غير مدعوم حتى الآن لهذا النوع من المخططات"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "مخطط قمعي"
 
@@ -11117,8 +11144,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "كم عدد المجموعات التي يجب تجميع البيانات فيها."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "كم عدد الفترات في المستقبل التي نريد التنبؤ بها"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11515,6 +11554,11 @@ msgstr "أعلى اليسار"
 msgid "Inside top right"
 msgstr "أعلى اليمين"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "الكثافة"
 
@@ -11582,6 +11626,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL غير صالح: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -13830,6 +13880,9 @@ msgstr "لا يوجد تعليق توضيحي حتى الآن"
 msgid "No applied filters"
 msgstr "لا توجد فلاتر مطبقة"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -14703,6 +14756,9 @@ msgstr "افتح في مختبر SQL"
 msgid "Open in SQL lab"
 msgstr "افتح في مختبر SQL"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -14780,7 +14836,7 @@ msgid "Optional warning about use of this metric"
 msgstr "تحذير اختياري حول استخدام هذا المقياس"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -17879,6 +17935,9 @@ msgstr "حدد جميع البيانات"
 msgid "Select all items"
 msgstr "تحديد كلّ العناصر"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
 #, fuzzy
@@ -20184,6 +20243,32 @@ msgstr "الوسوم"
 #, fuzzy
 msgid "Tasks will appear here as background operations are executed."
 msgstr "ستظهر المهام هنا عند تنفيذ العمليات في الخلفية."
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 #, fuzzy
 msgid "Template"
@@ -23212,6 +23297,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24262,6 +24352,9 @@ msgstr ""
 "تعذّر تفسير الإزاحة الزمنية: %(offset)s. استخدم وقتًا نسبيًا مثل \"1 "
 "month ago\"."
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Unable to load columns for the selected table."
@@ -25006,7 +25099,7 @@ msgid "Value transform"
 msgstr "تحويل القيمة"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -25019,7 +25112,7 @@ msgstr ""
 "التلقائي أثناء تفعيل ترقيم الصفحات من الخادم."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

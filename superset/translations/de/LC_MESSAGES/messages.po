@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 17:00+0530\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -179,19 +179,19 @@ msgstr "\"%s\" ist jetzt das Standarddesign des Systems"
 msgid "% calculation"
 msgstr "% Berechnung"
 
-#, python-format
+#, no-python-format
 msgid "% of"
 msgstr "% von"
 
-#, python-format
+#, no-python-format
 msgid "% of column"
 msgstr "% der Spalte"
 
-#, python-format
+#, no-python-format
 msgid "% of column total"
 msgstr "% der Spaltensumme"
 
-#, python-format
+#, no-python-format
 msgid "% of grand total"
 msgstr "% der Gesamtsumme"
 
@@ -199,7 +199,7 @@ msgstr "% der Gesamtsumme"
 msgid "% of parent"
 msgstr "% von Elternteil"
 
-#, python-format
+#, no-python-format
 msgid "% of row total"
 msgstr "% der Zeilensumme"
 
@@ -378,7 +378,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 #, python-format
@@ -1174,6 +1182,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Eine durch Kommas getrennte Liste von Schemata, in die Dateien "
 "hochgeladen werden dürfen."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 msgid ""
 "A dashboard filter or display control has incompatible semantic "
@@ -2112,6 +2123,9 @@ msgstr "Inhalt des Alarms"
 
 msgid "Alert ended grace period."
 msgstr "Alarm beendet Karenzzeit."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "Alarm fehlgeschlagen"
@@ -6355,6 +6369,9 @@ msgstr "Standardwert"
 msgid "Default color"
 msgstr "Standardfarbe"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "Standard-Datums-/Zeit-Spalte"
 
@@ -6376,6 +6393,9 @@ msgid ""
 msgstr ""
 "Standardmäßig minimale Spaltenbreite in Pixel, tatsächliche Breite kann "
 "immer noch größer sein, wenn andere Spalten nicht viel Platz benötigen"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -8184,6 +8204,10 @@ msgstr "Aufklappen"
 msgid "Expand %s"
 msgstr "%s aufklappen"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Alle aufklappen"
 
@@ -9224,6 +9248,9 @@ msgstr "Vollständiger Name"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Der Vollbildmodus wird in diesem Browser nicht unterstützt."
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Trichterdiagramm"
 
@@ -9575,8 +9602,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Anzahl Buckets, in die Daten gruppiert werden sollen."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Wie viele Perioden in der Zukunft sollen prognostiziert werden"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Wie viele Top-Werte ausgewählt werden sollen"
@@ -9897,6 +9936,11 @@ msgstr "Innerhalb oben links"
 msgid "Inside top right"
 msgstr "Innerhalb oben rechts"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensität"
 
@@ -9958,6 +10002,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Ungültiges SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 #, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
@@ -11867,6 +11917,9 @@ msgstr "Noch keinen Anmerkungen"
 msgid "No applied filters"
 msgstr "Keine angewendete Filter"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 msgid "No archived items"
 msgstr "Keine archivierten Elemente"
 
@@ -12646,6 +12699,9 @@ msgstr "In SQL-Lab öffnen"
 msgid "Open in SQL lab"
 msgstr "In SQL-Lab öffnen"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -12720,7 +12776,7 @@ msgstr "Optionaler Name der Datenspalte."
 msgid "Optional warning about use of this metric"
 msgstr "Optionale Warnung zur Verwendung dieser Metrik"
 
-#, python-format
+#, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -15402,6 +15458,9 @@ msgstr "Alle Daten auswählen"
 msgid "Select all items"
 msgstr "Alle Elemente auswählen"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr "Katalog oder Typ auswählen, um Kataloge zu durchsuchen"
 
@@ -17373,6 +17432,32 @@ msgid "Tasks will appear here as background operations are executed."
 msgstr ""
 "Die Aufgaben werden hier angezeigt, sobald Hintergrundvorgänge ausgeführt"
 " werden."
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 msgid "Template"
 msgstr "Vorlage"
@@ -20185,6 +20270,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
+msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
 msgstr ""
@@ -21086,6 +21176,9 @@ msgstr ""
 "Der Zeitversatz %(offset)s kann nicht interpretiert werden. Verwenden Sie"
 " eine relative Zeitangabe wie \"1 month ago\"."
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 msgid "Unable to load columns for the selected table."
 msgstr "Die Spalten der ausgewählten Tabelle konnten nicht geladen werden."
 
@@ -21743,7 +21836,7 @@ msgstr "Der Wert muss größer als 0 sein"
 msgid "Value transform"
 msgstr "Werttransformation"
 
-#, python-format
+#, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -21756,7 +21849,7 @@ msgstr ""
 " verwenden bei aktivierter Server-Paginierung den automatischen "
 "Datenbereich."
 
-#, python-format
+#, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 17:00+0530\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -192,22 +192,22 @@ msgid "% calculation"
 msgstr "% கணக்கீடு"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% இல்"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "நெடுவரிசையின் %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "நெடுவரிசை மொத்தத்தின் %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "மொத்தத் தொகையின் %"
 
@@ -216,7 +216,7 @@ msgid "% of parent"
 msgstr "முதன்மை உறுப்பில் % (parent %)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "வரிசை மொத்தத்தின் %"
 
@@ -412,7 +412,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1283,6 +1291,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "கோப்புகளைப் பதிவேற்ற அனுமதிக்கப்படும் ஸ்கீமாக்களின் (schemas) கமாவால் "
 "பிரிக்கப்பட்ட பட்டியல்."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2313,6 +2324,9 @@ msgstr "எச்சரிக்கை உள்ளடக்கங்கள்"
 
 msgid "Alert ended grace period."
 msgstr "எச்சரிக்கையின் கருணைக் காலம் முடிந்தது."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "எச்சரிக்கை தோல்வியடைந்தது"
@@ -6901,6 +6915,9 @@ msgstr "இயல்புநிலை மதிப்பு"
 msgid "Default color"
 msgstr "இயல்புநிலை நிறம்"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "இயல்புநிலை தேதி-நேர நெடுவரிசை"
 
@@ -6923,6 +6940,9 @@ msgstr ""
 "பிக்சல்களில் இயல்புநிலை குறைந்தபட்ச நெடுவரிசை அகலம்; மற்ற "
 "நெடுவரிசைகளுக்கு அதிக இடம் தேவைப்படவில்லை எனில், உண்மையான அகலம் இதைவிட "
 "அதிகமாக இருக்கலாம்"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -8843,6 +8863,10 @@ msgstr "விரிவாக்கு"
 msgid "Expand %s"
 msgstr "%s ஐ விரி"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "அனைத்தையும் விரிவாக்கு"
 
@@ -9988,6 +10012,9 @@ msgstr "முழு பெயர்"
 msgid "Fullscreen is not supported in this browser."
 msgstr "இந்தச் சார்ட் வகைக்கு டிரில் பை இன்னும் ஆதரிக்கப்படவில்லை"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "புனல் சார்ட் (Funnel Chart)"
 
@@ -10356,8 +10383,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "தரவு எத்தனை தொகுதிகளாக (buckets) குழுவாக்கப்பட வேண்டும்."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "எதிர்காலத்தில் எத்தனை காலங்களை நாம் கணிக்க விரும்புகிறோம்"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "எத்தனை முதன்மை மதிப்புகளைத் தேர்ந்தெடுக்க வேண்டும்"
@@ -10706,6 +10745,11 @@ msgstr "உள்ளே மேலே இடதுபுறம்"
 msgid "Inside top right"
 msgstr "உள்ளே மேலே வலதுபுறம்"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "தீவிரம் (Intensity)"
 
@@ -10773,6 +10817,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "தவறான SQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12877,6 +12927,9 @@ msgstr "இன்னும் குறிப்புகள் இல்லை"
 msgid "No applied filters"
 msgstr "பயன்படுத்தப்பட்ட வடிகட்டிகள் இல்லை"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -13720,6 +13773,9 @@ msgstr "SQL லேப்பில் திற"
 msgid "Open in SQL lab"
 msgstr "SQL லேப்பில் திற"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -13792,7 +13848,7 @@ msgid "Optional warning about use of this metric"
 msgstr "இந்த அளவீட்டைப் பயன்படுத்துவது குறித்த விருப்பத்தேர்வு எச்சரிக்கை"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -16698,6 +16754,9 @@ msgstr "அனைத்து தரவையும் தேர்ந்தெ�
 msgid "Select all items"
 msgstr "அனைத்து உருப்படிகளையும் தேர்ந்தெடு"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr "கேட்டலாக்கைத் தேர்ந்தெடு அல்லது தேட தட்டச்சு செய்க"
 
@@ -18824,6 +18883,32 @@ msgstr "பணிகள்"
 #, fuzzy
 msgid "Tasks will appear here as background operations are executed."
 msgstr "பின்னணி செயல்பாடுகள் இயக்கப்படும்போது பணிகள் இங்கே தோன்றும்."
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 msgid "Template"
 msgstr "டெம்ப்ளேட்"
@@ -21647,6 +21732,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22619,6 +22709,9 @@ msgstr ""
 "நேர ஆஃப்செட்டை விளக்க முடியவில்லை: %(offset)s. \"1 month ago\" போன்ற "
 "ஒப்பீட்டு நேரத்தைப் பயன்படுத்தவும்."
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Unable to load columns for the selected table."
@@ -23313,7 +23406,7 @@ msgid "Value transform"
 msgstr "மதிப்பு உருமாற்றம்"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -23327,7 +23420,7 @@ msgstr ""
 "தானியங்கி தரவு வரம்பைப் பயன்படுத்தும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

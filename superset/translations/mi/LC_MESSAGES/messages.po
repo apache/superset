@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 17:00+0530\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -202,22 +202,22 @@ msgid "% calculation"
 msgstr "% tatauranga"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% o"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% o te tīwae"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% o te tapeke tīwae"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% o te tapeke whānui"
 
@@ -226,7 +226,7 @@ msgid "% of parent"
 msgstr "% o te mātua"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% o te tapeke rārangi"
 
@@ -421,7 +421,15 @@ msgid "%s %s"
 msgstr "%s%s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1286,6 +1294,9 @@ msgstr "Kōwhiri tīwae hei poroporo hei rā"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "He rārangi māmā-wehea o ngā hanga e whakāetia ana ngā kōnae ki te tukuake."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2320,6 +2331,9 @@ msgstr "Ihirangi matohi"
 
 msgid "Alert ended grace period."
 msgstr "Matohi kua mutu te wā aroha."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "I rahua te matohi"
@@ -7073,6 +7087,9 @@ msgstr "Uara Taunoa"
 msgid "Default color"
 msgstr "Kātaloka Taunoa"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 #, fuzzy
 msgid "Default datetime column"
 msgstr "Wā taunoa"
@@ -7097,6 +7114,9 @@ msgid ""
 msgstr ""
 "Whānui tīwae iti taunoa i ngā pika, ka taea e te whānui tūturu te rahi "
 "ake i tēnei mēnā karekau e hiahiatia e ētahi atu tīwae te wāhi nui"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -9107,6 +9127,10 @@ msgstr "Whakawhānui"
 msgid "Expand %s"
 msgstr "Whakawhānuitia %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Whakawhānui katoa"
@@ -10339,6 +10363,9 @@ msgstr "Ingoa katoa"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Kāore anō kia tautokona te keri mā mō tēnei momo kauwhata"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Kauwhata Kōrere"
 
@@ -10729,8 +10756,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Kia hia ngā peeke me rōpū ai ngā raraunga."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Kia hia ngā wā ki mua e hiahia ana tātou ki te matapae"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11115,6 +11154,11 @@ msgstr "Runga mauī"
 msgid "Inside top right"
 msgstr "Runga matau"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Kaha"
 
@@ -11184,6 +11228,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL muhu: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -13372,6 +13422,9 @@ msgstr "Kāore anō he tohu"
 msgid "No applied filters"
 msgstr "Kāore he tātari kua whakahaeretia"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -14265,6 +14318,9 @@ msgstr "Huaki i SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Huaki i SQL Lab"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -14343,7 +14399,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Whakatūpato kōwhiringa mō te whakamahinga o tēnei ine"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -17380,6 +17436,9 @@ msgstr "Tīpakohia ngā raraunga katoa"
 msgid "Select all items"
 msgstr "Tīpakohia ngā mea katoa"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr "Tīpakohia kātaloka, pato rānei hei rapu kātaloka"
 
@@ -19668,6 +19727,32 @@ msgid "Tasks will appear here as background operations are executed."
 msgstr ""
 "Ka puta ngā mahi ki konei i te wā e whakahaerehia ana ngā mahi "
 "papakupenga."
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 msgid "Template"
 msgstr "Tauira"
@@ -22695,6 +22780,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23726,6 +23816,9 @@ msgstr ""
 "Kāore e taea te whakamārama i te nekeneke wā: %(offset)s. Whakamahia he "
 "wā whanaunga pēnei i te \"1 month ago\"."
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Unable to load columns for the selected table."
@@ -24462,7 +24555,7 @@ msgid "Value transform"
 msgstr "Whakawhitinga uara"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -24475,7 +24568,7 @@ msgstr ""
 "i te awhe raraunga aunoa i te wā e whakahohea ana te whārangi tūmau."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

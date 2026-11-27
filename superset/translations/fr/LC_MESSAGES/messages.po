@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 17:00+0530\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -193,22 +193,22 @@ msgid "% calculation"
 msgstr "% calcul"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% de"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% de la colonne"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% du total de la colonne"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% du total général"
 
@@ -219,7 +219,7 @@ msgid "% of parent"
 msgstr "% du parent"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% du total de la ligne"
 
@@ -413,7 +413,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1253,6 +1261,9 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Une liste de schémas séparés par des virgules autorisés pour le "
 "chargement."
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2262,6 +2273,9 @@ msgstr "Contenu de l'alerte"
 
 msgid "Alert ended grace period."
 msgstr "L'alerte a mis fin à la période de grâce."
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "L'alerte a échoué"
@@ -6852,6 +6866,9 @@ msgstr "Valeur par défaut"
 msgid "Default color"
 msgstr "couleur par défaut"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "Colonne temporelle par défaut"
 
@@ -6874,6 +6891,9 @@ msgstr ""
 "Largeur minimale par défaut de la colonne en pixels, la largeur réelle "
 "peut être supérieure à cette valeur si les autres colonnes n'ont pas "
 "besoin de beaucoup d'espace"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -8785,6 +8805,10 @@ msgstr "Agrandir"
 msgid "Expand %s"
 msgstr "Développer %s"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Développer tout"
 
@@ -9934,6 +9958,9 @@ msgstr "Nom complet"
 msgid "Fullscreen is not supported in this browser."
 msgstr "Le mode plein écran n'est pas pris en charge pour ce navigateur"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "Diagramme en entonnoir"
 
@@ -10308,8 +10335,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "Combien de groupes de données doivent être regroupés."
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "Combien de périodes voulons-nous prévoir"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "Combien de valeurs principales sélectionner"
@@ -10670,6 +10709,11 @@ msgstr "Intérieur haut à gauche"
 msgid "Inside top right"
 msgstr "Intérieur haut à droite"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "Intensité"
 
@@ -10735,6 +10779,12 @@ msgstr ""
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Le schéma du jeu de données n'est pas valide : %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12849,6 +12899,9 @@ msgstr "Pas encore d'annotations"
 msgid "No applied filters"
 msgstr "Aucun filtre appliqué"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -13711,6 +13764,9 @@ msgstr "Ouvrir dans SQL Lab"
 msgid "Open in SQL lab"
 msgstr "Ouvrir dans SQL Lab"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -13792,7 +13848,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Avertissement facultatif concernant l'utilisation de cette mesure"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -16706,6 +16762,9 @@ msgstr "Sélectionner toutes les données"
 msgid "Select all items"
 msgstr "Sélectionner tous les éléments"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr ""
 "Sélectionnez le catalogue ou saisissez une partie de son nom pour filtrer"
@@ -18850,6 +18909,32 @@ msgid "Tasks will appear here as background operations are executed."
 msgstr ""
 "Les tâches apparaîtront ici pendant l'exécution des opérations d'arrière "
 "plan."
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 msgid "Template"
 msgstr "Modèle"
@@ -21845,6 +21930,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22826,6 +22916,9 @@ msgstr ""
 "Impossible d'interpréter le décalage temporel : %(offset)s. Utilisez une "
 "expression relative telle que « 1 month ago »."
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Unable to load columns for the selected table."
@@ -23534,7 +23627,7 @@ msgid "Value transform"
 msgstr "Transformation de valeur"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -23549,7 +23642,7 @@ msgstr ""
 "activée."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "

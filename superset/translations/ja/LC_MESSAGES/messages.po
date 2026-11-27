@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-25 17:00+0530\n"
+"POT-Creation-Date: 2026-11-27 16:01+0530\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -169,22 +169,22 @@ msgid "% calculation"
 msgstr "% 計算"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% の"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "列に対する %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "列の合計に対する %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "総合計に対する %"
 
@@ -193,7 +193,7 @@ msgid "% of parent"
 msgstr "親に対する %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "行の合計に対する %"
 
@@ -365,7 +365,15 @@ msgid "%s %s"
 msgstr "%s %s"
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -1134,6 +1142,9 @@ msgstr "日付として解析する列のリスト(カンマ区切り)"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "ファイルのアップロードを許可するスキーマのリスト(カンマ区切り)"
+
+msgid "A configured Teams destination key is required"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2007,6 +2018,9 @@ msgstr "アラート内容"
 
 msgid "Alert ended grace period."
 msgstr "アラートの猶予期間が終了しました。"
+
+msgid "Alert execution failed. Contact the alert owner for details."
+msgstr ""
 
 msgid "Alert failed"
 msgstr "アラート失敗"
@@ -6150,6 +6164,9 @@ msgstr "既定値"
 msgid "Default color"
 msgstr "既定の色"
 
+msgid "Default column expansion depth"
+msgstr ""
+
 msgid "Default datetime column"
 msgstr "既定の日時列"
 
@@ -6169,6 +6186,9 @@ msgid ""
 "Default minimal column width in pixels, actual width may still be larger "
 "than this if other columns don't need much space"
 msgstr "既定の最小列幅(ピクセル単位)。他の列のスペース状況により、実際の幅はこれより大きくなる場合があります"
+
+msgid "Default row expansion depth"
+msgstr ""
 
 msgid "Default schema (database) to connect to"
 msgstr ""
@@ -7878,6 +7898,10 @@ msgstr "展開"
 msgid "Expand %s"
 msgstr "%s を展開"
 
+#, python-format
+msgid "Expand %s level(s)"
+msgstr ""
+
 msgid "Expand All"
 msgstr "すべて展開"
 
@@ -8917,6 +8941,9 @@ msgstr "氏名"
 msgid "Fullscreen is not supported in this browser."
 msgstr "このブラウザでは全画面表示はサポートされていません。"
 
+msgid "Fully expanded"
+msgstr ""
+
 msgid "Funnel Chart"
 msgstr "ファンネルチャート"
 
@@ -9268,8 +9295,20 @@ msgstr ""
 msgid "How many buckets should the data be grouped in."
 msgstr "データをいくつのバケットにグループ化するか。"
 
+msgid ""
+"How many column group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level columns (children collapsed)."
+msgstr ""
+
 msgid "How many periods into the future do we want to predict"
 msgstr "将来の何期間分を予測するか"
+
+msgid ""
+"How many row group levels to show expanded on initial load. Select "
+"\"Fully expanded\" (0) to show all levels. Select \"1\" to show only top-"
+"level rows (children collapsed)."
+msgstr ""
 
 msgid "How many top values to select"
 msgstr "上位何件を選択するか"
@@ -9600,6 +9639,11 @@ msgstr "内側の左上"
 msgid "Inside top right"
 msgstr "内側の右上"
 
+msgid ""
+"Install the notification bot in the approved team before delivery. You "
+"can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr "強度"
 
@@ -9659,6 +9703,12 @@ msgstr "JSONメタデータが無効です。GUIを使用するには、詳細�
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "無効なSQL: %(error)s"
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11627,6 +11677,9 @@ msgstr "注釈はまだありません"
 msgid "No applied filters"
 msgstr "適用中のフィルターはありません"
 
+msgid "No approved Teams destinations are configured. Contact your administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "No archived items"
@@ -12391,6 +12444,9 @@ msgstr "SQL Labで開く"
 msgid "Open in SQL lab"
 msgstr "SQL Labで開く"
 
+msgid "Open in Superset"
+msgstr ""
+
 msgid "Open page"
 msgstr ""
 
@@ -12458,7 +12514,7 @@ msgid "Optional warning about use of this metric"
 msgstr "このメトリクスの使用に関する任意の警告メッセージ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -15150,6 +15206,9 @@ msgstr "すべてのデータを選択"
 msgid "Select all items"
 msgstr "すべての項目を選択"
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr "カタログを選択、または入力してカタログを検索"
 
@@ -17026,6 +17085,32 @@ msgstr "タスク"
 
 msgid "Tasks will appear here as background operations are executed."
 msgstr "バックグラウンド操作が実行されると、タスクがここに表示されます。"
+
+msgid ""
+"Teams delivery is unavailable. Contact your administrator to check the "
+"integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
+msgstr ""
 
 msgid "Template"
 msgstr "テンプレート"
@@ -19478,6 +19563,11 @@ msgid ""
 "execution account's access."
 msgstr ""
 
+msgid ""
+"This saved Teams destination is unavailable. Ask your administrator to "
+"restore it or choose another destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20328,6 +20418,9 @@ msgid ""
 " as \"1 month ago\"."
 msgstr "時間オフセット %(offset)s を解釈できません。「1ヶ月前」などの相対的な時間を使用してください。"
 
+msgid "Unable to load Teams destinations. Try reopening this dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Unable to load columns for the selected table."
@@ -20962,7 +21055,7 @@ msgid "Value transform"
 msgstr "値の変換"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -20973,7 +21066,7 @@ msgstr ""
 " %」は使用できません。サーバーページネーションが有効な間、既存のパーセンテージルールは自動的なデータ範囲を使用します。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
