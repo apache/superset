@@ -25,6 +25,25 @@ assists people when migrating to a new version.
 ## Next
 
 - Datasource-info responses add optional `capabilities.operations` metadata. An absent list preserves legacy behavior; an empty list explicitly declares no host operations. Existing sample, drill-to-detail and ad-hoc metric flags are projected from the same declaration wherever those keys are returned in authorized metadata. This metadata does not grant access or change query validation.
+- MCP `get_table` query failures now populate `error_code`. Untyped dataset
+  engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
+  specific `SupersetErrorType` code for typed errors, while guests receive
+  `GENERIC_BACKEND_ERROR` for unsafe typed errors. Semantic provider faults
+  and transport outages use `GENERIC_BACKEND_ERROR`. Rejected semantic
+  queries use one of
+  `UNSUPPORTED_QUERY`, `UNSUPPORTED_OFFSET`,
+  `UNSUPPORTED_GROUP_OTHERS_METRIC`, `INVALID_FILTER`, or `INVALID_QUERY`.
+  Malformed query results use `INVALID_QUERY_RESULT`; host-authored access and
+  OAuth errors retain their Superset error codes, except a provider-raised
+  OAuth error on a semantic view, which uses `GENERIC_BACKEND_ERROR`. These
+  codes are intended to remain stable for MCP clients. Semantic rejections
+  previously reported `error_type="QueryError"` and now report
+  `"QueryValidationError"`; host query validation reports `"ValidationError"`.
+  Transport outages remain `"QueryError"`. Raw `SQLAlchemyError` failures
+  previously reported `"DatabaseError"` and now report `"QueryError"`.
+  The old `"Query execution failed:"` and `"Database error:"` message prefixes
+  are removed. Clients matching error types or message prefixes should handle
+  these changes.
 
 - Provider tests inheriting `SemanticProviderConformance` must supply four
   additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,
@@ -307,6 +326,13 @@ assists people when migrating to a new version.
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
   non-empty viewers list restricts access regardless of the flag), and removing
   viewers remains possible so stale assignments can be cleared.
+
+- The `Week` time grain for Oracle (`TRUNC(..., 'IW')`) and Impala
+  (`TRUNC(..., 'D')`) now always truncates to Monday. Previously `'WW'`
+  aligned weeks to the weekday of January 1, so the week start changed every
+  year and each year ended with a 1–2 day stub week. Existing Week-grain charts
+  on these engines will regroup, and cached results may show the old buckets
+  until they expire.
 
 - [45929](https://github.com/apache/superset/pull/45929): Partition filter
   mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
@@ -1357,6 +1383,16 @@ on `/api/v1/me/`), so grant all three permissions to any custom role whose
 members may have `password_must_change` set on their account.
 `ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
 check on; `password_must_change` is the per-user flag it acts on.
+
+- **Administrator-set passwords now force a change at next login.** With
+  `ENABLE_FORCE_PASSWORD_CHANGE` on, creating a user with a password
+  (`POST /api/v1/security/users/`) or setting another user's password from the
+  Users list edit modal (`PUT /api/v1/security/users/<pk>`) sets
+  `password_must_change` on that account, so its owner is redirected to choose
+  their own password at next login. Previously nothing set the flag, so the
+  setting had no effect. An administrator changing their own password is not
+  flagged (and a pending change of theirs is cleared). The flag is only raised
+  under `AUTH_DB`, and not at all with the setting off.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 

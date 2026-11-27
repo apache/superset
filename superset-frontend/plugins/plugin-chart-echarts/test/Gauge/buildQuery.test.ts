@@ -45,4 +45,19 @@ describe('Gauge buildQuery', () => {
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['foo', 'bar']);
   });
+
+  test('should query the bound metrics alongside the metric, once each', () => {
+    const [query] = buildQuery({
+      ...baseFormData,
+      min_metric: 'floor',
+      max_metric: 'quota',
+    }).queries;
+    expect(query.metrics).toEqual(['foo', 'floor', 'quota']);
+
+    const [deduped] = buildQuery({
+      ...baseFormData,
+      max_metric: 'foo',
+    }).queries;
+    expect(deduped.metrics).toEqual(['foo']);
+  });
 });

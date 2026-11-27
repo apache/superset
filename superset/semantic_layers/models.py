@@ -1053,9 +1053,11 @@ class SemanticView(AuditMixinNullable, Model):
         sel_metrics, sel_dims = self._compat_selection(
             selected_metrics, selected_dimensions
         )
-        compatible: set[Dimension] = self.implementation.get_compatible_dimensions(
-            sel_metrics, sel_dims
-        )
+        implementation: SemanticViewABC = self.implementation
+        with provider_code():
+            compatible: set[Dimension] = implementation.get_compatible_dimensions(
+                sel_metrics, sel_dims
+            )
         return sorted({d.name for d in compatible})
 
 
