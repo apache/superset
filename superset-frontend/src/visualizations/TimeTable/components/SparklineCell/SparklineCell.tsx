@@ -231,7 +231,10 @@ const SparklineCell = ({
                   <div
                     css={() => ({
                       color: theme.colorTextSecondary,
-                      fontSize: '12px',
+                      // Use em so secondary timestamp scales with the
+                      // surrounding cell font-size when users adjust
+                      // browser default text size (WCAG 1.4.4).
+                      fontSize: '0.85em',
                     })}
                   >
                     {formatTime(
