@@ -12810,6 +12810,9 @@ msgstr ""
 msgid "Saved query parameters are invalid."
 msgstr ""
 
+msgid "Saved semantic selections use a different identity format. Reset the chart selections, explicitly reselect its metrics and dimensions, and save the chart. Display titles cannot be automatically mapped to member IDs."
+msgstr ""
+
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
 msgstr ""
 
