@@ -383,3 +383,37 @@ def test_build_deleted_state_filter_rejects_unconfigured_resource() -> None:
     core = _build_list_core(deleted_state_filter=None)
     with pytest.raises(ValueError, match="not supported"):
         core._build_deleted_state_filter("only")
+
+
+@pytest.mark.parametrize(
+    ("case", "guidance"),
+    [
+        ("select", "select_columns contains no valid columns"),
+        ("order", "Invalid order_column 'unknown'. Allowed columns: id"),
+        ("self", "This operation requires an authenticated user"),
+        ("deleted-value", "deleted_state must be 'include' or 'only'"),
+        ("deleted-resource", "deleted_state is not supported for this resource"),
+    ],
+)
+def test_list_core_validation_guidance_is_classified(case: str, guidance: str) -> None:
+    """Every shared list validator retains its deliberate signed-in guidance."""
+    from superset.mcp_service.utils.tool_errors import safe_error
+
+    core = _build_list_core()
+    core._all_columns = ["id"]
+    core._has_explicit_all_columns = True
+    core._sortable_columns = ["id"]
+    actions = {
+        "select": lambda: core._get_columns_to_load(["unknown"]),
+        "order": lambda: core._validate_order_column("unknown"),
+        "self": lambda: core._prepend_self_lookup_filters(None, True, False, None),
+        "deleted-value": lambda: core._build_deleted_state_filter("everything"),
+        "deleted-resource": lambda: core._build_deleted_state_filter("only"),
+    }
+    with pytest.raises(ValueError, match=guidance) as excinfo:
+        actions[case]()
+
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required", return_value=False
+    ):
+        assert safe_error(excinfo.value).message == guidance

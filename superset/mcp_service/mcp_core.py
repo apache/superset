@@ -43,6 +43,7 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_passthrough,
 )
+from superset.mcp_service.utils.tool_errors import MCPValidationError
 from superset.models.helpers import skip_visibility_filter
 from superset.utils import json
 
@@ -245,7 +246,7 @@ class ModelListCore(BaseCore, Generic[L]):
             columns_to_load = [col for col in columns_to_load if col in allowed]
 
         if not columns_to_load:
-            raise ValueError("select_columns contains no valid columns")
+            raise MCPValidationError("select_columns contains no valid columns")
 
         return columns_to_load, list(columns_to_load)
 
@@ -261,7 +262,7 @@ class ModelListCore(BaseCore, Generic[L]):
             and self._sortable_columns
             and order_column not in self._sortable_columns
         ):
-            raise ValueError(
+            raise MCPValidationError(
                 f"Invalid order_column '{order_column}'. "
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
@@ -285,7 +286,7 @@ class ModelListCore(BaseCore, Generic[L]):
             return filters
 
         if not user or not getattr(user, "is_authenticated", False):
-            raise ValueError("This operation requires an authenticated user")
+            raise MCPValidationError("This operation requires an authenticated user")
 
         user_id: int = user.id
         extra: ColumnOperator
@@ -346,9 +347,9 @@ class ModelListCore(BaseCore, Generic[L]):
             return None
         normalized = str(deleted_state).lower().strip()
         if normalized not in {"include", "only"}:
-            raise ValueError("deleted_state must be 'include' or 'only'")
+            raise MCPValidationError("deleted_state must be 'include' or 'only'")
         if self._deleted_state_filter is None:
-            raise ValueError("deleted_state is not supported for this resource")
+            raise MCPValidationError("deleted_state is not supported for this resource")
         # ``model`` is the ClassVar every BaseDeletedStateFilter subclass binds.
         model = self._deleted_state_filter.model  # type: ignore[attr-defined]
         datamodel = SQLAInterface(model, db.session)

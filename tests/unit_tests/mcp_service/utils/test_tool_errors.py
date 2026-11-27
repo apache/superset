@@ -507,3 +507,30 @@ def test_log_tool_exception_tolerates_failing_str(
 
     assert "<unprintable exception>" in caplog.text
     assert "_HostileError" in caplog.text
+
+
+@pytest.mark.parametrize("query", [False, True])
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("provider", [False, True])
+def test_explicit_validation_respects_principal_and_provider(
+    query: bool, guest: bool, provider: bool
+) -> None:
+    """Typed guidance must not bypass guest redaction or provider provenance."""
+    from contextlib import nullcontext
+
+    from superset.mcp_service.catalog.tool.get_catalog import decode_cursor
+    from superset.semantic_layers.exceptions import provider_code
+
+    with pytest.raises(ValueError, match="Invalid cursor") as excinfo:
+        with provider_code() if provider else nullcontext():
+            decode_cursor("!", "dashboards", None)
+
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required", return_value=guest
+    ):
+        result = safe_error(excinfo.value, query=query)
+
+    if guest or provider:
+        assert result.message == str(GENERIC_ERROR_MESSAGE)
+    else:
+        assert result.message == "Invalid cursor"

@@ -154,7 +154,8 @@ def public_query_error(
 #   ``CommandException``) is reported with its ``message``, which embedded
 #   guests only see when the ``SupersetErrorType`` is one Superset writes itself
 #   (``SAFE_ERROR_TYPES``). So is a ValueError raised by one of Superset's
-#   validators of the caller's arguments (``HOST_VALUE_ERROR_MODULES``).
+#   validators of the caller's arguments (``MCPValidationError`` or the
+#   legacy ``HOST_VALUE_ERROR_MODULES``).
 # * Any other exception (SQLAlchemy, a database driver, a library) gets a fixed
 #   message. Its text can carry SQL, bound parameters, connection strings or
 #   hostnames, so it only goes to the server log.
@@ -207,6 +208,15 @@ HOST_VALUE_ERROR_MODULES: tuple[str, ...] = (
 )
 
 
+class MCPValidationError(ValueError):
+    """Intentional, host-written guidance about a caller's input or tool availability.
+
+    Only use for messages composed by Superset, never for text from a caught
+    exception, query engine, or provider. Signed-in callers may see this text;
+    embedded guests still follow the shared sanitization policy.
+    """
+
+
 @dataclass(frozen=True)
 class SafeError:
     """An error code and a message that may be sent to the current principal.
@@ -220,10 +230,13 @@ class SafeError:
 
 
 def raised_by_host_validation(exc: BaseException) -> bool:
-    """Whether ``exc`` is a ValueError raised in ``HOST_VALUE_ERROR_MODULES``.
+    """Whether ``exc`` carries intentional host-owned validation guidance.
 
-    The innermost traceback frame is where the exception was raised.
+    Tools opt in with ``MCPValidationError``. Legacy validators are identified
+    by the innermost traceback frame, where the exception was raised.
     """
+    if isinstance(exc, MCPValidationError):
+        return True
     if not isinstance(exc, ValueError) or exc.__traceback__ is None:
         return False
     tb = exc.__traceback__

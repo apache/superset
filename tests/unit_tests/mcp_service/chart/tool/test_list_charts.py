@@ -826,3 +826,159 @@ async def test_reraised_response_hides_text_from_a_resolved_guest(
     assert result.is_error
     assert not any(_LEAK_MARKER in text for text in notifications)
     assert _LEAK_MARKER not in result.content[0].text
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "request_input", "guidance"),
+    [
+        pytest.param(
+            "list_charts",
+            {"order_column": "not_a_sort_column"},
+            "Invalid order_column 'not_a_sort_column'. Allowed columns: id, "
+            "slice_name, viz_type, description, changed_on, "
+            "changed_on_delta_humanized, created_on",
+            id="order-column",
+        ),
+        pytest.param(
+            "list_charts",
+            {"select_columns": ["not_a_column"]},
+            "select_columns contains no valid columns",
+            id="select-columns",
+        ),
+        pytest.param(
+            "get_schema",
+            {"model_type": "report"},
+            "The Alerts & Reports feature is disabled on this instance.",
+            id="reports-disabled",
+        ),
+        pytest.param(
+            "get_catalog",
+            {"asset_type": "dashboards", "cursor": "!"},
+            "Invalid cursor",
+            id="malformed-cursor",
+        ),
+        pytest.param(
+            "get_catalog",
+            {
+                "asset_type": "dashboards",
+                "cursor": "eyJ2IjoxLCJ0IjoiY2hhcnRzIiwicyI6IiIsImEiOjF9",
+            },
+            "Invalid cursor: it does not match this asset_type and search. "
+            "Restart without a cursor.",
+            id="cross-asset-cursor",
+        ),
+    ],
+)
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@pytest.mark.asyncio
+async def test_real_validation_guidance_survives(
+    production_middleware: None,
+    mock_auth: Mock,
+    tool_name: str,
+    request_input: dict[str, Any],
+    guidance: str,
+    guest: bool,
+) -> None:
+    """Real tool refusals retain guidance only for the resolved signed-in user."""
+    from superset.security.guest_token import GuestUser
+    from tests.unit_tests.mcp_service.conftest import regular_user
+
+    mock_auth.return_value = regular_user(id=1, username="admin")
+    importlib.import_module("superset.mcp_service.catalog.tool.get_catalog")
+    importlib.import_module("superset.mcp_service.system.tool.get_schema")
+    if guest:
+        mock_auth.return_value = GuestUser(
+            token={
+                "user": {"username": "guest"},
+                "resources": [],
+                "rls_rules": [],
+                "iat": 1,
+                "exp": 9_999_999_999,
+            },
+            roles=[],
+        )
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: guest and flag == "EMBEDDED_SUPERSET",
+        ),
+        patch("superset.mcp_service.catalog.tool.get_catalog._check_class_permission"),
+        patch("superset.daos.chart.ChartDAO.list") as dao_list,
+    ):
+        async with Client(mcp, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                tool_name, {"request": request_input}, raise_on_error=False
+            )
+
+    dao_list.assert_not_called()
+    assert result.is_error
+    response = result.content[0].text
+    if guest:
+        assert guidance not in response
+        assert not any(guidance in text for text in notifications)
+        if tool_name == "list_charts":
+            assert str(GENERIC_ERROR_MESSAGE) in response
+        else:
+            assert "Permission denied" in response
+    else:
+        assert guidance in response
+        assert UNEXPECTED_ERROR_MESSAGE not in response
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "list_dashboards",
+        "list_databases",
+        "list_datasets",
+        "list_queries",
+        "list_reports",
+        "list_rls_filters",
+        "list_roles",
+        "list_saved_queries",
+        "list_tags",
+        "list_tasks",
+        "list_themes",
+        "list_users",
+        "list_annotation_layers",
+        "list_layer_annotations",
+    ],
+)
+@pytest.mark.asyncio
+async def test_list_siblings_preserve_sort_guidance(
+    production_middleware: None, mock_auth: Mock, tool_name: str
+) -> None:
+    """Each shared list entry point carries host validation through middleware."""
+    from tests.unit_tests.mcp_service.conftest import regular_user
+
+    mock_auth.return_value = regular_user(id=1, username="admin")
+    request_input: dict[str, Any] = {"order_column": "not_a_sort_column"}
+    if tool_name == "list_layer_annotations":
+        request_input["layer_id"] = 1
+    with (
+        patch("superset.is_feature_enabled", return_value=True),
+        patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id"),
+        patch(
+            "superset.mcp_service.database.tool.list_databases."
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.dataset.tool.list_datasets."
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                tool_name, {"request": request_input}, raise_on_error=False
+            )
+
+    response = result.content[0].text
+    assert "Invalid order_column 'not_a_sort_column'. Allowed columns:" in response
+    assert UNEXPECTED_ERROR_MESSAGE not in response
