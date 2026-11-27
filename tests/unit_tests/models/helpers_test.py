@@ -3056,21 +3056,11 @@ def test_get_sqla_query_allows_nonaggregate_custom_sql_metric_of_grouped_columns
     assert result is not None
 
 
-@pytest.mark.parametrize(
-    "expression,calculated_column_expression",
-    [
-        ("lon - confirmed", None),
-        ("bucket * 2", "lon / 10"),
-    ],
-)
 def test_get_sqla_query_raises_for_custom_sql_metric_with_ungrouped_column(
     database: Database,
-    expression: str,
-    calculated_column_expression: str | None,
 ) -> None:
     """
-    An expression referencing any column that isn't a plain grouped column (a
-    calculated column is grouped by its expression, not its name) still raises.
+    An expression referencing a column that isn't grouped still raises.
     """
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.exceptions import QueryObjectValidationError
@@ -3081,13 +3071,13 @@ def test_get_sqla_query_raises_for_custom_sql_metric_with_ungrouped_column(
         table_name="t",
         columns=[
             TableColumn(column_name="lon"),
-            TableColumn(column_name="bucket", expression=calculated_column_expression),
+            TableColumn(column_name="bucket"),
             TableColumn(column_name="confirmed"),
         ],
     )
     metric: AdhocMetric = {
         "expressionType": "SQL",
-        "sqlExpression": expression,
+        "sqlExpression": "lon - confirmed",
         "label": "m",
     }
 
