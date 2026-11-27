@@ -11729,7 +11729,7 @@ msgstr ""
 msgid "Ranges"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "Ranges as % of target"
 msgstr ""
 
