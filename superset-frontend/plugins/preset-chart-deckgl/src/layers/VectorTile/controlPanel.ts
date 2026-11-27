@@ -37,6 +37,8 @@ import {
   viewport,
   breakpointsDefaultColor,
   deckGLColorBreakpointsSelect,
+  legendFormat,
+  legendPosition,
 } from '../../utilities/Shared_DeckGL';
 
 import { columnChoices } from '../../utilities/controls';
@@ -260,6 +262,34 @@ const config: ControlPanelConfig = {
         ],
         [deckGLColorBreakpointsSelect],
         [breakpointsDefaultColor],
+        [
+          {
+            ...legendPosition,
+            config: {
+              ...legendPosition.config,
+              visibility: ({ controls }) =>
+                !isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.fixed_color,
+                ),
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            ...legendFormat,
+            config: {
+              ...legendFormat.config,
+              visibility: ({ controls }) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.color_breakpoints,
+                ),
+              resetOnHide: false,
+            },
+          },
+        ],
       ],
     },
     {

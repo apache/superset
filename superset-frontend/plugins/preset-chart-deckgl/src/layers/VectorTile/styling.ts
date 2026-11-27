@@ -183,6 +183,15 @@ function getCategoryScale(
   return scale;
 }
 
+export function createCategoryColor(
+  colorScheme: string | undefined,
+  alpha: number,
+  sliceId?: number,
+): (category: string) => RGBAColor {
+  const scale = getCategoryScale(colorScheme, sliceId);
+  return category => hexToRGB(scale(category, sliceId), alpha);
+}
+
 export interface ColorAccessor {
   getColor: (feature: Feature) => RGBAColor;
   /** Changes whenever colours must be recomputed; used for updateTriggers. */
@@ -212,11 +221,10 @@ export function createColorAccessor(
       'vector-tile-category',
       categoryPropertySpec,
     );
-    const scale = getCategoryScale(colorScheme, sliceId);
+    // Opacity follows the fixed colour, as in other categorical deck.gl charts.
+    const colorFor = createCategoryColor(colorScheme, fillColor[3], sliceId);
     return {
-      // Opacity follows the fixed colour, as in other categorical deck.gl charts.
-      getColor: feature =>
-        hexToRGB(scale(readCategory(feature), sliceId), fillColor[3]),
+      getColor: feature => colorFor(readCategory(feature)),
       updateTrigger: JSON.stringify([expression, colorScheme, fillColor[3]]),
     };
   }

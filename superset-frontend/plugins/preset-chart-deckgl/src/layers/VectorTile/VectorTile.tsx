@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { memo, useCallback, useRef } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { MVTLayer } from '@deck.gl/geo-layers';
 import { MVTLoader } from '@loaders.gl/mvt';
 import {
@@ -33,11 +33,14 @@ import {
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
-import { GetLayerType } from '../../factory';
+import { GetLayerTypeParams } from '../../factory';
 import { Viewport } from '../../utils/fitViewport';
 import { getMapboxApiKey } from '../../utils/mapbox';
 import { getLayerSettings, VectorTileFormData } from './layerSettings';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
+import Legend from '../../components/Legend';
+import { getLegendCategories } from './legend';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 // Pixel units keep points and lines visible at every zoom level.
 const POINT_RADIUS_PX = 4;
@@ -77,14 +80,20 @@ const withFlatProperties = (o: JsonObject): JsonObject =>
     ? { ...o, object: { ...o.object, ...o.object.properties } }
     : o;
 
+type VectorTileLayerParams = GetLayerTypeParams & {
+  /** Receives the tiles covering the viewport each time they finish loading. */
+  onViewportLoad?: (tiles: unknown[]) => void;
+};
+
 /**
  * Builds the MVTLayer from form data. Exported separately because the deck.gl
  * Multiple Layers chart calls it directly. Returns null without a valid tile URL.
  */
-export const getLayer: GetLayerType<MVTLayer | null> = ({
+export const getLayer = ({
   formData,
   setTooltip,
-}) => {
+  onViewportLoad,
+}: VectorTileLayerParams): MVTLayer | null => {
   const settings = getLayerSettings(formData as VectorTileFormData);
   const { tileUrl, sourceLayer, minZoom, maxZoom } = settings;
 
@@ -124,6 +133,7 @@ export const getLayer: GetLayerType<MVTLayer | null> = ({
       getFillColor: updateTrigger,
       getLineColor: updateTrigger,
     },
+    onViewportLoad: onViewportLoad && (tiles => onViewportLoad([...tiles])),
     getPointRadius: POINT_RADIUS_PX,
     pointRadiusUnits: 'pixels',
     getLineWidth: LINE_WIDTH_PX,
@@ -156,7 +166,24 @@ function VectorTile({
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     containerRef.current?.setTooltip(tooltip);
   }, []);
-  const layer = getLayer({ formData, payload: {}, setTooltip });
+  const [viewportTiles, setViewportTiles] = useState<unknown[]>([]);
+  const layer = getLayer({
+    formData,
+    payload: {},
+    setTooltip,
+    onViewportLoad: setViewportTiles,
+  });
+
+  const legendCategories = useMemo(
+    () =>
+      getLegendCategories(
+        getLayerSettings(formData),
+        formData.color_breakpoints,
+        viewportTiles,
+        formData.slice_id,
+      ),
+    [formData, viewportTiles],
+  );
 
   const { mapProvider, mapStyle } = getMapProviderMapStyle({
     mapProvider: formData.map_renderer,
@@ -166,17 +193,27 @@ function VectorTile({
   });
 
   return (
-    <DeckGLContainerStyledWrapper
-      ref={containerRef}
-      viewport={viewport}
-      layers={layer ? [layer] : []}
-      mapProvider={mapProvider}
-      mapStyle={mapStyle}
-      mapboxApiKey={getMapboxApiKey()}
-      setControlValue={setControlValue}
-      height={height}
-      width={width}
-    />
+    <div style={{ position: 'relative' }}>
+      <DeckGLContainerStyledWrapper
+        ref={containerRef}
+        viewport={viewport}
+        layers={layer ? [layer] : []}
+        mapProvider={mapProvider}
+        mapStyle={mapStyle}
+        mapboxApiKey={getMapboxApiKey()}
+        setControlValue={setControlValue}
+        height={height}
+        width={width}
+      />
+      <Legend
+        categories={legendCategories}
+        position={formData.legend_position}
+        format={formData.legend_format ?? null}
+        forceCategorical={
+          formData.color_scheme_type === COLOR_SCHEME_TYPES.categorical_palette
+        }
+      />
+    </div>
   );
 }
 

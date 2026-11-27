@@ -22,6 +22,7 @@ import { ColorBreakpointType, ColorType } from '../../types';
 import { PRIMARY_COLOR } from '../../utilities/controls';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../../utilities/utils';
 import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
+import { LegendProps } from '../../components/Legend';
 
 export const TILE_URL_PLACEHOLDERS = ['{z}', '{x}', '{y}'];
 export const DEFAULT_MIN_ZOOM = 0;
@@ -50,6 +51,8 @@ export interface VectorTileFormData extends QueryFormData {
   color_scheme?: string;
   color_breakpoints?: ColorBreakpointType[];
   default_breakpoint_color?: ColorType;
+  legend_position?: LegendProps['position'];
+  legend_format?: string;
 }
 
 export interface VectorTileLayerSettings {
