@@ -25,7 +25,7 @@ from pytest_mock import MockerFixture
 
 from superset.commands.sql_lab.export import SqlResultExportCommand
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
-from superset.errors import SupersetError, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
 from superset.utils import csv
 
@@ -128,7 +128,7 @@ def test_csv_export_dbapi_error_becomes_typed_4xx(mocker: MockerFixture) -> None
             message="The query used a function (e.g. sequence()) that generated "
             "more entries than the engine allows. Reduce the range or step size.",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-            level="error",
+            level=ErrorLevel.ERROR,
         )
     ]
     mock_db: MagicMock = mocker.patch("superset.commands.sql_lab.export.db")
