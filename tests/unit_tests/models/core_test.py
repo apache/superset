@@ -4871,3 +4871,56 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
         f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
     )
+
+
+class _DriverError(Exception):
+    """Stand-in for a DB-API driver's base ``Error``."""
+
+
+class OperationalError(_DriverError):
+    """Stand-in for a driver ``OperationalError``, such as pymssql's."""
+
+
+def _database_whose_connection_close_fails(mocker: MockerFixture) -> Database:
+    mock_engine = mocker.MagicMock()
+    mock_engine.dialect.dbapi.Error = _DriverError
+    mock_engine.raw_connection.return_value.close.side_effect = OperationalError(
+        "(10928, b'Resource ID : 1. The request limit for the database is 400 "
+        "and has been reached.')"
+    )
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    mocker.patch.object(Database, "db_engine_spec")
+    mocker.patch("superset.models.core.sqla.event.listen")
+    mocker.patch("superset.models.core.sqla.event.remove")
+    return Database(database_name="my_db", sqlalchemy_uri="mssql+pymssql://")
+
+
+def test_get_raw_connection_wraps_driver_error_on_release(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A driver error raised while releasing the connection (the pool's rollback on
+    a database that has hit its request limit) is a ``SQLAlchemyError``, so
+    callers that handle database errors see it.
+    """
+    database = _database_whose_connection_close_fails(mocker)
+
+    with pytest.raises(sqlalchemy.exc.OperationalError, match="10928"):
+        with database.get_raw_connection():
+            pass
+
+
+def test_get_raw_connection_keeps_caller_error_when_release_fails(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failure to release the connection must not replace the error that made the
+    caller's block fail.
+    """
+    database = _database_whose_connection_close_fails(mocker)
+
+    with pytest.raises(ValueError, match="query failed"):
+        with database.get_raw_connection():
+            raise ValueError("query failed")

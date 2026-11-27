@@ -30,7 +30,6 @@ from ast import literal_eval
 from collections.abc import Collection
 from contextlib import (
     AbstractContextManager,
-    closing,
     contextmanager,
     ExitStack,
     nullcontext,
@@ -73,7 +72,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Connection, Dialect, Engine, ExceptionContext
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     Mapper,
@@ -1076,12 +1075,52 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         if engine in _EMBEDDED_FALLBACK_ENGINES:
                             _log_embedded_rejection(self.id, self.database_name, ex)
                         raise
-                    with closing(raw_connection) as conn:
-                        self.db_engine_spec.prepare_connection(conn.dbapi_connection)
-                        yield conn
+                    try:
+                        self.db_engine_spec.prepare_connection(
+                            raw_connection.dbapi_connection
+                        )
+                        yield raw_connection
+                    except BaseException:
+                        # The caller's error is the one worth reporting; a failure
+                        # while releasing the connection must not replace it.
+                        self._close_raw_connection(engine, raw_connection, False)
+                        raise
+                    else:
+                        self._close_raw_connection(engine, raw_connection, True)
 
         with self._open_with_oauth2_retry(open_connection) as conn:
             yield conn
+
+    @staticmethod
+    def _close_raw_connection(
+        engine: Engine, raw_connection: Connection, raise_on_error: bool
+    ) -> None:
+        """
+        Release a pooled connection, keeping driver errors typed.
+
+        Returning a connection to the pool rolls it back, which runs on the
+        database and can fail (for example, a database that has reached its
+        request limit rejects the rollback). The driver raises that error as is,
+        outside SQLAlchemy's error wrapping, so callers catching
+        ``SQLAlchemyError`` never see it. It is re-raised as a ``DBAPIError``, or
+        only logged when another error is already propagating.
+        """
+        try:
+            raw_connection.close()
+        except SQLAlchemyError:
+            if raise_on_error:
+                raise
+            logger.warning("Failed to release database connection", exc_info=True)
+        except Exception as ex:  # pylint: disable=broad-except
+            dbapi = getattr(engine.dialect, "dbapi", None)
+            base_error = getattr(dbapi, "Error", None)
+            if base_error is None or not isinstance(ex, base_error):
+                raise
+            logger.warning(
+                "Failed to release database connection: %s", ex, exc_info=True
+            )
+            if raise_on_error:
+                raise DBAPIError.instance(None, None, ex, base_error) from ex
 
     @contextmanager
     def _open_with_oauth2_retry(
