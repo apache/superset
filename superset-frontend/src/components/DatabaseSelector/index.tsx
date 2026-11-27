@@ -340,12 +340,16 @@ export function DatabaseSelector({
     catalog: currentCatalog?.value,
     onSuccess: (schemas, isFetched) => {
       setErrorPayload(null);
-      if (schemas.length === 1) {
-        changeSchema(schemas[0]);
-      } else if (
-        !schemas.some(schemaOption => schemaRef.current === schemaOption.value)
-      ) {
-        changeSchema(undefined);
+      if (currentDb?.supports_schemas !== false) {
+        if (schemas.length === 1) {
+          changeSchema(schemas[0]);
+        } else if (
+          !schemas.some(
+            schemaOption => schemaRef.current === schemaOption.value,
+          )
+        ) {
+          changeSchema(undefined);
+        }
       }
 
       if (isFetched) {

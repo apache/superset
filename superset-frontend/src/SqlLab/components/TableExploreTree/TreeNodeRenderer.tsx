@@ -202,7 +202,13 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           opacity: ${columnOpacity};
         `}
         data-selected={node.isSelected}
-        onClick={isTablePreviewMode ? undefined : () => node.select()}
+        onClick={e => {
+          if (isTablePreviewMode) {
+            e.stopPropagation();
+          } else {
+            node.select();
+          }
+        }}
       >
         <ColumnElement
           column={data.columnData}

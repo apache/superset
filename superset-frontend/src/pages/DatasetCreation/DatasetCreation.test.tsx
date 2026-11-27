@@ -24,7 +24,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'spec/helpers/testing-library';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import AddDataset, { datasetReducer } from '.';
@@ -64,9 +63,7 @@ beforeEach(() => {
     result: ['main', 'archive'],
     count: 2,
   });
-  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', {
-    result: ['public', 'sales'],
-  });
+  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: ['public'] });
   fetchMock.get('glob:*/api/v1/database/1/tables/*', call => {
     const query = new URL(call.url, 'http://localhost').searchParams.get('q');
     const { catalog_name: catalog } = rison.decode(query ?? '()') as {
@@ -90,14 +87,7 @@ afterEach(() => {
   localStorage.removeItem(LocalStorageKeys.Database);
 });
 
-async function selectOrders(schemaSelected = false) {
-  if (!schemaSelected) {
-    await userEvent.click(
-      within(await screen.findByRole('tree')).getByText('public', {
-        exact: true,
-      }),
-    );
-  }
+async function selectOrders() {
   await userEvent.click(await screen.findByText('orders', { exact: true }));
   await waitFor(() =>
     expect(screen.getAllByText('order_id').length).toBeGreaterThan(0),
@@ -146,7 +136,7 @@ test('changing the catalog clears the selected table and column preview', async 
   await userEvent.click(catalog);
   await userEvent.click(await screen.findByText('main', { exact: true }));
   await userEvent.click(screen.getByRole('button', { name: 'Select' }));
-  await selectOrders(true);
+  await selectOrders();
   await userEvent.click(screen.getByTestId('database-selector-trigger'));
   await userEvent.click(
     await screen.findByRole('combobox', {
