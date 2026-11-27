@@ -70,6 +70,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
 from superset import db
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
@@ -81,6 +82,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetParseError,
     SupersetSecurityException,
+    SupersetTemplateException,
     SupersetTimeoutException,
 )
 from superset.extensions import cache_manager
@@ -1226,19 +1228,23 @@ class SQLExecutor:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
             if query is None:
                 return False
-            query.status = status.value
-            query.error_message = error_message
-            query.end_time = now_as_float()
+            # Loading an expired timestamp must not flush unguarded metadata.
+            with db.session.no_autoflush:
+                query.end_time = query.end_time or now_as_float()
+                query.status = status.value
+                query.error_message = error_message
             # A success commit can apply and still raise; keep that outcome.
             if not commit_query_unless_stopped(query, keep_success=True):
                 stopped = query.status == DBQueryStatus.STOPPED
                 db.session.commit()  # pylint: disable=consider-using-transaction
                 return stopped
         except Exception:  # pylint: disable=broad-except
-            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Unable to record failure of query %s", query_id, exc_info=True
             )
+            # Metadata recovery must not replace the original execution error.
+            with contextlib.suppress(Exception):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
         return False
 
     def _record_cached_result(
@@ -1323,6 +1329,7 @@ class SQLExecutor:
         :param sql: SQL string potentially containing Jinja2 templates
         :param template_params: Parameters to pass to the template
         :returns: Rendered SQL string
+        :raises SupersetTemplateException: if the template fails to render
         """
         if template_params is None:
             return sql
@@ -1330,7 +1337,10 @@ class SQLExecutor:
         from superset.jinja_context import get_template_processor
 
         tp = get_template_processor(database=self.database)
-        return tp.process_template(sql, **template_params)
+        try:
+            return tp.process_template(sql, **template_params)
+        except TemplateError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
 
     def _apply_limit_to_script(self, script: SQLScript, opts: QueryOptions) -> None:
         """

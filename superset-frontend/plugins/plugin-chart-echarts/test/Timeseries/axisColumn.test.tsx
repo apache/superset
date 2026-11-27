@@ -17,7 +17,11 @@
  * under the License.
  */
 import { act, render } from '@testing-library/react';
-import { ChartDataResponseResult } from '@superset-ui/core';
+import {
+  AxisType,
+  ChartDataResponseResult,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
@@ -56,6 +60,15 @@ afterEach(() => {
 });
 
 test.each([
+  [
+    'semantic_view',
+    'ORDERS.ORDER_DATE',
+    'Order date',
+    OrientationType.Vertical,
+    false,
+    true,
+  ],
+  ['table', 'order_date', 'Order date', OrientationType.Vertical, true, true],
   ['table', 'segment', 'Market segment', OrientationType.Vertical, false],
   [
     'semantic_view',
@@ -83,15 +96,25 @@ test.each([
   ],
 ] as const)(
   '%s axis %s displayed as %s (%s, mixed=%s) emits column identity',
-  async (datasourceType, column, label, orientation, mixed) => {
+  async (
+    datasourceType,
+    column,
+    label,
+    orientation,
+    mixed,
+    temporal: boolean = false,
+  ) => {
     jest.useFakeTimers();
-    const value = 'AUTOMOBILE';
+    const value = temporal ? Date.UTC(2026, 0, 1) : 'AUTOMOBILE';
     const query: ChartDataResponseResult & {
       label_map: Record<string, string[]>;
     } = {
       data: [{ [column]: value, count: 3 }],
       colnames: [column, 'count'],
-      coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      coltypes: [
+        temporal ? GenericDataType.Temporal : GenericDataType.String,
+        GenericDataType.Numeric,
+      ],
       label_map: { count: ['count'] },
       annotation_data: null,
       cache_key: null,
@@ -120,6 +143,7 @@ test.each([
       metrics: ['count'],
       groupby: [],
       orientation,
+      ...(temporal && { timeGrainSqla: TimeGranularity.MONTH }),
     };
     const setDataMask = jest.fn();
     const onContextMenu = jest.fn();
@@ -139,6 +163,7 @@ test.each([
         }),
       );
       expect(transformed.xAxis.label).toBe(label);
+      if (temporal) expect(transformed.xAxis.type).toBe(AxisType.Time);
       render(
         <ThemeProvider theme={supersetTheme}>
           <EchartsMixedTimeseries {...transformed} {...commonProps} />
@@ -158,6 +183,7 @@ test.each([
         }),
       );
       expect(transformed.xAxis.label).toBe(label);
+      if (temporal) expect(transformed.xAxis.type).toBe(AxisType.Time);
       render(
         <ThemeProvider theme={supersetTheme}>
           <EchartsTimeseries {...transformed} {...commonProps} />
@@ -170,7 +196,7 @@ test.each([
       seriesName: 'count',
       seriesIndex: 0,
       dataIndex: 0,
-      name: value,
+      name: String(value),
       data:
         orientation === OrientationType.Horizontal ? [3, value] : [value, 3],
       event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
@@ -192,9 +218,20 @@ test.each([
         ? undefined
         : expect.objectContaining({
             extraFormData: {
-              filters: [{ col: column, op: 'IN', val: [value] }],
+              filters: [
+                temporal
+                  ? {
+                      col: column,
+                      op: 'TEMPORAL_RANGE',
+                      val: expect.any(String),
+                    }
+                  : { col: column, op: 'IN', val: [value] },
+              ],
+              ...(temporal && { time_range: expect.any(String) }),
             },
-            filterState: expect.objectContaining({ selectedValues: [value] }),
+            filterState: expect.objectContaining({
+              selectedValues: temporal ? [expect.any(String)] : [value],
+            }),
           }),
       context: expect.objectContaining({
         drillToDetail: [expect.objectContaining({ col: column, val: value })],

@@ -17,7 +17,11 @@
  * under the License.
  */
 import { Behavior, getChartMetadataRegistry, VizType } from '@superset-ui/core';
-import { getCrossFiltersConfiguration } from './crossFilters';
+import {
+  getCrossFiltersConfiguration,
+  hasCrossFilterTargets,
+  selectHasCrossFilterTargets,
+} from './crossFilters';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
 const DASHBOARD_LAYOUT = {
@@ -364,4 +368,33 @@ test('Global cross-filter scope includes charts from other tabs (#37665)', () =>
   expect(chartConfiguration['1'].crossFilters.chartsInScope).toEqual([2]);
   // ...and vice versa, proving the scope resolution isn't tab-local either way.
   expect(chartConfiguration['2'].crossFilters.chartsInScope).toEqual([1]);
+});
+
+const scopedTo = (chartId: number, chartsInScope: number[]) => ({
+  [chartId]: {
+    id: chartId,
+    crossFilters: { scope: 'global' as const, chartsInScope },
+  },
+});
+
+test('hasCrossFilterTargets is false when the scope reaches no other chart', () => {
+  expect(hasCrossFilterTargets(scopedTo(1, []), 1)).toBe(false);
+  expect(hasCrossFilterTargets(scopedTo(1, [1]), 1)).toBe(false);
+});
+
+test('hasCrossFilterTargets is true when the scope reaches another chart', () => {
+  expect(hasCrossFilterTargets(scopedTo(1, [1, 2]), 1)).toBe(true);
+});
+
+test('hasCrossFilterTargets is true for a chart without a cross-filter configuration', () => {
+  expect(hasCrossFilterTargets(undefined, 1)).toBe(true);
+  expect(hasCrossFilterTargets(scopedTo(2, []), 1)).toBe(true);
+});
+
+test('selectHasCrossFilterTargets reads the dashboard chart configuration', () => {
+  const state = {
+    dashboardInfo: { metadata: { chart_configuration: scopedTo(1, []) } },
+  } as unknown as Parameters<typeof selectHasCrossFilterTargets>[0];
+  expect(selectHasCrossFilterTargets(state, 1)).toBe(false);
+  expect(selectHasCrossFilterTargets(state, 2)).toBe(true);
 });

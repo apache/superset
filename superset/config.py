@@ -33,6 +33,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
@@ -437,6 +438,26 @@ RATELIMIT_APPLICATION = "50 per second"
 # second-granularity relative ranges ("Last 24 hours") essentially never.
 PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
+# How long a failed probe is remembered before the warehouse is asked again.
+# Short on purpose: long enough that a transform the engine always rejects is not
+# re-run on every chart load, short enough that a transient failure costs
+# minutes of pruning rather than a day. Set to 0 to retry on every query.
+PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT = int(
+    timedelta(minutes=5).total_seconds()
+)
+
+# Most distinct inputs one probe evaluates. A chart query has one probe, holding
+# the values of all its mirrored filters, and each timestamp counts twice because
+# it is also asked as text. Each input is one column of a single SELECT, and engines
+# cap the select list (PostgreSQL at 1,664); a wider probe is not run and the query
+# does not prune. Set to 0 for no cap.
+PARTITION_TRANSFORM_PROBE_MAX_VALUES = 1000
+
+# Seconds a probe may run before it is abandoned and the query does not prune.
+# Best effort: enforced with SIGALRM, so only in a main-thread worker. Set to 0
+# to disable.
+PARTITION_TRANSFORM_PROBE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
+
 # Per-user, per-dataset budget for the partition mapping preview endpoint, which
 # fires a real warehouse query from a text input in the dataset editor. Counted
 # in a fixed 60-second window; set to 0 to disable.
@@ -446,9 +467,11 @@ AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
 # When enabled, users whose account is flagged with ``password_must_change``
-# (e.g. accounts provisioned by an administrator) are redirected to their
-# profile page (/user_info/, "Reset my password") until they set a new
-# password. Off by default.
+# are redirected to their profile page (/user_info/, "Reset my password") until
+# they set a new password. Under AUTH_DB the flag is raised whenever an
+# administrator creates a user or sets another user's password from the Users
+# list.
+# Off by default.
 ENABLE_FORCE_PASSWORD_CHANGE = False
 
 # Password complexity policy, enforced (via Flask-AppBuilder) across
@@ -721,6 +744,17 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 #   - stable: Production-ready, tested and supported
 #   - deprecated: Will be removed in a future major release
 
+# Whether this process registers the MCP *host tools* at startup. Registering
+# them imports the MCP service app, which has a real per-process memory cost, and
+# only processes that serve MCP (the web app and the standalone MCP service) need
+# them. Deployments can set this to False for processes that never serve MCP (e.g.
+# Celery workers) to avoid that cost.
+#
+# This gates only host-tool registration. The MCP decorators (@tool/@prompt) are
+# always registered regardless of this flag, so extensions that apply them at
+# import time keep working in every process.
+CORE_MCP_HOST_TOOLS_ENABLED = True
+
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # =================================================================
     # IN DEVELOPMENT
@@ -739,6 +773,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # keep using the ALERT_REPORTS_EXECUTORS resolution.
     # @lifecycle: development
     "ALERT_REPORT_DYNAMIC_EXECUTOR": False,
+    # Enables translation of user-authored asset metadata (chart names,
+    # dashboard titles, axis/metric labels) via the configurable
+    # ``TRANSLATION_HOOK``. Only takes effect when more than one language is
+    # configured in ``LANGUAGES``. See SIP-161.
+    # @lifecycle: development
+    "ENABLE_I18N_ASSET_TRANSLATIONS": False,
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
@@ -1104,6 +1144,17 @@ DEFAULT_FEATURE_FLAGS.update(
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
 USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = None
+
+# This function can be overridden to tag each query with where it came from, so
+# the database's query log can tell users, dashboards and charts apart. ClickHouse
+# stores the returned string in system.query_log.log_comment. It receives the
+# database and a dict with whichever of user, dashboard_id, chart_id, report_id
+# and sqllab_query_id apply; return None to send nothing. For example:
+#
+# import json
+# def QUERY_LOG_COMMENT_FUNC(database, context):
+#     return json.dumps({"app": "superset", **context})
+QUERY_LOG_COMMENT_FUNC: Callable[[Database, dict[str, Any]], str | None] | None = None
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
@@ -2792,6 +2843,45 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
     return sql
 
 
+# Hook for translating user-authored asset metadata (chart names, dashboard
+# titles, labels) into the viewer's locale. Gated by the
+# ``ENABLE_I18N_ASSET_TRANSLATIONS`` feature flag and a multi-language
+# ``LANGUAGES`` config; see SIP-161 and ``superset.utils.i18n``.
+#
+# Superset core does not store these translations -- the hook decides where
+# they come from (a database table, an external translation service, a static
+# map, ...). It receives the default text and the target locale, plus optional
+# keyword context (``model_name``, ``field_name``, ...) to disambiguate
+# identical strings, and returns the translated text -- or a falsy value to
+# fall back to the default.
+#
+# Example:
+#    def TRANSLATION_HOOK(default_text, locale, **kwargs):
+#        return my_translation_store.get(locale, {}).get(default_text)
+#
+# NOTE: keep **kwargs last so new context can be added without breaking
+# existing implementations.
+TRANSLATION_HOOK: Callable[..., str | None] | None = None
+
+# Optional batch counterpart to ``TRANSLATION_HOOK``, for stores where one
+# lookup per string is too expensive (a database table, a remote service).
+# Superset calls it once with every string it is about to render for a given
+# context -- all of a dashboard's chart names, a page of recent activity --
+# instead of calling ``TRANSLATION_HOOK`` per string.
+#
+# It receives the list of default texts and the target locale, plus the same
+# keyword context, and returns a mapping of default text to translation.
+# Missing keys and falsy values fall back to the default text, so a partial
+# result is fine. When set, this fully replaces ``TRANSLATION_HOOK``: single
+# lookups are routed through it as a one-element batch, so configuring both is
+# unnecessary.
+#
+# Example:
+#    def TRANSLATION_BATCH_HOOK(default_texts, locale, **kwargs):
+#        return my_translation_store.get_many(locale, default_texts)
+TRANSLATION_BATCH_HOOK: Callable[..., Mapping[str, str | None] | None] | None = None
+
+
 # A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query  # noqa: E501
 # It allows for using the SQL_QUERY_MUTATOR function for more than comments
 # Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True  # noqa: E501
@@ -2974,6 +3064,27 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
 # The text for call-to-action link in Alerts & Reports emails
 EMAIL_REPORTS_CTA = "Explore in Superset"
+
+# Server-side configuration for the notification-only Teams bot. One tenant per
+# deployment; only operator-approved standard channels are supported. Scheduled
+# reports, private/shared channels, DMs, and attachments are excluded.
+# See superset.integrations.teams.config.parse_teams_config for validation.
+# Never expose this mapping to the browser or store it in recipient JSON.
+# Recipients must reference only a destination's stable key.
+# ALERT_REPORTS_TEAMS = {
+#     "tenant_id": "<tenant UUID>",
+#     "application_id": "<bot application UUID>",
+#     "credential": os.environ["TEAMS_BOT_CLIENT_SECRET"],
+#     "destinations": [
+#         {
+#             "key": "operations",
+#             "label": "Operations alerts",
+#             "team_id": "<team ID>",
+#             "channel_id": "<standard channel ID>",
+#         },
+#     ],
+# }
+ALERT_REPORTS_TEAMS: dict[str, Any] = {}
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None

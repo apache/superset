@@ -322,6 +322,46 @@ def test_tables_without_catalog(
     )
 
 
+def test_tables_sorted_case_insensitively(
+    mocker: MockerFixture,
+    database_without_catalog: MagicMock,
+) -> None:
+    """
+    Test that tables and views are sorted case-insensitively, with names that
+    differ only by case listed lowercase first.
+    """
+    mocker.patch.object(
+        security_manager,
+        "get_datasources_accessible_by_user",
+        side_effect=[
+            {
+                DatasourceName("bar", "schema1"),
+                DatasourceName("FOO", "schema1"),
+                DatasourceName("Baz", "schema1"),
+                DatasourceName("apple", "schema1"),
+            },
+            {
+                DatasourceName("foo", "schema1"),
+                DatasourceName("Foo", "schema1"),
+            },
+            set(),  # Empty set for materialized views
+        ],
+    )
+
+    db = mocker.patch("superset.commands.database.tables.db")
+    db.session.query().filter().options().all.return_value = []
+
+    payload = TablesDatabaseCommand(1, None, "schema1", False).run()
+    assert [item["value"] for item in payload["result"]] == [
+        "apple",
+        "bar",
+        "Baz",
+        "foo",
+        "Foo",
+        "FOO",
+    ]
+
+
 def test_tables_unknown_schema(
     mocker: MockerFixture,
     database_without_catalog: MagicMock,

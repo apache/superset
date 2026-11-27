@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { renderHook } from '@testing-library/react';
@@ -25,7 +25,7 @@ import { createWrapper } from 'spec/helpers/testing-library';
 import useQueryEditor from '.';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 test('returns selected queryEditor values', () => {
   const { result } = renderHook(
