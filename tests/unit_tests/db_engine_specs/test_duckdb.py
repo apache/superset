@@ -450,3 +450,121 @@ def test_live_reflection_and_types_roundtrip() -> None:
             text(f"SELECT COUNT(*) FROM s.t WHERE ts >= {literal}")  # noqa: S608
         ).scalar()
         assert count == 1
+
+
+def test_fetch_arrow_from_a_duckdb_engine_cursor() -> None:
+    import pyarrow as pa
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    assert DuckDBEngineSpec.supports_arrow_result is True
+    connection = create_engine("duckdb:///:memory:").raw_connection()
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT range AS id, range * 1.5 AS x FROM range(5)")
+        table = DuckDBEngineSpec.fetch_arrow(cursor, limit=3)
+        assert isinstance(table, pa.Table)
+        assert table.column_names == ["id", "x"]
+        assert table.column("id").to_pylist() == [0, 1, 2]
+    finally:
+        connection.close()
+
+
+DUCKDB_PARITY_SQL = [
+    "SELECT INTERVAL 1 MONTH + INTERVAL 2 DAY + INTERVAL 3 HOUR AS v",
+    "SELECT -INTERVAL 90 MINUTE AS v",
+    "SELECT 170141183460469231731687303715884105727::HUGEINT AS v",
+    "SELECT 12::HUGEINT AS v",
+    "SELECT 5::UHUGEINT AS v",
+    "SELECT * FROM (VALUES (1::HUGEINT), (NULL)) AS t(v)",
+    "SELECT 18446744073709551615::UBIGINT AS v",
+    "SELECT 1.50::DECIMAL(10, 2) AS v",
+    "SELECT 'a'::ENUM('a', 'b') AS v",
+    "SELECT '00000000-0000-0000-0000-000000000001'::UUID AS v",
+    "SELECT TIME '01:02:03' AS v",
+    "SELECT TIMESTAMPTZ '2024-01-01 00:00:00+00' AS v",
+    "SELECT DATE '2024-02-29' AS v",
+    "SELECT [1, NULL, 3] AS v",
+    "SELECT {'k': 1} AS v",
+    "SELECT '{\"a\": 1}'::JSON AS v",
+    "SELECT 'nan'::DOUBLE AS v",
+]
+
+
+@pytest.mark.parametrize("sql", DUCKDB_PARITY_SQL)
+def test_duckdb_arrow_result_matches_the_row_path(sql: str) -> None:
+    from sqlalchemy import create_engine
+
+    from superset.dataframe import df_to_records
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    connection = create_engine("duckdb:///:memory:").raw_connection()
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SET TimeZone = 'UTC'")
+        cursor.execute(sql)
+        rows = SupersetResultSet(
+            DuckDBEngineSpec.fetch_data(cursor), cursor.description, DuckDBEngineSpec
+        )
+        cursor.execute(sql)
+        table = DuckDBEngineSpec.fetch_arrow(cursor)
+        assert table is not None
+        arrow = SupersetResultSet.from_arrow(table, DuckDBEngineSpec)
+    finally:
+        connection.close()
+
+    def comparable(result: SupersetResultSet) -> str:
+        return json.dumps(
+            df_to_records(result.to_pandas_df()),
+            default=json.json_iso_dttm_ser,
+            ignore_nan=True,
+        )
+
+    assert comparable(arrow) == comparable(rows)
+    for key in ("type", "type_generic", "is_dttm"):
+        assert arrow.columns[0][key] == rows.columns[0][key], key
+
+
+def test_duckdb_decimal_38_0_is_a_pinned_difference() -> None:
+    """DuckDB exports HUGEINT as decimal128(38, 0), so DECIMAL(38, 0) reads as int."""
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    connection = create_engine("duckdb:///:memory:").raw_connection()
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT 12::DECIMAL(38, 0) AS v")
+        table = DuckDBEngineSpec.fetch_arrow(cursor)
+    finally:
+        connection.close()
+    assert table is not None
+    arrow = SupersetResultSet.from_arrow(table, DuckDBEngineSpec)
+    assert arrow.pa_table.column("v").to_pylist() == [12]
+    assert arrow.columns[0]["type_generic"] == GenericDataType.NUMERIC
+
+
+def test_duckdb_reader_batches_are_capped_by_the_limit() -> None:
+    import pyarrow as pa
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    class _Cursor:
+        description = [("a", "int")]
+        batch_size: int | None = None
+
+        def to_arrow_reader(self, batch_size: int = 1_000_000) -> pa.RecordBatchReader:
+            self.batch_size = batch_size
+            table = pa.table({"a": pa.array(range(10))})
+            return pa.RecordBatchReader.from_batches(
+                table.schema, table.to_batches(max_chunksize=batch_size)
+            )
+
+    cursor = _Cursor()
+    table = DuckDBEngineSpec.fetch_arrow(cursor, limit=3)
+    assert table is not None
+    assert table.num_rows == 3
+    assert cursor.batch_size == 3

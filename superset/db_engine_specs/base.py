@@ -748,6 +748,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # fetched for cursor.description to be populated.
     type_probe_needs_row: bool = False
     requires_column_value_normalization: bool = False
+    # Build result sets from Arrow when the cursor can produce it.
+    supports_arrow_result: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
@@ -1821,6 +1823,110 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def fetch_arrow(cls, cursor: Any, limit: int | None = None) -> Any:
+        """
+        Fetch the result as an Arrow table, or None when the engine has not
+        opted in, the cursor has no Arrow fetch method, or a row limit is set
+        and the cursor can only fetch a full table. Callers check the
+        ``ARROW_NATIVE_RESULT_SET`` feature flag first.
+        """
+        if not cls.supports_arrow_result:
+            return None
+        reader_method = cls._arrow_reader_method(cursor)
+        table_method = cls._arrow_table_method(cursor)
+        if reader_method is None and table_method is None:
+            return None
+        try:
+            # Some drivers only fill the description while fetching rows.
+            if not cursor.description:
+                return None
+            if reader_method is not None:
+                return cls._table_from_arrow_reader(reader_method(limit), limit)
+            # A table-only fetch materializes the whole result, so a limited
+            # read falls back to ``fetch_data`` and its ``fetchmany``.
+            if limit is not None:
+                return None
+            return table_method()
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def _arrow_reader_method(cls, cursor: Any) -> Any:
+        """
+        Return a callable that takes the row limit and opens the cursor's
+        streaming Arrow reader, or None if the cursor has none.
+        """
+        # DuckDB deprecated ``fetch_record_batch`` in favor of ``to_arrow_reader``.
+        method = getattr(cursor, "to_arrow_reader", None) or getattr(
+            cursor, "fetch_record_batch", None
+        )
+        if method is None:
+            return None
+        return lambda limit: method()
+
+    @staticmethod
+    def _arrow_table_method(cursor: Any) -> Any:
+        """Return the cursor's method that fetches a whole Arrow table, if any."""
+        if hasattr(cursor, "to_arrow_table"):
+            return cursor.to_arrow_table
+        if hasattr(cursor, "fetch_arrow_table"):
+            return cursor.fetch_arrow_table
+        return None
+
+    @staticmethod
+    def _table_from_arrow_reader(reader: Any, limit: int | None) -> Any:
+        """Read a reader into a table, stopping once ``limit`` rows are read."""
+        import pyarrow as pa
+
+        if isinstance(reader, pa.Table):
+            return reader if limit is None else reader.slice(0, limit)
+        if isinstance(reader, pa.RecordBatch):
+            table = pa.Table.from_batches([reader])
+            return table if limit is None else table.slice(0, limit)
+        if limit is None and hasattr(reader, "read_all"):
+            return reader.read_all()
+        schema = getattr(reader, "schema", None)
+        if limit is not None and limit <= 0 and schema is not None:
+            return pa.Table.from_batches([], schema=schema)
+        batches: list[Any] = []
+        fetched = 0
+        for batch in reader:
+            batches.append(batch)
+            fetched += batch.num_rows
+            if limit is not None and fetched >= limit:
+                break
+        if not batches:
+            if schema is None:
+                return pa.table({})
+            return pa.Table.from_batches([], schema=schema)
+        table = pa.Table.from_batches(batches, schema=schema or batches[0].schema)
+        if limit is not None:
+            return table.slice(0, limit)
+        return table
+
+    @classmethod
+    def normalize_arrow_column(cls, field: Any, column: Any) -> Any:
+        """
+        Replace an Arrow column with what ``fetch_data`` would produce for this
+        engine, or return None to keep the default handling.
+        """
+        return None
+
+    @classmethod
+    def get_datatype_from_arrow_field(cls, field: Any) -> str | None:
+        """
+        Database type name from ``<VENDOR>:type`` field metadata, if present.
+        """
+        metadata = getattr(field, "metadata", None) or {}
+        for key, value in metadata.items():
+            key_text = key.decode() if isinstance(key, bytes) else str(key)
+            if key_text.endswith(":type"):
+                if isinstance(value, bytes):
+                    return value.decode().upper()
+                return str(value).upper()
+        return None
 
     @classmethod
     def fetch_data_with_cursor(

@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from re import Pattern
 from typing import Any, Callable, TYPE_CHECKING, TypedDict
 
@@ -47,6 +47,10 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 DEFAULT_ACCESS_TOKEN_URL = (
     "https://app.motherduck.com/token-request?appName=Superset&close=y"  # noqa: S105
 )
+
+
+# DuckDB's default ``to_arrow_reader`` batch size.
+DUCKDB_ARROW_BATCH_SIZE = 1_000_000
 
 
 # schema for adding a database by providing parameters instead of the
@@ -198,8 +202,53 @@ class DuckDBParametersMixin:
 
 class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
     engine = "duckdb"
+    supports_arrow_result = True
     engine_name = "DuckDB"
     default_driver = "duckdb_engine"
+
+    @classmethod
+    def _arrow_reader_method(cls, cursor: Any) -> Any:
+        """Open DuckDB's reader with batches no larger than the row limit."""
+        method = getattr(cursor, "to_arrow_reader", None)
+        if method is None:
+            return super()._arrow_reader_method(cursor)
+        return lambda limit: (
+            method()
+            if limit is None
+            else method(batch_size=max(1, min(limit, DUCKDB_ARROW_BATCH_SIZE)))
+        )
+
+    @classmethod
+    def normalize_arrow_column(cls, field: Any, column: Any) -> Any:
+        """
+        Match DuckDB's Python fetch: INTERVAL becomes a timedelta with 30-day
+        months, and HUGEINT / UHUGEINT (exported as ``decimal128(38, 0)``)
+        become int64, or strings when a value does not fit.
+        """
+        import pyarrow as pa
+        import pyarrow.compute as pc
+
+        if pa.types.is_interval(field.type):
+            values = [
+                None
+                if value is None
+                else timedelta(
+                    days=value.months * 30 + value.days,
+                    microseconds=value.nanoseconds // 1000,
+                )
+                for value in column.to_pylist()
+            ]
+            return pa.chunked_array([pa.array(values, type=pa.duration("us"))])
+        if (
+            pa.types.is_decimal(field.type)
+            and field.type.precision == 38
+            and field.type.scale == 0
+        ):
+            try:
+                return pc.cast(column, pa.int64())
+            except pa.ArrowInvalid:
+                return pc.cast(column, pa.string())
+        return None
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
     supports_multivalues_insert = True

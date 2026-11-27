@@ -2827,3 +2827,87 @@ def test_sync_payload_limit_stop_response_matches_recorded_outcome(
         assert query.results_key is None
         backend.delete.assert_called_once_with(key)
     engine.dispose()
+
+
+class _ArrowAndRowsCursor:
+    def __init__(self, values: list[int]) -> None:
+        self.description = [("a", "int")]
+        self.values = values
+        self.arrow_reads = 0
+        self._rows: list[tuple[int, ...]] = [(value,) for value in values]
+
+    def to_arrow_reader(self, batch_size: int | None = None) -> Any:
+        import pyarrow as pa
+
+        self.arrow_reads += 1
+        table = pa.table({"a": pa.array(self.values, type=pa.int64())})
+        return table.to_reader(max_chunksize=batch_size or table.num_rows)
+
+    def fetchmany(self, size: int | None = None) -> list[tuple[int, ...]]:
+        size = len(self._rows) if size is None else size
+        batch: list[tuple[int, ...]] = self._rows[:size]
+        self._rows = self._rows[size:]
+        return batch
+
+    def fetchall(self) -> list[tuple[int, ...]]:
+        return self.fetchmany(len(self._rows))
+
+
+def test_read_sqllab_payload_keeps_rows_when_the_flag_is_off(
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+    from superset.sql_lab import _read_sqllab_payload
+
+    cursor = _ArrowAndRowsCursor([1, 2, 3])
+    query = MagicMock(limit=2, limiting_factor="QUERY")
+    mocker.patch("superset.is_feature_enabled", return_value=False)
+
+    table, rows = _read_sqllab_payload(query, cursor, DuckDBEngineSpec)
+
+    assert table is None
+    assert cursor.arrow_reads == 0
+    assert rows == [(1,), (2,)]
+    assert query.limiting_factor == "QUERY"
+
+
+def test_read_sqllab_payload_uses_arrow_and_trims_the_extra_row(
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+    from superset.sql_lab import _read_sqllab_payload
+    from superset.sqllab.limiting_factor import LimitingFactor
+
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    query = MagicMock(limit=2, limiting_factor="QUERY")
+    cursor = _ArrowAndRowsCursor([1, 2, 3])
+    table, rows = _read_sqllab_payload(query, cursor, DuckDBEngineSpec)
+    assert rows is None
+    assert cursor.arrow_reads == 1
+    assert table.column("a").to_pylist() == [1, 2]
+    assert query.limiting_factor == "QUERY"
+
+    fitting = MagicMock(limit=10, limiting_factor="QUERY")
+    fitting_cursor = _ArrowAndRowsCursor([1, 2])
+    table, rows = _read_sqllab_payload(fitting, fitting_cursor, DuckDBEngineSpec)
+    assert fitting_cursor.arrow_reads == 1
+    assert table.num_rows == 2
+    assert fitting.limiting_factor == LimitingFactor.NOT_LIMITED
+
+
+def test_read_sqllab_payload_keeps_rows_for_engines_not_opted_in(
+    mocker: MockerFixture,
+) -> None:
+    from superset.sql_lab import _read_sqllab_payload
+    from superset.sqllab.limiting_factor import LimitingFactor
+
+    cursor = _ArrowAndRowsCursor([7])
+    query = MagicMock(limit=None, limiting_factor="QUERY")
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+
+    table, rows = _read_sqllab_payload(query, cursor, BaseEngineSpec)
+
+    assert table is None
+    assert cursor.arrow_reads == 0
+    assert rows == [(7,)]
+    assert query.limiting_factor == LimitingFactor.NOT_LIMITED

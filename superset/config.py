@@ -921,6 +921,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
     # @lifecycle: testing
     "ESTIMATE_QUERY_COST": False,
+    # Build query result sets from Arrow for engines that opt in.
+    # @lifecycle: development
+    "ARROW_NATIVE_RESULT_SET": False,
     # Enable async queries for dashboards and Explore via WebSocket.
     # Requires Redis 5.0+ and Celery workers.
     # @lifecycle: testing

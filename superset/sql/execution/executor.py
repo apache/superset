@@ -63,7 +63,7 @@ import time
 import uuid
 from datetime import datetime
 from decimal import DecimalException
-from typing import Any, cast, NoReturn, TYPE_CHECKING
+from typing import Any, Callable, cast, NoReturn, TYPE_CHECKING
 
 import msgpack
 import pandas as pd
@@ -315,6 +315,39 @@ def _mutate_statement(database: Database, statement: str, is_split: bool) -> str
     return stmt_sql
 
 
+def _fetch_result_set(
+    db_engine_spec: type[BaseEngineSpec],
+    cursor: Any,
+    description: Any,
+    row_limit: int | None,
+    check_deadline: Callable[[], None],
+) -> SupersetResultSet:
+    """
+    Fetch a statement's result, from Arrow when enabled, and check the query
+    deadline after fetching but before building the result set.
+    """
+    from superset.result_set import fetch_arrow_result, SupersetResultSet
+
+    table, truncated = fetch_arrow_result(db_engine_spec, cursor, row_limit)
+    if table is not None:
+        check_deadline()
+        return SupersetResultSet.from_arrow(table, db_engine_spec, truncated=truncated)
+
+    fetch_cursor = cursor
+    limited_cursor = None
+    if row_limit is not None:
+        limited_cursor = _LimitedCursor(cursor, row_limit)
+        fetch_cursor = limited_cursor
+    # Keep each spec's conversion/error handling. Even specs that ignore
+    # a fetch_data limit can only consume the bounded cursor's budget.
+    rows = db_engine_spec.fetch_data(fetch_cursor)
+    truncated = (isinstance(rows, FetchedRows) and rows.truncated) or (
+        limited_cursor is not None and limited_cursor.check_truncated(db_engine_spec)
+    )
+    check_deadline()
+    return SupersetResultSet(rows, description, db_engine_spec, truncated=truncated)
+
+
 def execute_sql_with_cursor(
     database: Database,
     cursor: Any,
@@ -349,7 +382,6 @@ def execute_sql_with_cursor(
     :returns: List of (statement_sql, result_set, execution_time_ms, rowcount) tuples
         Returns empty list if stopped. Raises exception on error (fail-fast).
     """
-    from superset.result_set import SupersetResultSet
     from superset.sql.execution.cancellation import (
         check_query_deadline,
         query_executed,
@@ -396,30 +428,20 @@ def execute_sql_with_cursor(
         # Fetch results from ALL statements
         description = cursor.description
         if description:
-            fetch_cursor = cursor
-            limited_cursor = None
+            row_limit: int | None = None
             # SQL restrictions cannot always be safely wrapped or replaced.
             # Cap returned rows from the last statement, including RETURNING,
             # not affected rows. Only explicit limits also honor SQL_MAX_ROW.
             if i == total - 1 and query.limit is not None:
-                row_limit: int = query.limit
+                row_limit = query.limit
                 if sql_max_row := app.config.get("SQL_MAX_ROW"):
                     row_limit = min(row_limit, sql_max_row)
-                limited_cursor = _LimitedCursor(cursor, row_limit)
-                fetch_cursor = limited_cursor
-            # Keep each spec's conversion/error handling. Even specs that ignore
-            # a fetch_data limit can only consume the bounded cursor's budget.
-            rows = database.db_engine_spec.fetch_data(fetch_cursor)
-            truncated = (isinstance(rows, FetchedRows) and rows.truncated) or (
-                limited_cursor is not None
-                and limited_cursor.check_truncated(database.db_engine_spec)
-            )
-            check_query_deadline()
-            result_set = SupersetResultSet(
-                rows,
-                description,
+            result_set = _fetch_result_set(
                 database.db_engine_spec,
-                truncated=truncated,
+                cursor,
+                description,
+                row_limit,
+                check_query_deadline,
             )
         else:
             # DML statement - no result set

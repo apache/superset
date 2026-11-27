@@ -4038,3 +4038,102 @@ def test_truncation_survives_cache_round_trip(
     cached = executor._get_from_cache("SELECT 1", QueryOptions())
     assert cached is not None
     assert cached.statements[0].truncated is truncated
+
+
+class _ArrowAndRowsCursor:
+    def __init__(self, values: list[int]) -> None:
+        self.description = [("a", "int")]
+        self.values = values
+        self.arrow_reads = 0
+        self._rows: list[tuple[int, ...]] = [(value,) for value in values]
+
+    def to_arrow_reader(self, batch_size: int | None = None) -> Any:
+        import pyarrow as pa
+
+        self.arrow_reads += 1
+        table = pa.table({"a": pa.array(self.values, type=pa.int64())})
+        return table.to_reader(max_chunksize=batch_size or table.num_rows)
+
+    def fetchmany(self, size: int | None = None) -> list[tuple[int, ...]]:
+        size = len(self._rows) if size is None else size
+        batch: list[tuple[int, ...]] = self._rows[:size]
+        self._rows = self._rows[size:]
+        return batch
+
+    def fetchall(self) -> list[tuple[int, ...]]:
+        return self.fetchmany(len(self._rows))
+
+
+def _run_with_arrow_cursor(
+    mocker: MockerFixture, cursor: Any, limit: int | None
+) -> Any:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    database = MagicMock()
+    database.mutate_sql_based_on_config = lambda sql, **kw: sql
+    database.db_engine_spec = DuckDBEngineSpec
+    query = MagicMock()
+    query.limit = limit
+    query.progress = 0
+    mocker.patch("superset.sql.execution.executor.db.session")
+    results = execute_sql_with_cursor(
+        database=database,
+        cursor=cursor,
+        statements=["SELECT a FROM t"],
+        query=query,
+        execute_fn=lambda cursor, sql: None,
+    )
+    return results[0][1]
+
+
+def test_execute_sql_with_cursor_arrow_sets_truncated(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+
+    truncated_cursor = _ArrowAndRowsCursor([1, 2, 3])
+    truncated = _run_with_arrow_cursor(mocker, truncated_cursor, 2)
+    assert truncated_cursor.arrow_reads == 1
+    assert truncated.truncated is True
+    assert truncated.pa_table.column("a").to_pylist() == [1, 2]
+
+    exact_cursor = _ArrowAndRowsCursor([1, 2])
+    exact = _run_with_arrow_cursor(mocker, exact_cursor, 2)
+    assert exact_cursor.arrow_reads == 1
+    assert exact.truncated is False
+    assert exact.size == 2
+
+    unlimited_cursor = _ArrowAndRowsCursor([1, 2, 3])
+    unlimited = _run_with_arrow_cursor(mocker, unlimited_cursor, None)
+    assert unlimited_cursor.arrow_reads == 1
+    assert unlimited.truncated is False
+    assert unlimited.size == 3
+
+
+def test_execute_sql_with_cursor_rows_still_probe_truncation(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    mocker.patch("superset.is_feature_enabled", return_value=False)
+    cursor = _ArrowAndRowsCursor([1, 2, 3])
+
+    result = _run_with_arrow_cursor(mocker, cursor, 2)
+
+    assert cursor.arrow_reads == 0
+    assert result.truncated is True
+    assert result.pa_table.column("a").to_pylist() == [1, 2]
+
+
+def test_execute_sql_with_cursor_checks_deadline_before_building_arrow(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch(
+        "superset.sql.execution.cancellation.check_query_deadline",
+        side_effect=TimeoutError("deadline"),
+    )
+    from_arrow = mocker.patch("superset.result_set.SupersetResultSet.from_arrow")
+
+    with pytest.raises(TimeoutError):
+        _run_with_arrow_cursor(mocker, _ArrowAndRowsCursor([1]), None)
+    from_arrow.assert_not_called()

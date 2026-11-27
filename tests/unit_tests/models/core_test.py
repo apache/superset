@@ -4871,3 +4871,47 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
         f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
     )
+
+
+def test_get_df_uses_arrow_when_the_engine_returns_a_table(
+    mocker: MockerFixture,
+) -> None:
+    import pyarrow as pa
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    cursor = mocker.MagicMock()
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(
+        database.db_engine_spec,
+        "fetch_arrow",
+        return_value=pa.table({"value": pa.array([1, 2])}),
+    )
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    fetch_data = mocker.patch.object(database.db_engine_spec, "fetch_data")
+
+    df = database.get_df("SELECT 1")
+
+    fetch_data.assert_not_called()
+    assert df["value"].tolist() == [1, 2]
+
+
+def test_get_df_keeps_rows_when_arrow_is_declined(mocker: MockerFixture) -> None:
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    cursor = mocker.MagicMock()
+    cursor.description = [("value", "BIGINT", None, None, None, None, None)]
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+    fetch_arrow = mocker.patch.object(database.db_engine_spec, "fetch_arrow")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
+
+    df = database.get_df("SELECT 1")
+
+    fetch_arrow.assert_not_called()
+    assert df["value"].tolist() == [1]

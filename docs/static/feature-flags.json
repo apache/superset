@@ -22,6 +22,12 @@
         "description": "Enables experimental tabs UI for Alerts and Reports"
       },
       {
+        "name": "ARROW_NATIVE_RESULT_SET",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Build query result sets from Arrow for engines that opt in."
+      },
+      {
         "name": "CHART_PLUGINS_EXPERIMENTAL",
         "default": false,
         "lifecycle": "development",

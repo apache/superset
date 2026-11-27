@@ -2694,3 +2694,126 @@ def test_catalog_for_connection_preserves_other_engine_catalogs(
         == catalog
     )
     database.get_all_catalog_names.assert_not_called()
+
+
+class _ArrowSpec(BaseEngineSpec):
+    supports_arrow_result = True
+
+
+def test_fetch_arrow_requires_engine_opt_in() -> None:
+    import pyarrow as pa
+
+    class _Cursor:
+        description = [("a", "int")]
+
+        def fetch_record_batch(self) -> pa.Table:
+            return pa.table({"a": [1, 2, 3]})
+
+    assert BaseEngineSpec.supports_arrow_result is False
+    assert BaseEngineSpec.fetch_arrow(_Cursor()) is None
+    table = _ArrowSpec.fetch_arrow(_Cursor())
+    assert table is not None
+    assert table.num_rows == 3
+
+
+def test_fetch_arrow_none_for_a_row_only_cursor() -> None:
+    class _RowCursor:
+        description = [("a", 23)]
+
+    assert _ArrowSpec.fetch_arrow(_RowCursor()) is None
+
+
+def test_fetch_arrow_none_before_the_description_is_set() -> None:
+    import pyarrow as pa
+
+    class _Cursor:
+        description = None
+
+        def to_arrow_table(self) -> pa.Table:
+            raise AssertionError("must not be read")
+
+    assert _ArrowSpec.fetch_arrow(_Cursor()) is None
+
+
+def test_fetch_arrow_skips_a_limited_table_only_fetch() -> None:
+    """A table-only fetch would materialize every row, so ``limit`` skips it."""
+    import pyarrow as pa
+
+    class _Cursor:
+        description = [("a", "int")]
+        called = False
+
+        def to_arrow_table(self) -> pa.Table:
+            self.called = True
+            return pa.table({"a": pa.array([1, 2, 3, 4, 5])})
+
+    cursor = _Cursor()
+    assert _ArrowSpec.fetch_arrow(cursor, limit=2) is None
+    assert cursor.called is False
+
+    table = _ArrowSpec.fetch_arrow(_Cursor())
+    assert table is not None
+    assert table.column("a").to_pylist() == [1, 2, 3, 4, 5]
+
+
+def test_fetch_arrow_stops_reading_batches_at_the_limit() -> None:
+    import pyarrow as pa
+
+    batches = [
+        pa.record_batch({"a": pa.array(range(i * 10, i * 10 + 10))}) for i in range(5)
+    ]
+    read = []
+
+    class _Reader:
+        schema = batches[0].schema
+
+        def __iter__(self) -> Any:
+            for batch in batches:
+                read.append(batch)
+                yield batch
+
+        def read_all(self) -> pa.Table:
+            return pa.Table.from_batches(batches)
+
+    class _Cursor:
+        description = [("a", "int")]
+
+        def to_arrow_reader(self) -> _Reader:
+            return _Reader()
+
+    limited = _ArrowSpec.fetch_arrow(_Cursor(), limit=25)
+    assert limited is not None
+    assert limited.num_rows == 25
+    assert len(read) == 3
+    entire = _ArrowSpec.fetch_arrow(_Cursor())
+    assert entire is not None
+    assert entire.num_rows == 50
+    empty = _ArrowSpec.fetch_arrow(_Cursor(), limit=0)
+    assert empty is not None
+    assert empty.num_rows == 0
+    assert empty.schema == batches[0].schema
+
+
+def test_fetch_arrow_maps_driver_errors(mocker: MockerFixture) -> None:
+    class _Cursor:
+        description = [("a", "int")]
+
+        def to_arrow_table(self) -> Any:
+            raise ValueError("boom")
+
+    mapped = mocker.patch.object(
+        _ArrowSpec, "get_dbapi_mapped_exception", return_value=RuntimeError("mapped")
+    )
+    with pytest.raises(RuntimeError, match="mapped"):
+        _ArrowSpec.fetch_arrow(_Cursor())
+    mapped.assert_called_once()
+
+
+def test_get_datatype_from_arrow_field_reads_vendor_metadata() -> None:
+    import pyarrow as pa
+
+    tagged = pa.field("x", pa.int64(), metadata={b"VENDOR:type": b"bigint"})
+    assert BaseEngineSpec.get_datatype_from_arrow_field(tagged) == "BIGINT"
+    assert (
+        BaseEngineSpec.get_datatype_from_arrow_field(pa.field("x", pa.int64())) is None
+    )
