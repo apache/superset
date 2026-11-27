@@ -1517,9 +1517,9 @@ def test_prequeries_execute_on_real_connections(
     with database.get_raw_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE name = 'prequery_marker'")
-        assert (
-            cursor.fetchone() is not None
-        ), "prequery did not run on the new connection"
+        assert cursor.fetchone() is not None, (
+            "prequery did not run on the new connection"
+        )
     assert _ENGINE_CACHE == {}
 
 
@@ -4868,9 +4868,9 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     upper = sql.upper()
     assert "OFFSET" in upper
     assert "LIMIT" in upper
-    assert upper.rfind("OFFSET") < upper.rfind(
-        "LIMIT"
-    ), f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    )
 
 
 class _DriverError(Exception):
