@@ -21,6 +21,7 @@ from decimal import Decimal
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
+import numpy as np
 import pandas as pd
 
 from superset.utils import json
@@ -119,26 +120,51 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values. Iterate by index label (via ``items``) rather than by
-    # positional offset so the escaped value is written back to the correct row
-    # even when the DataFrame has a non-default index (e.g. the flattened
-    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
-    # indices with the label-based ``.at`` accessor would otherwise create
-    # phantom rows and corrupt the output. Only string cells are reassigned, so
-    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
-    for name, column in df.items():
-        if pd.api.types.is_string_dtype(column.dtype):
-            for label, value in column.items():
-                if isinstance(value, str):
-                    df.at[label, name] = escape_value(value)
+    # Escape csv values one column at a time. Writing each escaped cell back
+    # with ``.at`` costs an indexing call per string cell, and on ``str``
+    # columns that cost grows faster than linearly with the row count, so an
+    # export with a few hundred thousand rows spent minutes here rather than in
+    # ``to_csv``. ``np.frompyfunc`` runs ``escape_values`` over the column's
+    # values and returns an object array, which is put back under the column's
+    # original dtype. Unlike ``Series.map``, nothing is re-inferred: an object
+    # column of nullable integers (``[1, None, 3]``, the shape a nullable
+    # integer column arrives in) would otherwise come back ``float64`` and write
+    # ``1.0``. Non-strings pass through ``escape_values`` unchanged, so only
+    # string cells change. Columns are addressed by position, and rows are never
+    # addressed at all, so a non-default index (e.g. the flattened MultiIndex
+    # produced by pivot_table_v2 post-processing) and repeated row or column
+    # labels keep every cell on its own row and column.
+    escape_column = np.frompyfunc(escape_values, 1, 1)
+    for position in range(df.shape[1]):
+        column = df.iloc[:, position]
+        if isinstance(column.dtype, pd.CategoricalDtype):
+            # A categorical column is not a string dtype, but its categories can
+            # be strings. ``map`` escapes each category once and keeps the
+            # categorical dtype; if two categories escape to the same text it
+            # returns a plain column instead, which writes the same values.
+            # ``map`` re-infers the categories' dtype, which would rewrite
+            # object categories holding no strings (a big integer as a float,
+            # a timestamp without its time), so a column is only mapped when
+            # one of its categories needs escaping, as for the axis levels.
+            if needs_escaping(column.cat.categories):
+                df.isetitem(position, column.map(escape_values))
+        elif pd.api.types.is_string_dtype(column.dtype):
+            df.isetitem(
+                position,
+                pd.Series(
+                    escape_column(column.to_numpy(dtype=object)),
+                    index=column.index,
+                    dtype=column.dtype,
+                ),
+            )
 
     # Row labels and axis names are written out whenever the caller asks for the
     # index, which both export paths do once post-processing has replaced the
     # range index: pivot_table_v2 promotes the row dimension's warehouse values
-    # into index labels and the dimension name into ``index.name``. Escaping
-    # happens after the cell loop so the labels ``.at`` addresses stay the ones
-    # the frame was handed over with. Every level of a MultiIndex is covered;
-    # the axis names are a separate attribute, hence the ``set_names``. This
+    # into index labels and the dimension name into ``index.name``. The cell
+    # loop above leaves the axes untouched, so they are escaped here. Every
+    # level of a MultiIndex is covered; the axis names are a separate
+    # attribute, hence the ``set_names``. This
     # mirrors the four places ``superset.utils.excel.quote_formulas`` covers
     # for the xlsx writer.
     index = df.index
