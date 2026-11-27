@@ -330,7 +330,10 @@ def load_configs(
                 schema.load(config)
                 configs[file_name] = config
             except ValidationError as exc:
-                logger.warning(
+                # INFO: expected per-file validation feedback already
+                # returned to the client as a 4xx; WARNING+ is forwarded
+                # to Sentry as an event regardless of the HTTP status.
+                logger.info(
                     "Schema validation failed for %s (prefix: %s): %s",
                     file_name,
                     prefix,
@@ -360,7 +363,7 @@ def load_configs(
                 # the raw decode error into a ValidationError so it flows into
                 # the aggregated CommandInvalidError like every other per-file
                 # validation failure, instead of escaping as an opaque 500.
-                logger.warning(
+                logger.info(
                     "Invalid JSON in masked_encrypted_extra for %s: %s",
                     file_name,
                     exc,
@@ -376,7 +379,7 @@ def load_configs(
                 # per-file error. Convert it into a ValidationError so it flows
                 # into the same aggregated error path.
                 field = str(exc).strip("'\"")
-                logger.warning(
+                logger.info(
                     "Missing required key %s in config for %s (prefix: %s)",
                     exc,
                     file_name,

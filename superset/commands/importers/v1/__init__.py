@@ -139,12 +139,15 @@ class ImportModelsCommand(BaseCommand):
                 # Extract detailed error information
                 if hasattr(ex, "messages") and isinstance(ex.messages, dict):
                     for file_name, errors in ex.messages.items():
-                        logger.warning(
-                            "Validation failed for %s: %s", file_name, errors
-                        )
+                        # INFO, not WARNING: this is expected, client-caused
+                        # import validation feedback (e.g. "overwrite=true"
+                        # not passed) that already gets a proper 4xx response;
+                        # Preset's Sentry integration captures WARNING+ logs
+                        # as events, which paged these as errors (#46612).
+                        logger.info("Validation failed for %s: %s", file_name, errors)
                         detailed_errors.append(f"{file_name}: {errors}")
                 else:
-                    logger.warning("Import validation error: %s", ex)
+                    logger.info("Import validation error: %s", ex)
                     detailed_errors.append(str(ex))
 
             error_summary = "; ".join(detailed_errors)
