@@ -22,7 +22,7 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from string import ascii_lowercase, ascii_uppercase
@@ -286,6 +286,24 @@ def has_aggregate(
     return any(
         not isinstance(agg.parent, exp.Window) for agg in parsed.find_all(exp.AggFunc)
     )
+
+
+def references_only_grouped_columns(
+    expression: str, group_by: Iterable[Any], engine: str = "base"
+) -> bool:
+    """
+    Return True if every column the SQL expression references is itself one of the
+    GROUP BY expressions (always True for a constant). Fails open on a parse error.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+        grouped = [sqlglot.parse_one(str(sql), dialect=dialect) for sql in group_by]
+    except SqlglotError:
+        return True
+    # case-insensitive, erring toward letting the database decide
+    names = {col.name.lower() for col in grouped if isinstance(col, exp.Column)}
+    return all(col.name.lower() in names for col in parsed.find_all(exp.Column))
 
 
 def strip_comments(sql: str, engine: str = "base") -> str | None:

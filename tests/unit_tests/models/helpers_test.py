@@ -3009,6 +3009,156 @@ def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     assert "{{" not in sql
 
 
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "'WIP'",
+        "NULL",
+        "1",
+        "(this_week - last_week) / last_week",
+        "(THIS_WEEK - LAST_WEEK) / LAST_WEEK",
+    ],
+)
+def test_get_sqla_query_allows_nonaggregate_custom_sql_metric_of_grouped_columns(
+    database: Database,
+    expression: str,
+) -> None:
+    """
+    A constant, or an expression over only grouped columns, is valid under a
+    GROUP BY and must not be blocked.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="channel"),
+            TableColumn(column_name="this_week"),
+            TableColumn(column_name="last_week"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": expression,
+        "label": "m",
+    }
+
+    result = table.get_sqla_query(
+        columns=["channel", "this_week", "last_week"],
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+
+@pytest.mark.parametrize(
+    "expression,calculated_column_expression",
+    [
+        ("lon - confirmed", None),
+        ("bucket * 2", "lon / 10"),
+    ],
+)
+def test_get_sqla_query_raises_for_custom_sql_metric_with_ungrouped_column(
+    database: Database,
+    expression: str,
+    calculated_column_expression: str | None,
+) -> None:
+    """
+    An expression referencing any column that isn't a plain grouped column (a
+    calculated column is grouped by its expression, not its name) still raises.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="lon"),
+            TableColumn(column_name="bucket", expression=calculated_column_expression),
+            TableColumn(column_name="confirmed"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": expression,
+        "label": "m",
+    }
+
+    with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+        table.get_sqla_query(
+            columns=["lon", "bucket"],
+            metrics=[metric],
+            extras={},
+            filter=[],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+
+@pytest.mark.parametrize(
+    "groupby_sql,expected_raise",
+    [
+        ("THIS_WEEK", False),
+        ('"LAST_WEEK"', False),
+        ("this_week + 1", True),
+    ],
+)
+def test_get_sqla_query_nonaggregate_metric_over_adhoc_groupby_columns(
+    database: Database,
+    groupby_sql: str,
+    expected_raise: bool,
+) -> None:
+    """
+    An adhoc SQL group-by that is just a physical column groups by that column,
+    so a metric over it is valid; any other adhoc expression doesn't count.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="this_week"),
+            TableColumn(column_name="last_week"),
+        ],
+    )
+    other = "LAST_WEEK" if "THIS" in groupby_sql.upper() else "THIS_WEEK"
+    columns = [
+        {"expressionType": "SQL", "sqlExpression": groupby_sql, "label": "g1"},
+        {"expressionType": "SQL", "sqlExpression": other, "label": "g2"},
+    ]
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "(this_week - last_week) / last_week",
+        "label": "m",
+    }
+
+    def query() -> None:
+        table.get_sqla_query(
+            columns=columns,
+            metrics=[metric],
+            extras={},
+            filter=[],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+    if expected_raise:
+        with pytest.raises(QueryObjectValidationError, match="not an aggregate"):
+            query()
+    else:
+        query()
+
+
 def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
     database: Database,
 ) -> None:

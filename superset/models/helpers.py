@@ -160,6 +160,7 @@ from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import (
     has_aggregate,
     is_constant_expression,
+    references_only_grouped_columns,
     sanitize_clause,
     SQLScript,
     SQLStatement,
@@ -7424,6 +7425,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         and "{{" not in expression
                         and "{%" not in expression
                         and not has_aggregate(expression, self.database.backend)
+                        and not references_only_grouped_columns(
+                            expression,
+                            groupby_all_columns.values(),
+                            self.database.backend,
+                        )
                     ):
                         raise QueryObjectValidationError(
                             _(
