@@ -892,7 +892,7 @@ class SemanticView(AuditMixinNullable, Model):
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         discriminator: tuple[str, str] | None = self.result_cache_discriminator
         # Separate cached pre-normalization results during rolling deployments.
-        keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v1"]
+        keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v2"]
         if discriminator is not None:
             keys.append(("semantic-result-version", *discriminator))
         return keys
@@ -1034,9 +1034,11 @@ class SemanticView(AuditMixinNullable, Model):
         sel_metrics, sel_dims = self._compat_selection(
             selected_metrics, selected_dimensions
         )
-        compatible: set[Dimension] = self.implementation.get_compatible_dimensions(
-            sel_metrics, sel_dims
-        )
+        implementation: SemanticViewABC = self.implementation
+        with provider_code():
+            compatible: set[Dimension] = implementation.get_compatible_dimensions(
+                sel_metrics, sel_dims
+            )
         return sorted({d.name for d in compatible})
 
 

@@ -60,6 +60,7 @@ class Backend:
             raise ConnectionError("test backend unavailable")
         connection: sqlite3.Connection
         with closing(sqlite3.connect(":memory:")) as connection:
+            connection.execute("PRAGMA case_sensitive_like = ON")
             connection.execute(
                 "CREATE TABLE records(category TEXT, occurred TEXT, amount INT)"
             )
@@ -68,6 +69,7 @@ class Backend:
                 [
                     ("B", "2026-02-04", 8),
                     ("C", "2026-02-07", 6),
+                    ("C", "2026-01-04", 4),
                     (None, "2026-01-03", 3),
                     (None, "2026-02-06", 1),
                     ("A", "2026-02-05", 5),
@@ -213,6 +215,11 @@ def _predicate(expression: FilterExpression, parameters: list[object]) -> str:
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
     if expression.column is None or expression.column.name != "category":
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+    return _category_predicate(expression, parameters)
+
+
+def _category_predicate(expression: Filter, parameters: list[object]) -> str:
+    """Render category predicates with SQL NULL semantics and bound operands."""
     if expression.operator == Operator.IS_NULL:
         return "category IS NULL"
     if expression.operator == Operator.IS_NOT_NULL:
@@ -222,11 +229,20 @@ def _predicate(expression: FilterExpression, parameters: list[object]) -> str:
     if expression.operator == Operator.EQUALS and expression.value is not None:
         parameters.append(expression.value)
         return "category = ?"
+    if expression.operator in {
+        Operator.NOT_EQUALS,
+        Operator.NOT_LIKE,
+        Operator.NOT_ILIKE,
+    } and isinstance(expression.value, str):
+        parameters.append(expression.value)
+        if expression.operator == Operator.NOT_ILIKE:
+            return "LOWER(category) NOT LIKE LOWER(?)"
+        return f"category {expression.operator.value} ?"
     raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
 
 
 def _membership(expression: Filter, parameters: list[object]) -> str:
-    """Render IN values; empty IN is FALSE and empty NOT IN is TRUE."""
+    """Render bound membership values, including empty-set constants."""
     if not isinstance(expression.value, frozenset):
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
     if not expression.value:
@@ -235,10 +251,12 @@ def _membership(expression: Filter, parameters: list[object]) -> str:
     values: list[str] = sorted(
         value for value in expression.value if isinstance(value, str)
     )
-    if expression.operator != Operator.IN or len(values) != len(expression.value):
+    if len(values) != len(expression.value):
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
     parameters.extend(values)
-    return "category IN (" + ", ".join("?" for _ in expression.value) + ")"
+    return (
+        f"category {expression.operator.value} (" + ", ".join("?" for _ in values) + ")"
+    )
 
 
 def _result(

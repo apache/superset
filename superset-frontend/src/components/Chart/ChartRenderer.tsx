@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isTreeQueryMode } from '@superset-ui/plugin-chart-ag-grid-table';
 import { snakeCase, cloneDeep, isEqual } from 'lodash-es';
 import {
   useCallback,
@@ -149,6 +150,8 @@ export interface ChartRendererProps {
   postTransformProps?: (props: JsonObject) => JsonObject;
   source?: ChartSource;
   emitCrossFilters?: boolean;
+  /** False when the chart's cross-filter scope reaches no other chart */
+  hasCrossFilterTargets?: boolean;
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
@@ -207,10 +210,12 @@ export function hasValidPreviousData(
   const hasAnyErrors = queriesResponse?.some(item => item?.error);
   // The response of a chart that fetches its own data stays empty once it has
   // loaded, so for those any response that landed counts as previous data.
-  const hasPreviousResponse =
-    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true)
-      ? (queriesResponse?.length ?? 0) > 0
-      : Array.isArray(queriesResponse);
+  const usesEmptyState =
+    !isTreeQueryMode(formData) &&
+    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true);
+  const hasPreviousResponse = usesEmptyState
+    ? (queriesResponse?.length ?? 0) > 0
+    : Array.isArray(queriesResponse);
   return hasPreviousResponse && !hasAnyErrors;
 }
 
@@ -265,6 +270,7 @@ function ChartRendererComponent({
     postTransformProps,
     source,
     emitCrossFilters,
+    hasCrossFilterTargets = true,
     onChartStateChange,
     asyncModeOverride,
   } = restProps;
@@ -328,7 +334,8 @@ function ChartRendererComponent({
   // is expected and shouldn't trigger the no-results state. Honor the chart's
   // own enableNoResults metadata (defaults to true).
   const chartEnableNoResults =
-    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
+    !isTreeQueryMode(currentFormData) &&
+    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true);
 
   // A dashboard keeps the chart on screen while its query is in flight, be it
   // an auto-refresh, a manual refresh or a filter change. The store holds the
@@ -516,8 +523,23 @@ function ChartRendererComponent({
   // otherwise do under the spinner as soon as its query starts.
   const dataMaskSourceRef = useRef(latestQueryFormData ?? formData);
   dataMaskSourceRef.current = latestQueryFormData ?? formData;
+  const hasCrossFilterTargetsRef = useRef(hasCrossFilterTargets);
+  hasCrossFilterTargetsRef.current = hasCrossFilterTargets;
   const setDataMaskCallback = useCallback(
-    (dataMask: DataMask) => {
+    (incomingDataMask: DataMask) => {
+      let dataMask = incomingDataMask;
+      // A cross-filter from a chart whose scope reaches no other chart would
+      // filter nothing, so only clearing a cross-filter or own state goes through.
+      if (
+        !hasCrossFilterTargetsRef.current &&
+        incomingDataMask.filterState?.value !== null &&
+        incomingDataMask.filterState?.value !== undefined
+      ) {
+        if (incomingDataMask.ownState === undefined) {
+          return;
+        }
+        dataMask = { ownState: incomingDataMask.ownState };
+      }
       if (
         dataMask.filterState !== undefined ||
         dataMask.extraFormData !== undefined
