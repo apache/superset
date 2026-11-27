@@ -460,6 +460,33 @@ def test_layout_only_chart_reference_does_not_reject_import(
     assert db.session.query(Dashboard).count() == len(configs)
 
 
+def test_native_filter_only_missing_dataset_does_not_reject_import(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """An exported dashboard can keep native-filter UUIDs for unbundled datasets."""
+    from superset import db, security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.models.dashboard import Dashboard
+    from superset.utils import json
+
+    Dashboard.metadata.create_all(db.session.get_bind())
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    configs = copy.deepcopy(dashboards_config_1)
+    dashboard_config = next(iter(configs.values()))
+    dashboard_config.setdefault("metadata", {})["native_filter_configuration"] = [
+        {
+            "id": "NATIVE_FILTER-dangling",
+            "targets": [{"datasetId": 999, "datasetUuid": "missing-dataset-uuid"}],
+        }
+    ]
+
+    ImportDashboardsCommand._import(configs)
+
+    imported = db.session.query(Dashboard).one()
+    metadata = json.loads(imported.json_metadata)
+    assert metadata["native_filter_configuration"][0]["targets"][0] == {}
+
+
 def test_dataset_failure_does_not_disclose_inaccessible_connection_name(
     mocker: MockerFixture, session: Session
 ) -> None:

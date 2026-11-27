@@ -989,3 +989,77 @@ def test_update_id_refs_cross_filter_charts_in_scope() -> None:
     # Check global_chart_configuration chartsInScope is updated
     assert metadata["global_chart_configuration"]["chartsInScope"] == [1, 2, 3]
     assert metadata["global_chart_configuration"]["scope"]["excluded"] == [3]
+
+
+def test_update_id_refs_native_filter_missing_dataset_uuid(caplog: Any) -> None:
+    """
+    When a native filter target's datasetUuid is absent from dataset_info,
+    update_id_refs removes datasetUuid and any stale datasetId and logs a
+    warning instead of raising KeyError.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {},
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "targets": [{"datasetId": 99, "datasetUuid": "uuid-missing"}],
+                },
+                {
+                    "id": "NATIVE_FILTER-2",
+                    "targets": [{"datasetUuid": "uuid-missing-only"}],
+                },
+                {
+                    "id": "NATIVE_FILTER-3",
+                    "targets": [{"datasetUuid": "ds-uuid-1"}],
+                },
+            ],
+        },
+    }
+    dataset_info: dict[str, dict[str, Any]] = {
+        "ds-uuid-1": {"datasource_id": 42},
+    }
+
+    with caplog.at_level("WARNING"):
+        fixed = update_id_refs(config, {}, dataset_info)
+
+    filters = fixed["metadata"]["native_filter_configuration"]
+    assert filters[0]["targets"][0] == {}
+    assert filters[1]["targets"][0] == {}
+    assert filters[2]["targets"][0] == {"datasetId": 42}
+    assert "unknown dataset UUID uuid-missing" in caplog.text
+    assert "unknown dataset UUID uuid-missing-only" in caplog.text
+
+
+def test_update_id_refs_handles_null_native_filter_lists() -> None:
+    """
+    When native_filter_configuration or a filter's targets is explicitly null,
+    update_id_refs skips them without raising TypeError.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    fixed_null_list = update_id_refs(
+        {"position": {}, "metadata": {"native_filter_configuration": None}},
+        {},
+        {},
+    )
+    assert fixed_null_list["metadata"]["native_filter_configuration"] is None
+
+    fixed_null_targets = update_id_refs(
+        {
+            "position": {},
+            "metadata": {
+                "native_filter_configuration": [
+                    {"id": "NATIVE_FILTER-1", "targets": None}
+                ]
+            },
+        },
+        {},
+        {},
+    )
+    assert (
+        fixed_null_targets["metadata"]["native_filter_configuration"][0]["targets"]
+        is None
+    )
