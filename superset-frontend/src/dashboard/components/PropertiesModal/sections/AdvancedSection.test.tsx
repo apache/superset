@@ -26,6 +26,8 @@ const defaultProps = {
     advanced: { hasErrors: false, errors: [], name: 'Advanced' },
   },
   onJsonMetadataChange: jest.fn(),
+  customTimePresets: [],
+  onCustomTimePresetsChange: jest.fn(),
 };
 
 beforeEach(() => {

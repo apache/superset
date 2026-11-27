@@ -17,13 +17,14 @@
 import re
 from typing import Any, Mapping, Union
 
-from marshmallow import fields, post_dump, post_load, pre_load, Schema
+from marshmallow import fields, post_dump, post_load, pre_load, Schema, validates
 from marshmallow.validate import Length, OneOf, ValidationError
 
 from superset import security_manager
 from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
+from superset.utils.date_parser import get_since_until
 from superset.utils.schema import (
     DiscardIsManagedExternallyMixin,
     validate_external_url,
@@ -114,6 +115,10 @@ openapi_spec_methods_override = {
         }
     },
 }
+
+CUSTOM_TIME_PRESET_REGEX = re.compile(
+    r"Last\s+[1-9]\d*\s+(second|minute|hour|day|week|month|quarter|year)s?",
+)
 
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
@@ -233,6 +238,35 @@ class DashboardJSONMetadataSchema(Schema):
     cross_filters_enabled = fields.Boolean(dump_default=True)
     # controls visibility of "last queried at" timestamp on charts in dashboard view
     show_chart_timestamps = fields.Boolean(dump_default=False)
+    # used for time range presets
+    custom_time_presets = fields.List(
+        fields.Str(),
+        allow_none=True,
+        metadata={
+            "description": "List of custom time range presets for this dashboard."
+        },
+    )
+
+    @validates("custom_time_presets")
+    def validate_custom_time_presets(self, presets: list[str], **kwargs: Any) -> None:
+        if not presets:
+            return
+        for preset in presets:
+            # if not valid time range string, raise ValidationError
+            if not preset or not preset.strip():
+                raise ValidationError("Time range preset cannot be empty.")
+            if not CUSTOM_TIME_PRESET_REGEX.fullmatch(preset):
+                raise ValidationError(
+                    f"Invalid time range preset '{preset}'. "
+                    'Use the format "Last <number> <unit>", e.g. "Last 5 minutes".'
+                )
+            try:
+                get_since_until(preset)
+            except ValueError as e:
+                raise ValidationError(
+                    f"Invalid Time range preset '{preset}': {e}"
+                ) from e
+
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()

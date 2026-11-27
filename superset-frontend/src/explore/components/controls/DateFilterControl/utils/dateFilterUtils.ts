@@ -29,8 +29,14 @@ import {
 } from '.';
 import { FrameType } from '../types';
 
-export const guessFrame = (timeRange: string): FrameType => {
-  if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
+export const guessFrame = (
+  timeRange: string,
+  customPresets: string[] = [],
+): FrameType => {
+  if (
+    COMMON_RANGE_VALUES_SET.has(timeRange) ||
+    customPresets?.includes(timeRange)
+  ) {
     return 'Common';
   }
   if (CALENDAR_RANGE_VALUES_SET.has(timeRange)) {

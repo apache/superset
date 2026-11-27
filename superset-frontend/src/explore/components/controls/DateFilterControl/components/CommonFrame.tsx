@@ -17,7 +17,9 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { Radio } from '@superset-ui/core/components/Radio';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
 import {
   COMMON_RANGE_OPTIONS,
   COMMON_RANGE_SET,
@@ -29,8 +31,23 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export function CommonFrame(props: FrameComponentProps) {
+  const dashboardMetadata = useSelector(
+    (state: RootState) => state.dashboardInfo?.metadata,
+  );
+  const dashboardCustomPresets = dashboardMetadata?.custom_time_presets || [];
+
+  const customOptions = dashboardCustomPresets.map((preset: string) => ({
+    value: preset,
+    label: preset,
+  }));
+
+  const activeOptions = [...COMMON_RANGE_OPTIONS, ...customOptions];
+
   let commonRange = 'Last week';
-  if (COMMON_RANGE_SET.has(props.value as CommonRangeType)) {
+  if (
+    COMMON_RANGE_SET.has(props.value as CommonRangeType) ||
+    dashboardCustomPresets.includes(props.value)
+  ) {
     commonRange = props.value;
   } else {
     props.onChange(commonRange);
@@ -50,8 +67,8 @@ export function CommonFrame(props: FrameComponentProps) {
         }}
         size="large"
         value={commonRange}
-        onChange={(e: any) => props.onChange(e.target.value)}
-        options={COMMON_RANGE_OPTIONS}
+        onChange={(e: RadioChangeEvent) => props.onChange(e.target.value)}
+        options={activeOptions}
       />
     </>
   );

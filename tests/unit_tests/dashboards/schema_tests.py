@@ -25,10 +25,12 @@ from superset.dashboards.permalink.schemas import DashboardPermalinkStateSchema
 from superset.dashboards.schemas import (
     DashboardCopySchema,
     DashboardDatasetSchema,
+    DashboardJSONMetadataSchema,
     DashboardPostSchema,
     DashboardPutSchema,
     ImportV1DashboardSchema,
 )
+from superset.utils import json
 
 GUEST_RESTRICTED_FIELDS = [
     "editors",
@@ -230,3 +232,120 @@ def test_dashboard_copy_replace_metadata_opt_in(replace_metadata: bool | None) -
     assert DashboardCopySchema().load(payload)["replace_metadata"] is bool(
         replace_metadata
     )
+
+
+VALID_CUSTOM_TIME_PRESETS = [
+    "Last 1 second",
+    "Last 30 seconds",
+    "Last 5 minutes",
+    "Last 2 hours",
+    "Last 3 days",
+    "Last 1 week",
+    "Last 10 weeks",
+    "Last 6 months",
+    "Last 2 quarters",
+    "Last 5 years",
+]
+
+INVALID_CUSTOM_TIME_PRESETS = [
+    "Last 0 minutes",  # zero is not a usable range
+    "Last -5 hours",  # negative numbers are rejected
+    "Last 05 minutes",  # leading zeros are rejected
+    "Last five minutes",  # number must be numeric
+    "Last 5",  # missing unit
+    "Last minutes",  # missing number
+    "5 minutes",  # missing "Last"
+    "Next 5 minutes",  # only "Last" presets are supported
+    "Last 5 fortnights",  # unsupported unit
+    "Last 5 minutes ago",  # trailing text
+    "",  # empty
+    "   ",  # whitespace only
+]
+
+
+@pytest.mark.parametrize("preset", VALID_CUSTOM_TIME_PRESETS)
+def test_custom_time_presets_accepts_valid_preset(preset: str) -> None:
+    """Each "Last <number> <unit>" preset passes schema validation."""
+    schema = DashboardJSONMetadataSchema()
+    assert schema.validate({"custom_time_presets": [preset]}) == {}
+
+
+def test_custom_time_presets_accepts_valid_preset_list() -> None:
+    """A list of valid presets loads unchanged."""
+    schema = DashboardJSONMetadataSchema()
+    result = schema.load({"custom_time_presets": VALID_CUSTOM_TIME_PRESETS})
+    assert result["custom_time_presets"] == VALID_CUSTOM_TIME_PRESETS
+
+
+@pytest.mark.parametrize("presets", [[], None])
+def test_custom_time_presets_accepts_empty_or_null(presets: list[str] | None) -> None:
+    """An empty list or null means "no custom presets" and is accepted."""
+    schema = DashboardJSONMetadataSchema()
+    assert schema.validate({"custom_time_presets": presets}) == {}
+
+
+@pytest.mark.parametrize("preset", INVALID_CUSTOM_TIME_PRESETS)
+def test_custom_time_presets_rejects_invalid_preset(preset: str) -> None:
+    """Presets not matching "Last <positive int> <unit>" raise an error."""
+    schema = DashboardJSONMetadataSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"custom_time_presets": [preset]})
+    assert "custom_time_presets" in exc_info.value.messages
+
+
+def test_custom_time_presets_rejects_list_with_one_invalid_preset() -> None:
+    """A single invalid preset rejects the whole list, naming the bad preset."""
+    schema = DashboardJSONMetadataSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"custom_time_presets": ["Last 5 minutes", "Last 0 minutes"]})
+    assert "Last 0 minutes" in str(exc_info.value.messages["custom_time_presets"])
+
+
+def test_custom_time_presets_rejects_non_string_entries() -> None:
+    """Entries must be strings."""
+    schema = DashboardJSONMetadataSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"custom_time_presets": [5]})
+    assert "custom_time_presets" in exc_info.value.messages
+
+
+@pytest.mark.parametrize("schema_cls", [DashboardPostSchema, DashboardPutSchema])
+def test_json_metadata_accepts_valid_custom_time_presets(
+    schema_cls: type[DashboardPostSchema] | type[DashboardPutSchema],
+) -> None:
+    """A dashboard payload whose json_metadata holds valid presets is accepted."""
+    json_metadata = json.dumps(
+        {
+            "color_scheme": "supersetColors",
+            "custom_time_presets": ["Last 5 minutes", "Last 2 hours"],
+        }
+    )
+    result = schema_cls().load(
+        {"dashboard_title": "test", "json_metadata": json_metadata}
+    )
+    assert result["json_metadata"] == json_metadata
+    assert json.loads(result["json_metadata"])["custom_time_presets"] == [
+        "Last 5 minutes",
+        "Last 2 hours",
+    ]
+
+
+@pytest.mark.parametrize("schema_cls", [DashboardPostSchema, DashboardPutSchema])
+@pytest.mark.parametrize(
+    "presets",
+    [
+        ["Last 0 minutes"],
+        ["Last -5 hours"],
+        ["Last 5 minutes", "Last 0 minutes"],
+    ],
+)
+def test_json_metadata_rejects_invalid_custom_time_presets(
+    schema_cls: type[DashboardPostSchema] | type[DashboardPutSchema],
+    presets: list[str],
+) -> None:
+    """A dashboard payload whose json_metadata holds invalid presets is rejected."""
+    json_metadata = json.dumps({"custom_time_presets": presets})
+    with pytest.raises(ValidationError) as exc_info:
+        schema_cls().load({"dashboard_title": "test", "json_metadata": json_metadata})
+    assert "json_metadata" in exc_info.value.messages
+    assert "custom_time_presets" in str(exc_info.value.messages["json_metadata"])
