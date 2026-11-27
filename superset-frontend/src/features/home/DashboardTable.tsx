@@ -60,6 +60,7 @@ function DashboardTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  onActivityRefresh,
 }: DashboardTableProps) {
   const history = useHistory();
   const defaultTab = getItem(
@@ -133,6 +134,19 @@ function DashboardTable({
     }
     setLoaded(true);
   }, [activeTab]);
+
+  // Only notify the Home page's activity feed once the delete-triggered
+  // refresh actually runs (i.e. after the delete call succeeds), instead of
+  // firing immediately alongside the fire-and-forget delete request.
+  const handleRefreshData = (config?: Parameters<typeof refreshData>[0]) => {
+    refreshData(config);
+    onActivityRefresh?.();
+  };
+
+  const handleGetData = (tab: TableTab) => {
+    getData(tab);
+    onActivityRefresh?.();
+  };
 
   const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
@@ -260,12 +274,12 @@ function DashboardTable({
           onConfirm={() => {
             handleDashboardDelete(
               dashboardToDelete,
-              refreshData,
+              handleRefreshData,
               addSuccessToast,
               addDangerToast,
               activeTab,
               user?.userId,
-              getData,
+              handleGetData,
             );
             setDashboardToDelete(null);
           }}

@@ -18,6 +18,7 @@ import logging
 import urllib.request
 from contextlib import closing
 from decimal import Decimal
+from numbers import Real
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -95,6 +96,22 @@ def format_decimal(value: Any) -> Any:
     )
 
 
+def _escape_csv_cell(value: Any, decimal_separator: str) -> Any:
+    if isinstance(value, str):
+        return escape_value(value)
+    if isinstance(value, Decimal) and value.is_finite():
+        # Preserve precision without applying formula escaping to numeric text.
+        return format_decimal(value).replace(".", decimal_separator)
+    if (
+        decimal_separator != "."
+        and isinstance(value, Real)
+        and not isinstance(value, (bool, int))
+        and pd.notna(value)
+    ):
+        return str(value).replace(".", decimal_separator)
+    return value
+
+
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     def escape_values(v: Any) -> Union[str, Any]:
         return escape_value(v) if isinstance(v, str) else v
@@ -119,18 +136,18 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values. Iterate by index label (via ``items``) rather than by
-    # positional offset so the escaped value is written back to the correct row
-    # even when the DataFrame has a non-default index (e.g. the flattened
-    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
-    # indices with the label-based ``.at`` accessor would otherwise create
-    # phantom rows and corrupt the output. Only string cells are reassigned, so
-    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
-    for name, column in df.items():
+    # Escape by physical position: row labels and verbose column names can
+    # repeat after pivot/flatten. Label-based assignment would overwrite every
+    # matching cell. Keep numeric dtypes for pandas; explicitly format numbers
+    # only in object columns, matching streaming CSV exports.
+    decimal_separator = kwargs.get("decimal", ".")
+    for column_position, (_, column) in enumerate(df.items()):
         if pd.api.types.is_string_dtype(column.dtype):
-            for label, value in column.items():
-                if isinstance(value, str):
-                    df.at[label, name] = escape_value(value)
+            escaped = [_escape_csv_cell(value, decimal_separator) for value in column]
+            df.isetitem(
+                column_position,
+                pd.Series(escaped, index=column.index, dtype=column.dtype),
+            )
 
     # Row labels and axis names are written out whenever the caller asks for the
     # index, which both export paths do once post-processing has replaced the
@@ -167,8 +184,8 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
             # and the levels of a ``MultiIndex`` have to be unique. Reading the
             # row values and factorizing folds a collision onto one code.
             rebuilt = [
-                pd.factorize(values.map(escape_values))
-                if needs_escaping(values := index.get_level_values(position))
+                pd.factorize(row_values.map(escape_values))
+                if needs_escaping(row_values := index.get_level_values(position))
                 else (index.codes[position], level)
                 for position, level in enumerate(index.levels)
             ]

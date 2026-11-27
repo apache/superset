@@ -46,8 +46,10 @@ class SemanticLayerError(MCPBaseError):
     success: Literal[False] = False
 
     @classmethod
-    def create(cls, *, error: str, error_type: str) -> "SemanticLayerError":
-        return cls(error=error, error_type=error_type)
+    def create(
+        cls, *, error: str, error_type: str, error_code: str | None = None
+    ) -> "SemanticLayerError":
+        return cls(error=error, error_type=error_type, error_code=error_code)
 
 
 class ListSemanticViewsRequest(BaseModel):

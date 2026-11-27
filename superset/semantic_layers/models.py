@@ -1078,7 +1078,9 @@ class SemanticView(AuditMixinNullable, Model):
         sel_metrics, sel_dims = self._compat_selection(
             selected_metrics, selected_dimensions, dimension_grains
         )
-        return self.implementation.get_compatible_dimensions(sel_metrics, sel_dims)
+        implementation: SemanticViewABC = self.implementation
+        with provider_code():
+            return implementation.get_compatible_dimensions(sel_metrics, sel_dims)
 
     def get_compatible_dimensions(
         self,

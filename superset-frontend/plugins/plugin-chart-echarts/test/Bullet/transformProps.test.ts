@@ -49,7 +49,7 @@ const formData: SqlaFormData = {
 
 const chartProps = (
   overrides: Partial<SqlaFormData> = {},
-  data: Array<Record<string, string | number>> = [{ sum__num: 120 }],
+  data: Array<Record<string, string | number | null>> = [{ sum__num: 120 }],
 ) =>
   new ChartProps({
     width: 800,
@@ -658,4 +658,73 @@ test('ignores range_colors when ranges is empty and the automatic fallback band 
     (d: any) => d[0].itemStyle.color,
   );
   expect(bandColors).toEqual([supersetTheme.colorFillQuaternary]);
+});
+
+const targetRows = [
+  { region: 'West', sum__num: 84, quota: 90 },
+  { region: 'East', sum__num: 70, quota: 60 },
+];
+
+test('draws a target tick on each row that has a target value', () => {
+  const { echartOptions } = transformProps(
+    chartProps(
+      {
+        groupby: ['region'],
+        targetMetric: 'quota',
+        ranges: '50',
+        markers: '',
+        markerLines: '',
+      },
+      [...targetRows, { region: 'North', sum__num: 50, quota: null }],
+    ),
+  );
+  const { series, xAxis } = echartOptions as any;
+
+  const targets = series.find((s: any) => s.name === 'quota');
+  expect(targets.data.map((d: any) => d.value)).toEqual([
+    [90, 0],
+    [60, 1],
+  ]);
+  // the axis stretches to fit the largest target
+  expect(xAxis.max).toBe(90);
+});
+
+test('scales relative ranges with each row target', () => {
+  const { echartOptions } = transformProps(
+    chartProps(
+      {
+        groupby: ['region'],
+        targetMetric: 'quota',
+        ranges: '50,100',
+        rangesRelative: true,
+      },
+      targetRows,
+    ),
+  );
+  const { series } = echartOptions as any;
+
+  // per-row bands replace the chart-wide markArea
+  expect(series[0].markArea.data).toEqual([]);
+  const bands = series.filter((s: any) => s.type === 'custom');
+  // largest band first, one [start, end, row] item per row
+  expect(bands[0].data).toEqual([
+    [0, 90, 0],
+    [0, 60, 1],
+  ]);
+  expect(bands[1].data).toEqual([
+    [0, 45, 0],
+    [0, 30, 1],
+  ]);
+});
+
+test('treats relative ranges as absolute without a target metric', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ ranges: '50,100', rangesRelative: true }),
+  );
+  const { series } = echartOptions as any;
+
+  expect(series.filter((s: any) => s.type === 'custom')).toHaveLength(0);
+  expect(series[0].markArea.data.map((d: any) => d[1].xAxis)).toEqual([
+    100, 50,
+  ]);
 });

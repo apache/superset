@@ -467,9 +467,11 @@ AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
 # When enabled, users whose account is flagged with ``password_must_change``
-# (e.g. accounts provisioned by an administrator) are redirected to their
-# profile page (/user_info/, "Reset my password") until they set a new
-# password. Off by default.
+# are redirected to their profile page (/user_info/, "Reset my password") until
+# they set a new password. Under AUTH_DB the flag is raised whenever an
+# administrator creates a user or sets another user's password from the Users
+# list.
+# Off by default.
 ENABLE_FORCE_PASSWORD_CHANGE = False
 
 # Password complexity policy, enforced (via Flask-AppBuilder) across
@@ -849,6 +851,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Shows the Tree query mode in Table V2 (AG Grid table)
+    # @lifecycle: development
+    "TABLE_V2_TREE_MODE_ENABLED": False,
     # Enables chart and dashboard version history panels and their supporting
     # API endpoints.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
