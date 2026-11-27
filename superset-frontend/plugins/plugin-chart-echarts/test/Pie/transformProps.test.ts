@@ -946,7 +946,7 @@ const getDynamicTotalChartProps = ({
   legendState?: Record<string, boolean>;
   filterState?: { selectedValues?: string[] };
   formData?: Partial<SqlaFormData>;
-  queriesData?: Array<{ data: Array<Record<string, any>> }>;
+  queriesData?: Array<{ data: Array<Record<string, string | number>> }>;
 } = {}): EchartsPieChartProps =>
   new ChartProps({
     formData: {
@@ -1030,6 +1030,13 @@ test('dynamic total displays Total: 0 when all slices are hidden in legendState'
   });
   const graphic = getGraphic(transformProps(props));
   expect(graphic.style.text).toBe('Total: 0');
+});
+
+test('dynamic total reflects legend isolation (single visible slice)', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { A: true, B: false, C: false, D: false },
+  });
+  expect(getGraphic(transformProps(props)).style.text).toBe('Total: 10');
 });
 
 test('dynamic total excludes or includes Other category value based on legendState when threshold_for_other is used', () => {
