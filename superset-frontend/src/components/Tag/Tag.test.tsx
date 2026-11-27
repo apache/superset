@@ -51,7 +51,12 @@ test('should render longname properly', () => {
   const { container } = setup(longNameProps);
   expect(container).toBeInTheDocument();
   expect(screen.getByTestId('tag')).toBeInTheDocument();
-  expect(screen.getByTestId('tag')).toHaveTextContent(
-    `${longNameProps.name.slice(0, 20)}...`,
-  );
+  // The full name is rendered; CSS ellipsizes it only when space runs out.
+  expect(screen.getByTestId('tag')).toHaveTextContent(longNameProps.name);
+  expect(screen.getByTestId('tag')).toHaveStyle({
+    maxWidth: '100%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  });
 });
