@@ -40,6 +40,7 @@ from flask_babel import gettext as __
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.grouping_sets import GROUPING_MARKER_SUFFIX
 from superset.constants import SHOW_VALUES_AS_PERCENT_MODES, ShowValuesAs
+from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
@@ -2215,13 +2216,23 @@ def apply_client_processing(  # noqa: C901
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
         apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
-        processed_df = post_processor(
-            df,
-            form_data,
-            datasource,
-            apply_number_format,
-            query.get("detected_currency"),
-        )
+        try:
+            processed_df = post_processor(
+                df,
+                form_data,
+                datasource,
+                apply_number_format,
+                query.get("detected_currency"),
+            )
+        except KeyError as ex:
+            # A requested row/column/metric label (e.g. a pivot table groupby
+            # or metric alias) that isn't actually a column of the query
+            # result is a malformed/stale chart request, not a server bug --
+            # surface it as a validation error (400) instead of letting it
+            # escape as an unhandled 500.
+            raise QueryObjectValidationError(
+                __("Invalid column or metric name: %(column)s", column=str(ex))
+            ) from ex
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
