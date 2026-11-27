@@ -334,3 +334,9 @@ test.each([
     );
   },
 );
+
+test('registers the SVG renderer so the flag cannot silently fall back to canvas', () => {
+  expect(jest.requireMock('echarts/core').use).toHaveBeenCalledWith(
+    expect.arrayContaining(['SVGRenderer']),
+  );
+});
