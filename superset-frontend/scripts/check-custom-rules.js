@@ -26,7 +26,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import glob from 'glob';
 import * as parser from '@babel/parser';
 import traverseModule from '@babel/traverse';
 
@@ -858,8 +857,8 @@ function main() {
   // `*.test.jsx` is still rejected.
   const tsOnlyCandidates =
     args.length === 0
-      ? glob.sync('{src,packages/*/src,plugins/*/src}/**/*.{js,jsx}', {
-          ignore: [
+      ? fs.globSync('{src,packages/*/src,plugins/*/src}/**/*.{js,jsx}', {
+          exclude: [
             '**/node_modules/**',
             '**/esm/**',
             '**/lib/**',
@@ -873,8 +872,8 @@ function main() {
   // from the raw file list, because the ignore patterns below strip out tests.
   const testCandidates =
     args.length === 0
-      ? glob.sync('**/*.{test,spec}.{ts,tsx,js,jsx}', {
-          ignore: [
+      ? fs.globSync('**/*.{test,spec}.{ts,tsx,js,jsx}', {
+          exclude: [
             '**/node_modules/**',
             '**/esm/**',
             '**/lib/**',
@@ -895,8 +894,8 @@ function main() {
 
   // If no files specified, check all
   if (files.length === 0) {
-    files = glob.sync('src/**/*.{ts,tsx,js,jsx}', {
-      ignore: [
+    files = fs.globSync('src/**/*.{ts,tsx,js,jsx}', {
+      exclude: [
         '**/*.test.*',
         '**/*.spec.*',
         '**/test/**',

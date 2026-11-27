@@ -198,22 +198,22 @@ msgid "% calculation"
 msgstr "% càlcul"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% de"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% de la columna"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% del total de la columna"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% del total general"
 
@@ -222,7 +222,7 @@ msgid "% of parent"
 msgstr "%% del pare"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% del total de la fila"
 
@@ -268,6 +268,16 @@ msgstr[1] "%(count)s recursos dependents estan arxivats."
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s no es pot usar com a font de dades per raons de seguretat."
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s o %(lastSuggestion)s en lloc de "
+"\"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid "%(label)s file"
@@ -374,15 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d fileres retornades"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s en lloc de \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s o %(lastSuggestion)s en lloc de "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s en lloc de \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -6367,7 +6372,7 @@ msgstr "DES"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ELIMINAR"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10199,7 +10204,7 @@ msgstr "Personalitzar més com mostrar cada mètrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR PER"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10415,6 +10420,7 @@ msgstr "L'usuari convidat no pot modificar la càrrega útil del gràfic"
 msgid "HTTP Path"
 msgstr "Ruta HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12965,7 +12971,7 @@ msgstr "N/D"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NO AGRUPAT PER"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13782,7 +13788,7 @@ msgstr "o"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBREESCRIURE"
+msgstr ""
 
 msgid "October"
 msgstr "Octubre"
@@ -14088,7 +14094,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Advertència opcional sobre l'ús d'aquesta mètrica"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -18191,9 +18197,8 @@ msgstr ""
 msgid "Shows or hides markers for the time series"
 msgstr "Mostra o amaga marcadors per les sèries temporals"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "No en"
+msgstr "Iniciar sessió"
 
 #, fuzzy
 msgid "Sign in with"
@@ -19104,7 +19109,7 @@ msgstr "TAULES"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "RANG_TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "DIJ"
@@ -20217,6 +20222,13 @@ msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -23887,7 +23899,7 @@ msgid "Value transform"
 msgstr "Transformació del valor"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -23901,7 +23913,7 @@ msgstr ""
 "dades mentre la paginació del servidor està activada."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
@@ -25724,7 +25736,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "negreta"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26014,7 +26026,7 @@ msgstr "entrades"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "missatge_error"
+msgstr ""
 
 msgid "every"
 msgstr "cada"
@@ -26408,9 +26420,8 @@ msgid "permalink state not found"
 msgstr "estat de l'enllaç permanent no trobat"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Pivotat"
+msgstr ""
 
 msgid "pixels"
 msgstr "píxels"

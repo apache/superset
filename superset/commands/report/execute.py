@@ -108,7 +108,10 @@ from superset.reports.notifications.slack_transport import (
     get_slack_send_retry_deadline,
 )
 from superset.reports.utils import get_dynamic_executor, get_email_addresses
-from superset.semantic_layers.chart_types import UNSUPPORTED_SEMANTIC_CHART_TYPES
+from superset.semantic_layers.chart_types import (
+    pin_saved_chart_type,
+    semantic_chart_refusal,
+)
 from superset.subjects.types import SubjectType
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
@@ -796,13 +799,16 @@ class BaseReportState:
                 force=force,
                 **kwargs,
             )
-        # If we need to render dashboard in a specific state, use stateful permalink
-        if (
-            not (user_friendly and attachment_free_alert)
-            and (dashboard_state := self._report_schedule.extra.get("dashboard"))
-            and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS")
-        ):
-            return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
+        # Reuse the screenshot URL builder so the link carries the same
+        # stateful permalink (tab, urlParams and the report's native filters)
+        # as the attachment. A multi-tab report links to its first tab.
+        if not (user_friendly and attachment_free_alert):
+            urls = self.get_dashboard_urls(user_friendly=user_friendly, **kwargs)
+            if urls:
+                return urls[0]
+            # An empty tab list (anchor "[]") yields no tab URLs. That is a
+            # degenerate configuration with no tab to scope filters to, so
+            # link to the plain dashboard rather than failing the notification.
 
         return self._get_plain_dashboard_url(user_friendly=user_friendly, **kwargs)
 
@@ -846,6 +852,21 @@ class BaseReportState:
             ReportScheduleExecutorNotFoundError,
         ):
             return self._get_plain_dashboard_url(user_friendly=True)
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            # Building the stateful link can fail for the very reason the
+            # report failed (e.g. the permalink store or the saved native
+            # filters). The editors still need to hear about the failure.
+            if self._report_schedule.dashboard is None:
+                raise
+            logger.warning(
+                "Falling back to the plain dashboard link for the failure "
+                "notification of report schedule %s",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return self._get_plain_dashboard_url(user_friendly=True)
 
     def _raise_for_executor_dashboard_access(
         self, require_executor: bool = False
@@ -888,6 +909,12 @@ class BaseReportState:
                 "the dashboard is withheld from this user",
             )
 
+    def _add_execution_warnings(self, warnings: list[str]) -> None:
+        """Record warnings, skipping any already recorded for this execution."""
+        self._execution_warnings.extend(
+            w for w in dict.fromkeys(warnings) if w not in self._execution_warnings
+        )
+
     def get_dashboard_urls(
         self, user_friendly: bool = False, **kwargs: Any
     ) -> list[str]:
@@ -911,8 +938,7 @@ class BaseReportState:
             native_filter_params, filter_warnings = (
                 self._report_schedule.get_native_filters_params()
             )
-            if filter_warnings:
-                self._execution_warnings.extend(filter_warnings)
+            self._add_execution_warnings(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list = json.loads(anchor)
@@ -955,8 +981,7 @@ class BaseReportState:
         native_filter_params, filter_warnings = (
             self._report_schedule.get_native_filters_params()
         )
-        if filter_warnings:
-            self._execution_warnings.extend(filter_warnings)
+        self._add_execution_warnings(filter_warnings)
         if native_filter_params and native_filter_params != "()":
             # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
             # set via API even when ALERT_REPORT_TABS is off — same merge
@@ -1410,16 +1435,27 @@ class BaseReportState:
 
         return pdf
 
+    def _raise_for_semantic_chart_refusal(
+        self, failed_error: type[CommandException]
+    ) -> None:
+        """Refuse an unsupported semantic chart before requesting its data.
+
+        The chart data API redacts its 400 message for report requests, so
+        checking here is what lets the owner see why the report failed.
+        """
+        if refusal := semantic_chart_refusal(
+            self._report_schedule.chart.datasource_type,
+            self._report_schedule.chart.viz_type,
+        ):
+            raise failed_error(refusal)
+
     def _include_semantic_chart_type(self, query_context: dict[str, Any]) -> None:
         """Identify refused charts without activating supported export processors."""
-        if (
-            self._report_schedule.chart.datasource_type == "semantic_view"
-            and self._report_schedule.chart.viz_type in UNSUPPORTED_SEMANTIC_CHART_TYPES
-        ):
-            query_context["form_data"] = dict(
-                query_context.get("form_data") or {},
-                viz_type=self._report_schedule.chart.viz_type,
-            )
+        pin_saved_chart_type(
+            query_context,
+            self._report_schedule.chart.datasource_type,
+            self._report_schedule.chart.viz_type,
+        )
 
     def _get_chart_data_request_payload(
         self,
@@ -1571,6 +1607,8 @@ class BaseReportState:
                 ReportScheduleCsvFailedError,
             )
 
+        self._raise_for_semantic_chart_refusal(failed_error)
+
         start_time: datetime = naive_utcnow()
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
@@ -1666,6 +1704,8 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
+        self._raise_for_semantic_chart_refusal(ReportScheduleDataFrameFailedError)
+
         start_time: datetime = naive_utcnow()
 
         url: str
@@ -1905,6 +1945,13 @@ class BaseReportState:
     ) -> None:
         """Send one notification, upgrading Slack v1 recipients when required."""
         self._assert_rendered_delivery_allowed(notification_content)
+        if self._report_execution_context is not None:
+            context = self._report_execution_context
+            notification_content.delivery_deadline = (
+                context.deadline.started_at
+                + context.deadline.total_seconds
+                - context.cleanup_reserve_seconds
+            )
         notification = create_notification(recipient, notification_content)
         if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
             logger.info(

@@ -188,22 +188,22 @@ msgid "% calculation"
 msgstr "% обчислення"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% від"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% від стовпця"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% від підсумку стовпця"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% від загального підсумку"
 
@@ -212,7 +212,7 @@ msgid "% of parent"
 msgstr "% батька"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% від підсумку рядка"
 
@@ -262,6 +262,16 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s не можна використовувати як джерело даних з безпекових "
 "міркувань."
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s або %(lastSuggestion)s замість "
+"«%(undefinedParameter)s?»"
 
 #, python-format
 msgid "%(label)s file"
@@ -374,19 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Повернуто записів: %(rows)d"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
-msgstr[1] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[2] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[3] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s замість «%(undefinedParameter)s?»"
 
 #, python-format
 msgid ""
@@ -6116,7 +6117,7 @@ msgstr "груд"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ВИЛУЧИТИ"
+msgstr ""
 
 msgid "DML"
 msgstr "DML (редагування даних)"
@@ -9732,7 +9733,7 @@ msgstr "Додаткові налаштування як показувати к
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "Групування"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Діаграма планування"
@@ -9926,6 +9927,7 @@ msgstr "Гостьовий користувач не може змінювати
 msgid "HTTP Path"
 msgstr "Шлях HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12351,7 +12353,7 @@ msgstr "Пусто"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "Не згруповано"
+msgstr ""
 
 msgid "NOV"
 msgstr "лист"
@@ -13125,7 +13127,7 @@ msgstr "АБО"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "ПЕРЕЗАПИСАТИ"
+msgstr ""
 
 msgid "October"
 msgstr "Жовтень"
@@ -13419,7 +13421,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Попередження щодо використання цього показника"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -19249,6 +19251,13 @@ msgstr[3] "Параметр %(parameters)s у вашому запиті не в�
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -22719,7 +22728,7 @@ msgid "Value transform"
 msgstr "Перетворення значення"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -22733,7 +22742,7 @@ msgstr ""
 "ввімкнено серверну пагінацію."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
@@ -24163,6 +24172,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Ваш обліковий запис увімкнено. Можете заходити."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Ваш обліковий запис увімкнено. Можете заходити."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Ваші зміни буде втрачено, якщо їх не зберегти."
 
@@ -24662,7 +24674,7 @@ msgstr "Deck.gl - Контурна карта"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - Geojson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Сітка"

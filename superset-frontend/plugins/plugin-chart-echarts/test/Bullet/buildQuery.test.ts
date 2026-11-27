@@ -61,3 +61,21 @@ test('forwards explicit ordering and row limit to the query', () => {
   expect(query.orderby).toEqual([['Revenue', false]]);
   expect(query.row_limit).toBe(25);
 });
+
+test('queries the target metric alongside the measure, once each', () => {
+  const formData = {
+    datasource: '5__table',
+    viz_type: 'bullet',
+    metric: 'sum__num',
+    groupby: ['state'],
+  };
+  const [query] = buildQuery({ ...formData, target_metric: 'quota' }).queries;
+  expect(query.columns).toEqual(['state']);
+  expect(query.metrics).toEqual(['sum__num', 'quota']);
+
+  const [deduped] = buildQuery({
+    ...formData,
+    target_metric: 'sum__num',
+  }).queries;
+  expect(deduped.metrics).toEqual(['sum__num']);
+});

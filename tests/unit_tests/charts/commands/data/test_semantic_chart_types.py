@@ -317,3 +317,83 @@ def test_dashboard_download_allows_refusal_tile(
     assert response.get_data() == (
         tile if download_format == "png" else b"pdf-refusal-tile"
     )
+
+
+@pytest.mark.parametrize("saved_slice_id", [None, 99])
+@pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+def test_saved_get_stamps_chart_id_for_semantic_views(
+    full_api_access: None, saved_slice_id: int | None, datasource_type: str
+) -> None:
+    """The guest check compares form_data.slice_id against the bound chart."""
+    api: ChartDataRestApi = ChartDataRestApi()
+    form_data: dict[str, object] = {"viz_type": "table"}
+    if saved_slice_id is not None:
+        form_data["slice_id"] = saved_slice_id
+    chart: Slice = Slice(
+        id=1,
+        viz_type="table",
+        datasource_type=datasource_type,
+        query_context=json.dumps(
+            {
+                "datasource": {"id": 1, "type": datasource_type},
+                "queries": [{}],
+                "form_data": form_data,
+            }
+        ),
+    )
+    api.datamodel = Mock()
+    api.datamodel.get.return_value = chart
+    api._base_filters = []
+    context: Mock = _context("table", datasource_type)
+    build: Mock
+    with (
+        current_app.test_request_context("/api/v1/chart/1/data/"),
+        patch.object(
+            api, "_create_query_context_from_form", return_value=context
+        ) as build,
+        patch.object(api, "_should_run_async", return_value=False),
+        patch.object(api, "_get_data_response", return_value=Response("{}")),
+    ):
+        assert api.get_data(1).status_code == 200
+    sent: dict[str, object] = build.call_args.args[0]["form_data"]
+    if datasource_type == "semantic_view":
+        assert sent == {"viz_type": "table", "slice_id": 1}
+    else:
+        assert sent == form_data
+
+
+def test_saved_get_uses_chart_type_over_stale_context(full_api_access: None) -> None:
+    """A saved context still claiming a supported type can't bypass the refusal."""
+    api: ChartDataRestApi = ChartDataRestApi()
+    chart: Slice = Slice(
+        id=1,
+        viz_type="histogram_v2",
+        datasource_type="semantic_view",
+        query_context=json.dumps(
+            {
+                "datasource": {"id": 1, "type": "semantic_view"},
+                "queries": [{}],
+                "form_data": {"viz_type": "table"},
+            }
+        ),
+    )
+    api.datamodel = Mock()
+    api.datamodel.get.return_value = chart
+    api._base_filters = []
+    context: Mock = _context("table")
+
+    def build(json_body: dict[str, object]) -> Mock:
+        context.form_data = json_body["form_data"]
+        return context
+
+    response: Response
+    get_data: Mock
+    with (
+        current_app.test_request_context("/api/v1/chart/1/data/"),
+        patch.object(api, "_create_query_context_from_form", side_effect=build),
+        patch.object(api, "_get_data_response") as get_data,
+    ):
+        response = api.get_data(1)
+    assert response.status_code == 400
+    assert "Histogram" in response.get_json()["message"]
+    get_data.assert_not_called()

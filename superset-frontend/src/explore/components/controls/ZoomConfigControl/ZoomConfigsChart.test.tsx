@@ -18,7 +18,7 @@
  */
 import { act, render } from 'spec/helpers/testing-library';
 import { init } from 'echarts';
-import ZoomConfigsChart from './ZoomConfigsChart';
+import { ZoomConfigsChart } from './ZoomConfigsChart';
 import { ZoomConfigs } from './types';
 
 // echarts needs a real canvas/layout engine; replace only chart creation and

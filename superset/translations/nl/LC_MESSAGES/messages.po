@@ -210,22 +210,22 @@ msgid "% calculation"
 msgstr "% berekening"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% van"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% van kolom"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% van kolomtotaal"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% van eindtotaal"
 
@@ -234,7 +234,7 @@ msgid "% of parent"
 msgstr "Bovenliggende"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% van rijtotaal"
 
@@ -282,6 +282,14 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s kunnen om veiligheidsredenen niet als gegevensbron worden "
 "gebruikt."
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
@@ -392,13 +400,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d rijen teruggegeven"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s in plaats van “%(undefinedParameter)s?”"
-msgstr[1] ""
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s in plaats van “%(undefinedParameter)s?”"
 
 #, python-format
 msgid ""
@@ -6508,7 +6513,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "VERWIJDER"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -8303,7 +8308,7 @@ msgstr "Groeperingskolommen dynamisch selecteren uit een gegevensset"
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "EGrafieken"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10664,6 +10669,7 @@ msgstr "Gastgebruiker kan de grafiek-payload niet wijzigen"
 msgid "HTTP Path"
 msgstr "HTTP-pad"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -14119,7 +14125,7 @@ msgstr "of"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "OVERSCHRIJVEN"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -14429,7 +14435,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Optionele waarschuwing voor het gebruik van deze metriek"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -18632,9 +18638,8 @@ msgstr "Toont een lijst van alle series die beschikbaar zijn op dat moment"
 msgid "Shows or hides markers for the time series"
 msgstr "Toont of verbergt markeringen voor de tijdreeks"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "Niet in"
+msgstr "Aanmelden"
 
 #, fuzzy
 msgid "Sign in with"
@@ -19561,7 +19566,7 @@ msgstr "TABLES"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "TIJDELIJK_BEREIK"
+msgstr ""
 
 msgid "THU"
 msgstr "DO"
@@ -20738,6 +20743,13 @@ msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -24521,7 +24533,7 @@ msgid "Value transform"
 msgstr "Waardetransformatie"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -24535,7 +24547,7 @@ msgstr ""
 "zolang serverpaginering is ingeschakeld."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
@@ -26396,7 +26408,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "bliksem"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26493,9 +26505,8 @@ msgid "create dataset from SQL query"
 msgstr "maak data uit SQL query"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "tellen"
+msgstr ""
 
 msgid "css"
 msgstr "css"
@@ -26696,7 +26707,7 @@ msgstr "items"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "fout_melding"
+msgstr ""
 
 msgid "every"
 msgstr "elke"
@@ -27098,9 +27109,8 @@ msgid "permalink state not found"
 msgstr "permalink status niet gevonden"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Gepivoteerd"
+msgstr ""
 
 msgid "pixels"
 msgstr "pixels"

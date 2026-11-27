@@ -117,6 +117,100 @@ def test_semantic_date_daily_resample_fills_gaps() -> None:
     ]
 
 
+def _forecast_query() -> ValidatedQueryObject:
+    """Use the chart's pivot/flatten/forecast chain without opting into resample."""
+    query: ValidatedQueryObject = _resample_query()
+    query.post_processing.pop(1)
+    query.post_processing.append(
+        {
+            "operation": "prophet",
+            "options": {
+                "index": "day",
+                "time_grain": "P1D",
+                "periods": 2,
+                "confidence_interval": 0.8,
+                "yearly_seasonality": False,
+                "weekly_seasonality": False,
+                "daily_seasonality": False,
+            },
+        }
+    )
+    return query
+
+
+@pytest.mark.parametrize("axis_type", [pa.date32(), pa.date64(), pa.timestamp("us")])
+@pytest.mark.parametrize("base_axis", [False, True])
+def test_semantic_date_forecast_matches_dataset(
+    axis_type: pa.DataType, base_axis: bool
+) -> None:
+    """Real Prophet accepts DATE axes, preserving dates and date-valued legends."""
+    table: pa.Table = pa.table(
+        {
+            "day": pa.array(
+                [datetime(2026, 1, 5), datetime(2026, 1, 7)], type=axis_type
+            ),
+            "cohort": pa.array([date(2025, 11, 1)] * 2, type=pa.date32()),
+            "amount": [1, 3],
+        }
+    )
+    query: ValidatedQueryObject = _forecast_query()
+    query.columns = (
+        [{"sqlExpression": "day", "label": "day", "columnType": "BASE_AXIS"}, "cohort"]
+        if base_axis
+        else ["day", "cohort"]
+    )
+    query.granularity = None if base_axis else "day"
+    query.post_processing[0]["options"]["columns"] = ["cohort"]
+    dataset: SqlaTable = _sql_date_dataset()
+    dataset.columns.append(TableColumn(column_name="cohort", type="DATE", is_dttm=True))
+    ordinary: pd.DataFrame = query.exec_post_processing(
+        dataset.normalize_df(table.to_pandas(), query)
+    )
+    actual: pd.DataFrame = query.exec_post_processing(_mapped_frame(table, query))
+    assert actual["day"].dt.date.tolist() == [
+        date(2026, 1, 5),
+        date(2026, 1, 7),
+        date(2026, 1, 8),
+        date(2026, 1, 9),
+    ]
+    assert actual.columns.tolist() == [
+        "day",
+        "amount, 2025-11-01__yhat",
+        "amount, 2025-11-01__yhat_lower",
+        "amount, 2025-11-01__yhat_upper",
+        "amount, 2025-11-01",
+    ]
+    assert actual["amount, 2025-11-01"].iloc[:2].tolist() == [1, 3]
+    assert actual["amount, 2025-11-01"].iloc[2:].isna().all()
+    assert actual["amount, 2025-11-01__yhat"].tolist() == pytest.approx([1, 3, 4, 5])
+    # DATE casts use milliseconds; SQL normalization may use seconds.
+    pd.testing.assert_series_equal(actual["day"], ordinary["day"], check_dtype=False)
+    pd.testing.assert_series_equal(
+        actual["amount, 2025-11-01__yhat"], ordinary["amount, 2025-11-01__yhat"]
+    )
+
+
+@pytest.mark.parametrize(
+    "result_format",
+    sorted(ChartDataResultFormat.table_like()) + [ChartDataResultFormat.JSON],
+)
+def test_semantic_forecast_axis_serialization_matches_resample(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """Daily forecast axes use resample's existing response/export representation."""
+    query: ValidatedQueryObject = _forecast_query()
+    actual: pd.DataFrame = query.exec_post_processing(_date_frame(query))[["day"]]
+    resample_query: ValidatedQueryObject = _resample_query()
+    expected: pd.DataFrame = resample_query.exec_post_processing(
+        _date_frame(resample_query)
+    )[["day"]]
+    # Compare the shared first day; forecasting does not fill historical gaps.
+    processor: QueryContextProcessor = _processor(result_format)
+    assert processor.get_data(actual.iloc[:1].copy(), [GenericDataType.TEMPORAL]) == (
+        processor.get_data(expected.iloc[:1].copy(), [GenericDataType.TEMPORAL])
+    )
+
+
 def test_semantic_date_raw_xlsx_keeps_date_cell_format() -> None:
     """Raw spreadsheet cells retain date-only formatting."""
     query: ValidatedQueryObject = ValidatedQueryObject(
@@ -134,7 +228,7 @@ def test_semantic_date_raw_xlsx_keeps_date_cell_format() -> None:
 @pytest.mark.parametrize("resampling", [False, True])
 @pytest.mark.parametrize(
     "result_format",
-    list(ChartDataResultFormat.table_like()) + [ChartDataResultFormat.JSON],
+    sorted(ChartDataResultFormat.table_like()) + [ChartDataResultFormat.JSON],
 )
 def test_semantic_date_exports_match_unchanged_raw_or_resampled_sql(
     resampling: bool, result_format: ChartDataResultFormat
@@ -205,10 +299,10 @@ def test_semantic_date_resample_empty_skips_post_processing(
     post_processing.assert_not_called()
 
 
-@pytest.mark.parametrize("resampling", [False, True])
+@pytest.mark.parametrize("operation", [None, "resample", "prophet"])
 @pytest.mark.parametrize("tz", [None, "UTC"])
 def test_semantic_date_conversion_leaves_timestamps_unchanged(
-    resampling: bool, tz: str | None
+    operation: str | None, tz: str | None
 ) -> None:
     """Native timestamps, including UTC instants, do not change dtype or values."""
     table: pa.Table = pa.table(
@@ -220,8 +314,9 @@ def test_semantic_date_conversion_leaves_timestamps_unchanged(
             "amount": [1],
         }
     )
-    query: ValidatedQueryObject = (
-        _resample_query() if resampling else ValidatedQueryObject()
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        granularity="day",
+        post_processing=[{"operation": operation}] if operation else [],
     )
     pd.testing.assert_frame_equal(
         _mapped_frame(table, query), table.to_pandas(integer_object_nulls=True)

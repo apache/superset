@@ -144,7 +144,6 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     indicatorsInitialState,
   );
   const [popoverVisible, setPopoverVisible] = useState(false);
-  const popoverContentRef = useRef<HTMLDivElement>(null);
   const popoverTriggerRef = useRef<HTMLButtonElement>(null);
 
   const onHighlightFilterSource = useCallback(
@@ -166,14 +165,6 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevDatasources = usePrevious(datasources);
   const showIndicators =
     chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus);
-
-  useEffect(() => {
-    if (popoverVisible) {
-      setTimeout(() => {
-        popoverContentRef?.current?.focus({ preventScroll: true });
-      });
-    }
-  }, [popoverVisible]);
 
   useEffect(() => {
     // During auto-refresh, don't clear indicators - preserve previous state
@@ -327,7 +318,6 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       onHighlightFilterSource={onHighlightFilterSource}
       setPopoverVisible={setPopoverVisible}
       popoverVisible={popoverVisible}
-      popoverContentRef={popoverContentRef}
       popoverTriggerRef={popoverTriggerRef}
     >
       <StyledFilterCount

@@ -190,22 +190,22 @@ msgid "% calculation"
 msgstr "Výpočet v %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% z"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% sloupce"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% součtu sloupce"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% celkového součtu"
 
@@ -214,7 +214,7 @@ msgid "% of parent"
 msgstr "% z nadřazené položky"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% součtu řádku"
 
@@ -260,6 +260,16 @@ msgstr[2] "%(count)s závislých prvků je archivováno."
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nelze z bezpečnostních důvodů použít jako zdroj dat."
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s nebo %(lastSuggestion)s místo "
+"„%(undefinedParameter)s?“"
 
 #, python-format
 msgid "%(label)s file"
@@ -367,18 +377,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Vráceno %(rows)d řádků"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s místo „%(undefinedParameter)s?“"
-msgstr[1] ""
-"%(firstSuggestions)s nebo %(lastSuggestion)s místo "
-"„%(undefinedParameter)s?“"
-msgstr[2] ""
-"%(firstSuggestions)s nebo %(lastSuggestion)s místo "
-"„%(undefinedParameter)s?“"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s místo „%(undefinedParameter)s?“"
 
 #, python-format
 msgid ""
@@ -6134,7 +6136,7 @@ msgstr "PRO"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "SMAZAT"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9818,7 +9820,7 @@ msgstr "Dále přizpůsobit, jak zobrazit každou metriku"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "SESKUPIT PODLE"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10017,6 +10019,7 @@ msgstr "Hostující uživatel nemůže upravovat data grafu"
 msgid "HTTP Path"
 msgstr "HTTP cesta"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12487,7 +12490,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NESESKUPENO PODLE"
+msgstr ""
 
 msgid "NOV"
 msgstr "LIS"
@@ -13283,7 +13286,7 @@ msgstr "NEBO"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PŘEPSAT"
+msgstr ""
 
 msgid "October"
 msgstr "Říjen"
@@ -13577,7 +13580,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Volitelné varování o použití této metriky"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -18419,7 +18422,7 @@ msgstr "TABULKY"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVÝ_ROZSAH"
+msgstr ""
 
 msgid "THU"
 msgstr "ČT"
@@ -19473,6 +19476,13 @@ msgstr[2] "Následující parametry ve vašem dotazu nejsou definovány: %(param
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
+msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
 msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
@@ -22983,7 +22993,7 @@ msgid "Value transform"
 msgstr "Transformace hodnoty"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -22997,7 +23007,7 @@ msgstr ""
 "serveru automatický rozsah dat."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
@@ -24425,6 +24435,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Váš účet je aktivován. Můžete se přihlásit pomocí přihlašovacích údajů."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Váš účet je aktivován. Můžete se přihlásit pomocí přihlašovacích údajů."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Vaše změny budou ztraceny, pokud se odhlásíte bez uložení."
 
@@ -24758,7 +24771,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "šroub"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25048,7 +25061,7 @@ msgstr "položky"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "chybová_zpráva"
+msgstr ""
 
 msgid "every"
 msgstr "každý"

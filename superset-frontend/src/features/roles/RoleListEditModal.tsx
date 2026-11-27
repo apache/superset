@@ -50,6 +50,7 @@ import {
   updateRolePermissions,
   updateRoleUsers,
   formatPermissionLabel,
+  sortPermissionOptions,
 } from './utils';
 import { toUserSelectOption } from 'src/features/groups/utils';
 
@@ -266,10 +267,13 @@ function RoleListEditModal({
     ) {
       const fetchedIds = new Set(rolePermissions.map(p => p.value));
       const missingIds = stablePermissionIds.filter(id => !fetchedIds.has(id));
-      const allPermissions = [
+      // The API returns permissions in database order; sort them, together
+      // with any unresolved ID placeholders, so the selected tags read in a
+      // predictable, natural order.
+      const allPermissions = sortPermissionOptions([
         ...rolePermissions,
         ...missingIds.map(id => ({ value: id, label: String(id) })),
-      ];
+      ]);
       if (missingIds.length > 0 && permissionFetchSucceeded.current) {
         addDangerToast(
           t('Some permissions could not be resolved and are shown as IDs.'),
