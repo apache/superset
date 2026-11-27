@@ -22,6 +22,7 @@
 import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -29,6 +30,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
 import Welcome from 'src/pages/Home';
+import DashboardTable from 'src/features/home/DashboardTable';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { redirect } from 'src/utils/navigationUtils';
 import { RoutePaths } from 'src/views/routePaths';
@@ -160,6 +162,21 @@ jest.mock('src/utils/navigationUtils', () => ({
 // Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
 jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
+// Wrap the real DashboardTable in a spy so tests can reach the callbacks
+// Home passes to it while keeping its rendering intact.
+jest.mock('src/features/home/DashboardTable', () => {
+  const { createElement } = jest.requireActual('react');
+  const { default: ActualDashboardTable } = jest.requireActual(
+    'src/features/home/DashboardTable',
+  );
+  return {
+    __esModule: true,
+    default: jest.fn((props: object) =>
+      createElement(ActualDashboardTable, props),
+    ),
+  };
+});
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const renderWelcome = (props = mockedProps) =>
@@ -262,6 +279,23 @@ test('Without sql role - calls api methods in parallel on page load', async () =
   expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(1);
   expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(0);
   expect(fetchMock.callHistory.calls(dashboardsEndpoint)).toHaveLength(2);
+});
+
+test('refetches recent activity when a table reports a delete', async () => {
+  await renderWelcome();
+  const mockedDashboardTable = jest.mocked(DashboardTable);
+  await waitFor(() => expect(mockedDashboardTable).toHaveBeenCalled());
+  expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(1);
+
+  const { onActivityRefresh } = mockedDashboardTable.mock.lastCall![0];
+  expect(onActivityRefresh).toEqual(expect.any(Function));
+  act(() => {
+    onActivityRefresh!();
+  });
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(2),
+  );
 });
 
 // Mock specific to the tests related to the toggle switch

@@ -318,7 +318,8 @@ def execute_semantic_query(
     """Translate provider signals without changing host validation or retries."""
     try:
         with provider_completeness(), normalize_provider_request_errors():
-            return dispatcher(*args, **kwargs)
+            with provider_code():
+                return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from None
     except SemanticBackendError:

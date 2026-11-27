@@ -25,6 +25,12 @@ import {
   VizType,
 } from '@superset-ui/core';
 import * as redux from 'redux';
+import { configureStore } from '@reduxjs/toolkit';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import { updateDataMask } from 'src/dataMask/actions';
+import { convertAgGridStateToOwnState } from '../../../../../plugins/plugin-chart-ag-grid-table/src/stateConversion';
+import buildTreeQuery from '../../../../../plugins/plugin-chart-ag-grid-table/src/TreeTable/buildQuery';
+import { TreeTableOwnState } from '../../../../../plugins/plugin-chart-ag-grid-table/src/TreeTable/types';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as chartStateConverter from '../../../util/chartStateConverter';
@@ -687,6 +693,52 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   stubbedExportCSV.mockRestore();
 });
 
+test.each([
+  [VizType.Table, 150000, true, undefined],
+  [VizType.TableAgGrid, 150000, true, 'tree'],
+  [VizType.TableAgGrid, 120, false, 'tree'],
+])(
+  'a %s CSV export reads the total from the count query (total %s, streams: %s)',
+  async (vizType, total, streams, queryMode) => {
+    const stubbedExportCSV = jest
+      .spyOn(exploreUtils, 'exportChart')
+      .mockResolvedValue(undefined);
+    const formData = {
+      ...chartQueries[queryId].form_data,
+      viz_type: vizType,
+      query_mode: queryMode,
+    };
+    const { findByText, getByRole } = setup(
+      { formData },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            form_data: formData,
+            queriesResponse: [
+              { sql_rowcount: 50, data: [] },
+              { data: [{ rowcount: total }] },
+            ],
+          },
+        },
+        dashboardInfo: {
+          ...defaultState.dashboardInfo,
+          superset_can_download: true,
+        },
+      },
+    );
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    fireEvent.click(await findByText('Export to .CSV', {}, { timeout: 5000 }));
+    expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+    expect(
+      typeof stubbedExportCSV.mock.calls[0][0].onStartStreamingExport,
+    ).toBe(streams ? 'function' : 'object');
+    stubbedExportCSV.mockRestore();
+  },
+);
+
 test('should call exportChart when exportXLSX is clicked', async () => {
   const stubbedExportXLSX = jest
     .spyOn(exploreUtils, 'exportChart')
@@ -786,6 +838,109 @@ test('should re-render when cacheBusterProp changes', () => {
   rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
+
+const treeFormData = {
+  viz_type: VizType.TableAgGrid,
+  query_mode: 'tree',
+  datasource: '1__table',
+  row_limit: 1000,
+  levels: [
+    {
+      key: 'parent',
+      name: 'Parent',
+      id_column: 'parent',
+      columns: ['value'],
+      detail_fields: [],
+    },
+  ],
+};
+
+test.each(['permalink', 'table_state'])(
+  'the dashboard clears stale %s before Tree paging and sorting',
+  source => {
+    chartStateConverter.registerChartStateConverter(
+      VizType.TableAgGrid,
+      convertAgGridStateToOwnState,
+    );
+    const stale = {
+      serverPagination: true,
+      pageSize: 100,
+      currentPage: 2,
+      sortModel: [{ colId: 'parent', sort: 'desc' }],
+    };
+    const formData = {
+      ...treeFormData,
+      datasource: props.formData.datasource,
+      ...(source === 'table_state' ? { table_state: stale } : {}),
+    };
+    const initial = {
+      ...defaultState,
+      charts: {
+        ...chartQueries,
+        [queryId]: {
+          ...chartQueries[queryId],
+          form_data: formData,
+          latestQueryFormData: formData,
+        },
+      },
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            viz_type: VizType.TableAgGrid,
+            form_data: formData,
+          },
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        ...(source === 'permalink'
+          ? { chartStates: { [queryId]: { state: stale } } }
+          : {}),
+      },
+    };
+    const store = configureStore({
+      reducer: reducerIndex,
+      preloadedState: initial as never,
+      middleware: getDefaultMiddleware =>
+        getDefaultMiddleware({
+          serializableCheck: false,
+          immutableCheck: false,
+        }),
+    });
+    render(<Chart {...props} isComponentVisible />, { store, useRouter: true });
+    expect(
+      (capturedChartContainerProps.ownState as { pageSize: number }).pageSize,
+    ).toBe(100);
+    act(() => {
+      (
+        capturedChartContainerProps.onChartStateChange as (
+          state: Record<string, unknown>,
+        ) => void
+      )({});
+    });
+    expect(
+      store.getState().dashboardState.chartStates?.[queryId].state,
+    ).toEqual({});
+    act(() => {
+      store.dispatch(
+        updateDataMask(queryId, {
+          ownState: {
+            pageSize: 20,
+            currentPage: 0,
+            sortBy: [{ id: 'value', key: 'value', desc: true }],
+          },
+        }),
+      );
+    });
+    const query = buildTreeQuery(formData, {
+      ownState: capturedChartContainerProps.ownState as TreeTableOwnState,
+    }).queries[0];
+    expect(query.row_limit).toBe(20);
+    expect(query.orderby?.[0]).toEqual(['value', false]);
+  },
+);
 
 test('should handle chart state conversion when converter exists', () => {
   const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };

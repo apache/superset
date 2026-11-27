@@ -22,12 +22,18 @@ from superset_core.semantic_layers.errors import (
     SemanticBackendError,
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
+    SemanticResultCompletenessError as ProviderResultCompletenessError,
 )
+from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
-from superset.errors import SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetErrorException
+from superset.errors import SupersetError, SupersetErrorType
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SemanticResultCompletenessError,
+    SupersetErrorException,
+)
 from superset.mcp_service.chart.response_preflight import bounded_exception_message
 from superset.semantic_layers.exceptions import (
     is_provider_fault,
@@ -39,6 +45,7 @@ from superset.utils.error_sanitization import (
     GENERIC_ERROR_MESSAGE,
     SAFE_ERROR_TYPES,
     sanitize_error_message,
+    sanitize_superset_error,
 )
 
 
@@ -54,6 +61,11 @@ def _causal_chain(exc: Exception) -> list[BaseException]:
     return chain
 
 
+def contains_provider_fault(exc: Exception) -> bool:
+    """Identify provider-origin text anywhere in an explicit error chain."""
+    return any(is_provider_fault(error) for error in _causal_chain(exc))
+
+
 def _superset_exception_error(
     error: SupersetErrorException, *, semantic: bool
 ) -> tuple[str, str, str]:
@@ -62,9 +74,11 @@ def _superset_exception_error(
     if error_type in SAFE_ERROR_TYPES:
         return error_type.value, bounded_exception_message(error), "QueryError"
     if not semantic:
+        sanitized: SupersetError = sanitize_superset_error(error.error)
+        # Keep the MCP response budget after applying HTTP's guest rule.
         return (
-            error_type.value,
-            sanitize_error_message(bounded_exception_message(error)),
+            sanitized.error_type.value,
+            bounded_exception_message(Exception(str(sanitized.message))),
             "QueryError",
         )
     return (
@@ -74,9 +88,25 @@ def _superset_exception_error(
     )
 
 
-def public_query_error(
-    exc: Exception, *, semantic: bool = False
-) -> tuple[str, str, str]:
+def _translated_completeness_error(
+    chain: list[BaseException],
+) -> tuple[str, str, str] | None:
+    """Keep fixed host guidance produced from a provider completeness signal."""
+    for error in chain:
+        if (
+            type(error) is SemanticResultCompletenessError
+            and isinstance(error.__cause__, ProviderResultCompletenessError)
+            and not is_provider_fault(error)
+        ):
+            return (
+                SemanticQueryErrorCode.INVALID_QUERY.value,
+                bounded_exception_message(error),
+                "ValidationError",
+            )
+    return None
+
+
+def public_query_error(exc: Exception, *, semantic: bool = False) -> tuple[str, str, str]:
     """Return a safe error code, message, and MCP type for a failed query.
 
     A provider can raise a host exception class. Its provenance marker takes
@@ -85,7 +115,10 @@ def public_query_error(
     """
     chain: list[BaseException] = _causal_chain(exc)
 
-    if semantic and any(is_provider_fault(error) for error in chain):
+    if semantic and (completeness := _translated_completeness_error(chain)) is not None:
+        return completeness
+
+    if semantic and contains_provider_fault(exc):
         return (
             SupersetErrorType.GENERIC_BACKEND_ERROR.value,
             str(GENERIC_ERROR_MESSAGE),
@@ -97,7 +130,7 @@ def public_query_error(
             error, (SemanticLayerQueryRejectedError, SemanticQueryRejectedError)
         ):
             code: SemanticQueryErrorCode = error.code
-            return code.value, rejection_message(code), "QueryRejected"
+            return code.value, rejection_message(code), "QueryValidationError"
         if isinstance(error, (SemanticLayerExecutionError, SemanticBackendError)):
             return (
                 SupersetErrorType.GENERIC_BACKEND_ERROR.value,
@@ -105,14 +138,23 @@ def public_query_error(
                 "QueryError",
             )
         if isinstance(error, QueryObjectValidationError):
+            # Transport normalization uses ``raise ... from None`` and keeps
+            # its typed transport exception as the implicit context.
+            transport_failure: bool = isinstance(
+                error.__context__, ProviderRequestError
+            )
             return (
-                SemanticQueryErrorCode.INVALID_QUERY.value,
+                (
+                    SupersetErrorType.GENERIC_BACKEND_ERROR.value
+                    if transport_failure
+                    else SemanticQueryErrorCode.INVALID_QUERY.value
+                ),
                 (
                     bounded_exception_message(error)
                     if semantic
                     else sanitize_error_message(bounded_exception_message(error))
                 ),
-                "QueryError",
+                "QueryError" if transport_failure else "ValidationError",
             )
         if isinstance(error, SupersetErrorException):
             return _superset_exception_error(error, semantic=semantic)
@@ -139,7 +181,6 @@ def public_query_error(
         str(GENERIC_ERROR_MESSAGE),
         "QueryError",
     )
-
 
 # Errors of any MCP tool.
 #
@@ -170,7 +211,7 @@ from dataclasses import dataclass  # noqa: E402
 from typing import Any, Literal, Protocol, TYPE_CHECKING, TypeVar  # noqa: E402
 
 from superset.commands.exceptions import CommandException  # noqa: E402
-from superset.errors import ErrorLevel, SupersetError  # noqa: E402
+from superset.errors import ErrorLevel  # noqa: E402
 from superset.exceptions import (  # noqa: E402
     SupersetErrorsException,
     SupersetException,
@@ -179,7 +220,6 @@ from superset.mcp_service.utils.error_sanitization import (  # noqa: E402
     sanitize_for_log,
 )
 from superset.utils import error_sanitization  # noqa: E402
-from superset.utils.error_sanitization import sanitize_superset_error  # noqa: E402
 
 if TYPE_CHECKING:
     from fastmcp import Context

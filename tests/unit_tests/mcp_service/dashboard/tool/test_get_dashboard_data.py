@@ -871,11 +871,13 @@ def test_post_processing_classification_covers_registry() -> None:
     assert set(OPERATIONS) == _ROW_PRESERVING_OPERATIONS | {
         "aggregate",
         "boxplot",
+        "first_n_per_group",
         "histogram",
         "pivot",
         "prophet",
         "resample",
         "rolling",
+        "tree_rows",
     }
 
 
