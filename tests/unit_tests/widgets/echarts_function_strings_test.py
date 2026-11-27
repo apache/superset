@@ -41,6 +41,8 @@ def props(options: dict[str, Any]) -> dict[str, Any]:
         "async function format(p) { return p.value }",
         "(p) => p.value",
         "p => p.value",
+        "value => value + ' USD'",
+        "p => p",
         "  function(){}",
     ],
 )
@@ -64,7 +66,8 @@ def test_template_strings_and_prose_are_not_functions() -> None:
     widget = registry["echarts"]
     options = {
         "tooltip": {"formatter": "{b}: {c} USD"},
-        "title": {"text": "Revenue, a function of time"},
+        "title": {"text": "2023 => 2024 (forecast)", "subtext": "function (beta) x"},
+        "legend": {"data": ["Old => New (2024)"]},
         "series": [{"name": "f => growth", "data": [1, 2]}],
         "label": {"formatter": {"$template": "{{name}}"}},
     }

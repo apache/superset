@@ -48,13 +48,13 @@ from superset_core.widgets import MetricControl
 
 FilterScalar = str | int | float | bool
 
-# A string that is JavaScript source rather than a value: `function (p) {...}`
-# or an arrow function. ECharts template strings (`{c} USD`) don't match.
+# The option keys ECharts calls as functions and otherwise draws as text; only
+# these are checked, so prose elsewhere (`"2023 => 2024"`) is never refused.
+_FUNCTION_KEYS = frozenset({"formatter", "valueFormatter"})
+# JavaScript source rather than a template: `function (p) {...}` or an arrow
+# function. ECharts template strings (`{c} USD`) don't match.
 _JAVASCRIPT_FUNCTION = re.compile(
-    r"^\s*(?:async\s+)?(?:"
-    r"function\b\s*[\w$]*\s*\("  # function keyword, with its parameter list
-    r"|(?:\([^)]*\)|[\w$]+)\s*=>\s*(?:[{(\"'`]|[\w$]+\s*[.(\[])"  # arrow + body
-    r")"
+    r"^\s*(?:async\s+)?(?:function\b\s*[\w$]*\s*\(|(?:\([^)]*\)|[\w$]+)\s*=>)"
 )
 FUNCTION_ALTERNATIVES = (
     'use {"$template": "<Handlebars>"} where ECharts takes a formatter, or an '
@@ -62,19 +62,22 @@ FUNCTION_ALTERNATIVES = (
 )
 
 
-def javascript_functions(value: Any, path: str = "") -> list[str]:
-    """Dotted paths of the strings in ``value`` that are JavaScript functions.
+def javascript_functions(value: Any, path: str = "", key: str = "") -> list[str]:
+    """Dotted paths of the formatters in ``value`` that are JavaScript functions.
 
     A JSON option can't carry a function: ECharts draws the source text as the
     label or tooltip, so such a string is refused rather than stored.
     """
     if isinstance(value, str):
-        return [path] if _JAVASCRIPT_FUNCTION.match(value) else []
+        function = key in _FUNCTION_KEYS and _JAVASCRIPT_FUNCTION.match(value)
+        return [path] if function else []
     if isinstance(value, dict):
         return [
             found
-            for key, item in value.items()
-            for found in javascript_functions(item, f"{path}.{key}" if path else key)
+            for name, item in value.items()
+            for found in javascript_functions(
+                item, f"{path}.{name}" if path else name, name
+            )
         ]
     if isinstance(value, list):
         return [

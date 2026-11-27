@@ -241,6 +241,8 @@ test.each([
   'async function format(p) { return p.value }',
   '(p) => p.value',
   'p => p.value',
+  "value => value + ' USD'",
+  'p => p',
 ])('a JavaScript function string is refused, not drawn as text: %s', source => {
   expect(() => resolveOption({ tooltip: { formatter: source } }, ctx)).toThrow(
     /"formatter" is a JavaScript function.*\$template/,
@@ -254,7 +256,8 @@ test('ECharts template strings and ordinary text are not functions', () => {
   const option = resolveOption(
     {
       tooltip: { formatter: '{b}: {c} USD' },
-      title: { text: 'Revenue (function of time)' },
+      title: { text: '2023 => 2024 (forecast)', subtext: 'function (beta) x' },
+      legend: { data: ['Old => New (2024)'] },
       series: [{ name: 'f => growth' }],
     },
     ctx,
