@@ -23,11 +23,12 @@ from flask import current_app as app, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
-from superset import is_feature_enabled
+from superset import db, is_feature_enabled
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
 from superset.commands.sql_lab.export import SqlResultExportCommand
@@ -39,8 +40,18 @@ from superset.commands.streaming_export.base import encode_csv_stream
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
+from superset.data_export.enqueue import (
+    enqueue_full_export,
+    EnqueueRefusal,
+    FEATURE_FLAG as FULL_EXPORT_FEATURE_FLAG,
+    KIND_QUERY,
+)
+from superset.data_export.schemas import (
+    FullExportQueuedResponseSchema,
+    QueryFullExportPostSchema,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException
+from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.extensions import event_logger, security_manager
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
@@ -98,7 +109,9 @@ class SqlLabRestApi(BaseSupersetApi):
         EstimateQueryCostSchema,
         ExecutePayloadSchema,
         FormatQueryPayloadSchema,
+        FullExportQueuedResponseSchema,
         QueryExecutionResponseSchema,
+        QueryFullExportPostSchema,
         SQLLabBootstrapSchema,
     )
 
@@ -363,6 +376,93 @@ class SqlLabRestApi(BaseSupersetApi):
             "CSV exported: %s", event_rep, extra={"superset_event": event_info}
         )
         return response
+
+    @expose("/full_export/<string:client_id>/", methods=("POST",))
+    @protect()
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (f"{self.__class__.__name__}.full_export"),
+        log_to_statsd=False,
+    )
+    def full_export(self, client_id: str) -> Response:
+        """Queue an uncapped export of a SQL Lab query's results.
+        ---
+        post:
+          summary: Queue an uncapped export of a SQL Lab query's results
+          description: >-
+            Re-runs the query with Superset's row cap removed -- a LIMIT the
+            user wrote themselves is kept -- in the background, and delivers
+            the result as an expiring download link, emailed to the requester
+            and resolvable through /api/v1/data_export/status/{job_id}/.
+            Requires the ALLOW_UNCAPPED_DATA_EXPORT feature flag, export
+            storage and a Celery worker.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: client_id
+            description: The SQL query result identifier
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/QueryFullExportPostSchema'
+          responses:
+            202:
+              description: Export queued
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/FullExportQueuedResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: An export of this query is already in progress
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not is_feature_enabled(FULL_EXPORT_FEATURE_FLAG):
+            return self.response_404()
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_data", "Superset"):
+            return self.response_403()
+
+        try:
+            # Tolerate an empty body: the format has a default.
+            body = QueryFullExportPostSchema().load(request.get_json(silent=True) or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
+        if query is None:
+            return self.response_404()
+        try:
+            # The same gate the buffered and streaming exports apply, run
+            # before anything is queued rather than only in the worker.
+            query.raise_for_access()
+        except SupersetSecurityException:
+            return self.response_403()
+
+        outcome = enqueue_full_export(
+            kind=KIND_QUERY,
+            target=client_id,
+            payload={
+                "client_id": client_id,
+                "label": query.tab_name or _("SQL Lab query"),
+                "format": body["format"],
+            },
+        )
+        if isinstance(outcome, EnqueueRefusal):
+            return self.response(outcome.status, message=outcome.message)
+        return self.response(202, job_id=outcome.job_id)
 
     @expose("/export_streaming/", methods=("POST",))
     @protect()

@@ -38,7 +38,11 @@ import { bindActionCreators } from 'redux';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 
-import { exportChart } from 'src/explore/exploreUtils';
+import { buildV1ChartDataPayload, exportChart } from 'src/explore/exploreUtils';
+import {
+  useFullDataExport,
+  type FullDataExportFormat,
+} from 'src/components/FullDataExport';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import {
@@ -286,6 +290,8 @@ const Chart = (props: ChartProps) => {
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
   const [width, setWidth] = useState(props.width);
+
+  const { requestExport: requestFullDataExport } = useFullDataExport();
 
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const { progress, startExport, cancelExport, resetExport, retryExport } =
@@ -760,6 +766,43 @@ const Chart = (props: ChartProps) => {
     exportTable('xlsx', true);
   }, [exportTable]);
 
+  /**
+   * Queue an uncapped export of every row this chart's query returns, with
+   * the dashboard's live filters applied, delivered as an emailed download
+   * link. Unlike the exports above it is not bounded by `ROW_LIMIT` or
+   * `SQL_MAX_ROW`, so it cannot be answered within the request.
+   */
+  const exportFullData = useCallback(
+    async (_sliceId: number, format: FullDataExportFormat = 'csv') => {
+      boundActionCreators.logEvent(
+        format === 'csv'
+          ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
+          : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
+        { slice_id: sliceSliceId, is_cached: isCached },
+      );
+      const queryContext = await buildV1ChartDataPayload({
+        formData:
+          formData as unknown as import('@superset-ui/core').QueryFormData,
+        force: false,
+        resultFormat: 'csv',
+        resultType: 'full',
+        ownState: dataMaskOwnState,
+      });
+      await requestFullDataExport({
+        endpoint: '/api/v1/chart/data/full_export/',
+        jsonPayload: { query_context: queryContext, format },
+      });
+    },
+    [
+      boundActionCreators.logEvent,
+      dataMaskOwnState,
+      formData,
+      isCached,
+      requestFullDataExport,
+      sliceSliceId,
+    ],
+  );
+
   const forceRefresh = useCallback(() => {
     boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
       slice_id: sliceSliceId,
@@ -835,6 +878,7 @@ const Chart = (props: ChartProps) => {
         exportPivotCSV={exportPivotCSV}
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
+        exportFullData={exportFullData}
         exportFullXLSX={exportFullXLSX}
         updateSliceName={(name: string) =>
           props.updateSliceName(props.id, name)

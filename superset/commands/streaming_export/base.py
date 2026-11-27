@@ -23,11 +23,13 @@ import csv
 import io
 import logging
 import time
+import traceback
 from abc import abstractmethod
+from contextlib import contextmanager
 from contextvars import copy_context
 from decimal import Decimal
 from numbers import Real
-from typing import Any, Callable, Generator, Iterable, Iterator, TypeVar
+from typing import Any, Callable, Generator, Iterable, Iterator, Sequence, TypeVar
 
 from flask import current_app as app, g
 from flask.globals import _cv_app, _cv_request
@@ -42,6 +44,7 @@ from superset.utils.csv import escape_value, format_decimal
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
+_Y = TypeVar("_Y")
 
 
 def _reload_if_detached(instance: _T) -> _T:
@@ -133,14 +136,32 @@ class BaseStreamingCSVExportCommand(BaseCommand):
     - _get_row_limit(): Return optional row limit for the export
     """
 
-    def __init__(self, chunk_size: int = 1000):
+    def __init__(
+        self,
+        chunk_size: int = 1000,
+        *,
+        progress_callback: Callable[[int, int], None] | None = None,
+        raise_on_error: bool = False,
+    ):
         """
         Initialize the streaming export command.
 
         Args:
             chunk_size: Number of rows to fetch per database query (default: 1000)
+            progress_callback: Called with (rows, bytes) written so far every
+                time a chunk is flushed, and once more when the export
+                finishes. A consumer that keeps the file (rather than
+                streaming it to a browser) needs the counts for its own
+                bookkeeping, and the stream itself carries no row count.
+            raise_on_error: Let a failure mid-stream propagate instead of
+                yielding the ``__STREAM_ERROR__`` marker the browser-facing
+                path relies on. A consumer that writes the chunks to a file
+                must not store a truncated export as a complete one, so it
+                asks for the exception.
         """
         self._chunk_size = chunk_size
+        self._progress_callback = progress_callback
+        self._raise_on_error = raise_on_error
 
     @abstractmethod
     def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
@@ -259,34 +280,49 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         row_count = 0
         flush_threshold = 65536  # 64KB
 
-        while rows := result_proxy.fetchmany(self._chunk_size):
-            for row in rows:
-                # Apply limit if specified
-                if limit is not None and row_count >= limit:
-                    break
+        for formatted_row in self._iterate_rows(result_proxy, limit, decimal_separator):
+            csv_writer.writerow(formatted_row)
+            row_count += 1
 
-                # Format values with custom decimal separator if needed
-                formatted_row = self._format_row_values(row, decimal_separator)
-                csv_writer.writerow(formatted_row)
-                row_count += 1
-
-                # Check buffer size and flush if needed
-                current_size = buffer.tell()
-                if current_size >= flush_threshold:
-                    data = buffer.getvalue()
-                    data_bytes = len(data.encode("utf-8"))
-                    yield data, row_count, data_bytes
-                    buffer.seek(0)
-                    buffer.truncate()
-
-            # Break outer loop if limit reached
-            if limit is not None and row_count >= limit:
-                break
+            # Check buffer size and flush if needed
+            current_size = buffer.tell()
+            if current_size >= flush_threshold:
+                data = buffer.getvalue()
+                data_bytes = len(data.encode("utf-8"))
+                yield data, row_count, data_bytes
+                buffer.seek(0)
+                buffer.truncate()
 
         # Flush remaining buffer
         if remaining_data := buffer.getvalue():
             data_bytes = len(remaining_data.encode("utf-8"))
             yield remaining_data, row_count, data_bytes
+
+    def _iterate_rows(
+        self,
+        result_proxy: Any,
+        limit: int | None,
+        decimal_separator: str | None = None,
+    ) -> Generator[list[Any], None, None]:
+        """
+        Fetch rows in batches from the cursor and yield them formatted.
+
+        The one place rows are read, so the CSV and spreadsheet paths cannot
+        disagree about batching, value formatting or where a row cap applies.
+
+        Args:
+            result_proxy: SQLAlchemy result proxy
+            limit: Maximum number of rows to yield, or None for unlimited
+            decimal_separator: Custom decimal separator (e.g., ",") or None
+        """
+        row_count = 0
+        while rows := result_proxy.fetchmany(self._chunk_size):
+            for row in rows:
+                # Apply limit if specified
+                if limit is not None and row_count >= limit:
+                    return
+                yield self._format_row_values(row, decimal_separator)
+                row_count += 1
 
     def _execute_query_and_stream(
         self,
@@ -316,6 +352,64 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
 
+        with self._open_result(sql, database, catalog, schema) as (
+            columns,
+            result_proxy,
+        ):
+            # Use StringIO with csv.writer for proper escaping
+            # Apply delimiter from CSV_EXPORT config
+            buffer = io.StringIO()
+            csv_writer = csv.writer(
+                buffer, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL
+            )
+
+            # Write CSV header
+            header_data, header_bytes = self._write_csv_header(
+                columns, csv_writer, buffer
+            )
+            total_bytes += header_bytes
+            yield header_data
+
+            # Process rows and yield chunks
+            row_count = 0
+            for data_chunk, rows_processed, chunk_bytes in self._process_rows(
+                result_proxy, csv_writer, buffer, limit, decimal_separator
+            ):
+                total_bytes += chunk_bytes
+                row_count = rows_processed
+                yield data_chunk
+                if self._progress_callback:
+                    self._progress_callback(row_count, total_bytes)
+
+            if self._progress_callback:
+                # Fires even for an empty result set, so a consumer
+                # never has to tell "no rows" from "never ran".
+                self._progress_callback(row_count, total_bytes)
+
+            # Log completion
+            total_time = time.time() - start_time
+            total_mb = total_bytes / (1024 * 1024)
+            logger.info(
+                "Streaming CSV completed: %s rows, %.1fMB in %.2fs",
+                f"{row_count:,}",
+                total_mb,
+                total_time,
+            )
+
+    @contextmanager
+    def _open_result(
+        self,
+        sql: str,
+        database: Any,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> Iterator[tuple[list[str], Any]]:
+        """Execute ``sql`` and yield its ``(column names, result proxy)``.
+
+        Shared by every shape of streaming export -- CSV chunks for a browser,
+        rows for a spreadsheet writer -- so none of the connection handling
+        below can drift between them.
+        """
         with db.session() as session:
             # Load the database again rather than merging it, see
             # _reload_if_detached.
@@ -349,41 +443,61 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                     result_proxy = connection.execution_options(
                         stream_results=True, no_parameters=True
                     ).exec_driver_sql(mutated_sql)
+                    yield list(result_proxy.keys()), result_proxy
 
-                    columns = list(result_proxy.keys())
+    def _execute_query_and_stream_rows(
+        self,
+        sql: str,
+        database: Any,
+        limit: int | None,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> Generator[Sequence[Any], None, None]:
+        """Execute the query and yield the header, then one list per data row.
 
-                    # Use StringIO with csv.writer for proper escaping
-                    # Apply delimiter from CSV_EXPORT config
-                    buffer = io.StringIO()
-                    csv_writer = csv.writer(
-                        buffer, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL
-                    )
+        The same rows the CSV path writes, before they are turned into text, so
+        a consumer that needs cells rather than characters (a spreadsheet
+        writer) is not left parsing CSV back apart.
+        """
+        start_time = time.time()
+        decimal_separator = app.config["CSV_EXPORT"].get("decimal", ".")
 
-                    # Write CSV header
-                    header_data, header_bytes = self._write_csv_header(
-                        columns, csv_writer, buffer
-                    )
-                    total_bytes += header_bytes
-                    yield header_data
+        with self._open_result(sql, database, catalog, schema) as (
+            columns,
+            result_proxy,
+        ):
+            yield columns
+            row_count = 0
+            for row in self._iterate_rows(result_proxy, limit, decimal_separator):
+                yield row
+                row_count += 1
+                if self._progress_callback:
+                    self._progress_callback(row_count, 0)
 
-                    # Process rows and yield chunks
-                    row_count = 0
-                    for data_chunk, rows_processed, chunk_bytes in self._process_rows(
-                        result_proxy, csv_writer, buffer, limit, decimal_separator
-                    ):
-                        total_bytes += chunk_bytes
-                        row_count = rows_processed
-                        yield data_chunk
+            if self._progress_callback:
+                # Fires even for an empty result set, so a consumer never has
+                # to tell "no rows" from "never ran".
+                self._progress_callback(row_count, 0)
 
-                    # Log completion
-                    total_time = time.time() - start_time
-                    total_mb = total_bytes / (1024 * 1024)
-                    logger.info(
-                        "Streaming CSV completed: %s rows, %.1fMB in %.2fs",
-                        f"{row_count:,}",
-                        total_mb,
-                        total_time,
-                    )
+            logger.info(
+                "Streaming rows completed: %s rows in %.2fs",
+                f"{row_count:,}",
+                time.time() - start_time,
+            )
+
+    def _handle_stream_error(self, error: Exception) -> str:
+        """Report a failure that happened mid-stream.
+
+        By then the response headers are long gone, so the browser-facing path
+        detects a failed export from a marker in the body. A consumer that
+        writes the chunks to a file instead gets the exception: it must not
+        keep a truncated export as a complete one.
+        """
+        logger.error("Error in streaming CSV generator: %s", error)
+        logger.error("Traceback: %s", traceback.format_exc())
+        if self._raise_on_error:
+            raise error
+        return "__STREAM_ERROR__:Export failed. Please try again in some time.\n"
 
     def run(self) -> Callable[[], Iterator[str]]:
         """
@@ -411,51 +525,74 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                     sql, database, limit, catalog, schema
                 )
             except Exception as e:
-                logger.error("Error in streaming CSV generator: %s", e)
-                import traceback
+                yield self._handle_stream_error(e)
 
-                logger.error("Traceback: %s", traceback.format_exc())
+        return self._bound(csv_generator)
 
-                # Send error marker for frontend to detect
-                error_marker = (
-                    "__STREAM_ERROR__:Export failed. Please try again in some time.\n"
-                )
-                yield error_marker
+    def run_rows(self) -> Callable[[], Iterator[Sequence[Any]]]:
+        """
+        Execute the export as rows rather than CSV text.
 
-        def stream() -> Iterator[str]:
-            """
-            Return the CSV iterator, bound to the current request if any.
+        Returns:
+            A callable that returns an iterator yielding the header row first
+            and then one list per data row, bound to the current request the
+            same way :meth:`run` binds its chunks.
 
-            The export runs inside the request it belongs to, as the buffered
-            export does, not merely inside an app context. Code on the
-            connection path depends on it: Snowflake only uses the user's
-            OAuth2 token inside a request, the OAuth2 redirect URI may be
-            built from it, and the query source passed to
-            DB_CONNECTION_MUTATOR is read from it.
+        Unlike :meth:`run` this never swallows a failure into the stream:
+        there is no marker row a consumer could tell apart from data, so the
+        exception propagates and ``raise_on_error`` does not apply.
+        """
+        # Load all needed data while session is still active
+        # to avoid DetachedInstanceError
+        sql, database, catalog, schema = self._get_sql_and_database()
+        limit = self._get_row_limit()
 
-            The request's contexts are recorded here and pushed again only
-            while the body is iterated, as ``flask.stream_with_context`` does
-            from Flask 3.1.2. Pushing them up front, as older releases do,
-            leaves them on the worker thread when the response never reaches
-            the server (e.g. an ``after_request`` hook fails), and later
-            requests on that thread would inherit this one's ``g`` and user.
-            """
+        def row_generator() -> Generator[Sequence[Any], None, None]:
+            _reload_detached_acting_user()
+            yield from self._execute_query_and_stream_rows(
+                sql, database, limit, catalog, schema
+            )
+
+        return self._bound(row_generator)
+
+    def _bound(
+        self, make_generator: Callable[[], Generator[_Y, None, None]]
+    ) -> Callable[[], Iterator[_Y]]:
+        """
+        Wrap a generator factory so it runs bound to the current request, if any.
+
+        The export runs inside the request it belongs to, as the buffered
+        export does, not merely inside an app context. Code on the
+        connection path depends on it: Snowflake only uses the user's
+        OAuth2 token inside a request, the OAuth2 redirect URI may be
+        built from it, and the query source passed to
+        DB_CONNECTION_MUTATOR is read from it.
+
+        The request's contexts are recorded here and pushed again only
+        while the body is iterated, as ``flask.stream_with_context`` does
+        from Flask 3.1.2. Pushing them up front, as older releases do,
+        leaves them on the worker thread when the response never reaches
+        the server (e.g. an ``after_request`` hook fails), and later
+        requests on that thread would inherit this one's ``g`` and user.
+        """
+
+        def stream() -> Iterator[_Y]:
             request_context = _cv_request.get(None)
             if request_context is None:
-                return csv_generator()
+                return make_generator()
             app_context = _cv_app.get()
 
-            def in_request() -> Generator[str, None, None]:
+            def in_request() -> Generator[_Y, None, None]:
                 if _cv_request.get(None) is request_context:
                     # Pulled while the request is still being handled: its
                     # contexts are already active, and pushing them again here
                     # would leave a token Flask's own pop can't reset.
-                    yield from csv_generator()
+                    yield from make_generator()
                     return
                 with app_context, request_context:
-                    yield from csv_generator()
+                    yield from make_generator()
 
-            def csv_generator_in_request() -> Generator[str, None, None]:
+            def generator_in_request() -> Generator[_Y, None, None]:
                 # Step the export in a contextvars Context of its own, so the
                 # request's contexts are only ever pushed there, never on the
                 # worker thread: a body the server abandons mid-stream (e.g.
@@ -474,6 +611,6 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 finally:
                     context.run(inner.close)
 
-            return csv_generator_in_request()
+            return generator_in_request()
 
         return stream

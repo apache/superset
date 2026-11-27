@@ -51,9 +51,20 @@ from superset.commands.streaming_export.base import encode_csv_stream
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.query_context_factory import QueryContextFactory
+from superset.common.query_serialization import serialize_query
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
+from superset.data_export.enqueue import (
+    enqueue_full_export,
+    EnqueueRefusal,
+    FEATURE_FLAG as FULL_EXPORT_FEATURE_FLAG,
+    KIND_CHART,
+)
+from superset.data_export.schemas import (
+    ChartFullExportPostSchema,
+    FullExportQueuedResponseSchema,
+)
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
@@ -95,7 +106,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
-    include_route_methods = {"get_data", "data", "stop_data"}
+    include_route_methods = {"get_data", "data", "data_full_export", "stop_data"}
 
     # ``stop_data`` is a custom method, so FAB's @protect() would otherwise fall
     # back to ``can_stop_data_Chart`` — a permission no standard role carries.
@@ -105,10 +116,19 @@ class ChartDataRestApi(ChartRestApi):
     method_permission_name = {
         **ChartRestApi.method_permission_name,
         "stop_data": "read",
+        # Same "can_read on Chart" as fetching the data: an uncapped export
+        # returns the rows the caller can already query, and carries its own
+        # export-permission check on top (see ``_has_export_permission``).
+        "data_full_export": "read",
     }
 
     openapi_spec_component_schemas: tuple[type[Schema], ...] = (
-        ChartRestApi.openapi_spec_component_schemas + (ChartDataStopSchema,)
+        ChartRestApi.openapi_spec_component_schemas
+        + (
+            ChartDataStopSchema,
+            ChartFullExportPostSchema,
+            FullExportQueuedResponseSchema,
+        )
     )
 
     @expose("/<int:pk>/data/", methods=("GET",))
@@ -424,6 +444,179 @@ class ChartDataRestApi(ChartRestApi):
             filename=filename,
             expected_rows=expected_rows,
         )
+
+    @expose("/data/full_export/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.data_full_export"
+        ),
+        log_to_statsd=False,
+    )
+    def data_full_export(self) -> Response:
+        """
+        Queue an uncapped export of a chart's data.
+        ---
+        post:
+          summary: Queue an uncapped export of a chart's data
+          description: >-
+            Runs the query with no row limit -- neither ROW_LIMIT nor
+            SQL_MAX_ROW applies -- in the background, and delivers the result
+            as an expiring download link, emailed to the requester and
+            resolvable through /api/v1/data_export/status/{job_id}/. Requires
+            the ALLOW_UNCAPPED_DATA_EXPORT feature flag, export storage and a
+            Celery worker. The rows are the query's own: post-processing
+            (pivoting, forecasts, totals) is not applied.
+          requestBody:
+            description: >-
+              The same query context the chart data endpoint accepts, under
+              `query_context`. Its `row_limit` is ignored.
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ChartFullExportPostSchema'
+          responses:
+            202:
+              description: Export queued
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/FullExportQueuedResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: An export of this chart is already in progress
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not is_feature_enabled(FULL_EXPORT_FEATURE_FLAG):
+            return self.response_404()
+        if not self._has_export_permission():
+            return self.response_403()
+
+        try:
+            body = ChartFullExportPostSchema().load(request.get_json(silent=True) or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        json_body = body["query_context"]
+        query_context, refusal = self._full_export_context(json_body)
+        if refusal is not None:
+            return refusal
+        assert query_context is not None
+
+        if query_context.result_type != ChartDataResultType.FULL:
+            # A post-processed result (a pivot table, a forecast) is computed
+            # from the whole frame in memory, which is exactly what an
+            # uncapped export cannot do. The raw rows are available; the
+            # post-processed shape is not.
+            return self.response_400(
+                message=_(
+                    "An uncapped export returns the query's own rows, so it is "
+                    "not available for a post-processed result. Export the "
+                    "chart's raw data instead."
+                )
+            )
+
+        outcome = enqueue_full_export(
+            kind=KIND_CHART,
+            target=self._full_export_target(query_context, json_body),
+            payload=self._full_export_payload(query_context, body["format"]),
+        )
+        if isinstance(outcome, EnqueueRefusal):
+            return self.response(outcome.status, message=outcome.message)
+        return self.response(202, job_id=outcome.job_id)
+
+    def _full_export_context(
+        self, json_body: dict[str, Any]
+    ) -> tuple[QueryContext | None, Response | None]:
+        """Build and authorize the query context, or the response to return.
+
+        The access check for the chart's data happens here, before anything is
+        queued -- the worker checks again before it runs, since a job can sit
+        queued while roles or RLS rules change.
+        """
+        try:
+            query_context = self._create_query_context_from_form(json_body)
+            ChartDataCommand(query_context).validate()
+        except SemanticLayersDisabledError as error:
+            return None, self.response(404, message=str(error))
+        except DatasourceNotFound:
+            return None, self.response_404()
+        except SupersetSecurityException:
+            return None, self.response_403()
+        except QueryObjectValidationError as error:
+            return None, self.response_400(message=error.message)
+        except ValidationError as error:
+            return None, self.response_400(
+                message=_(
+                    "Request is incorrect: %(error)s", error=error.normalized_messages()
+                )
+            )
+        return query_context, None
+
+    @staticmethod
+    def _full_export_target(
+        query_context: QueryContext, json_body: dict[str, Any]
+    ) -> str:
+        """What the one-export-at-a-time lock is keyed on.
+
+        Per chart, so a saved chart cannot be queued twice at once. An unsaved
+        chart in Explore has no id to key on, so its datasource stands in.
+        """
+        if (slice_ := query_context.slice_) is not None:
+            return f"slice:{slice_.id}"
+        return f"datasource:{json_body.get('datasource')}"
+
+    def _full_export_payload(
+        self, query_context: QueryContext, export_format: str
+    ) -> dict[str, Any]:
+        """What the worker rebuilds the export from."""
+        slice_ = query_context.slice_
+        payload: dict[str, Any] = {
+            "format": export_format,
+            "query_context": self._uncapped_query_payload(query_context),
+            "label": (
+                slice_.slice_name
+                if slice_ is not None and slice_.slice_name
+                else _("Chart")
+            ),
+            "slice_id": slice_.id if slice_ is not None else None,
+        }
+        if len(query_context.queries) > 1:
+            # Only the chart's primary result set is exported: the others are
+            # the secondary queries a chart runs alongside it (totals, a time
+            # comparison), and there is one file.
+            payload["partial_note"] = _(
+                "This chart runs more than one query; the file holds its main "
+                "result set only."
+            )
+        return payload
+
+    @staticmethod
+    def _uncapped_query_payload(query_context: QueryContext) -> dict[str, Any]:
+        """Serialize ``query_context``'s first query with its row limit removed.
+
+        ``row_limit=None`` plus ``preserve_null_row_limit`` is what survives
+        the broker: rebuilt in the worker, the query object keeps a null limit
+        instead of falling back to ``ROW_LIMIT``, so the SQL it generates
+        carries no ``LIMIT`` clause at all.
+        """
+        serialized = serialize_query(query_context, 0)
+        payload: dict[str, Any] = {
+            **serialized,
+            "query": {**serialized["query"], "row_limit": None},
+            "preserve_null_row_limit": True,
+        }
+        return payload
 
     @expose("/data/stop", methods=("POST",))
     @protect()

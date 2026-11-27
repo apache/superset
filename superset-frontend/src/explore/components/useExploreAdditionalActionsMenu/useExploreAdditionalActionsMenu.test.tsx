@@ -38,6 +38,17 @@ jest.mock('src/explore/exploreUtils', () => ({
   getChartKey: jest.fn(() => 'test_chart_key'),
 }));
 
+let mockFullDataExportAvailable = false;
+const mockRequestFullDataExport = jest.fn();
+jest.mock('src/components/FullDataExport', () => ({
+  isFullDataExportAvailable: () => mockFullDataExportAvailable,
+  useFullDataExport: () => ({
+    isAvailable: mockFullDataExportAvailable,
+    isExporting: false,
+    requestExport: mockRequestFullDataExport,
+  }),
+}));
+
 jest.mock('src/utils/downloadAsImage', () => ({
   __esModule: true,
   default: jest.fn(() => jest.fn()),
@@ -594,3 +605,50 @@ test('A Big Number with Trendline chart keeps its data exports', async () => {
   await userEvent.hover(await screen.findByText('Export All Data'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
 });
+
+test('Uncapped export is offered only where the deployment can deliver one', async () => {
+  // The backend reports the feature flag and the storage/worker setup as one
+  // value, so a flag alone never shows an item whose request would be refused.
+  mockFullDataExportAvailable = false;
+
+  render(<TestComponent {...defaultProps} />, { useRedux: true });
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  expect(
+    screen.queryByText('Export all rows to .CSV (emailed link)'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Export all rows to Excel (emailed link)'),
+  ).not.toBeInTheDocument();
+});
+
+test.each([
+  ['Export all rows to .CSV (emailed link)', 'csv'],
+  ['Export all rows to Excel (emailed link)', 'xlsx'],
+])(
+  'the uncapped export posts the query context and the format (%s)',
+  async (label, format) => {
+    mockFullDataExportAvailable = true;
+    mockRequestFullDataExport.mockClear();
+
+    render(<TestComponent {...defaultProps} />, { useRedux: true });
+
+    await userEvent.hover(await screen.findByText('Data Export Options'));
+    await userEvent.hover(await screen.findByText('Export All Data'));
+    await userEvent.click(await screen.findByText(label));
+
+    await waitFor(() =>
+      expect(mockRequestFullDataExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: '/api/v1/chart/data/full_export/',
+          jsonPayload: expect.objectContaining({
+            query_context: expect.anything(),
+            format,
+          }),
+        }),
+      ),
+    );
+    mockFullDataExportAvailable = false;
+  },
+);

@@ -218,6 +218,10 @@ from superset.utils.core import (
     send_export_zip,
     write_zip_entry,
 )
+from superset.utils.export_links import (
+    link_backend_matches,
+    never_cache,
+)
 from superset.utils.file import get_filename
 from superset.utils.i18n import (
     is_asset_translation_enabled,
@@ -261,31 +265,6 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _never_cache(response: WerkzeugResponse) -> WerkzeugResponse:
-    """The download URL is a bearer credential with a TTL of its own, a cached
-    status would strand a poller, and a workbook carries dashboard data; keep
-    all of them out of every cache."""
-    response.cache_control.no_store = True
-    response.cache_control.no_cache = True
-    response.cache_control.private = True
-    response.cache_control.max_age = 0
-    response.headers["Pragma"] = "no-cache"
-    return response
-
-
-def _link_backend_matches(uploaded_backend: str | None) -> bool:
-    """Whether the configured export storage backend is the one that uploaded
-    the linked file (links refuse to serve across a storage migration). An
-    unconfigured backend is not a mismatch: that case is answered with the
-    download endpoint's explicit 501."""
-    storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
-    if storage_backend is None or uploaded_backend is None:
-        return True
-    backend_cls = type(storage_backend)
-    configured = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
-    return uploaded_backend == configured
 
 
 SCREENSHOT_API_LOCK_NAMESPACE = "dashboard_screenshot_api"
@@ -2197,7 +2176,7 @@ class DashboardRestApi(
 
         response.response = ClosingIterator(response.response, [cleanup])
         # Same cache policy as a download from export storage.
-        after_this_request(_never_cache)
+        after_this_request(never_cache)
         return response
 
     @expose("/export_xlsx/status/<uuid:job_id>/", methods=("GET",))
@@ -2237,7 +2216,7 @@ class DashboardRestApi(
             403:
               $ref: '#/components/responses/403'
         """
-        after_this_request(_never_cache)
+        after_this_request(never_cache)
         payload = get_export_status(job_id)
         if payload is None:
             return self.response(200, status="pending")
@@ -2246,7 +2225,7 @@ class DashboardRestApi(
             # an unset backend (config cleared since upload) 501s there, and a
             # mismatched backend 410s. Both mean the file cannot be served.
             storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
-            if storage_backend is None or not _link_backend_matches(
+            if storage_backend is None or not link_backend_matches(
                 payload.get("backend")
             ):
                 return self.response(
@@ -2308,7 +2287,7 @@ class DashboardRestApi(
             501:
               description: Excel export is not configured on this server
         """
-        after_this_request(_never_cache)
+        after_this_request(never_cache)
         resolved = resolve_download_link(job_id)
         if resolved is None:
             return self.response(410, message="This download link has expired.")
@@ -2320,7 +2299,7 @@ class DashboardRestApi(
             return self.response(
                 501, message="Excel export is not configured on this server."
             )
-        if not _link_backend_matches(uploaded_backend):
+        if not link_backend_matches(uploaded_backend):
             # Don't read another backend's upload; expire the link instead.
             return self.response(410, message="This download link has expired.")
         try:

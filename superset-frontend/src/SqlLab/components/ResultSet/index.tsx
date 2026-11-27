@@ -35,6 +35,7 @@ import {
   Button,
   ButtonGroup,
   Divider,
+  Dropdown,
   Tooltip,
   Input,
   Label,
@@ -87,6 +88,10 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
+import {
+  isFullDataExportAvailable,
+  useFullDataExport,
+} from 'src/components/FullDataExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import { makeUrl, openInNewTab, redirect } from 'src/utils/navigationUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
@@ -220,6 +225,10 @@ const ResultSet = ({
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
+  const {
+    isExporting: isExportingFullData,
+    requestExport: requestFullDataExport,
+  } = useFullDataExport();
   const orderedColumnKeys = useMemo(
     () => query.results?.columns?.map(col => col.column_name) ?? EMPTY,
     [query.results?.columns],
@@ -442,6 +451,51 @@ const ResultSet = ({
                 }
               }}
             />
+          )}
+          {csv && isFullDataExportAvailable() && (
+            <Dropdown
+              trigger={['click']}
+              disabled={!canExportData || isExportingFullData}
+              menu={{
+                selectable: false,
+                onClick: ({ key }: { key: string }) => {
+                  if (!canExportData) return;
+                  requestFullDataExport({
+                    endpoint: `/api/v1/sqllab/full_export/${query.id}/`,
+                    jsonPayload: { format: key },
+                  });
+                },
+                items: [
+                  {
+                    key: 'csv',
+                    label: t('All rows as .CSV'),
+                    'data-test': 'export-full-data-csv',
+                  },
+                  {
+                    key: 'xlsx',
+                    label: t('All rows as Excel'),
+                    'data-test': 'export-full-data-xlsx',
+                  },
+                ],
+              }}
+            >
+              <Button
+                buttonSize="small"
+                variant="text"
+                color="primary"
+                icon={<Icons.MailOutlined iconSize="m" />}
+                tooltip={
+                  !canExportData
+                    ? t("You don't have permission to export data")
+                    : t(
+                        'Export every row this query returns. It runs in the background and you get an email with a download link.',
+                      )
+                }
+                aria-label={t('Export all rows (emailed link)')}
+                disabled={!canExportData || isExportingFullData}
+                data-test="export-full-data-button"
+              />
+            </Dropdown>
           )}
           <CopyToClipboard
             text={

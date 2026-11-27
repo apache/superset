@@ -65,6 +65,10 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
 } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
+import {
+  isFullDataExportAvailable,
+  type FullDataExportFormat,
+} from 'src/components/FullDataExport';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { openInNewTab } from 'src/utils/navigationUtils';
 import { usePermissions } from 'src/hooks/usePermissions';
@@ -143,6 +147,7 @@ export interface SliceHeaderControlsProps {
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
+  exportFullData?: (sliceId: number, format: FullDataExportFormat) => void;
   handleToggleFullSize: () => void;
   exportPivotExcel?: (tableSelector: string, sliceName: string) => void;
 
@@ -321,6 +326,14 @@ const SliceHeaderControls = (
       case MenuKeys.ExportFullXlsx:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullXLSX?.(props.slice.slice_id);
+        break;
+      case MenuKeys.ExportFullData:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportFullData?.(props.slice.slice_id, 'csv');
+        break;
+      case MenuKeys.ExportFullDataXlsx:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportFullData?.(props.slice.slice_id, 'xlsx');
         break;
       case MenuKeys.ExportXlsx:
         // eslint-disable-next-line no-unused-expressions
@@ -736,6 +749,24 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportFullXlsx,
                 label: t('Export to full Excel'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]
+          : []),
+        // Every viz type, not only tables: this export is the chart's own
+        // query, and it is offered only where the deployment can deliver one
+        // (the backend reports the feature flag and the storage/worker setup
+        // as a single value).
+        ...(isFullDataExportAvailable() && props.supersetCanDownload
+          ? [
+              {
+                key: MenuKeys.ExportFullData,
+                label: t('Export all rows to .CSV (emailed link)'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+              {
+                key: MenuKeys.ExportFullDataXlsx,
+                label: t('Export all rows to Excel (emailed link)'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
               },
             ]

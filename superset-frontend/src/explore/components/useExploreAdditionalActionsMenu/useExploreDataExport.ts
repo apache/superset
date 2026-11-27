@@ -31,7 +31,15 @@ import {
   useStreamingExport,
 } from 'src/components/StreamingExportModal';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
-import { exportChart, getChartKey } from 'src/explore/exploreUtils';
+import {
+  buildV1ChartDataPayload,
+  exportChart,
+  getChartKey,
+} from 'src/explore/exploreUtils';
+import {
+  useFullDataExport,
+  type FullDataExportFormat,
+} from 'src/components/FullDataExport';
 import { ChartState } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 
@@ -83,6 +91,12 @@ export const useExploreDataExport = ({
   );
 
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
+
+  const {
+    isAvailable: isFullDataExportAvailable,
+    isExporting: isExportingFullData,
+    requestExport: requestFullDataExport,
+  } = useFullDataExport();
 
   const { progress, startExport, resetExport, retryExport } =
     useStreamingExport({
@@ -264,11 +278,40 @@ export const useExploreDataExport = ({
     onDownload: handleDownloadComplete,
   };
 
+  /**
+   * Queue an uncapped export of every row the chart's query returns,
+   * delivered as an emailed download link. Unlike the other exports this one
+   * is not bounded by ``ROW_LIMIT`` or ``SQL_MAX_ROW``, so it cannot be
+   * answered within the request.
+   */
+  const exportFullData = useCallback(
+    async (format: FullDataExportFormat = 'csv') => {
+      if (!canDownloadCSV) return;
+
+      const queryContext = await buildV1ChartDataPayload({
+        formData: latestQueryFormData as QueryFormData,
+        force: false,
+        resultFormat: 'csv',
+        resultType: 'full',
+        ownState,
+      });
+
+      await requestFullDataExport({
+        endpoint: '/api/v1/chart/data/full_export/',
+        jsonPayload: { query_context: queryContext, format },
+      });
+    },
+    [canDownloadCSV, latestQueryFormData, ownState, requestFullDataExport],
+  );
+
   return {
     exportCSV,
     exportCSVPivoted,
     exportJson,
     exportExcel,
+    exportFullData,
+    isFullDataExportAvailable,
+    isExportingFullData,
     handleExportError,
     streamingExportState,
   };

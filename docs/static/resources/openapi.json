@@ -2992,6 +2992,27 @@
         },
         "type": "object"
       },
+      "ChartFullExportPostSchema": {
+        "properties": {
+          "format": {
+            "default": "csv",
+            "description": "The file format to deliver: 'csv' (default) or 'xlsx'. An xlsx export spreads results across continuation sheets past a worksheet's row limit rather than truncating.",
+            "enum": [
+              "csv",
+              "xlsx"
+            ],
+            "type": "string"
+          },
+          "query_context": {
+            "description": "A chart data query context, as accepted by /api/v1/chart/data/ (ChartDataQueryContextSchema).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "query_context"
+        ],
+        "type": "object"
+      },
       "ChartGetDatasourceObjectDataResponse": {
         "properties": {
           "datasource_id": {
@@ -8277,6 +8298,36 @@
         ],
         "type": "object"
       },
+      "FullExportQueuedResponseSchema": {
+        "properties": {
+          "job_id": {
+            "description": "Correlation id of the queued export. Poll /api/v1/data_export/status/{job_id}/ for its status and, once ready, its download link.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "FullExportStatusResponseSchema": {
+        "properties": {
+          "download_url": {
+            "description": "Origin-relative path of the download, present when the status is \"ready\".",
+            "type": "string"
+          },
+          "message": {
+            "description": "Why the export failed, present when \"error\".",
+            "type": "string"
+          },
+          "row_count": {
+            "description": "Rows in the exported file, present when \"ready\".",
+            "type": "integer"
+          },
+          "status": {
+            "description": "\"pending\" while queued, \"running\" once a worker has started executing, \"ready\" once the file is available, or \"error\" if the export failed.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "GetFavStarIdsSchema": {
         "properties": {
           "result": {
@@ -8814,6 +8865,20 @@
             "type": "array"
           },
           "status": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "QueryFullExportPostSchema": {
+        "properties": {
+          "format": {
+            "default": "csv",
+            "description": "The file format to deliver: 'csv' (default) or 'xlsx'. An xlsx export spreads results across continuation sheets past a worksheet's row limit rather than truncating.",
+            "enum": [
+              "csv",
+              "xlsx"
+            ],
             "type": "string"
           }
         },
@@ -17298,6 +17363,64 @@
         ]
       }
     },
+    "/api/v1/chart/data/full_export/": {
+      "post": {
+        "description": "Runs the query with no row limit -- neither ROW_LIMIT nor SQL_MAX_ROW applies -- in the background, and delivers the result as an expiring download link, emailed to the requester and resolvable through /api/v1/data_export/status/{job_id}/. Requires the ALLOW_UNCAPPED_DATA_EXPORT feature flag, export storage and a Celery worker. The rows are the query's own: post-processing (pivoting, forecasts, totals) is not applied.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartFullExportPostSchema"
+              }
+            }
+          },
+          "description": "The same query context the chart data endpoint accepts, under `query_context`. Its `row_limit` is ignored.",
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullExportQueuedResponseSchema"
+                }
+              }
+            },
+            "description": "Export queued"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "An export of this chart is already in progress"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Queue an uncapped export of a chart's data",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
     "/api/v1/chart/data/stop": {
       "post": {
         "description": "Cancels the warehouse query started by a chart-data request that carried the given `client_id`, for databases whose engine supports query cancellation. The `client_id` is resolved only within the requesting user's own in-flight queries, so it cannot be used to reach another user's query.",
@@ -22509,6 +22632,86 @@
         "summary": "Restore a soft-deleted dashboard",
         "tags": [
           "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/data_export/download/{job_id}/": {
+      "get": {
+        "description": "Intentionally requires no login: the unguessable job_id, emailed only to the original requester (or handed to their own session via the status endpoint), is the credential. Access to the exported chart or query was checked once, when the export was requested. The file streams through Superset with the deployment's own storage credentials instead of redirecting to a signed storage URL, so it works for ambient identities that cannot sign (e.g. workload identity federation) and never mints a bearer URL Superset cannot observe or revoke.",
+        "parameters": [
+          {
+            "description": "The job_id from the export request's response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The .csv file as an attachment"
+          },
+          "410": {
+            "description": "The link is unknown, expired, or the export failed"
+          },
+          "501": {
+            "description": "Full data export is not configured on this server"
+          }
+        },
+        "security": [],
+        "summary": "Download a completed full data export",
+        "tags": [
+          "Data Export"
+        ]
+      }
+    },
+    "/api/v1/data_export/status/{job_id}/": {
+      "get": {
+        "description": "The requester's own session polls this instead of waiting for the email, so the file downloads as soon as it is ready. Behind the same login as the export request itself, unlike the login-free download stream (which also has to work when clicked from a plain email link, possibly with no active session at all).",
+        "parameters": [
+          {
+            "description": "The job_id from the export request's response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullExportStatusResponseSchema"
+                }
+              }
+            },
+            "description": "The job's status"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Poll the status of a full data export job",
+        "tags": [
+          "Data Export"
         ]
       }
     },
@@ -36938,6 +37141,73 @@
           }
         ],
         "summary": "Format SQL code",
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/full_export/{client_id}/": {
+      "post": {
+        "description": "Re-runs the query with Superset's row cap removed -- a LIMIT the user wrote themselves is kept -- in the background, and delivers the result as an expiring download link, emailed to the requester and resolvable through /api/v1/data_export/status/{job_id}/. Requires the ALLOW_UNCAPPED_DATA_EXPORT feature flag, export storage and a Celery worker.",
+        "parameters": [
+          {
+            "description": "The SQL query result identifier",
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryFullExportPostSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullExportQueuedResponseSchema"
+                }
+              }
+            },
+            "description": "Export queued"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "An export of this query is already in progress"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Queue an uncapped export of a SQL Lab query's results",
         "tags": [
           "SQL Lab"
         ]

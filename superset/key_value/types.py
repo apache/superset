@@ -73,6 +73,7 @@ class KeyValueResource(StrEnum):
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXCEL_EXPORT_DOWNLOAD = "excel_export_download"
     EXPLORE_PERMALINK = "explore_permalink"
+    FULL_DATA_EXPORT_DOWNLOAD = "full_data_export_download"
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
     # Self-service AUTH_DB password recovery: outstanding single-use tokens

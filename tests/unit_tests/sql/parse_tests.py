@@ -3713,6 +3713,104 @@ def test_set_limit_value_oracle_rownum_keeps_unnamed_projections() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "sql, engine, expected_sql",
+    [
+        # The shape `FORCE_LIMIT` produces: a plain clause to drop.
+        ("SELECT a FROM t LIMIT 100001", "postgresql", "SELECT\n  a\nFROM t"),
+        ("SELECT TOP 100001 a FROM t", "mssql", "SELECT\n  a\nFROM t"),
+        (
+            "SELECT a FROM t FETCH FIRST 100001 ROWS ONLY",
+            "oracle",
+            "SELECT\n  a\nFROM t",
+        ),
+        # An OFFSET selects *which* rows the query returns, so it stays.
+        (
+            "SELECT a FROM t ORDER BY a LIMIT 100001 OFFSET 5",
+            "postgresql",
+            "SELECT\n  a\nFROM t\nORDER BY\n  a\nOFFSET 5",
+        ),
+        # The shape `WRAP_SQL` produces: the derived table stays, unbounded.
+        (
+            "SELECT * FROM (SELECT a FROM t) LIMIT 100001",
+            "postgresql",
+            "SELECT\n  *\nFROM (\n  SELECT\n    a\n  FROM t\n)",
+        ),
+        # CTEs stay at statement level.
+        (
+            "WITH c AS (SELECT 1 AS a) SELECT a FROM c LIMIT 50",
+            "postgresql",
+            "WITH c AS (\n  SELECT\n    1 AS a\n)\nSELECT\n  a\nFROM c",
+        ),
+    ],
+)
+def test_remove_limit_value(sql: str, engine: str, expected_sql: str) -> None:
+    """
+    A fixed outer row count is dropped, leaving the rest of the query alone.
+    """
+    statement = SQLStatement(sql, engine)
+    statement.remove_limit_value()
+    assert statement.get_limit_value() is None
+    assert statement.format(comments=False) == expected_sql
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # `LIMIT ... BY` bounds each group; dropping it changes the rows.
+        ("SELECT a FROM t LIMIT 10 BY a", "clickhouse"),
+        # Not fixed row counts either.
+        ("SELECT TOP 10 PERCENT a FROM t", "mssql"),
+        ("SELECT TOP 10 WITH TIES a FROM t ORDER BY a", "mssql"),
+        # A `SHOW` has no limit slot to begin with.
+        ("SHOW DATABASES", "mysql"),
+        ("SELECT a FROM t", "postgresql"),
+    ],
+)
+def test_remove_limit_value_leaves_what_it_cannot_read_as_a_row_count(
+    sql: str, engine: str
+) -> None:
+    """
+    Removing a clause that is not a fixed row count would change what the
+    query returns, not only how much of it.
+    """
+    statement = SQLStatement(sql, engine)
+    before = statement.format(comments=False)
+    statement.remove_limit_value()
+    assert statement.format(comments=False) == before
+
+
+def test_remove_limit_value_leaves_an_oracle_rownum_cap_reportable() -> None:
+    """
+    `WRAP_ROWNUM` caps rows with a predicate rather than a clause, so there is
+    nothing to drop. `get_limit_value` still reports it, which is how a caller
+    that needs an unbounded statement detects that it did not get one.
+    """
+    statement = SQLStatement("SELECT a FROM t", "oracle")
+    statement.set_limit_value(11, LimitMethod.WRAP_ROWNUM)
+
+    statement.remove_limit_value()
+
+    assert statement.get_limit_value() == 11
+
+
+def test_remove_limit_value_undoes_set_limit_value() -> None:
+    """
+    The round trip a full export depends on: the cap Superset wrote into a
+    query comes back out.
+    """
+    original = "SELECT a FROM t ORDER BY a"
+    statement = SQLStatement(original, "postgresql")
+    statement.set_limit_value(100001)
+    assert statement.get_limit_value() == 100001
+
+    statement.remove_limit_value()
+
+    assert statement.format(comments=False) == SQLStatement(
+        original, "postgresql"
+    ).format(comments=False)
+
+
 def test_deduplicate_oracle_output_names_ignores_non_select() -> None:
     """
     Only a `SELECT` list has output names to rename.

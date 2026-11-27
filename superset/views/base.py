@@ -61,6 +61,7 @@ from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
 from superset.dashboards.excel_export.storage import is_background_export_available
+from superset.data_export.enqueue import is_full_export_enabled
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
@@ -611,6 +612,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     frontend_config["EXCEL_EXPORT_STORAGE_CONFIGURED"] = (
         is_background_export_available()
     )
+    # The uncapped-export actions are hidden unless the deployment can
+    # actually deliver one, so the flag alone never offers a dead menu item.
+    frontend_config["FULL_DATA_EXPORT_AVAILABLE"] = is_full_export_enabled()
 
     frontend_config.update(_soft_delete_conf())
 

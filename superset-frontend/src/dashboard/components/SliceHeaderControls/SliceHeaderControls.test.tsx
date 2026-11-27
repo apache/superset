@@ -31,7 +31,12 @@ import downloadAsPdf from 'src/utils/downloadAsPdf';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 import { chart } from 'src/components/Chart/chartReducer';
 
+let mockFullDataExportAvailable = false;
+
 jest.mock('src/utils/cachedSupersetGet');
+jest.mock('src/components/FullDataExport', () => ({
+  isFullDataExportAvailable: () => mockFullDataExportAvailable,
+}));
 jest.mock('src/explore/components/DataTablesPane', () => ({
   ResultsPaneOnDashboard: ({
     columnDisplayNames,
@@ -65,6 +70,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     exportFullCSV: jest.fn(),
     exportXLSX: jest.fn(),
     exportFullXLSX: jest.fn(),
+    exportFullData: jest.fn(),
     exportPivotExcel: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
@@ -1219,4 +1225,35 @@ test('menu strings the viewer reads use the displayed name', async () => {
 
   await userEvent.click(screen.getByText('View as table'));
   expect(await screen.findByText('Chart Data: Ventes')).toBeInTheDocument();
+});
+
+test('Uncapped export is offered only where the deployment can deliver one', async () => {
+  // The backend reports the feature flag and the storage/worker setup as one
+  // value, so a flag alone never shows an item whose request would be refused.
+  mockFullDataExportAvailable = false;
+  renderWrapper();
+  await openMenu();
+  await userEvent.hover(screen.getByText('Download'));
+  expect(
+    screen.queryByText('Export all rows to .CSV (emailed link)'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Export all rows to Excel (emailed link)'),
+  ).not.toBeInTheDocument();
+});
+
+test.each([
+  ['Export all rows to .CSV (emailed link)', 'csv'],
+  ['Export all rows to Excel (emailed link)', 'xlsx'],
+])('Should "%s" for any viz type', async (label, format) => {
+  // Unlike the full-CSV items this is the chart's own query, not a table's
+  // rendered rows, so it is not restricted to table charts.
+  mockFullDataExportAvailable = true;
+  const props = createProps(VizType.Sunburst);
+  renderWrapper(props);
+  await openMenu();
+  await userEvent.hover(screen.getByText('Download'));
+  await userEvent.click(await screen.findByText(label));
+  expect(props.exportFullData).toHaveBeenCalledWith(371, format);
+  mockFullDataExportAvailable = false;
 });

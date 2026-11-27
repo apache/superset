@@ -914,6 +914,16 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def remove_limit_value(self) -> None:
+        """
+        Remove the statement's outer row limit, if it has one.
+
+        Only a limit this parser recognizes as a fixed row count is removed,
+        so a caller that needs an unbounded statement must confirm the result
+        with :meth:`get_limit_value` rather than assume one came back.
+        """
+        raise NotImplementedError()
+
     def has_cte(self) -> bool:
         """
         Check if the statement has a CTE.
@@ -2958,6 +2968,32 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             self._parsed = wrapper
         else:  # method == LimitMethod.FETCH_MANY
             pass
+
+    def remove_limit_value(self) -> None:
+        """
+        Drop the outer `LIMIT`/`TOP`/`FETCH` row count of the statement inplace.
+
+        This undoes a cap `set_limit_value()` applied with `FORCE_LIMIT` or
+        `WRAP_SQL`: the forced clause is removed, and a wrapped query is left
+        as the (unbounded) derived table it became. Clauses that are not a
+        fixed row count are left alone -- `PERCENT`, `WITH TIES`, a
+        ClickHouse `LIMIT ... BY`, and the Oracle `ROWNUM` filter `WRAP_ROWNUM`
+        produces -- because removing them would change what the query returns
+        rather than only how much of it. `get_limit_value()` still reports
+        those afterwards, which is how a caller that needs an unbounded
+        statement detects that it did not get one.
+
+        An `OFFSET` is kept: it selects *which* rows the query returns.
+        """
+        if not isinstance(self._parsed, exp.Query):
+            return
+        if self.get_limit_value() is None:
+            # Nothing removable: either unbounded already, or a clause whose
+            # row count this parser does not read as fixed.
+            return
+        if self._has_limit_by() or self._get_rownum_limit() is not None:
+            return
+        self._parsed.set("limit", None)
 
     def has_cte(self) -> bool:
         """

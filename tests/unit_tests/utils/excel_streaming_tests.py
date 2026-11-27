@@ -297,3 +297,129 @@ def test_add_image_sheet_dedupes_and_composes_with_data_sheets(
     # The image sheet name is de-duplicated against the existing data sheet.
     assert list(sheets.keys()) == ["10 - Chart", "10 - Chart~2"]
     assert _read_media(path) == ["xl/media/image1.png"]
+
+
+# --- add_rolling_sheets ---
+
+
+@pytest.fixture
+def small_sheets(monkeypatch: pytest.MonkeyPatch) -> int:
+    """Shrink the per-sheet limit so roll-over is testable in milliseconds."""
+    monkeypatch.setattr(excel_streaming, "MAX_DATA_ROWS_PER_SHEET", 3)
+    return 3
+
+
+def _rolling(path: str, rows: list[list[object]], name: str = "Data") -> int:
+    writer = StreamingXlsxWriter(path)
+    try:
+        return writer.add_rolling_sheets(name, ["n"], rows)
+    finally:
+        writer.close()
+
+
+def test_rolling_sheets_keeps_every_row(tmp_path: Path, small_sheets: int) -> None:
+    """The point of the export: a result larger than one worksheet is spread
+    across several rather than cut off at the limit."""
+    path = str(tmp_path / "out.xlsx")
+
+    assert _rolling(path, [[n] for n in range(7)]) == 7
+
+    sheets = _read_workbook(path)
+    assert list(sheets) == ["Data", "Data~2", "Data~3"]
+    # Every sheet repeats the header, and no row is missing or duplicated.
+    assert [row for rows in sheets.values() for row in rows[1:]] == [
+        [n] for n in range(7)
+    ]
+    assert all(rows[0] == ["n"] for rows in sheets.values())
+
+
+def test_rolling_sheets_adds_no_truncation_notice(
+    tmp_path: Path, small_sheets: int
+) -> None:
+    """``add_sheet`` cuts off and says so; this one has nothing to confess."""
+    path = str(tmp_path / "out.xlsx")
+
+    _rolling(path, [[n] for n in range(7)])
+
+    cells = [
+        str(cell)
+        for rows in _read_workbook(path).values()
+        for row in rows
+        for cell in row
+    ]
+    assert not any("Truncated" in cell for cell in cells)
+
+
+def test_rolling_sheets_fills_one_sheet_exactly(
+    tmp_path: Path, small_sheets: int
+) -> None:
+    """A count that lands on the limit must not leave a header-only sheet
+    behind it."""
+    path = str(tmp_path / "out.xlsx")
+
+    assert _rolling(path, [[n] for n in range(3)]) == 3
+
+    sheets = _read_workbook(path)
+    assert list(sheets) == ["Data"]
+    assert sheets["Data"] == [["n"], [0], [1], [2]]
+
+
+def test_rolling_sheets_fills_several_sheets_exactly(
+    tmp_path: Path, small_sheets: int
+) -> None:
+    path = str(tmp_path / "out.xlsx")
+
+    assert _rolling(path, [[n] for n in range(6)]) == 6
+
+    assert list(_read_workbook(path)) == ["Data", "Data~2"]
+
+
+def test_rolling_sheets_writes_a_header_for_an_empty_result(
+    tmp_path: Path, small_sheets: int
+) -> None:
+    """A workbook with no sheets at all is not a readable file, and "no rows"
+    is a legitimate answer."""
+    path = str(tmp_path / "out.xlsx")
+
+    assert _rolling(path, []) == 0
+
+    assert _read_workbook(path) == {"Data": [["n"]]}
+
+
+def test_rolling_sheets_streams_rather_than_buffering(
+    tmp_path: Path, small_sheets: int
+) -> None:
+    """Rows are pulled one at a time, so an uncapped export's memory does not
+    grow with the size of the result."""
+    pulled = 0
+
+    def rows():
+        nonlocal pulled
+        for n in range(7):
+            pulled += 1
+            yield [n]
+
+    path = str(tmp_path / "out.xlsx")
+    writer = StreamingXlsxWriter(path)
+    try:
+        generator = rows()
+        assert pulled == 0
+        assert writer.add_rolling_sheets("Data", ["n"], generator) == 7
+    finally:
+        writer.close()
+
+
+def test_add_sheet_still_truncates(tmp_path: Path, small_sheets: int) -> None:
+    """The dashboard Excel export's behaviour is unchanged: one sheet, cut off
+    with a visible notice."""
+    path = str(tmp_path / "out.xlsx")
+    writer = StreamingXlsxWriter(path)
+    try:
+        # One row of the cap is reserved for the notice.
+        assert writer.add_sheet("Data", ["n"], [[n] for n in range(7)]) == 2
+    finally:
+        writer.close()
+
+    sheets = _read_workbook(path)
+    assert list(sheets) == ["Data"]
+    assert sheets["Data"][-1] == ["[Truncated: only first 2 rows exported]"]

@@ -890,6 +890,17 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Warning: Could cause server memory/compute issues with large datasets.
     # @lifecycle: testing
     "ALLOW_FULL_CSV_EXPORT": False,
+    # Allow users to request an uncapped export of a chart's or a SQL Lab
+    # query's data, delivered as an expiring download link instead of a
+    # response body: neither ROW_LIMIT nor SQL_MAX_ROW bounds it, so the file
+    # holds every row the query returns. Unlike ALLOW_FULL_CSV_EXPORT, which
+    # only lifts a table chart's own row limit up to SQL_MAX_ROW, this removes
+    # the server cap entirely. Requires EXPORT_STORAGE and a Celery worker;
+    # see the FULL_DATA_EXPORT_* settings.
+    # Warning: an uncapped export can run for a long time and produce an
+    # arbitrarily large file. Enable it deliberately, per deployment.
+    # @lifecycle: testing
+    "ALLOW_UNCAPPED_DATA_EXPORT": False,
     # Enable caching per impersonation key in datasources with user impersonation
     # @lifecycle: testing
     "CACHE_IMPERSONATION": False,
@@ -1837,6 +1848,38 @@ EXCEL_EXPORT_SYNC_MAX_ROWS = 100_000
 EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
     Callable[[dict[str, Any]], dict[str, Any] | None] | None
 ) = None
+
+# ---------------------------------------------------
+# Uncapped ("full data") exports
+# ---------------------------------------------------
+# Only read when the ALLOW_UNCAPPED_DATA_EXPORT feature flag is on. A full
+# export streams every row a chart's or a SQL Lab query's SQL returns --
+# ROW_LIMIT and SQL_MAX_ROW are not applied -- into a CSV file in
+# EXPORT_STORAGE, and hands the requester an expiring link to it. It needs
+# both EXPORT_STORAGE (bucket and backend) and a Celery worker; without them
+# the endpoints answer 400 rather than falling back to a request-bound
+# download, which is the limit the feature exists to remove.
+
+# Key/blob prefix for full-export objects: {prefix}{kind}/{job_id}.csv, where
+# kind is "chart" or "query". A callable is invoked per export, inside the
+# worker task (no request context), for deployments where the prefix is only
+# known at run time.
+FULL_DATA_EXPORT_KEY_PREFIX: str | Callable[[], str] = "data-exports/"
+
+# Lifetime (seconds) of the download link emailed to the requester (24h).
+FULL_DATA_EXPORT_LINK_TTL_SECONDS = 86400
+
+# Execution budget of one full export, in seconds. The soft limit raises
+# inside the task so it can tell the requester the export timed out; the hard
+# limit kills the worker process and is the backstop. Raise both together for
+# exports that legitimately run longer -- there is no row or byte ceiling, so
+# this budget is what bounds a single export's cost.
+FULL_DATA_EXPORT_SOFT_TIME_LIMIT = 3600
+FULL_DATA_EXPORT_HARD_TIME_LIMIT = 3660
+
+# Rows fetched per round trip while streaming. Larger batches cost more
+# worker memory per export and fewer round trips.
+FULL_DATA_EXPORT_CHUNK_SIZE = 1000
 
 # ---------------------------------------------------
 # Time grain configurations

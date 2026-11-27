@@ -84,6 +84,17 @@ jest.mock('src/components/ErrorMessage', () => ({
 const mockStartExport = jest.fn();
 const mockResetExport = jest.fn();
 const mockCancelExport = jest.fn();
+let mockFullDataExportAvailable = false;
+const mockRequestFullDataExport = jest.fn();
+jest.mock('src/components/FullDataExport', () => ({
+  isFullDataExportAvailable: () => mockFullDataExportAvailable,
+  useFullDataExport: () => ({
+    isAvailable: mockFullDataExportAvailable,
+    isExporting: false,
+    requestExport: mockRequestFullDataExport,
+  }),
+}));
+
 jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
   useStreamingExport: () => ({
     startExport: mockStartExport,
@@ -1243,4 +1254,52 @@ describe('ResultSet', () => {
       longLog.trim(),
     );
   });
+});
+
+describe('uncapped export', () => {
+  const storeWithExportPermission = () =>
+    mockStore({
+      ...initialState,
+      user: {
+        ...user,
+        roles: { sql_lab: [['can_export_csv', 'SQLLab']] },
+      },
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: { [queries[0].id]: queries[0] },
+      },
+    });
+
+  afterEach(() => {
+    mockFullDataExportAvailable = false;
+  });
+
+  test('is offered only where the deployment can deliver one', () => {
+    // The backend reports the feature flag and the storage/worker setup as one
+    // value, so a flag alone never shows a button whose request is refused.
+    mockFullDataExportAvailable = false;
+    const { queryByTestId } = setup(mockedProps, storeWithExportPermission());
+
+    expect(queryByTestId('export-full-data-button')).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ['All rows as .CSV', 'csv'],
+    ['All rows as Excel', 'xlsx'],
+  ])(
+    'queues a %s export of the query behind the results',
+    async (label, format) => {
+      mockFullDataExportAvailable = true;
+      mockRequestFullDataExport.mockClear();
+      const { getByTestId } = setup(mockedProps, storeWithExportPermission());
+
+      fireEvent.click(getByTestId('export-full-data-button'));
+      fireEvent.click(await screen.findByText(label));
+
+      expect(mockRequestFullDataExport).toHaveBeenCalledWith({
+        endpoint: `/api/v1/sqllab/full_export/${queries[0].id}/`,
+        jsonPayload: { format },
+      });
+    },
+  );
 });
