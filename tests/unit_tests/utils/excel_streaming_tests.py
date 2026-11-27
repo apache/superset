@@ -76,6 +76,17 @@ def test_sheet_name_truncation_strips_trailing_apostrophe() -> None:
     assert len(sanitized) <= 31
 
 
+def test_sheet_name_truncation_strips_mixed_apostrophes_and_whitespace() -> None:
+    # When truncation lands on alternating quotes and spaces (e.g. "' '"),
+    # all surrounding apostrophes and whitespace must be stripped.
+    raw = "Monthly revenue split 'North' 'South'"
+    sanitized = sanitize_sheet_name(raw, set())
+    assert sanitized == "Monthly revenue split 'North"
+    assert not sanitized.endswith("'")
+    assert not sanitized.endswith(" ")
+    assert len(sanitized) <= 31
+
+
 def test_sheet_name_truncation_dedupe_with_apostrophe() -> None:
     used: set[str] = set()
     raw = "Quarterly Revenue Summary: Men's Clothing"
