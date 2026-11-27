@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -26,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-23 15:13+0530\n"
+"POT-Creation-Date: 2026-11-23 23:56+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18437,6 +18436,9 @@ msgid "You've changed datasets. Any controls with data (columns, metrics) that m
 msgstr ""
 
 msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
+
+msgid "Your changes were accepted but are not live yet."
 msgstr ""
 
 msgid "Your changes will be lost if you leave without saving."

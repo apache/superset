@@ -963,6 +963,37 @@ describe('DashboardBuilder', () => {
       window.history.replaceState({}, '', originalHref);
     }
   });
+
+  test('keeps the extension sidebar column out of the layout when nothing is contributed', () => {
+    setup();
+    const column = document.getElementById(
+      'superset-dashboard-extension-sidebar',
+    );
+    expect(column).toBeEmptyDOMElement();
+    // An empty column must take no grid track, or it narrows the chart grid
+    // for every dashboard, extensions or not.
+    expect(column).toHaveStyleRule('display', 'none', { target: ':empty' });
+    // A contributed column is capped so it cannot squeeze the 1fr chart area.
+    expect(column).toHaveStyleRule('max-width', 'min(400px, 33vw)');
+  });
+
+  test('renders no extension sidebar column at all in report mode', () => {
+    // A report renders the dashboard to a PNG that is emailed to recipients,
+    // and a full-height contributed column would be captured in it. Leaving
+    // the empty column behind would give anything that went looking for the
+    // element somewhere to render that the guard does not cover.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    try {
+      setup();
+
+      expect(
+        document.getElementById('superset-dashboard-extension-sidebar'),
+      ).toBeNull();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
 });
 
 test('should render ParentSize wrapper with height 100% for tabs', async () => {

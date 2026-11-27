@@ -20,6 +20,8 @@ export * as common from './common';
 export * as authentication from './authentication';
 export * as chat from './chat';
 export * as commands from './commands';
+export * as dashboard from './dashboard';
+export * as deferredWrites from './deferredWrites';
 export * as editors from './editors';
 export * as extensions from './extensions';
 export * as menus from './menus';

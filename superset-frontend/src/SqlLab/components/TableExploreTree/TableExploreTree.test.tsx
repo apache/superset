@@ -30,7 +30,7 @@ import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   registerToolbarAction,
   cleanupExtensions,

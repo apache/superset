@@ -23,8 +23,18 @@ import { resolveView, useViews } from 'src/core/views';
 export interface ViewListExtensionProps {
   viewId: string;
   /**
-   * Forwarded to every component registered at this location. Locations that
-   * render once per item use it to say which item is being rendered.
+   * Forwarded to every component registered at this location.
+   *
+   * Only the locations that render the same component once per row or per
+   * chart pass anything here, because those are the only ones whose component
+   * cannot work out which asset it is beside: the host renders many instances
+   * at once, so there is no "current" one for a namespace to report. Their
+   * shape is published as `views.ListViewItemProps`.
+   *
+   * A location that renders a single instance supplies nothing here. The
+   * state such a surface needs is read from the namespace for that surface --
+   * `dashboard.hasUnsavedChanges()`, for one -- so what the location supplies
+   * is not part of the published view contract.
    */
   viewProps?: Record<string, unknown>;
 }

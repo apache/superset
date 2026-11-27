@@ -21,7 +21,7 @@ import { Flex } from '@superset-ui/core/components';
 import ViewListExtension from 'src/components/ViewListExtension';
 import { useViews } from 'src/core';
 import { SQL_EDITOR_STATUSBAR_HEIGHT } from 'src/SqlLab/constants';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 
 const Container = styled(Flex)`
   flex-direction: row-reverse;

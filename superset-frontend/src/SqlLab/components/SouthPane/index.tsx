@@ -29,7 +29,7 @@ import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
-import { ViewLocations } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/core/viewLocations';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { useViews } from 'src/core';
 import { resolveView } from 'src/core/views';

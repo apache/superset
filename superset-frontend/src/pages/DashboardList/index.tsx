@@ -27,6 +27,8 @@ import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   createFetchRelated,
   createFetchEditors,
@@ -409,6 +411,7 @@ function DashboardList(props: DashboardListProps) {
         Cell: ({
           row: {
             original: {
+              id,
               url,
               dashboard_title: canonicalTitle,
               localized_title: localizedTitle,
@@ -418,10 +421,25 @@ function DashboardList(props: DashboardListProps) {
             },
           },
         }: any) => {
+          // Master's i18n hook supplies `localized_title`; the link and its
+          // tooltip both read the localized one when there is one.
           const dashboardTitle = localizedTitle ?? canonicalTitle;
           return (
             <ListViewTitleCell
-              trailing={description && <InfoTooltip tooltip={description} />}
+              trailing={
+                <>
+                  {description && <InfoTooltip tooltip={description} />}
+                  {/* Beside the name rather than in a column of its own:
+                      anything an extension shows here is absent for most
+                      rows most of the time, and an always-empty column
+                      costs every reader width. `trailing` places it
+                      outside the title's ellipsis. */}
+                  <ViewListExtension
+                    viewId={ViewLocations.listView.dashboard.nameCell}
+                    viewProps={{ assetId: id }}
+                  />
+                </>
+              }
             >
               <Link to={url} title={dashboardTitle}>
                 {certifiedBy && (
@@ -445,10 +463,21 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { status },
+            original: { status, id },
           },
         }: any) => (
-          <PublishedLabel isPublished={status === DashboardStatus.PUBLISHED} />
+          <>
+            <PublishedLabel
+              isPublished={status === DashboardStatus.PUBLISHED}
+            />
+            {/* Beside the host's own statement of state rather than beside
+                the name: a reader asking what is going on with this row
+                finds both answers together. */}
+            <ViewListExtension
+              viewId={ViewLocations.listView.dashboard.statusCell}
+              viewProps={{ assetId: id }}
+            />
+          </>
         ),
         Header: t('Status'),
         accessor: 'published',
@@ -584,14 +613,22 @@ function DashboardList(props: DashboardListProps) {
                       : t('Please confirm')
                   }
                   description={
-                    softDelete ? (
-                      archiveConfirmContent('dashboard', t('dashboard'))
-                    ) : (
-                      <>
-                        {t('Are you sure you want to delete')}{' '}
-                        <b>{original.dashboard_title}</b>?
-                      </>
-                    )
+                    <>
+                      {softDelete ? (
+                        archiveConfirmContent('dashboard', t('dashboard'))
+                      ) : (
+                        <>
+                          {t('Are you sure you want to delete')}{' '}
+                          <b>{original.dashboard_title}</b>?
+                        </>
+                      )}
+                      <ViewListExtension
+                        viewId={
+                          ViewLocations.listView.dashboard.deleteConfirmation
+                        }
+                        viewProps={{ assetId: original.id }}
+                      />
+                    </>
                   }
                   onConfirm={handleDelete}
                 >
@@ -623,6 +660,10 @@ function DashboardList(props: DashboardListProps) {
                   )}
                 </ConfirmStatusChange>
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.dashboard.actions}
+                viewProps={{ assetId: original.id }}
+              />
             </Actions>
           );
         },
@@ -952,14 +993,22 @@ function DashboardList(props: DashboardListProps) {
                 <DeleteModal
                   recoverable={softDelete}
                   description={
-                    softDelete ? (
-                      archiveConfirmContent('dashboard', t('dashboard'))
-                    ) : (
-                      <>
-                        {t('Are you sure you want to delete')}{' '}
-                        <b>{dashboardToDelete.dashboard_title}</b>?
-                      </>
-                    )
+                    <>
+                      {softDelete ? (
+                        archiveConfirmContent('dashboard', t('dashboard'))
+                      ) : (
+                        <>
+                          {t('Are you sure you want to delete')}{' '}
+                          <b>{dashboardToDelete.dashboard_title}</b>?
+                        </>
+                      )}
+                      <ViewListExtension
+                        viewId={
+                          ViewLocations.listView.dashboard.deleteConfirmation
+                        }
+                        viewProps={{ assetId: dashboardToDelete.id }}
+                      />
+                    </>
                   }
                   onConfirm={() => {
                     handleDashboardDelete(

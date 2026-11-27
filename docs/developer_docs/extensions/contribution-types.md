@@ -47,26 +47,166 @@ views.registerView(
 
 #### Where a view can go
 
-A location is a dotted string naming where the view renders:
-`sqllab.panels` is the panel area of SQL Lab, `global.page` a page of its
-own. It is passed to `registerView`; nothing about it is declared in
-`extension.json`, which carries no contributions at all.
+A location is a dotted string naming where the view renders: `sqllab.panels`
+is the panel area of SQL Lab, `global.page` a page of its own. It is passed to
+`registerView`; nothing about it is declared in `extension.json`, which
+carries no contributions at all.
 
-| Location | Where it renders |
-| --- | --- |
-| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) |
+| Location | Where it renders | Props |
+| --- | --- | --- |
+| `navbar.right` | The right-hand end of the navigation bar, on every page | — |
+| `home.sectionPrimary` | A section of the Home page, before Superset's own | — |
+| `home.section` | A section of the Home page, after Superset's own | — |
+| `dashboard.header` | Beside the dashboard title | — |
+| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu | — |
+| `dashboard.editActions` | Beside Save, while the dashboard is being edited | — |
+| `dashboard.panel` | Between the dashboard header and the chart grid, full width | — |
+| `dashboard.sidebar` | A column down the right of the chart grid, at most `min(400px, 33vw)` wide. Wider content is clipped rather than scrolled, so size contributions fluidly and render popups at the page root | — |
+| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu | — |
+| `dashboard.chartNameCell` | Beside an individual chart's name on a dashboard | `{ assetId }` |
+| `explore.header` | Beside the chart title in Explore | — |
+| `explore.panel` | Between the Explore header and the chart, the width of the chart column | — |
+| `listView.{chart,dashboard,dataset}.nameCell` | Beside an item's name, in that type's list and in the archive | `ListViewItemProps` |
+| `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons | `ListViewItemProps` |
+| `listView.{chart,dashboard,dataset}.deleteConfirmation` | In the dialog that asks the reader to confirm deleting an item | `{ assetId }` |
+| `listView.dashboard.statusCell` | Beside a dashboard row's published-or-draft status | `ListViewItemProps` |
+| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) | — |
 
-A contributed component is rendered with no props: whatever it needs, it
-fetches for itself.
+A location marked — renders its component with no props. Whatever such a
+component needs, it asks for: context comes from the namespace for the surface
+it is on, the same way a SQL Lab panel reads `sqlLab.getCurrentTab()`. That
+keeps what a location supplies out of the published view contract, so it can
+change without breaking an extension.
+
+The locations that do pass props are the ones that render **the same component
+once per row or per chart**. There the host has many instances of one
+registration on screen at once, so there is no "current" asset for a namespace
+to report, and the asset is the one thing the component cannot work out for
+itself:
+
+- `{ assetId }` is the primary key of the asset the component is rendered
+  beside.
+- `views.ListViewItemProps` is `{ assetId, archived? }`, described under
+  [List rows](#list-rows).
+
+The two overflow-menu locations are marked — even though one of them sits
+beside a single chart. A view contributed there is composed into a menu the
+host builds, not rendered through the slot component that forwards props, so
+it is handed nothing and reads what it needs the same way any single-instance
+surface does.
+
+```tsx
+const ReviewTag = ({ assetId }: { assetId: number }) => ...;
+
+views.registerView<{ assetId: number }>(
+  { id: 'acme.reviews.chartNameCell', name: 'Review status' },
+  'dashboard.chartNameCell',
+  ReviewTag,
+);
+```
+
+An action contributed at `dashboard.editActions` is the single-instance case:
+it may need the author's current edits committed before it can act on them,
+and it cannot commit them itself, so it reads the dashboard namespace rather
+than being handed anything.
+
+```tsx
+const SendForReview = () => {
+  const [unsaved, setUnsaved] = useState(dashboard.hasUnsavedChanges());
+  useEffect(() => {
+    const sub = dashboard.onDidChangeUnsavedChanges(setUnsaved);
+    return () => sub.dispose();
+  }, []);
+
+  return (
+    <Button
+      disabled={!unsaved}
+      onClick={async () => {
+        await dashboard.save();
+        requestReview();
+      }}
+    />
+  );
+};
+```
 
 Every location renders nothing at all until an extension contributes to it, so
 a Superset with no extensions installed is laid out exactly as before. Several
 extensions may contribute to one location; they are rendered in the order they
 registered.
 
-Locations outside SQL Lab are added alongside the code that renders them, so
-this table lists what a deployment can actually show today rather than what is
-planned.
+#### The navigation bar
+
+`navbar.right` sits at the inner end of the navigation bar's right-hand group,
+ahead of Superset's own controls, and is therefore on screen on every page.
+That makes it the place for a single compact control — a status indicator, or a
+trigger for a panel the extension owns — rather than for anything that needs
+room:
+
+```tsx
+views.registerView(
+  { id: 'acme.reviews.navbar', name: 'Reviews' },
+  'navbar.right',
+  ReviewsIndicator,
+);
+```
+
+The left-hand side of the bar is the navigation itself, and there is no view
+location for it.
+
+#### The Home page
+
+`home.section` adds a full-width collapsible section to the Home page,
+alongside Recents, Dashboards, Charts and Saved queries, and after them: the
+page's own content stays where a reader expects to find it.
+
+The section is laid out like one of Superset's own. The view's `name` is the
+heading, so write it for someone who has not opened the section yet; the
+component is rendered when they open it, which means nothing it fetches is
+fetched for readers who never do.
+
+```tsx
+views.registerView(
+  { id: 'acme.reviews.home', name: 'Pending approvals' },
+  'home.section',
+  ApprovalsSection,
+);
+```
+
+#### List rows
+
+The `listView` locations render once per row, and hand the component
+`views.ListViewItemProps` so it can tell the rows apart.
+
+```tsx
+const RowMarker = ({ assetId, archived }: views.ListViewItemProps) => ...;
+
+views.registerView<views.ListViewItemProps>(
+  { id: 'acme.reviews.chartRow', name: 'Review status' },
+  'listView.chart.nameCell',
+  RowMarker,
+);
+```
+
+`assetId` is the primary key of the item in that row — the only thing the
+component has to go on, since the same component renders in every row.
+
+A location is named for the kind of asset the row holds, not for the page the
+row is on, so each is rendered by **both** of the lists that show that kind of
+asset: the type's own list view, and the archive (**Settings → Recently
+Archived**), which lists archived charts, dashboards and datasets through one
+page and renders the location its selected type implies. An extension that
+marks up chart rows therefore registers once and gets both.
+
+The two lists differ in what state the asset is in, and that the location
+cannot say, so the row says it: `archived` is `true` on a row in the archive
+and absent elsewhere. Read it before offering anything that acts on the asset
+where it stands — an archived asset cannot be opened until someone recovers
+it — or before describing the asset as though it were live.
+
+Prefer `nameCell` over a column of your own for anything that is usually
+absent. An always-empty column costs every reader width on every row, whereas
+nothing beside a name takes no space at all.
 
 ### Commands
 
@@ -151,6 +291,82 @@ chat.registerChat(
 ```
 
 See [Chat](./extension-points/chat.md) for implementation details.
+
+### Deferred writes
+
+An extension may stand between a save and the asset it would change -- a
+four-eyes review, a scheduled publish, an external approval system -- and
+answer `202 Accepted` with the write recorded rather than performed. The
+`deferredWrites` namespace is how the host says so without knowing which
+extension did it, or whether one is installed at all.
+
+Reading one, at a save site:
+
+```ts
+import { deferredWrites } from '@apache-superset/core';
+
+const deferred = deferredWrites.read(response);
+if (deferred) {
+  // `message` is written by whoever deferred the write, because only they
+  // know what happens next. Show it; do not compose your own.
+  toast(deferred.message);
+  return;
+}
+```
+
+Announcing one, so other surfaces hear about it:
+
+```ts
+deferredWrites.announce(deferred);
+
+const subscription = deferredWrites.onDidDefer(write => {
+  // a write was accepted and not applied
+});
+
+// and, when you are done listening
+subscription.dispose();
+```
+
+Registering an oracle returns a `Disposable` too. Only one may be registered
+at a time, so an extension that reloads has to withdraw the old one or its
+second registration is refused:
+
+```ts
+const oracle = deferredWrites.registerOracle({
+  wouldDefer: async (assetType, assetIds) => ({ ...}),
+});
+
+// on teardown
+oracle.dispose();
+```
+
+An extension that holds writes also answers questions about them in advance,
+by registering an oracle. `wouldDefer` asks whether a write would be held,
+`mayProceed` whether an action may go ahead, and `heldVersion` what to show
+instead of the live asset. With nothing registered every answer is the
+permissive one, so a deployment without such an extension behaves exactly as
+it does today.
+
+**This is a contract, not a feature.** Nothing in core calls these yet: the
+host declares them so an extension has something to answer, and the save
+sites that would ask come later. An extension can register an oracle today
+and nothing will consult it.
+
+A `202` alone does not mean a write was held. Superset already answers `202`
+for ordinary asynchronous work — a queued permission sync, global async
+chart data, screenshots, thumbnails, async SQL Lab — where the work is
+running and its result is coming. A held write says so in its body:
+
+```json
+{ "deferred": true, "message": "Held for review." }
+```
+
+`deferred: true` is what `read` and `isDeferredWrite` look for. Without it
+the response is read as a result, which is the right reading for every other
+`202` Superset sends.
+
+Deliberately not called "review". Review is one reason a write is held; the
+contract is about the outcome, not the motive.
 
 ### Pages
 
