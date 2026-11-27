@@ -26,7 +26,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-23 15:13+0530\n"
+"POT-Creation-Date: 2026-11-24 01:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -8354,6 +8354,9 @@ msgstr ""
 msgid "Interval bounds"
 msgstr ""
 
+msgid "Interval bounds as percentages"
+msgstr ""
+
 msgid "Interval colors"
 msgstr ""
 
@@ -9446,6 +9449,9 @@ msgstr ""
 msgid "Max bound should be greater than target value"
 msgstr ""
 
+msgid "Max from metric"
+msgstr ""
+
 msgid "Max value"
 msgstr ""
 
@@ -9485,7 +9491,7 @@ msgstr ""
 msgid "Maximum value"
 msgstr ""
 
-msgid "Maximum value on the gauge axis"
+msgid "Maximum value on the gauge axis. Ignored when Max from metric returns a value."
 msgstr ""
 
 msgid "Maximum width (in pixels) of each line of a slice label. Set to 0 for no limit."
@@ -9687,6 +9693,9 @@ msgstr ""
 msgid "Min bound should be smaller than target value"
 msgstr ""
 
+msgid "Min from metric"
+msgstr ""
+
 msgid "Min periods"
 msgstr ""
 
@@ -9744,7 +9753,7 @@ msgstr ""
 msgid "Minimum value for label to be displayed on graph."
 msgstr ""
 
-msgid "Minimum value on the gauge axis"
+msgid "Minimum value on the gauge axis. Ignored when Min from metric returns a value."
 msgstr ""
 
 msgid "Minimum width size of the path, in pixels or meters."
@@ -10801,7 +10810,16 @@ msgstr ""
 msgid "Optional if your workgroup sets a result location."
 msgstr ""
 
+msgid "Optional metric drawn as a target tick on each row, using that row's own value, e.g. a per-region quota."
+msgstr ""
+
 msgid "Optional metric used to scale the size of each dot. Dot areas are scaled linearly between the minimum and maximum dot size."
+msgstr ""
+
+msgid "Optional metric whose value sets the end of the gauge axis, e.g. a target or capacity. Overrides Max when it returns a number. With Group by, all gauges share one axis, so the largest value across groups is used."
+msgstr ""
+
+msgid "Optional metric whose value sets the start of the gauge axis. Overrides Min when it returns a number. With Group by, the smallest value across groups is used."
 msgstr ""
 
 msgid "Optional name of the data column."
@@ -11711,6 +11729,10 @@ msgstr ""
 msgid "Ranges"
 msgstr ""
 
+#, python-format
+msgid "Ranges as % of target"
+msgstr ""
+
 msgid "Ranking"
 msgstr ""
 
@@ -11736,6 +11758,12 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Read from the token's exp claim."
+msgstr ""
+
+msgid "Read interval bounds as percentages of the axis range, e.g. 50,80,100, so the colored intervals follow a min or max that comes from a metric."
+msgstr ""
+
+msgid "Read ranges as percentages of each row's target, e.g. 50,90,120, so the bands scale with each row. Requires Target from metric."
 msgstr ""
 
 msgid "Rearranged layout"
@@ -14689,6 +14717,9 @@ msgid "Target Color"
 msgstr ""
 
 msgid "Target category"
+msgstr ""
+
+msgid "Target from metric"
 msgstr ""
 
 msgid "Target value"

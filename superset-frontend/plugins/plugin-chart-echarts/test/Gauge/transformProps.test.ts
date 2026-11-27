@@ -761,6 +761,65 @@ describe('Min/Max calculation and axis labels', () => {
 
     expect(series.splitNumber).toBe(20);
   });
+
+  test('should use the widest bound metric values across groups', () => {
+    const formData: SqlaFormData = {
+      ...baseFormData,
+      groupby: ['region'],
+      minMetric: 'floor',
+      maxMetric: 'quota',
+    };
+    const queriesData = [
+      {
+        colnames: ['region', 'count', 'floor', 'quota'],
+        data: [
+          { region: 'West', count: 84, floor: 10, quota: 90 },
+          { region: 'East', count: 70, floor: 5, quota: 75 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+    const series = (result.echartOptions as any).series[0];
+
+    expect(series.min).toBe(5);
+    expect(series.max).toBe(90);
+  });
+
+  test('should keep a usable axis when the max metric is at or below the min', () => {
+    const formData: SqlaFormData = {
+      ...baseFormData,
+      minVal: 0,
+      maxMetric: 'quota',
+    };
+    const queriesData = [
+      {
+        colnames: ['count', 'quota'],
+        data: [{ count: 5, quota: 0 }],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+    const series = (result.echartOptions as any).series[0];
+
+    expect(series.max).toBeGreaterThan(series.min);
+  });
 });
 
 describe('getIntervalBoundsAndColors', () => {
@@ -891,6 +950,26 @@ describe('getIntervalBoundsAndColors', () => {
     ).toEqual([
       [0.4, '#ff7f0e'],
       [1, '#1f77b4'],
+    ]);
+  });
+
+  test('reads relative interval bounds as percentages of the axis', () => {
+    const colorFn = CategoricalColorNamespace.getScale(
+      'supersetColors' as string,
+    );
+    expect(
+      getIntervalBoundsAndColors(
+        '50, 100',
+        '1, 2',
+        undefined,
+        colorFn,
+        0,
+        90000,
+        true,
+      ),
+    ).toEqual([
+      [0.5, '#1f77b4'],
+      [1, '#ff7f0e'],
     ]);
   });
 });
