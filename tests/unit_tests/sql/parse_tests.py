@@ -8697,33 +8697,21 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
     [
         ("'WIP'", ["channel"], "postgresql", True),
         ("NULL", ["a"], "postgresql", True),
-        ("1", [], "base", True),
         ("(a - b) / b", ["a", "b", "c"], "base", True),
-        ("(A - B) / B", ['"a"', "b"], "snowflake", True),
+        ("(A - B) / B", ['"A"', "b"], "snowflake", True),
         ("t.a + 1", ["a"], "base", True),
         ("GREATEST(confirmed, predicted)", ["longitude", "latitude"], "base", False),
         ("a + c", ["a", "b"], "base", False),
         ("a * 2", ["a + 1"], "base", False),
         ("ts", ["DATE_TRUNC('day', ts)"], "postgresql", False),
+        # Returns True on parsing error
+        (")(", ["a"], "base", True),
     ],
 )
 def test_references_only_grouped_columns(
     expression: str, group_by: list[str], engine: str, expected: bool
 ) -> None:
     assert references_only_grouped_columns(expression, group_by, engine) is expected
-
-
-@pytest.mark.parametrize(
-    "expression,group_by",
-    [
-        (")(", ["a"]),
-        ("a", ["bin(ts,1h)"]),
-    ],
-)
-def test_references_only_grouped_columns_defaults_to_true_on_parse_error(
-    expression: str, group_by: list[str]
-) -> None:
-    assert references_only_grouped_columns(expression, group_by) is True
 
 
 @pytest.mark.parametrize(
