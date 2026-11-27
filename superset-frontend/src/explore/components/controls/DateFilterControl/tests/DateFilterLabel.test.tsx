@@ -453,8 +453,22 @@ test.each<[string, FrameName, string]>([
   },
 );
 
-test('a date-only range opens on the Advanced frame unless the calendar interface is enabled', async () => {
+test('a date-only range opens on the Calendar frame by default', async () => {
   render(setup({ ...defaultProps, value: '2021-03-16 : 2021-03-18' }));
+
+  await userEvent.click(await screen.findByRole('button'));
+
+  await expectOnlyFrame('DateRange');
+});
+
+test('a date-only range opens on the Advanced frame when the calendar frame is turned off', async () => {
+  render(
+    setup({
+      ...defaultProps,
+      value: '2021-03-16 : 2021-03-18',
+      calendarFrame: false,
+    }),
+  );
 
   await userEvent.click(await screen.findByRole('button'));
 

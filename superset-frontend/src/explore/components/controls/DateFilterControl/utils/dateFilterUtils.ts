@@ -32,10 +32,9 @@ import { isCalendarRange } from './calendarRange';
 
 export interface GuessFrameOptions {
   /**
-   * Treat a fixed whole-day range as the Calendar frame. Off by default: such a
-   * value is also what the Advanced frame saves (and always opened there), so the
-   * calendar interface is only chosen where it was explicitly enabled, never from
-   * the value's text alone.
+   * Treat a fixed whole-day range as the Calendar frame. Off by default here: such
+   * a value is also what the Advanced frame saves, so the caller opts in, as the
+   * date control does wherever the Calendar range type is offered.
    */
   calendarFrame?: boolean;
 }

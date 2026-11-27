@@ -154,7 +154,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     isOverflowingFilterBar = false,
     hovered: isControlHovered = false,
     displayFormat,
-    calendarFrame,
+    calendarFrame = true,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
