@@ -23,7 +23,6 @@ import { buildQueryContext, QueryFormData } from '@superset-ui/core';
  * Map data comes from the tile server, but Superset runs a query for every
  * chart, so request the cheapest valid one: a constant from a single row.
  */
-
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => [
     {

@@ -139,7 +139,9 @@ export function useTileJsonProperties(
         getTileJsonProperties(tileJson, sourceLayer || undefined),
       )
       .then(properties => {
-        if (!ignore) setState({ properties, loading: false });
+        if (!ignore) {
+          setState({ properties, loading: false });
+        }
       })
       .catch((error: Error) => {
         if (!ignore) {

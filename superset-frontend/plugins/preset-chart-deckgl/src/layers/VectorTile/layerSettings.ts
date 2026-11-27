@@ -97,10 +97,7 @@ const toRGBA = ({ r, g, b, a }: ColorType): RGBAColor => [
   Math.round(a * 255),
 ];
 
-/**
- * Normalizes saved form data for the MVTLayer. Called from getLayer because the
- * Multiple Layers chart passes raw form data and skips transformProps.
- */
+/** Normalizes saved form data for the MVTLayer. */
 export function getLayerSettings(
   formData: VectorTileFormData,
 ): VectorTileLayerSettings {

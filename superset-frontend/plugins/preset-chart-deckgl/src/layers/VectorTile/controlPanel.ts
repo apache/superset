@@ -40,19 +40,16 @@ import {
   legendFormat,
   legendPosition,
 } from '../../utilities/Shared_DeckGL';
-
 import { columnChoices } from '../../utilities/controls';
-
+import {
+  COLOR_SCHEME_TYPES,
+  isColorSchemeTypeVisible,
+} from '../../utilities/utils';
 import {
   DEFAULT_MAX_ZOOM,
   DEFAULT_MIN_ZOOM,
   isTileUrlTemplate,
 } from './layerSettings';
-
-import {
-  COLOR_SCHEME_TYPES,
-  isColorSchemeTypeVisible,
-} from '../../utilities/utils';
 
 /** Returns an error message unless the value is a URL template with {z}, {x} and {y}. */
 export const validateTileUrl = (value: unknown): string | false =>
@@ -211,7 +208,7 @@ const config: ControlPanelConfig = {
             ...fillColorPicker,
             config: {
               ...fillColorPicker.config,
-              description: t('Colour used to fill every feature.'),
+              description: t('Color used to fill every feature.'),
             },
           },
         ],
@@ -221,7 +218,7 @@ const config: ControlPanelConfig = {
             config: {
               type: TilePropertyControl,
               multi: false,
-              label: t('Colour by'),
+              label: t('Color by'),
               description: t(
                 "Tile property whose values decide each feature's colour.",
               ),
@@ -244,7 +241,7 @@ const config: ControlPanelConfig = {
             config: {
               type: TilePropertyControl,
               multi: false,
-              label: t('Colour by'),
+              label: t('Color by'),
               description: t(
                 "Numeric tile property whose value picks each feature's breakpoint.",
               ),

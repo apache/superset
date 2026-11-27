@@ -21,8 +21,7 @@ import { t } from '@apache-superset/core/translation';
 // eslint-disable-next-line import/no-unresolved
 import { Feature } from 'geojson';
 import { LegendProps } from '../../components/Legend';
-import { ColorBreakpointType } from '../../types';
-import { getColorBreakpointsBuckets, NULL_CATEGORY_KEY } from '../../utils';
+import { NULL_CATEGORY_KEY } from '../../utils';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { RGBAColor, VectorTileLayerSettings } from './layerSettings';
 import { createCategoryColor } from './styling';
@@ -75,7 +74,6 @@ export function buildCategoryLegend(
  */
 export function getLegendCategories(
   settings: VectorTileLayerSettings,
-  colorBreakpoints: ColorBreakpointType[] | undefined,
   tiles: unknown[],
   sliceId?: number,
 ): LegendCategories {
@@ -85,7 +83,14 @@ export function getLegendCategories(
     colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints &&
     breakpointProperty
   ) {
-    return getColorBreakpointsBuckets(colorBreakpoints ?? []);
+    // Same " - " label format as other deck.gl charts, so Legend Format
+    // applies to both numbers.
+    return Object.fromEntries(
+      settings.colorBreakpoints.map(({ minValue, maxValue, color }) => [
+        `${minValue} - ${maxValue}`,
+        { color, enabled: true },
+      ]),
+    );
   }
 
   if (

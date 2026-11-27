@@ -25,7 +25,6 @@ import {
   JsonObject,
   JsonValue,
 } from '@superset-ui/core';
-import { createColorAccessor } from './styling';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
@@ -36,11 +35,12 @@ import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerTypeParams } from '../../factory';
 import { Viewport } from '../../utils/fitViewport';
 import { getMapboxApiKey } from '../../utils/mapbox';
-import { getLayerSettings, VectorTileFormData } from './layerSettings';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
-import Legend from '../../components/Legend';
-import { getLegendCategories } from './legend';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import Legend from '../../components/Legend';
+import { getLayerSettings, VectorTileFormData } from './layerSettings';
+import { getLegendCategories } from './legend';
+import { createColorAccessor } from './styling';
 
 // Pixel units keep points and lines visible at every zoom level.
 const POINT_RADIUS_PX = 4;
@@ -85,10 +85,7 @@ type VectorTileLayerParams = GetLayerTypeParams & {
   onViewportLoad?: (tiles: unknown[]) => void;
 };
 
-/**
- * Builds the MVTLayer from form data. Exported separately because the deck.gl
- * Multiple Layers chart calls it directly. Returns null without a valid tile URL.
- */
+/** Builds the MVTLayer from form data. Returns null without a valid tile URL. */
 export const getLayer = ({
   formData,
   setTooltip,
@@ -178,7 +175,6 @@ function VectorTile({
     () =>
       getLegendCategories(
         getLayerSettings(formData),
-        formData.color_breakpoints,
         viewportTiles,
         formData.slice_id,
       ),

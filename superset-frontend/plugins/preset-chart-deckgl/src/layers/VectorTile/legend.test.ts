@@ -58,5 +58,5 @@ test('fixed colour has no legend', () => {
     colorBreakpoints: [],
     defaultBreakpointColor: RED,
   };
-  expect(getLegendCategories(settings, [], [])).toEqual({});
+  expect(getLegendCategories(settings, [])).toEqual({});
 });

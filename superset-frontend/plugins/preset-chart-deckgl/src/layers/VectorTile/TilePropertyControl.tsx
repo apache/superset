@@ -38,8 +38,9 @@ export interface TilePropertyControlProps {
 }
 
 /**
- * Multi-select of tile property names. Lists TileJSON properties when a
- * TileJSON URL loads, otherwise the dataset's columns.
+ * Select for tile property names (one or many). Lists TileJSON properties when
+ * a TileJSON URL loads, otherwise the dataset's columns; numericOnly hides
+ * non-numeric ones.
  */
 export default function TilePropertyControl({
   name,
@@ -74,7 +75,7 @@ export default function TilePropertyControl({
             value: column,
             label: displayName,
           })),
-    [useTileJson, properties, datasetChoices],
+    [useTileJson, properties, datasetChoices, numericOnly],
   );
 
   return (

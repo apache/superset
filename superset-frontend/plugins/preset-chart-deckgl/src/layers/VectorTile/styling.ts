@@ -44,7 +44,7 @@ export const toRgbaExpression = ([
   a,
 ]: RGBAColor): ExpressionSpecification => ['rgba', r, g, b, a / 255];
 
-/** Builds the MapLibre expression that decides each feature's colour. */
+/** Expression for the Fixed colour mode. */
 export function buildColorExpression(
   fillColor: RGBAColor,
 ): ExpressionSpecification {
@@ -183,6 +183,7 @@ function getCategoryScale(
   return scale;
 }
 
+/** Returns the categorical colour for a category, with the given opacity (0–255). */
 export function createCategoryColor(
   colorScheme: string | undefined,
   alpha: number,
@@ -239,8 +240,6 @@ export function createColorAccessor(
       defaultBreakpointColor,
     );
     return {
-      // Text that is not a number makes to-number fail; the spec's default
-      // (this fallback) is used then.
       getColor: compileColorAccessor(expression, defaultBreakpointColor),
       updateTrigger: JSON.stringify(expression),
     };
