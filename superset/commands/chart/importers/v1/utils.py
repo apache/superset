@@ -72,6 +72,20 @@ def filter_chart_annotations(
     params["annotation_layers"] = annotation_layers
 
 
+def _ensure_can_read_existing_chart(
+    existing: Slice,
+    user: Any,
+    error_message: str,
+) -> None:
+    # Reusing an existing chart matched by UUID (returning it so the bundle
+    # attaches it unchanged) requires the same read access the create / update
+    # paths already enforce. Keyed on ``user``: background / example-loader
+    # paths run without a request user and have established trust at the
+    # command level, mirroring the editorship checks below.
+    if user and not security_manager.can_access_chart(existing):
+        raise ForbiddenError(error_message)
+
+
 def _ensure_can_edit_existing_chart(
     existing: Slice,
     user: Any,
@@ -149,8 +163,16 @@ def _prepare_existing_chart_for_import(
 
     # OVERWRITE path — existing alive row. Without ``overwrite`` or
     # write permission, return it unchanged (the pre-soft-delete
-    # overwrite-without-permission behaviour).
+    # overwrite-without-permission behaviour). The caller still has to
+    # be able to read the chart it is reusing, matching the read access
+    # the create / update paths enforce.
     if not overwrite or not can_write:
+        _ensure_can_read_existing_chart(
+            existing,
+            user,
+            f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
+            f"already exists and user doesn't have permission to read it",
+        )
         return existing
     _ensure_can_edit_existing_chart(
         existing,
