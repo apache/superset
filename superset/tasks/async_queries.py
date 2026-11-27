@@ -20,7 +20,7 @@ import logging
 import threading
 from contextlib import contextmanager
 from typing import Any, cast, Iterator, TYPE_CHECKING
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
@@ -526,16 +526,17 @@ def execute_chart_query(
 
 
 def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | None:
-    """Compute a query's cache key exactly as its task will.
-
-    ``execute_chart_query`` validates each query before keying (see
-    ``get_df_payload_result``), so validate here too — otherwise the SHARED task's
-    ``task_key`` (used for cross-user dedup) could diverge from the key the task
-    actually caches under.
-    """
+    """Deduplicate tasks only when they can produce the same full result."""
     query_obj = query_context.queries[index]
     query_obj.validate()
-    return query_context.query_cache_key(query_obj)
+    data_key = query_context.query_cache_key(query_obj)
+    if not query_obj.annotation_layers:
+        return data_key
+    annotation_key = query_context.annotation_cache_key(query_obj)
+    if data_key and annotation_key:
+        return f"annotated:{data_key}:{annotation_key}"
+    # A SHARED task requires a key even when its result cannot be shared.
+    return f"uncacheable:{uuid4()}"
 
 
 def submit_chart_data_query_tasks(

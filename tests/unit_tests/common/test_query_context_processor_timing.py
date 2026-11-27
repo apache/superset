@@ -393,13 +393,16 @@ def test_dataframe_payload_result_emits_cache_outcome(
 ) -> None:
     cache_manager.get.return_value = _cache(is_loaded)
     processor: QueryContextProcessor = _processor()
+    query_obj = _query_obj()
+    query_obj.annotation_layers = [{"name": "layer"}]
     with (
         patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "annotation_cache_key", return_value="akey"),
         patch.object(processor, "get_cache_timeout", return_value=timeout),
         patch.object(processor, "get_query_result", return_value=MagicMock()),
-        patch.object(processor, "get_annotation_data", return_value={}),
+        patch.object(processor, "_get_annotation_data_cached", return_value={}),
     ):
-        processor.get_df_payload_result(_query_obj())
+        processor.get_df_payload_result(query_obj)
 
     timers, counters = _emitted(stats_logger_manager.instance)
     assert counters == {expected_counter}
@@ -415,7 +418,9 @@ def test_dataframe_payload_result_emits_cache_outcome(
     } <= timers
     # Datasource time is only measured when the datasource was queried.
     assert ("chart_data.query.data_acquisition" in timers) is (not is_loaded)
-    assert ("chart_data.query.annotations" in timers) is (not is_loaded)
+    # Annotations resolve under their own cache entry, so they are timed even
+    # when the dataframe itself was served from cache.
+    assert "chart_data.query.annotations" in timers
 
 
 @pytest.mark.parametrize(

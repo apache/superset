@@ -48,6 +48,8 @@ def _fake_query_context(
     """
     ctx = mock.MagicMock()
     ctx.queries = [mock.MagicMock(name=f"q{i}") for i in range(num_queries)]
+    for query in ctx.queries:
+        query.annotation_layers = []
     ctx.cache_values = {"queries": [{"i": i} for i in range(num_queries)]}
     ctx.query_cache_key.side_effect = lambda q: f"key-{ctx.queries.index(q)}"
     if contribution_idx is not None:
@@ -143,6 +145,16 @@ def test_fan_out_omits_query_log_context_when_disabled(mocker: MockerFixture) ->
 
     for call in scheduled:
         assert "query_log_context" not in call["kwargs"]
+
+
+def test_annotated_tasks_include_annotation_scope_in_task_key() -> None:
+    from superset.tasks.async_queries import _query_task_cache_key
+
+    ctx = _fake_query_context(1)
+    ctx.queries[0].annotation_layers = [{"sourceType": "line", "value": 1}]
+    ctx.annotation_cache_key.side_effect = ["viewer-a", "viewer-b", None, None]
+    assert _query_task_cache_key(ctx, 0) != _query_task_cache_key(ctx, 0)
+    assert _query_task_cache_key(ctx, 0) != _query_task_cache_key(ctx, 0)
 
 
 def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
