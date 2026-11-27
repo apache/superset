@@ -175,3 +175,44 @@ def test_format_sql_non_dict_template_params(
     assert response.status_code == 200
     raise_for_access.assert_not_called()
     get_template_processor.assert_not_called()
+
+
+def test_format_sql_reports_a_render_time_template_error(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    An expression the template cannot evaluate is reported, not crashed on.
+
+    ``{{ ('abc'|int(default=none)) + 1 }}`` is how the docs say to coerce a
+    parameter, and the ``None`` arrives whenever that parameter is absent.
+    Before ``process_template``'s render step answered such a failure with a
+    template error, the raw ``TypeError`` left this route as a 500. It gets
+    the 422 a failing macro gets here.
+    """
+    from superset.jinja_context import JinjaTemplateProcessor
+    from superset.models.core import Database
+
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    mocker.patch(
+        "superset.sqllab.api.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    mocker.patch("superset.sqllab.api.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.sqllab.api.get_template_processor",
+        return_value=JinjaTemplateProcessor(database=database),
+    )
+
+    response = client.post(
+        "/api/v1/sqllab/format_sql/",
+        json={
+            "sql": "SELECT {{ ('abc'|int(default=none)) + 1 }}",
+            "database_id": 1,
+            "template_params": '{"foo": "bar"}',
+        },
+    )
+
+    assert response.status_code == 422
+    assert "Jinja2 template error (TypeError)" in response.json["errors"][0]["message"]
