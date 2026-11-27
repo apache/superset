@@ -5618,6 +5618,36 @@ def test_default_schema_publication_cannot_overwrite_interleaved_discovery(
     assert result is None  # Failed CAS must not correct a retained read to old data.
 
 
+def test_default_schema_redis_creation_sets_expiry_atomically(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Creating an entry must not expire a newer value in a separate command."""
+    from flask_caching.backends.rediscache import RedisCache
+
+    from superset.extensions import cache_manager
+    from superset.models.core import _publish_default_schema
+
+    backend = RedisCache(key_prefix="prefix:")
+    mocker.patch.object(
+        type(cache_manager.cache),
+        "cache",
+        new_callable=mocker.PropertyMock,
+        return_value=backend,
+    )
+    client = mocker.patch.object(backend, "_write_client")
+    client.set.return_value = True
+
+    assert _publish_default_schema("key", "main", 1000, 3600) == "main"
+    client.set.assert_called_once_with(
+        "prefix:key",
+        backend.serializer.dumps({"schema": "main", "discovered_at": 1000}),
+        nx=True,
+        ex=3600,
+    )
+    client.setnx.assert_not_called()
+    client.expire.assert_not_called()
+
+
 @pytest.mark.parametrize("outcome", ["success", "changed", "conflict"])
 def test_default_schema_redis_replacement_is_conditional(
     app_context: None, mocker: MockerFixture, outcome: str

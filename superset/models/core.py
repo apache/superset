@@ -392,12 +392,24 @@ def _publish_default_schema(
     """Publish discovery without renewing an older, contradictory schema."""
     # FileSystemCache.add checks for existence before an unconditional set.
     # It cannot safely create discoveries shared by multiple workers.
-    if isinstance(cache_manager.cache.cache, FileSystemCache):
+    backend = cache_manager.cache.cache
+    if isinstance(backend, FileSystemCache):
         return None
     value = {"schema": schema, "discovered_at": discovered_at}
     supports_add = True
     try:
-        if cache_manager.cache.add(cache_key, value, timeout=timeout):
+        if isinstance(backend, RedisCache):
+            # Cachelib's add uses separate SETNX/EXPIRE calls. A late EXPIRE
+            # must not extend a newer worker's contradictory publication.
+            created = backend._write_client.set(  # pylint: disable=protected-access
+                f"{backend._get_prefix()}{cache_key}",  # pylint: disable=protected-access
+                backend.serializer.dumps(value),
+                nx=True,
+                ex=timeout,
+            )
+        else:
+            created = cache_manager.cache.add(cache_key, value, timeout=timeout)
+        if created:
             return schema
     except (AttributeError, NotImplementedError):
         supports_add = False
