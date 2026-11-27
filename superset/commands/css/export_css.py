@@ -37,5 +37,5 @@ class ExportCssTemplatesCommand(BaseCommand):
 
     def validate(self) -> None:
         self._models = CssTemplateDAO.find_by_ids(self.model_ids)
-        if len(self._models) != len(self.model_ids):
+        if len(self._models) != len(set(self.model_ids)):
             raise CssTemplateNotFoundError()

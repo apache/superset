@@ -54,6 +54,14 @@ def test_export_css_templates_missing_id_raises(session: Session) -> None:
         ExportCssTemplatesCommand([light.id, 999_999]).run()
 
 
+def test_export_css_templates_ignores_duplicate_ids(session: Session) -> None:
+    light, *_ = _create_templates(session)
+
+    models = ExportCssTemplatesCommand([light.id, light.id]).run()
+
+    assert [model.id for model in models] == [light.id]
+
+
 def _export_zip_names(client: Any, ids: list[int]) -> set[str]:
     """Call the export endpoint and return the file names inside the archive."""
     rison_ids = ",".join(str(model_id) for model_id in ids)
