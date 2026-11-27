@@ -34,6 +34,32 @@ from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
+    def test_object_conversion_result_uses_temporal_fallback(self) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        values = ["2024-10-27T02:30:00+02:00", "2024-10-27T02:30:00+01:00"]
+        frame = pd.DataFrame({"ts": values}, index=[4, 5])
+        converted = pd.Series(
+            [pd.Timestamp(value) for value in values], index=frame.index
+        )
+        real_to_datetime = pd.to_datetime
+
+        def object_conversion(value: Any, **kwargs: Any) -> Any:
+            if isinstance(value, pd.Series):
+                return converted
+            return real_to_datetime(value, **kwargs)
+
+        with patch(
+            "superset.commands.dataset.importers.v1.utils.pd.to_datetime",
+            side_effect=object_conversion,
+        ):
+            _convert_temporal_columns(frame, {"ts": DateTime()})
+        pd.testing.assert_series_equal(frame["ts"], converted.rename("ts"))
+
     def test_mixed_offsets_keep_day_first_format(self) -> None:
         from sqlalchemy import DateTime
 

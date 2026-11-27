@@ -42,6 +42,54 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
+@pytest.mark.parametrize("initial_context", [False, True])
+@pytest.mark.parametrize("execute_error", [False, True])
+@pytest.mark.parametrize("multi_table", [False, True])
+def test_on_connect_restores_context_without_results(
+    mocker: MockerFixture,
+    initial_context: bool,
+    execute_error: bool,
+    multi_table: bool,
+) -> None:
+    from superset.extensions.metadb import (
+        _executing_multi_table_query,
+        SupersetAPSWDialect,
+    )
+
+    raw_cursor = mocker.MagicMock()
+    raw_cursor._results = None
+    connection = mocker.MagicMock()
+    connection.cursor.return_value = raw_cursor
+    error = ValueError("statement failed")
+
+    def execute(operation: str, parameters: object = None) -> object:
+        assert _executing_multi_table_query.get() is multi_table
+        if execute_error:
+            raise error
+        return raw_cursor
+
+    raw_cursor.execute.side_effect = execute
+    SupersetAPSWDialect().on_connect()(connection)
+    token = _executing_multi_table_query.set(initial_context)
+    try:
+        cursor = connection.cursor()
+        statement = (
+            'SELECT * FROM "db.table1" JOIN "db.table2" ON 1 = 1'
+            if multi_table
+            else "SELECT 1"
+        )
+        if execute_error:
+            with pytest.raises(ValueError, match="statement failed") as raised:
+                cursor.execute(statement)
+            assert raised.value is error
+        else:
+            assert cursor.execute(statement) is raw_cursor
+        assert cursor._results is None
+        assert _executing_multi_table_query.get() is initial_context
+    finally:
+        _executing_multi_table_query.reset(token)
+
+
 @pytest.mark.parametrize(
     "cursor_mode", ["iterate", "fetchone", "fetchmany", "fetchall"]
 )
