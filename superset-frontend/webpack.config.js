@@ -707,18 +707,21 @@ if (isDevMode) {
   };
 }
 
-// To
-// e.g. npm run package-stats
 if (process.env.BUNDLE_ANALYZER) {
   config.plugins.push(new BundleAnalyzerPlugin({ analyzerMode: 'static' }));
   config.plugins.push(
     // this creates an HTML page with a sunburst diagram of dependencies.
     // you'll find it at superset/static/stats/statistics.html
     // note that the file is >100MB so it's in .gitignore
-    new Visualizer({
-      filename: path.join('..', 'stats', 'statistics.html'),
-      throwOnError: true,
-    }),
+    new Visualizer(
+      {
+        filename: path.join('..', 'stats', 'statistics.html'),
+        throwOnError: true,
+      },
+      {
+        chunkModules: false,
+      },
+    ),
   );
 }
 

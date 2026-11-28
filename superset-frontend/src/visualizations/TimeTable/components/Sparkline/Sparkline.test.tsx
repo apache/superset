@@ -26,94 +26,91 @@ const mockEntries = [
   { time: '2023-01-04', sales: 400 },
 ];
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('Sparkline', () => {
-  test('should render basic sparkline without time ratio', () => {
-    const column = {
-      key: 'test-sparkline',
-      colType: 'spark',
-      width: '200',
-      height: '40',
-    };
+test('should render basic sparkline without time ratio', () => {
+  const column = {
+    key: 'test-sparkline',
+    colType: 'spark',
+    width: '200',
+    height: '40',
+  };
 
-    const { container } = render(
-      <Sparkline valueField="sales" column={column} entries={mockEntries} />,
-    );
+  const { container } = render(
+    <Sparkline valueField="sales" column={column} entries={mockEntries} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should handle time ratio sparkline', () => {
-    const column = {
-      key: 'test-sparkline',
-      colType: 'spark',
-      timeRatio: 2,
-      width: '200',
-      height: '40',
-    };
+test('should handle time ratio sparkline', () => {
+  const column = {
+    key: 'test-sparkline',
+    colType: 'spark',
+    timeRatio: 2,
+    width: '200',
+    height: '40',
+  };
 
-    const { container } = render(
-      <Sparkline valueField="sales" column={column} entries={mockEntries} />,
-    );
+  const { container } = render(
+    <Sparkline valueField="sales" column={column} entries={mockEntries} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should handle string time ratio', () => {
-    const column = {
-      key: 'test-sparkline',
-      colType: 'spark',
-      timeRatio: '1',
-      width: '200',
-      height: '40',
-    };
+test('should handle string time ratio', () => {
+  const column = {
+    key: 'test-sparkline',
+    colType: 'spark',
+    timeRatio: '1',
+    width: '200',
+    height: '40',
+  };
 
-    const { container } = render(
-      <Sparkline valueField="sales" column={column} entries={mockEntries} />,
-    );
+  const { container } = render(
+    <Sparkline valueField="sales" column={column} entries={mockEntries} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should use default dimensions when not specified', () => {
-    const column = {
-      key: 'test-sparkline',
-      colType: 'spark',
-    };
+test('should use default dimensions when not specified', () => {
+  const column = {
+    key: 'test-sparkline',
+    colType: 'spark',
+  };
 
-    const { container } = render(
-      <Sparkline valueField="sales" column={column} entries={mockEntries} />,
-    );
+  const { container } = render(
+    <Sparkline valueField="sales" column={column} entries={mockEntries} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should handle yAxis bounds configuration', () => {
-    const column = {
-      key: 'test-sparkline',
-      colType: 'spark',
-      yAxisBounds: [0, 500] as [number, number],
-      showYAxis: true,
-    };
+test('should handle yAxis bounds configuration', () => {
+  const column = {
+    key: 'test-sparkline',
+    colType: 'spark',
+    yAxisBounds: [0, 500] as [number, number],
+    showYAxis: true,
+  };
 
-    const { container } = render(
-      <Sparkline valueField="sales" column={column} entries={mockEntries} />,
-    );
+  const { container } = render(
+    <Sparkline valueField="sales" column={column} entries={mockEntries} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should handle invalid yAxis bounds', () => {
-    const column = {
-      key: 'test-sparkline',
-      colType: 'spark',
-      yAxisBounds: [] as null[],
-    };
+test('should handle invalid yAxis bounds', () => {
+  const column = {
+    key: 'test-sparkline',
+    colType: 'spark',
+    yAxisBounds: [] as null[],
+  };
 
-    const { container } = render(
-      <Sparkline valueField="sales" column={column} entries={mockEntries} />,
-    );
+  const { container } = render(
+    <Sparkline valueField="sales" column={column} entries={mockEntries} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
 });
