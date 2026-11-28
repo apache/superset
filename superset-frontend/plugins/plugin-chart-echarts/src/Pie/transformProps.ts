@@ -149,12 +149,18 @@ export function getArcBoundingBox(
 const MAX_RADIUS_SCALE = 2;
 
 export interface PieLayout {
-  /** Pie origin in px, relative to the padded series rect. */
-  center: [number, number];
+  /**
+   * Pie origin relative to the padded series rect: px, or percent strings
+   * when the chart size is unknown.
+   */
+  center: [number, number] | [string, string];
   /** Inner/outer radius percent strings, scaled to fit the arc's box. */
   radius: [string, string];
-  /** Pie origin in px, in container coordinates (for the graphic component). */
-  totalAnchor: { x: number; y: number };
+  /**
+   * Pie origin in px, in container coordinates (for the graphic component),
+   * or null when the chart size is unknown.
+   */
+  totalAnchor: { x: number; y: number } | null;
 }
 
 /**
@@ -163,6 +169,10 @@ export interface PieLayout {
  * (so partial arcs reclaim the space a full circle would leave empty) and
  * shifts the pie origin so that box is centered. A full circle reproduces
  * ECharts' default layout exactly.
+ *
+ * Without a chart size (e.g. the Cartodiagram, which transforms props once
+ * and renders them at a zoom-dependent size), the layout assumes a square
+ * rect and returns a percentage center that ECharts resolves at render time.
  */
 export function getPieLayout({
   width,
@@ -174,8 +184,8 @@ export function getPieLayout({
   innerRadius,
   outerRadius,
 }: {
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
   padding: { top: number; bottom: number; left: number; right: number };
   startAngle: number;
   sweptAngle: number;
@@ -183,8 +193,14 @@ export function getPieLayout({
   innerRadius: number;
   outerRadius: number;
 }): PieLayout {
-  const rectWidth = Math.max(width - padding.left - padding.right, 1);
-  const rectHeight = Math.max(height - padding.top - padding.bottom, 1);
+  // A 100x100 rect makes the px results double as percentages of the rect.
+  const hasSize = !!width && width > 0 && !!height && height > 0;
+  const rectWidth = hasSize
+    ? Math.max(width - padding.left - padding.right, 1)
+    : 100;
+  const rectHeight = hasSize
+    ? Math.max(height - padding.top - padding.bottom, 1)
+    : 100;
   const innerRatio = donut ? innerRadius / Math.max(outerRadius, 1) : 0;
   const box = getArcBoundingBox(startAngle, sweptAngle, innerRatio);
   const boxWidth = box.maxX - box.minX;
@@ -202,6 +218,18 @@ export function getPieLayout({
   const round = (value: number) => Math.round(value * 100) / 100;
   const centerX = rectWidth / 2 - ((box.minX + box.maxX) / 2) * outerPx;
   const centerY = rectHeight / 2 + ((box.minY + box.maxY) / 2) * outerPx;
+  const radius: [string, string] = [
+    `${round(donut ? innerRadius * scale : 0)}%`,
+    `${round(outerRadius * scale)}%`,
+  ];
+
+  if (!hasSize) {
+    return {
+      center: [`${round(centerX)}%`, `${round(centerY)}%`],
+      radius,
+      totalAnchor: null,
+    };
+  }
 
   // The pie origin is the natural spot for the "Total" text (the middle of
   // the hole, or the flat edge of a half donut), but for narrow arcs it can
@@ -224,10 +252,7 @@ export function getPieLayout({
 
   return {
     center: [round(centerX), round(centerY)],
-    radius: [
-      `${round(donut ? innerRadius * scale : 0)}%`,
-      `${round(outerRadius * scale)}%`,
-    ],
+    radius,
     totalAnchor: {
       x: round(padding.left + anchorX),
       y: round(padding.top + anchorY),
@@ -664,11 +689,19 @@ export default function transformProps(
           // Donut: center the text on the pie origin (the middle of the
           // hole, or the flat edge of a partial arc). Pie: park it at the
           // top center of the padded rect so it doesn't overlap the slices.
-          x: donut
-            ? pieLayout.totalAnchor.x
-            : chartPadding.left +
-              (width - chartPadding.left - chartPadding.right) / 2,
-          y: donut ? pieLayout.totalAnchor.y : chartPadding.top,
+          // Without a chart size, let ECharts center it in the container.
+          ...(pieLayout.totalAnchor
+            ? {
+                x: donut
+                  ? pieLayout.totalAnchor.x
+                  : chartPadding.left +
+                    (width - chartPadding.left - chartPadding.right) / 2,
+                y: donut ? pieLayout.totalAnchor.y : chartPadding.top,
+              }
+            : {
+                left: 'center',
+                top: donut ? 'middle' : chartPadding.top,
+              }),
           style: {
             text: t('Total: %s', numberFormatter(totalValue)),
             align: 'center',
