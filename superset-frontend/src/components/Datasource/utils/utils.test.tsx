@@ -18,7 +18,7 @@
  */
 
 import { tn } from '@apache-superset/core/translation';
-import { updateColumns } from '.';
+import { describeColumnSync, updateColumns } from '.';
 
 let addSuccessToast: jest.Mock;
 
@@ -205,4 +205,75 @@ test('should not remove columns with expressions', () => {
       ),
     ],
   ]);
+});
+
+test('updateColumns does not count a kept temporal flag as a modification', () => {
+  const addSuccessToast = jest.fn();
+  // The column was marked temporal in the dataset; the source does not report
+  // it as temporal, and the merge keeps the flag, so nothing changes.
+  const prevCols = [{ column_name: 'ds', type: 'VARCHAR', is_dttm: true }];
+  const newCols = [{ column_name: 'ds', type: 'VARCHAR', is_dttm: false }];
+  const result = updateColumns(prevCols, newCols, addSuccessToast);
+  expect(result.modified).toEqual([]);
+  expect(result.finalColumns).toEqual(prevCols);
+  expect(addSuccessToast).not.toHaveBeenCalled();
+});
+
+test('updateColumns does not count a null temporal flag as a modification', () => {
+  const addSuccessToast = jest.fn();
+  const prevCols = [{ column_name: 'num', type: 'BIGINT', is_dttm: false }];
+  const newCols = [
+    { column_name: 'num', type: 'BIGINT', is_dttm: null as unknown as boolean },
+  ];
+  const result = updateColumns(prevCols, newCols, addSuccessToast);
+  expect(result.modified).toEqual([]);
+  expect(addSuccessToast).not.toHaveBeenCalled();
+});
+
+test('describeColumnSync lists added, removed and retyped columns', () => {
+  const prevCols = [
+    { column_name: 'kept', type: 'BIGINT', is_dttm: false },
+    { column_name: 'gone', type: 'VARCHAR', is_dttm: false },
+    { column_name: 'retyped', type: 'VARCHAR', is_dttm: false },
+  ];
+  const newCols = [
+    { column_name: 'kept', type: 'BIGINT', is_dttm: false },
+    { column_name: 'retyped', type: 'DATE', is_dttm: false },
+    { column_name: 'fresh', type: 'BIGINT', is_dttm: false },
+  ];
+  expect(describeColumnSync(prevCols, newCols)).toEqual({
+    lines: [
+      'Added: fresh',
+      'Removed: gone',
+      'Changed: retyped (VARCHAR → DATE)',
+    ],
+    removesMainDttmCol: false,
+  });
+});
+
+test('describeColumnSync labels a column the source newly reports as temporal', () => {
+  const prevCols = [{ column_name: 'ds', type: 'DATE', is_dttm: false }];
+  const newCols = [{ column_name: 'ds', type: 'DATE', is_dttm: true }];
+  expect(describeColumnSync(prevCols, newCols).lines).toEqual([
+    'Changed: ds (now temporal)',
+  ]);
+});
+
+test('describeColumnSync warns when the default datetime column is removed', () => {
+  const prevCols = [{ column_name: 'ds', type: 'DATE', is_dttm: true }];
+  expect(describeColumnSync(prevCols, [], 'ds')).toEqual({
+    lines: [
+      'Removed: ds',
+      'The default datetime column "ds" will be removed. Choose another default datetime column.',
+    ],
+    removesMainDttmCol: true,
+  });
+});
+
+test('describeColumnSync has no lines when the source matches the dataset', () => {
+  const cols = [{ column_name: 'ds', type: 'DATE', is_dttm: true }];
+  expect(describeColumnSync(cols, cols, 'ds')).toEqual({
+    lines: [],
+    removesMainDttmCol: false,
+  });
 });

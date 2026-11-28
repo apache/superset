@@ -25,13 +25,13 @@ import {
 } from 'react';
 import { nanoid } from 'nanoid';
 import { SupersetClient } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import rison from 'rison';
 import type { ColumnObject } from 'src/features/datasets/types';
 
 // Type definitions
 
-interface ColumnMetadata {
+export interface ColumnMetadata {
   id?: string | number;
   column_name: string;
   is_dttm?: boolean;
@@ -53,6 +53,11 @@ interface ColumnChanges {
   modified: string[];
   removed: string[];
   finalColumns: ColumnMetadata[];
+}
+
+interface ColumnSyncDescription {
+  lines: string[];
+  removesMainDttmCol: boolean;
 }
 
 interface DatasourceForSync {
@@ -168,7 +173,9 @@ export function updateColumns(
       columnChanges.added.push(col.column_name);
     } else if (
       currentCol.type !== col.type ||
-      currentCol.is_dttm !== col.is_dttm
+      // The temporal flag is kept once set (see below), so only a flag the
+      // source newly reports changes the column.
+      (!currentCol.is_dttm && col.is_dttm)
     ) {
       // modified column
       columnChanges.finalColumns.push({
@@ -220,6 +227,54 @@ export function updateColumns(
     );
   }
   return columnChanges;
+}
+
+/**
+ * Describes what syncing `prevCols` to the source's `newCols` would change,
+ * as the display lines of the sync preview.
+ *
+ * @param prevCols - The dataset's columns before the sync
+ * @param newCols - The columns the source reports
+ * @param mainDttmCol - The dataset's default datetime column, if any
+ * @returns The lines to show, and whether the sync removes `mainDttmCol`
+ */
+export function describeColumnSync(
+  prevCols: ColumnMetadata[],
+  newCols: ColumnMetadata[],
+  mainDttmCol?: string | null,
+): ColumnSyncDescription {
+  const changes = updateColumns(prevCols, newCols, () => {});
+  const typesByName = (cols: ColumnMetadata[]) =>
+    new Map(cols.map(col => [col.column_name, col.type]));
+  const oldTypes = typesByName(prevCols);
+  const newTypes = typesByName(newCols);
+  // One display label per modified column. `updateColumns` reports a column
+  // as modified for a new type or a newly temporal flag only, so an unchanged
+  // type means the flag.
+  // Built outside `t()`: string extraction skips a nested `t()` call.
+  const modifiedLabels = changes.modified.map(name =>
+    oldTypes.get(name) === newTypes.get(name)
+      ? t('%s (now temporal)', name)
+      : t(
+          '%s (%s → %s)',
+          name,
+          oldTypes.get(name) ?? '?',
+          newTypes.get(name) ?? '?',
+        ),
+  );
+  const removesMainDttmCol =
+    !!mainDttmCol && changes.removed.includes(mainDttmCol);
+  const lines = [
+    changes.added.length > 0 && t('Added: %s', changes.added.join(', ')),
+    changes.removed.length > 0 && t('Removed: %s', changes.removed.join(', ')),
+    modifiedLabels.length > 0 && t('Changed: %s', modifiedLabels.join(', ')),
+    removesMainDttmCol &&
+      t(
+        'The default datetime column "%s" will be removed. Choose another default datetime column.',
+        mainDttmCol,
+      ),
+  ].filter((line): line is string => !!line);
+  return { lines, removesMainDttmCol };
 }
 
 /**

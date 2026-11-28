@@ -98,6 +98,8 @@ import Fieldset from '../Fieldset';
 import Field from '../Field';
 import {
   clearDanglingPartitionMapping,
+  type ColumnMetadata,
+  describeColumnSync,
   fetchSyncedColumns,
   updateColumns,
 } from '../../utils';
@@ -1136,6 +1138,16 @@ function DatasourceEditor({
     return savedCount + (hasDefaultsSaved ? 0 : DEFAULT_FOLDERS_COUNT);
   });
   const [metadataLoading, setMetadataLoading] = useState(false);
+  // Fetched source columns awaiting Apply/Discard; the diff is computed at render.
+  const [pendingSync, setPendingSync] = useState<ColumnMetadata[] | null>(null);
+  // How the next `syncMetadata` call runs: as a preview, or from fetched columns.
+  const previewNextSync = useRef(false);
+  const prefetchedColumns = useRef<ColumnMetadata[] | null>(null);
+  // Lets edit mode cancel a preview without cancelling a table-change sync.
+  const previewRequest = useRef<AbortController | null>(null);
+  const syncButtonRef = useRef<HTMLElement>(null);
+  const applyButtonRef = useRef<HTMLElement>(null);
+  const previewWasOpen = useRef(false);
   const [activeTabKey, setActiveTabKey] = useState(TABS_KEYS.SOURCE);
   const [datasourceType, setDatasourceType] = useState(
     propsDatasource.sql
@@ -1338,6 +1350,16 @@ function DatasourceEditor({
   }, [datasource]);
 
   const onChangeEditMode = useCallback(() => {
+    if (!isEditMode) {
+      // Editing the source can change which table the preview was fetched
+      // from, so a preview, open or still loading, no longer applies.
+      if (previewRequest.current) {
+        previewRequest.current.abort();
+        previewRequest.current = null;
+        setMetadataLoading(false);
+      }
+      setPendingSync(null);
+    }
     setIsEditing(!isEditMode);
     setIsEditMode(prev => !prev);
   }, [isEditMode, setIsEditing]);
@@ -1813,8 +1835,19 @@ function DatasourceEditor({
 
     setMetadataLoading(true);
 
+    // Read once and reset, so a later sync (e.g. after a table change) runs as
+    // a plain sync.
+    const preview = previewNextSync.current;
+    const prefetched = prefetchedColumns.current;
+    previewNextSync.current = false;
+    prefetchedColumns.current = null;
+    previewRequest.current = preview
+      ? abortControllers.current.syncMetadata
+      : null;
+
     try {
-      const newCols = await fetchSyncedColumns(datasource, signal);
+      const newCols =
+        prefetched ?? (await fetchSyncedColumns(datasource, signal));
 
       // Everything past the `await` reads the refs rather than the closure;
       // see their declaration.
@@ -1824,8 +1857,32 @@ function DatasourceEditor({
       const columnChanges = updateColumns(
         liveColumns,
         newCols,
-        addSuccessToast,
+        // A preview reports its changes in the editor; toasts come on Apply.
+        preview ? () => {} : addSuccessToast,
       );
+      if (preview) {
+        if (
+          columnChanges.added.length ||
+          columnChanges.removed.length ||
+          columnChanges.modified.length
+        ) {
+          setPendingSync(newCols);
+          setMetadataLoading(false);
+          return;
+        }
+        // Nothing to review, so nothing is applied: the merge below would
+        // still reorder the columns to the source's order. A dangling
+        // partition mapping is the exception, because the merge is what
+        // clears it.
+        if (!clearDanglingPartitionMapping(liveDatasource, liveColumns)) {
+          if (liveDatasource.id !== undefined) {
+            clearDatasetCache(liveDatasource.id);
+          }
+          addSuccessToast(t('Metadata has been synced'));
+          setMetadataLoading(false);
+          return;
+        }
+      }
       // Merging against the live rows means a column deleted this session but
       // still in the source comes back as "added", with a fresh id -- and the
       // save then tries to create a name the dataset already has ("One or more
@@ -2231,6 +2288,74 @@ function DatasourceEditor({
     [database?.error, renderOpenInSqlLabLink],
   );
 
+  const applyPendingSync = useCallback(() => {
+    prefetchedColumns.current = pendingSync;
+    setPendingSync(null);
+    syncMetadata();
+  }, [pendingSync, syncMetadata]);
+
+  useEffect(() => {
+    if (pendingSync) {
+      applyButtonRef.current?.focus();
+    } else if (previewWasOpen.current) {
+      syncButtonRef.current?.focus();
+    }
+    previewWasOpen.current = !!pendingSync;
+  }, [pendingSync]);
+
+  const renderSyncPreview = useCallback(() => {
+    if (!pendingSync) {
+      return null;
+    }
+    const { lines, removesMainDttmCol } = describeColumnSync(
+      currentColumns,
+      pendingSync,
+      datasource.main_dttm_col,
+    );
+
+    return (
+      <Alert
+        type={removesMainDttmCol ? 'warning' : 'info'}
+        closable={false}
+        data-test="sync-preview"
+        description={
+          <Flex vertical gap={(theme?.sizeUnit ?? 4) * 2}>
+            <div>
+              {lines.map(line => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+            <Flex gap={theme?.sizeUnit ?? 4}>
+              <Button
+                ref={applyButtonRef}
+                buttonSize="small"
+                buttonStyle="primary"
+                onClick={applyPendingSync}
+              >
+                {t('Apply')}
+              </Button>
+              <Button
+                buttonSize="small"
+                buttonStyle="secondary"
+                onClick={() => setPendingSync(null)}
+              >
+                {t('Discard')}
+              </Button>
+            </Flex>
+          </Flex>
+        }
+      >
+        {t('Review the changes from the source before applying them')}
+      </Alert>
+    );
+  }, [
+    pendingSync,
+    currentColumns,
+    datasource.main_dttm_col,
+    theme,
+    applyPendingSync,
+  ]);
+
   const renderDefaultColumnSettings = useCallback(() => {
     const allColumns = [...databaseColumns, ...calculatedColumns];
 
@@ -2251,6 +2376,10 @@ function DatasourceEditor({
         value: col.column_name,
         label: col.verbose_name || col.column_name,
       }));
+
+    const mainDttmColMissing =
+      !!datasource.main_dttm_col &&
+      !allColumns.some(col => col.column_name === datasource.main_dttm_col);
 
     return (
       <DefaultColumnSettingsContainer data-test="default-column-settings">
@@ -2279,6 +2408,14 @@ function DatasourceEditor({
               allowClear
               data-test="default-datetime-column-select"
             />
+            {mainDttmColMissing && (
+              <Alert type="warning" closable={false}>
+                {t(
+                  'The default datetime column "%s" is not a column of this dataset. Choose another default datetime column.',
+                  datasource.main_dttm_col,
+                )}
+              </Alert>
+            )}
           </Flex>
           <Flex vertical gap={theme?.sizeUnit ?? 4}>
             <FieldLabelWithTooltip>
@@ -3194,11 +3331,15 @@ function DatasourceEditor({
             <ColumnButtonWrapper>
               <StyledButtonWrapper>
                 <Button
+                  ref={syncButtonRef}
                   buttonSize="small"
                   buttonStyle="tertiary"
-                  onClick={syncMetadata}
+                  onClick={() => {
+                    previewNextSync.current = true;
+                    syncMetadata();
+                  }}
                   className="sync-from-source"
-                  disabled={isEditMode}
+                  disabled={isEditMode || metadataLoading || !!pendingSync}
                 >
                   <Icons.DatabaseOutlined iconSize="m" />
                   {t('Sync columns from source')}
@@ -3212,6 +3353,7 @@ function DatasourceEditor({
               style={{ marginBottom: 16, width: 300 }}
               allowClear
             />
+            {renderSyncPreview()}
             <ColumnCollectionTable
               className="columns-table"
               columns={databaseColumns}
@@ -3357,6 +3499,8 @@ function DatasourceEditor({
       renderMetricCollection,
       databaseColumns,
       renderDefaultColumnSettings,
+      renderSyncPreview,
+      pendingSync,
       syncMetadata,
       isEditMode,
       datasource,

@@ -315,11 +315,19 @@ msgid "%s %s"
 msgstr ""
 
 #, python-format
+msgid "%s (%s → %s)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
 msgstr ""
 
 #, python-format
 msgid "%s (copy from %s)"
+msgstr ""
+
+#, python-format
+msgid "%s (now temporal)"
 msgstr ""
 
 #, python-format
@@ -1570,6 +1578,10 @@ msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
 msgstr[0] ""
 msgstr[1] ""
+
+#, python-format
+msgid "Added: %s"
+msgstr ""
 
 msgid "Additional Parameters"
 msgstr ""
@@ -3285,6 +3297,10 @@ msgstr ""
 
 #, python-format
 msgid "Changed time range to '%s'"
+msgstr ""
+
+#, python-format
+msgid "Changed: %s"
 msgstr ""
 
 msgid "Changes saved."
@@ -12005,6 +12021,10 @@ msgstr ""
 msgid "Removed filter on '%s'"
 msgstr ""
 
+#, python-format
+msgid "Removed: %s"
+msgstr ""
+
 msgid "Rename tab"
 msgstr ""
 
@@ -12356,6 +12376,9 @@ msgid "Reverse Lat & Long"
 msgstr ""
 
 msgid "Reverse lat/long "
+msgstr ""
+
+msgid "Review the changes from the source before applying them"
 msgstr ""
 
 msgid "Revoke"
@@ -15116,6 +15139,18 @@ msgid "The datasource is too large to query."
 msgstr ""
 
 msgid "The default catalog that should be used for the connection."
+msgstr ""
+
+#, python-format
+msgid ""
+"The default datetime column \"%s\" is not a column of this dataset. "
+"Choose another default datetime column."
+msgstr ""
+
+#, python-format
+msgid ""
+"The default datetime column \"%s\" will be removed. Choose another "
+"default datetime column."
 msgstr ""
 
 msgid "The default schema that should be used for the connection."
