@@ -43,6 +43,9 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { getPercentFormatter } from '../utils/formatters';
+import { OpacityEnum } from '../constants';
+import { getColtypesMapping } from '../utils/series';
+import { getSelectedHeatmapKeys, heatmapCellKey } from './crossFilter';
 
 type EChartsOption = ComposeOption<HeatmapSeriesOption>;
 
@@ -178,8 +181,17 @@ export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
   const refs: Refs = {};
-  const { width, height, formData, queriesData, datasource, theme } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    datasource,
+    theme,
+    hooks = {},
+    filterState,
+    emitCrossFilters = false,
+  } = chartProps;
   const {
     bottomMargin,
     linearColorScheme,
@@ -295,10 +307,15 @@ export default function transformProps(
     sortedYAxisValues.map((value, index) => [value, index]),
   );
 
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const selectedKeys = getSelectedHeatmapKeys(filterState?.selectedValues);
+  const hasSelection = selectedKeys.length > 0;
+
   const series: HeatmapSeriesOption[] = [
     {
       name: metricLabel,
       type: 'heatmap',
+      cursor: emitCrossFilters ? 'pointer' : 'default',
       data: data.flatMap(row => {
         const xValue = row[xAxisColumnName];
         const yValue = row[yAxisColumnName];
@@ -325,12 +342,30 @@ export default function transformProps(
           return [];
         }
 
-        // Include rank as 4th dimension when normalized is enabled
-        // This allows visualMap to use dimension: 3 to color by rank percentile
-        if (normalized) {
-          return [[xIndex, yIndex, metricValue, rankValue]];
-        }
-        return [[xIndex, yIndex, metricValue]];
+        const cellKey = heatmapCellKey(xValue, yValue);
+        const isSelected = selectedKeys.includes(cellKey);
+        const cellValue = normalized
+          ? [xIndex, yIndex, metricValue, rankValue]
+          : [xIndex, yIndex, metricValue];
+
+        return [
+          {
+            value: cellValue,
+            xValue,
+            yValue,
+            ...(hasSelection && {
+              itemStyle: isSelected
+                ? {
+                    opacity: OpacityEnum.NonTransparent,
+                    borderColor: theme.colorText,
+                    borderWidth: 2,
+                  }
+                : {
+                    opacity: OpacityEnum.SemiTransparent,
+                  },
+            }),
+          },
+        ];
       }) as any,
       label: {
         show: showValues,
@@ -458,5 +493,10 @@ export default function transformProps(
     width,
     height,
     formData,
+    onContextMenu: hooks.onContextMenu,
+    setDataMask: hooks.setDataMask,
+    filterState,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }

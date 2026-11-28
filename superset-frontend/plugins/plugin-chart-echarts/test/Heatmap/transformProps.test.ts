@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { Behavior, ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
   HeatmapChartProps,
@@ -24,6 +25,9 @@ import {
   SORT_Y_AXIS_NONE,
 } from '../../src/Heatmap/types';
 import transformProps from '../../src/Heatmap/transformProps';
+import EchartsHeatmapChartPlugin from '../../src/Heatmap';
+import { OpacityEnum } from '../../src/constants';
+import { heatmapCellKey } from '../../src/Heatmap/crossFilter';
 
 describe('Heatmap transformProps', () => {
   const baseFormData: HeatmapFormData = {
@@ -61,6 +65,7 @@ describe('Heatmap transformProps', () => {
   const createChartProps = (
     formDataOverrides: Partial<HeatmapFormData> = {},
     data: Record<string, any>[] = sparseData,
+    extra: Record<string, any> = {},
   ) =>
     new ChartProps({
       formData: { ...baseFormData, ...formDataOverrides },
@@ -74,6 +79,7 @@ describe('Heatmap transformProps', () => {
         },
       ],
       theme: supersetTheme,
+      ...extra,
     });
 
   test('should sort axes alphabetically in both directions', () => {
@@ -308,14 +314,15 @@ describe('Heatmap transformProps', () => {
 
     // Check that data points use indices (numbers starting from 0)
     seriesData.forEach((point: any) => {
-      expect(Array.isArray(point)).toBe(true);
-      expect(point.length).toBe(3);
+      const cellValue = point.value ?? point;
+      expect(Array.isArray(cellValue)).toBe(true);
+      expect(cellValue.length).toBe(3);
       // Indices should be numbers
-      expect(typeof point[0]).toBe('number');
-      expect(typeof point[1]).toBe('number');
+      expect(typeof cellValue[0]).toBe('number');
+      expect(typeof cellValue[1]).toBe('number');
       // Indices should be >= 0
-      expect(point[0]).toBeGreaterThanOrEqual(0);
-      expect(point[1]).toBeGreaterThanOrEqual(0);
+      expect(cellValue[0]).toBeGreaterThanOrEqual(0);
+      expect(cellValue[1]).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -373,17 +380,18 @@ describe('Heatmap transformProps', () => {
 
     // Check that data points have 4 dimensions when normalized
     seriesData.forEach((point: any) => {
-      expect(Array.isArray(point)).toBe(true);
-      expect(point.length).toBe(4);
+      const cellValue = point.value ?? point;
+      expect(Array.isArray(cellValue)).toBe(true);
+      expect(cellValue.length).toBe(4);
       // First two should be indices (numbers)
-      expect(typeof point[0]).toBe('number');
-      expect(typeof point[1]).toBe('number');
+      expect(typeof cellValue[0]).toBe('number');
+      expect(typeof cellValue[1]).toBe('number');
       // Third should be the metric value
-      expect(typeof point[2]).toBe('number');
+      expect(typeof cellValue[2]).toBe('number');
       // Fourth should be the rank value
-      expect(typeof point[3]).toBe('number');
-      expect(point[3]).toBeGreaterThanOrEqual(0);
-      expect(point[3]).toBeLessThanOrEqual(1);
+      expect(typeof cellValue[3]).toBe('number');
+      expect(cellValue[3]).toBeGreaterThanOrEqual(0);
+      expect(cellValue[3]).toBeLessThanOrEqual(1);
     });
 
     // visualMap should use dimension 3 (4th element) for coloring
@@ -398,7 +406,8 @@ describe('Heatmap transformProps', () => {
 
     // Each data point should be [xIndex, yIndex, metricValue]
     seriesData.forEach((point: any) => {
-      expect(point.length).toBe(3);
+      const cellValue = point.value ?? point;
+      expect(cellValue.length).toBe(3);
     });
 
     // visualMap should use dimension 2 (3rd element) for coloring
@@ -584,5 +593,154 @@ describe('Heatmap transformProps', () => {
     const tooltipHtml = tooltipFormatter(mockParams);
 
     expect(tooltipHtml).toContain('2021 (2)');
+  });
+
+  test('plugin metadata advertises Behavior.InteractiveChart and Behavior.DrillToDetail', () => {
+    const plugin = new EchartsHeatmapChartPlugin();
+    expect(plugin.metadata.behaviors).toContain(Behavior.InteractiveChart);
+    expect(plugin.metadata.behaviors).toContain(Behavior.DrillToDetail);
+  });
+
+  test('transformProps forwards onContextMenu and setDataMask hooks', () => {
+    const onContextMenu = jest.fn();
+    const setDataMask = jest.fn();
+    const chartProps = createChartProps({}, sparseData, {
+      hooks: { onContextMenu, setDataMask },
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+    expect(result.onContextMenu).toBe(onContextMenu);
+    expect(result.setDataMask).toBe(setDataMask);
+  });
+
+  test('cursor is pointer when emitCrossFilters is true and default when false', () => {
+    const chartPropsActive = createChartProps({}, sparseData, {
+      emitCrossFilters: true,
+    });
+    const resultActive = transformProps(chartPropsActive as HeatmapChartProps);
+    expect((resultActive.echartOptions.series as any)[0].cursor).toBe(
+      'pointer',
+    );
+
+    const chartPropsDefault = createChartProps({}, sparseData, {
+      emitCrossFilters: false,
+    });
+    const resultDefault = transformProps(
+      chartPropsDefault as HeatmapChartProps,
+    );
+    expect((resultDefault.echartOptions.series as any)[0].cursor).toBe(
+      'default',
+    );
+  });
+
+  test('applies visual selection styling when a cell is selected', () => {
+    const selectedKey = heatmapCellKey('Monday', 9);
+    const chartProps = createChartProps({}, sparseData, {
+      emitCrossFilters: true,
+      filterState: { selectedValues: [selectedKey] },
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    const selectedPoint = seriesData.find(
+      (d: any) => d.xValue === 'Monday' && d.yValue === 9,
+    );
+    const unselectedPoint = seriesData.find(
+      (d: any) => d.xValue === 'Monday' && d.yValue === 14,
+    );
+
+    expect(selectedPoint.itemStyle).toEqual({
+      opacity: OpacityEnum.NonTransparent,
+      borderColor: supersetTheme.colorText,
+      borderWidth: 2,
+    });
+    expect(unselectedPoint.itemStyle).toEqual({
+      opacity: OpacityEnum.SemiTransparent,
+    });
+  });
+
+  test('does not apply dimmed opacity when selectedValues is empty or cleared', () => {
+    const chartProps = createChartProps({}, sparseData, {
+      emitCrossFilters: true,
+      filterState: { selectedValues: [] },
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    seriesData.forEach((d: any) => {
+      expect(d.itemStyle).toBeUndefined();
+    });
+  });
+
+  test('normalized mode works with visual selection', () => {
+    const dataWithRank = [
+      { day_of_week: 'Monday', hour: 9, count: 10, rank: 0.33 },
+      { day_of_week: 'Monday', hour: 14, count: 15, rank: 0.67 },
+      { day_of_week: 'Wednesday', hour: 11, count: 8, rank: 0.17 },
+      { day_of_week: 'Friday', hour: 16, count: 20, rank: 1.0 },
+    ];
+    const selectedKey = heatmapCellKey('Monday', 9);
+    const chartProps = createChartProps({ normalized: true }, dataWithRank, {
+      emitCrossFilters: true,
+      filterState: { selectedValues: [selectedKey] },
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    expect((result.echartOptions.visualMap as any).dimension).toBe(3);
+
+    const selectedPoint = seriesData.find(
+      (d: any) => d.xValue === 'Monday' && d.yValue === 9,
+    );
+    const unselectedPoint = seriesData.find(
+      (d: any) => d.xValue === 'Monday' && d.yValue === 14,
+    );
+
+    expect(selectedPoint.value).toEqual([0, 0, 10, 0.33]);
+    expect(selectedPoint.itemStyle).toEqual({
+      opacity: OpacityEnum.NonTransparent,
+      borderColor: supersetTheme.colorText,
+      borderWidth: 2,
+    });
+    expect(unselectedPoint.itemStyle).toEqual({
+      opacity: OpacityEnum.SemiTransparent,
+    });
+  });
+
+  test('formats temporal axis values using getTimeFormatter for temporal columns', () => {
+    const epoch1 = Date.parse('2024-01-01T00:00:00.000Z');
+    const epoch2 = Date.parse('2024-02-01T00:00:00.000Z');
+    const temporalData = [
+      { order_date: epoch1, hour: 9, count: 10 },
+      { order_date: epoch2, hour: 10, count: 20 },
+    ];
+    const chartProps = createChartProps(
+      {
+        xAxis: 'order_date',
+        xAxisTimeFormat: '%Y-%m',
+      },
+      temporalData,
+    );
+    (chartProps as any).queriesData[0].colnames = [
+      'order_date',
+      'hour',
+      'count',
+    ];
+    (chartProps as any).queriesData[0].coltypes = [
+      GenericDataType.Temporal,
+      GenericDataType.Numeric,
+      GenericDataType.Numeric,
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const xAxisFormatter = (result.echartOptions.xAxis as any).axisLabel
+      .formatter;
+    expect(typeof xAxisFormatter).toBe('function');
+    expect(xAxisFormatter(epoch1)).toBe('2024-01');
+    expect(xAxisFormatter(epoch2)).toBe('2024-02');
+    expect(result.coltypeMapping).toEqual({
+      order_date: GenericDataType.Temporal,
+      hour: GenericDataType.Numeric,
+      count: GenericDataType.Numeric,
+    });
   });
 });
