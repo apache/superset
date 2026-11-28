@@ -773,10 +773,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # keep using the ALERT_REPORTS_EXECUTORS resolution.
     # @lifecycle: development
     "ALERT_REPORT_DYNAMIC_EXECUTOR": False,
-    # Enables translation of user-authored asset metadata (chart names,
-    # dashboard titles, axis/metric labels) via the configurable
-    # ``TRANSLATION_HOOK``. Only takes effect when more than one language is
-    # configured in ``LANGUAGES``. See SIP-161.
+    # Enables translation of user-authored asset metadata (chart names and
+    # dashboard titles, plus SQL-templated strings wrapped in ``{{ i18n() }}``)
+    # via the configurable ``TRANSLATION_HOOK``. Only takes effect when more
+    # than one language is configured in ``LANGUAGES``. See SIP-161.
     # @lifecycle: development
     "ENABLE_I18N_ASSET_TRANSLATIONS": False,
     # Enables experimental tabs UI for Alerts and Reports
