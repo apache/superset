@@ -43,6 +43,7 @@ from superset.utils.currency import (
     detect_currency_from_df,
     has_auto_currency_in_column_config,
 )
+from superset.utils.timing_metrics import timed
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -214,7 +215,8 @@ def _get_full_with_timing(
 ) -> tuple[dict[str, Any], QueryAcquisitionTiming, int]:
     acquired = query_context.get_df_payload_result(query_obj, force_cached=force_cached)
     payload_assembly_start_ns = time.perf_counter_ns()
-    payload = _materialize_full_payload(query_context, query_obj, acquired.payload)
+    with timed("chart_data.query.materialize"):
+        payload = _materialize_full_payload(query_context, query_obj, acquired.payload)
     payload_assembly_ns = max(0, time.perf_counter_ns() - payload_assembly_start_ns)
     return payload, acquired.timing, payload_assembly_ns
 

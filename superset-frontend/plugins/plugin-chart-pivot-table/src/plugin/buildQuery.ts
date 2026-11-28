@@ -26,6 +26,7 @@ import {
   QueryFormOrderBy,
   TimeGranularity,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Groupby, PivotTableQueryFormData } from '../types';
 import { getResultAggregation } from './resultAggregation';
 import buildGroupbyCombinations, {
@@ -58,6 +59,9 @@ function getQueryColumns(
         sqlExpression: col,
         label: col,
         expressionType: 'SQL',
+        ...(formData.datasource?.endsWith('__semantic_view')
+          ? { isColumnReference: true }
+          : {}),
       } as AdhocColumn;
     }
     return col;
@@ -66,6 +70,12 @@ function getQueryColumns(
 
 export default function buildQuery(formData: PivotTableQueryFormData) {
   const { extra_form_data } = formData;
+  const isSemanticView = formData.datasource?.endsWith('__semantic_view');
+  const requestedLimit = Number(formData.row_limit);
+  const semanticRowLimit =
+    Number.isInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, 10000)
+      : 10000;
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
 
@@ -97,6 +107,13 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     ensureIsArray(formData.metrics),
   );
   const resultAggregation = getResultAggregation(formData.aggregateFunction);
+  if (isSemanticView && resultAggregation) {
+    throw new Error(
+      t(
+        'Result aggregation is not supported for Pivot Tables on semantic views. Set Aggregation function to "Use metric definition".',
+      ),
+    );
+  }
   const groupingSets =
     additive || resultAggregation
       ? undefined
@@ -120,6 +137,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     return [
       {
         ...baseQueryObject,
+        ...(isSemanticView ? { row_limit: semanticRowLimit } : {}),
         orderby: orderBy,
         columns: fullColumns,
         ...(groupingSets ? { grouping_sets: groupingSets } : {}),

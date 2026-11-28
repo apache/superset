@@ -126,6 +126,12 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
   'resultsGridHeaderFontSize',
   'resultsGridBorderRadius',
   'resultsGridNoStriping',
+
+  // Login page tokens
+  'loginPageBackgroundImageUrl',
+  'loginFormBrandLogoUrl',
+  'loginPageBackgroundOverlayColor',
+  'loginPageBackgroundBlur',
 ]);
 
 /**

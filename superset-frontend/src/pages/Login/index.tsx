@@ -19,7 +19,7 @@
 
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { css } from '@apache-superset/core/theme';
+import { css, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Flex,
@@ -39,8 +39,14 @@ import {
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
+import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { RoutePaths } from 'src/views/routePaths';
-import { StyledCard, StyledLabel } from './styles';
+import {
+  StyledBackground,
+  StyledBrandLogo,
+  StyledCard,
+  StyledLabel,
+} from './styles';
 
 type OAuthProvider = {
   name: string;
@@ -68,6 +74,7 @@ enum AuthType {
 }
 
 export default function Login() {
+  const theme = useTheme();
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
@@ -155,135 +162,170 @@ export default function Login() {
   };
 
   return (
-    <Flex
-      justify="center"
-      align="center"
-      data-test="login-form"
-      css={css`
-        width: 100%;
-        height: calc(100vh - 200px);
-      `}
-    >
-      <StyledCard title={t('Sign in')} padded>
-        {authType === AuthType.AuthOID && (
-          <Flex justify="center" vertical gap="middle">
-            <Form layout="vertical" requiredMark="optional" form={form}>
-              {providers.map((provider: OIDProvider) => (
-                <Form.Item<LoginForm>>
-                  <Button
-                    href={buildProviderLoginUrl(provider.name)}
-                    block
-                    iconPosition="start"
-                    icon={getAuthIconElement(provider.name)}
-                  >
-                    {t('Sign in with')} {capitalize(provider.name)}
-                  </Button>
-                </Form.Item>
-              ))}
-            </Form>
-          </Flex>
-        )}
-        {(authType === AuthType.AuthOauth ||
-          authType === AuthType.AuthSAML) && (
-          <Flex justify="center" gap={0} vertical>
-            <Form layout="vertical" requiredMark="optional" form={form}>
-              {providers.map((provider: OAuthProvider) => (
-                <Form.Item<LoginForm>>
-                  <Button
-                    href={buildProviderLoginUrl(provider.name)}
-                    block
-                    iconPosition="start"
-                    icon={getAuthIconElement(provider.name)}
-                  >
-                    {t('Sign in with')} {capitalize(provider.name)}
-                  </Button>
-                </Form.Item>
-              ))}
-            </Form>
-          </Flex>
-        )}
-
-        {(authType === AuthType.AuthDB || authType === AuthType.AuthLDAP) && (
-          <Flex justify="center" vertical gap="middle">
-            <Typography.Text type="secondary">
-              {t('Enter your login and password below:')}
-            </Typography.Text>
-            <Form
-              layout="vertical"
-              requiredMark="optional"
-              form={form}
-              onFinish={onFinish}
-            >
-              <Form.Item<LoginForm>
-                label={<StyledLabel>{t('Username:')}</StyledLabel>}
-                name="username"
-                rules={[
-                  { required: true, message: t('Please enter your username') },
-                ]}
-              >
-                <Input
-                  autoFocus
-                  autoComplete="username"
-                  prefix={<Icons.UserOutlined iconSize="l" />}
-                  data-test="username-input"
+    <>
+      <StyledBackground />
+      <Flex
+        justify="center"
+        align="center"
+        data-test="login-form"
+        css={css`
+          width: 100%;
+          height: calc(100vh - 200px);
+        `}
+      >
+        <StyledCard
+          padded
+          title={
+            <Flex vertical align="start" gap="middle">
+              {theme.loginFormBrandLogoUrl && (
+                <StyledBrandLogo
+                  src={ensureStaticPrefix(theme.loginFormBrandLogoUrl)}
+                  alt={theme.brandLogoAlt || 'Apache Superset'}
+                  style={{ marginTop: theme.sizeUnit * 4 }}
                 />
-              </Form.Item>
-              <Form.Item<LoginForm>
-                label={<StyledLabel>{t('Password:')}</StyledLabel>}
-                name="password"
-                rules={[
-                  { required: true, message: t('Please enter your password') },
-                ]}
-                extra={
-                  passwordRecoveryEnabled && (
-                    <Typography.Link
-                      href={ensureAppRoot(RoutePaths.FORGOT_PASSWORD)}
-                      data-test="forgot-password-link"
+              )}
+              <Typography.Title
+                level={4}
+                style={{
+                  marginTop: 0,
+                  marginBottom: theme.loginFormBrandLogoUrl
+                    ? theme.sizeUnit * 2
+                    : 0,
+                  marginLeft: 0,
+                  marginRight: 0,
+                }}
+              >
+                {t('Sign in')}
+              </Typography.Title>
+            </Flex>
+          }
+        >
+          {authType === AuthType.AuthOID && (
+            <Flex justify="center" vertical gap="middle">
+              <Form layout="vertical" requiredMark="optional" form={form}>
+                {providers.map((provider: OIDProvider) => (
+                  <Form.Item<LoginForm> key={provider.name}>
+                    <Button
+                      href={buildProviderLoginUrl(provider.name)}
+                      block
+                      iconPosition="start"
+                      icon={getAuthIconElement(provider.name)}
                     >
-                      {t('Forgot password?')}
-                    </Typography.Link>
-                  )
-                }
+                      {t('Sign in with')} {capitalize(provider.name)}
+                    </Button>
+                  </Form.Item>
+                ))}
+              </Form>
+            </Flex>
+          )}
+          {(authType === AuthType.AuthOauth ||
+            authType === AuthType.AuthSAML) && (
+            <Flex justify="center" gap={0} vertical>
+              <Form layout="vertical" requiredMark="optional" form={form}>
+                {providers.map((provider: OAuthProvider) => (
+                  <Form.Item<LoginForm> key={provider.name}>
+                    <Button
+                      href={buildProviderLoginUrl(provider.name)}
+                      block
+                      iconPosition="start"
+                      icon={getAuthIconElement(provider.name)}
+                    >
+                      {t('Sign in with')} {capitalize(provider.name)}
+                    </Button>
+                  </Form.Item>
+                ))}
+              </Form>
+            </Flex>
+          )}
+
+          {(authType === AuthType.AuthDB || authType === AuthType.AuthLDAP) && (
+            <Flex justify="center" vertical gap="middle">
+              <Typography.Text type="secondary">
+                {t('Enter your login and password below:')}
+              </Typography.Text>
+              <Form
+                layout="vertical"
+                requiredMark="optional"
+                form={form}
+                onFinish={onFinish}
               >
-                <Input.Password
-                  autoComplete="current-password"
-                  prefix={<Icons.KeyOutlined iconSize="l" />}
-                  data-test="password-input"
-                />
-              </Form.Item>
-              <Form.Item label={null}>
-                <Flex
-                  css={css`
-                    width: 100%;
-                  `}
+                <Form.Item<LoginForm>
+                  label={<StyledLabel>{t('Username:')}</StyledLabel>}
+                  name="username"
+                  rules={[
+                    {
+                      required: true,
+                      message: t('Please enter your username'),
+                    },
+                  ]}
                 >
-                  <Button
-                    block
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    data-test="login-button"
+                  <Input
+                    autoFocus
+                    autoComplete="username"
+                    prefix={<Icons.UserOutlined iconSize="l" />}
+                    data-test="username-input"
+                  />
+                </Form.Item>
+                <Form.Item<LoginForm>
+                  label={<StyledLabel>{t('Password:')}</StyledLabel>}
+                  name="password"
+                  rules={[
+                    {
+                      required: true,
+                      message: t('Please enter your password'),
+                    },
+                  ]}
+                  extra={
+                    passwordRecoveryEnabled && (
+                      <Typography.Link
+                        href={ensureAppRoot(RoutePaths.FORGOT_PASSWORD)}
+                        data-test="forgot-password-link"
+                      >
+                        {t('Forgot password?')}
+                      </Typography.Link>
+                    )
+                  }
+                >
+                  <Input.Password
+                    autoComplete="current-password"
+                    prefix={<Icons.KeyOutlined iconSize="l" />}
+                    data-test="password-input"
+                  />
+                </Form.Item>
+                <Form.Item label={null}>
+                  <Flex
+                    css={css`
+                      width: 100%;
+                    `}
                   >
-                    {t('Sign in')}
-                  </Button>
-                  {/* LDAP deployments enable AUTH_USER_REGISTRATION for
-                  first-login provisioning, not for self-registration. */}
-                  {authRegistration && authType === AuthType.AuthDB && (
                     <Button
                       block
-                      type="default"
-                      href={ensureAppRoot('/register/')}
-                      data-test="register-button"
+                      type="primary"
+                      htmlType="submit"
+                      loading={loading}
+                      data-test="login-button"
                     >
-                      {t('Register')}
+                      {t('Sign in')}
                     </Button>
-                  )}
-                </Flex>
-              </Form.Item>
-            </Form>
-          </Flex>
-        )}
-      </StyledCard>
-    </Flex>
+                    {/* LDAP deployments enable AUTH_USER_REGISTRATION for
+                    first-login provisioning, not for self-registration. */}
+                    {authRegistration && authType === AuthType.AuthDB && (
+                      <Button
+                        block
+                        type="default"
+                        href={ensureAppRoot('/register/')}
+                        data-test="register-button"
+                      >
+                        {t('Register')}
+                      </Button>
+                    )}
+                  </Flex>
+                </Form.Item>
+              </Form>
+            </Flex>
+          )}
+        </StyledCard>
+      </Flex>
+    </>
   );
 }

@@ -66,6 +66,12 @@ def rejection_message(code: SemanticQueryErrorCode) -> str:
             "This semantic provider does not support this query. "
             "Remove unsupported filters or grouping and try again."
         )
+    if code == SemanticQueryErrorCode.UNSUPPORTED_GROUP_OTHERS_METRIC:
+        return _(
+            'Group remaining as "Others" cannot be calculated for this metric '
+            "on a semantic view. Turn it off, or choose a sum, count, minimum, "
+            "or maximum metric."
+        )
     if code == SemanticQueryErrorCode.UNSUPPORTED_OFFSET:
         return _(
             "This semantic provider cannot apply the requested offset. "
@@ -84,11 +90,13 @@ def rejection_message(code: SemanticQueryErrorCode) -> str:
 class SemanticLayerQueryRejectedError(SupersetErrorException):
     """A deliberate provider rejection that must not become a cached payload."""
 
-    def __init__(self, code: SemanticQueryErrorCode) -> None:
+    def __init__(
+        self, code: SemanticQueryErrorCode, *, message: str | None = None
+    ) -> None:
         self.code: SemanticQueryErrorCode = code
         super().__init__(
             SupersetError(
-                message=sanitize_error_message(rejection_message(code)),
+                message=sanitize_error_message(message or rejection_message(code)),
                 error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
                 level=ErrorLevel.WARNING,
             ),
@@ -199,7 +207,8 @@ def provider_code() -> Iterator[None]:
         raise
 
 
-def _is_provider_fault(ex: BaseException) -> bool:
+def is_provider_fault(ex: BaseException) -> bool:
+    """Whether an exception originated inside a semantic provider call."""
     return getattr(ex, _PROVIDER_FAULT, False) is True
 
 
@@ -271,7 +280,7 @@ def _log_discovery_fault(
     )
     # The read's nearest callers, which the fault's own traceback does not include.
     caller: str = _frame_locations(traceback.extract_stack(limit=12)[:-2])
-    if _is_provider_fault(ex):
+    if is_provider_fault(ex):
         # The message may carry credentials or provider URLs, and source lines
         # may carry literals, so only each frame's location is logged.
         logger.error(
@@ -309,7 +318,8 @@ def execute_semantic_query(
     """Translate provider signals without changing host validation or retries."""
     try:
         with provider_completeness(), normalize_provider_request_errors():
-            return dispatcher(*args, **kwargs)
+            with provider_code():
+                return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from None
     except SemanticBackendError:

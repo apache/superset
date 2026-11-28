@@ -173,6 +173,29 @@ Chart configuration examples use plain number formats. Currency formatting shoul
 come from user instructions or verified source metadata, not a field name such
 as sales, revenue or CPC.
 
+## Metric discovery refusals
+
+An unscoped `list_metrics` call returns usable metrics even when a visible semantic
+view refuses discovery. Its response includes:
+
+- `incomplete`: `true` if any source could not be fully discovered. Clients must
+  disclose partial coverage and must not infer that omitted metrics do not exist.
+- `refused_views`: structured markers such as `[{"view_id": 5}]` for visible views
+  that refused discovery. Markers contain only the safe view ID, never provider
+  details, and apply to the whole scan regardless of the requested page.
+
+A view that refuses while loading metrics, columns or compatible dimensions
+contributes no metrics, including any collected before that refusal. `total_count`
+and `total_pages` describe only the usable subset. An entirely refused catalog
+returns no metrics with `incomplete: true`; it is not evidence of an empty catalog.
+Successful discovery with no failures returns `incomplete: false` and
+`refused_views: []`.
+
+Continue discovery using the returned sources, or use `dataset_id` or `view_id`
+to scope a request to a known source. A scoped semantic-view refusal still returns
+`AccessDenied`. Unexpected provider failures retain safe warnings and partial
+results from other sources, set `incomplete: true`, and do not create refusal markers.
+
 ## Bounding dashboard dataset metadata
 
 `get_dashboard_datasets` lists a dashboard's datasets and semantic views with
@@ -204,7 +227,8 @@ server's configured byte limit.
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, time filters, numeric range filters, and time-grain filters. Range
+selection, time filters, numeric range filters, time-grain filters, and
+time-column filters. Range
 bounds must be finite numbers representable as floats, or null; booleans are
 rejected. Range permalink labels use the dashboard's smart number formatting
 with ASCII minus signs, falling back to plain numeric representations if
@@ -979,6 +1003,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_JWT_ISSUER`       | `None`    | Expected `iss` claim                                                                                                                                                                                                             |
 | `MCP_JWT_AUDIENCE`     | `None`    | Expected `aud` claim                                                                                                                                                                                                             |
 | `MCP_REQUIRED_SCOPES`  | `[]`      | Required JWT scopes                                                                                                                                                                                                              |
+| `MCP_IGNORED_SCOPES`   | `{}`      | Ignored JWT scopes. Can be used to enable RBAC-only behaviour for identity providers which require to request a scope.                                                                                                           |
 | `MCP_JWT_DEBUG_ERRORS` | `False`   | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750)                                                                                                                                               |
 | `MCP_AUTH_FACTORY`     | `None`    | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT                                                                                                                                  |
 | `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. Use `get_verifier_client_id(access_token)` from `superset.mcp_service.composite_token_verifier` instead of reading `access_token.client_id`: FastMCP 4 `MultiAuth` qualifies that field. The helper supports FastMCP 3 and 4 and identifies the originating verifier, not proof of bearer validity. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
@@ -1974,6 +1999,9 @@ CSV export, but use the existing JSON number format in rows, query results,
 column samples, and statistics. As with other floating-point JSON numbers,
 clients should not rely on exact decimal precision in that projection.
 
+Excel exports write text values as text cells, so a value that starts with `=`
+keeps its text instead of becoming a formula.
+
 Rebuilt `get_chart_data` queries retrieve the requested row limit rather than
 a saved Table's server-pagination page size. CSV and Excel exports are not
 restricted to the first Explore page, and explicit limits apply before execution.
@@ -2408,13 +2436,49 @@ latency.
 
 ### Managing and applying dashboard native filters
 
+Time-column and time-grain filters target a dataset, not a column. When adding
+one with `manage_native_filters`, omit `column`, `default_value`, and the
+select-only flags (`multi_select`, `default_to_first_item`, `sort_ascending`,
+`search_all_options`). Both add and update reject non-null fields that do not
+apply to the filter type, including `False` and empty lists. `default_value` is
+supported only by select filters, not time-range or numerical-range filters.
+Use `default_time_range` for time-range defaults. Updating
+`dataset_id` binds the filter to that SQL dataset, removing any semantic-view
+binding. Defaults from a semantic view are cleared; SQL temporal defaults are
+retained only when the replacement dataset supports them.
+
+For `apply_dashboard_filters`, pass `time_column` as a list containing one temporal
+column name or its unique filter-bar label (verbose name). An exact column name
+wins over case-insensitive names, which win over case-insensitive labels;
+ambiguous matches are rejected. The permalink stores the underlying column name.
+Pass `[]` to clear an optional time-column filter; required filters cannot be
+cleared. Callers without metadata access do not receive underlying column names
+in the result or available-column lists in errors.
+
 `manage_native_filters` requires a numeric dataset column when adding a
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
 
-Dividers are visual separators and are always in scope. When updating a
-`divider` with `manage_native_filters`, use `name` to change its title and
-`description` to change its description; `scope_chart_ids` is rejected.
+A native filter can depend on other filters so that its choices are narrowed by
+their values. `get_dashboard_info` lists each filter's direct parents in
+`cascade_parent_ids`. With `manage_native_filters`, pass `cascade_parent_ids` when
+adding or updating a `filter_select`, `filter_range`, or `filter_time` filter;
+on update it replaces the current parents and `[]` clears them. Each parent must
+be an existing native filter on the same dashboard (not a time-grain filter,
+time-column filter, or divider), and a filter cannot depend on itself or create a cycle. Removing a filter also removes
+it from the parents of any filter that depended on it, and reports those children
+in `updated_filter_ids`. Reads omit parent IDs absent from the dashboard. When
+updating dependencies, already-stored absent parent IDs are silently dropped;
+genuinely new unknown IDs are rejected. Existing custom native filters can also
+be updated and used as parents. The backend cannot inspect frontend plugin
+capability metadata, so custom types use the native-filter cascade default.
+If dashboard metadata changes between validation and persistence, the tool
+rejects the write; re-read the dashboard and retry.
+
+Dividers are visual separators and are always in scope. When adding or updating
+a `divider` with `manage_native_filters`, use `name` for its title and
+`description` for its description; type-specific fields and `scope_chart_ids`
+are rejected when non-null.
 `apply_dashboard_filters` excludes dividers from its available-filter error lists.
 
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most

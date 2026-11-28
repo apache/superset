@@ -144,6 +144,50 @@ test.each([
   },
 );
 
+test.each([
+  ['edit', true, 'writer', mockWriteUser],
+  ['delete', true, 'writer', mockWriteUser],
+  ['edit', false, 'writer', mockWriteUser],
+  ['delete', false, 'writer', mockWriteUser],
+  ['edit', undefined, 'writer', mockWriteUser],
+  ['delete', undefined, 'writer', mockWriteUser],
+  ['edit', false, 'admin', mockAdminUser],
+  ['delete', false, 'admin', mockAdminUser],
+] as const)(
+  'semantic view %s follows server can_modify=%s for %s',
+  async (verb, canModify, _label, user) => {
+    setupApiPermissions(['can_read', 'can_write']);
+    const semanticView = {
+      ...mockDatasets[0],
+      id: 99,
+      kind: 'semantic_view',
+      table_name: 'semantic_orders',
+      editors: [],
+      can_modify: canModify,
+    };
+    mockDatasetListEndpoints({ result: [semanticView], count: 1 });
+    renderDatasetList(user);
+
+    const row = (await screen.findByText('semantic_orders')).closest('tr');
+    const action = within(row!).getByTestId(`dataset-row-${verb}`);
+    if (canModify) {
+      expect(action).not.toHaveAttribute('aria-disabled', 'true');
+    } else {
+      expect(action).toHaveAttribute('aria-disabled', 'true');
+    }
+    await act(async () => {
+      action.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      canModify
+        ? verb === 'edit'
+          ? 'Edit'
+          : 'Delete'
+        : 'You do not have permission to modify this semantic view.',
+    );
+  },
+);
+
 test('read-only users cannot see bulk select button', async () => {
   // Setup API with read-only permissions
   setupApiPermissions(['can_read']);
@@ -158,6 +202,32 @@ test('read-only users cannot see bulk select button', async () => {
   expect(
     screen.queryByRole('button', { name: /bulk select/i }),
   ).not.toBeInTheDocument();
+});
+
+test('semantic write eligibility does not require Dataset write permission', async () => {
+  setupApiPermissions(['can_read']);
+  mockDatasetListEndpoints({
+    result: [{ ...mockDatasets[0], kind: 'semantic_view', can_modify: true }],
+    count: 1,
+  });
+  renderDatasetList(mockReadOnlyUser);
+  await screen.findByText(mockDatasets[0].table_name);
+  expect(screen.getByTestId('dataset-row-edit')).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByTestId('dataset-row-delete')).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  const row = screen.getByText(mockDatasets[0].table_name).closest('tr');
+  await userEvent.click(within(row!).getByRole('checkbox'));
+  expect(
+    within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+      name: 'Delete',
+    }),
+  ).toBeEnabled();
 });
 
 test('read-only users cannot see Create/Import buttons', async () => {

@@ -22,7 +22,7 @@ import {
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
-import LayerConfigsControl from './LayerConfigsControl';
+import { LayerConfigsControl } from './LayerConfigsControl';
 import { LayerConf, WmsLayerConf } from './types';
 
 const wms = (
