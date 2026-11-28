@@ -1074,3 +1074,51 @@ def test_cache_key_ignores_bounds_when_time_range_is_set():
     query_object2 = QueryObject(time_range="Last week", from_dttm=datetime(1970, 1, 1))
 
     assert query_object1.cache_key() == query_object2.cache_key()
+
+
+def test_get_datasource_database_retrying_succeeds_after_transient_deque_race():
+    """
+    ``datasource.database`` lazy-loads through SQLAlchemy's ORM, which
+    dispatches through event listener collections backed by a plain
+    ``deque``. A concurrent listener registration on another thread can
+    mutate that deque mid-iteration, raising ``RuntimeError: deque mutated
+    during iteration`` -- a transient race that clears on retry, not a real
+    failure that should surface as a 500 to the chart-data caller.
+    """
+    query_object = QueryObject()
+    mock_database = object()
+    mock_datasource = type("MockDatasource", (), {})()
+    query_object.datasource = mock_datasource
+    with patch.object(
+        type(mock_datasource),
+        "database",
+        PropertyMock(
+            side_effect=[
+                RuntimeError("deque mutated during iteration"),
+                mock_database,
+            ]
+        ),
+        create=True,
+    ):
+        assert (
+            query_object._get_datasource_database_retrying(mock_datasource)
+            is mock_database
+        )
+
+
+def test_get_datasource_database_retrying_reraises_unrelated_runtime_errors():
+    """
+    Only the known transient SQLAlchemy deque race is retried; any other
+    ``RuntimeError`` from the lazy-load must propagate unchanged.
+    """
+    query_object = QueryObject()
+    mock_datasource = type("MockDatasource", (), {})()
+    query_object.datasource = mock_datasource
+    with patch.object(
+        type(mock_datasource),
+        "database",
+        PropertyMock(side_effect=RuntimeError("something else entirely")),
+        create=True,
+    ):
+        with pytest.raises(RuntimeError, match="something else entirely"):
+            query_object._get_datasource_database_retrying(mock_datasource)
