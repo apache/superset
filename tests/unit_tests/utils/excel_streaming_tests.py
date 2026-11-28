@@ -66,6 +66,34 @@ def test_sheet_name_strips_surrounding_apostrophes() -> None:
     assert sanitize_sheet_name("'quoted'", set()) == "quoted"
 
 
+def test_sheet_name_truncation_strips_trailing_apostrophe() -> None:
+    # An apostrophe at the 31-character truncation boundary must be stripped,
+    # as Excel and XlsxWriter forbid sheet names ending with an apostrophe.
+    raw = "Quarterly Revenue Summary: Men's Clothing"
+    sanitized = sanitize_sheet_name(raw, set())
+    assert sanitized == "Quarterly Revenue Summary_ Men"
+    assert not sanitized.endswith("'")
+    assert len(sanitized) <= 31
+
+
+def test_sheet_name_truncation_strips_mixed_apostrophes_and_whitespace() -> None:
+    # When truncation lands on alternating quotes and spaces (e.g. "' '"),
+    # all surrounding apostrophes and whitespace must be stripped.
+    raw = "Monthly revenue split 'North' 'South'"
+    sanitized = sanitize_sheet_name(raw, set())
+    assert sanitized == "Monthly revenue split 'North"
+    assert not sanitized.endswith("'")
+    assert not sanitized.endswith(" ")
+    assert len(sanitized) <= 31
+
+
+def test_sheet_name_truncation_dedupe_with_apostrophe() -> None:
+    used: set[str] = set()
+    raw = "Quarterly Revenue Summary: Men's Clothing"
+    assert sanitize_sheet_name(raw, used) == "Quarterly Revenue Summary_ Men"
+    assert sanitize_sheet_name(raw, used) == "Quarterly Revenue Summary_ Me~2"
+
+
 # --- _sanitize_cell ---
 
 

@@ -30,6 +30,7 @@ from __future__ import annotations
 import math
 import numbers
 import re
+import string
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime
 from decimal import Decimal
@@ -45,6 +46,7 @@ MAX_SHEET_NAME_LEN = 31
 _INVALID_SHEET_CHARS_RE = re.compile(r"[\[\]:*?/\\]")
 # Excel reserves the sheet name "History" (case-insensitive).
 _RESERVED_SHEET_NAME = "history"
+_STRIP_SHEET_NAME_CHARS = string.whitespace + "'"
 
 # A worksheet holds at most 1,048,576 rows; one is reserved for the header.
 MAX_DATA_ROWS_PER_SHEET = 1_048_576 - 1
@@ -108,12 +110,14 @@ def sanitize_sheet_name(raw: str, used: set[str]) -> str:
     :returns: A sanitized, unique sheet name no longer than 31 characters
     """
     name = _INVALID_SHEET_CHARS_RE.sub("_", raw or "")
-    name = name.strip().strip("'").strip()
+    name = name.strip(_STRIP_SHEET_NAME_CHARS)
+    if not name:
+        name = "Sheet"
+    name = name[:MAX_SHEET_NAME_LEN].strip(_STRIP_SHEET_NAME_CHARS)
     if not name:
         name = "Sheet"
     if name.lower() == _RESERVED_SHEET_NAME:
         name = f"{name}_"
-    name = name[:MAX_SHEET_NAME_LEN]
 
     if name.lower() not in used:
         used.add(name.lower())
@@ -122,7 +126,11 @@ def sanitize_sheet_name(raw: str, used: set[str]) -> str:
     suffix = 2
     while True:
         marker = f"~{suffix}"
-        candidate = name[: MAX_SHEET_NAME_LEN - len(marker)] + marker
+        base = (
+            name[: MAX_SHEET_NAME_LEN - len(marker)].strip(_STRIP_SHEET_NAME_CHARS)
+            or "Sheet"
+        )
+        candidate = f"{base}{marker}"
         if candidate.lower() not in used:
             used.add(candidate.lower())
             return candidate
