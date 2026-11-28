@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -16439,6 +16438,9 @@ msgstr ""
 
 #, python-format
 msgid "This metric might be incompatible with current %s"
+msgstr ""
+
+msgid "This metric requires a time range. Choose a time range with a start and end date, then try again."
 msgstr ""
 
 msgid "This name is already taken. Please choose another one."

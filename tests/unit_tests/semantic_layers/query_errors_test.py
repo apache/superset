@@ -793,6 +793,7 @@ def test_provider_execution_error_http(
         "UNSUPPORTED_OFFSET",
         "INVALID_FILTER",
         "INVALID_QUERY",
+        "TIME_RANGE_REQUIRED",
         "private-unknown-code",
     ],
 )
@@ -806,6 +807,26 @@ def test_rejection_contract_does_not_retain_arbitrary_text(code: str) -> None:
     assert str(error) == "Semantic query rejected."
     assert "private" not in repr(error)
     assert error.code in SemanticQueryErrorCode
+
+
+def test_time_range_refusal_gives_actionable_client_message(
+    app_context: None,
+) -> None:
+    """A portable provider code becomes translated, actionable HTTP 400 text."""
+    from superset.semantic_layers.exceptions import (
+        execute_semantic_query,
+        SemanticLayerQueryRejectedError,
+    )
+
+    provider: MagicMock = MagicMock(
+        side_effect=SemanticQueryRejectedError("TIME_RANGE_REQUIRED")
+    )
+    captured: pytest.ExceptionInfo[SemanticLayerQueryRejectedError]
+    with pytest.raises(SemanticLayerQueryRejectedError) as captured:
+        execute_semantic_query(provider)
+    assert captured.value.status == 400
+    assert "Choose a time range" in str(captured.value.to_dict())
+    provider.assert_called_once_with()
 
 
 @pytest.mark.parametrize("fault", [ValueError, RuntimeError, TimeoutError])
