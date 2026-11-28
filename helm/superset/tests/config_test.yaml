@@ -71,6 +71,35 @@ tests:
     asserts:
       - matchRegex: {path: 'stringData["superset_init.sh"]', pattern: "grep -qF 'username:"}
       - notMatchRegex: {path: 'stringData["superset_init.sh"]', pattern: 'create-admin[\s\S]*\|\| true'}
+  - it: allows empty password when adminUser.secretKeys.secretName is set
+    set:
+      init:
+        createAdmin: true
+        adminUser:
+          password: ""
+          secretKeys:
+            secretName: admin-secret
+    asserts:
+      - hasDocuments:
+          count: 1
+      - matchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: 'ADMIN_PASSWORD="[$]SUPERSET_ADMIN_PASSWORD"'
+      - notMatchRegex:
+          path: 'stringData["superset_init.sh"]'
+          pattern: "ADMIN_PASSWORD=''"
+  - it: does not require admin credentials when init job is disabled
+    set:
+      init:
+        enabled: false
+        createAdmin: true
+        adminUser:
+          password: ""
+          secretKeys:
+            secretName: ""
+    asserts:
+      - hasDocuments:
+          count: 1
   - it: sentinel disabled does not fail render
     set: {cache: {enabled: true, sentinel: {enabled: false}}}
     asserts:
