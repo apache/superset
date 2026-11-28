@@ -81,7 +81,7 @@ def _normalize_for_compare(target: Any, col_name: str, value: Any) -> Any:
     return normalizer(value) if normalizer is not None else value
 
 
-def _has_dirty_versioned_children(target: Any, uow: Any) -> bool:
+def _has_dirty_versioned_children(target: Any, session: Any, uow: Any) -> bool:
     """Return ``True`` when *uow* contains an operation for a versioned
     child of *target* (e.g. a ``TableColumn`` whose ``table`` is *target*).
 
@@ -92,6 +92,7 @@ def _has_dirty_versioned_children(target: Any, uow: Any) -> bool:
     """
     # pylint: disable=import-outside-toplevel
     from superset.versioning.baseline import child_to_parent_registry
+    from superset.versioning.baseline.collection import resolve_parent
 
     child_map = child_to_parent_registry()
     target_cls = type(target)
@@ -99,11 +100,10 @@ def _has_dirty_versioned_children(target: Any, uow: Any) -> bool:
         entry = child_map.get(type(op.target))
         if entry is None:
             continue
-        parent_attr, parent_cls = entry
+        _parent_attr, parent_cls = entry
         if parent_cls is not target_cls:
             continue
-        parent = getattr(op.target, parent_attr, None)
-        if parent is target:
+        if resolve_parent(session, op.target, child_map) is target:
             return True
     return False
 
@@ -266,7 +266,7 @@ class SkipUnmodifiedPlugin(Plugin):
            ``json_metadata`` to a different byte sequence) but the
            resulting parsed content matches the prior version.
         """
-        if _has_dirty_versioned_children(target, uow):
+        if _has_dirty_versioned_children(target, session, uow):
             return False
         if not is_modified(target):
             return True
