@@ -21,7 +21,8 @@
     "sslCertReqs": "required",
     "sentinels": [],
     "sentinelMaster": "",
-    "sentinelPassword": ""
+    "sentinelPassword": "",
+    "sentinelSsl": false
   },
   "jwtAlgorithms": ["HS256"],
   "jwtSecret": "CHANGE-ME",
