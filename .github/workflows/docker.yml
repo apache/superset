@@ -136,18 +136,28 @@ jobs:
           # Any other failure is returned as-is, and the assertions below run
           # on the command a successful invocation printed, so they are never
           # retried.
+          # Each call is bounded: on a drained API quota supersetbot sleeps
+          # until the reset (its warning buffered in "$err") instead of
+          # failing, which would otherwise hang silently to the job timeout.
           supersetbot_dry_run() {
-            local attempt out err
+            local attempt out err rc call_timeout=60
             out="$(mktemp)"
             err="$(mktemp)"
             for attempt in 1 2 3; do
-              if supersetbot docker "$@" --dry-run >"$out" 2>"$err"; then
+              rc=0
+              timeout "$call_timeout" supersetbot docker "$@" --dry-run >"$out" 2>"$err" || rc=$?
+              if [ "$rc" -eq 0 ]; then
                 cat "$err" >&2
                 cat "$out"
                 rm -f "$out" "$err"
                 return 0
               fi
               cat "$err" >&2
+              if [ "$rc" -eq 124 ]; then
+                echo "::error::supersetbot did not finish within ${call_timeout}s; it is most likely waiting out a GitHub API rate limit (see its 'retrying in N seconds' output above)" >&2
+                rm -f "$out" "$err"
+                return 1
+              fi
               if [ "$attempt" -eq 3 ] ||
                 ! grep -q 'RequestError \[HttpError\]' "$err" ||
                 ! grep -Eq '^[[:space:]]*status: 5[0-9]{2},' "$err"; then
@@ -203,12 +213,15 @@ jobs:
           docker_command_for_platform() {
             local preset="$1" extra_flags="$2" platform="$3"
             shift 3
-            env -u DOCKERHUB_TOKEN supersetbot docker \
+            # Through supersetbot_dry_run so these calls get its 5xx retry.
+            (
+              unset DOCKERHUB_TOKEN
+              supersetbot_dry_run \
               --preset "$preset" \
               --platform "$platform" \
               "$@" \
-              --extra-flags "$extra_flags" \
-              --dry-run
+              --extra-flags "$extra_flags"
+            )
           }
           # One master publish job per platform (docker.yml's docker-build and
           # docker-build-arm64) asks the plan for its own platform.
@@ -982,7 +995,7 @@ jobs:
           contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
           steps.grype-scan.outputs.sarif != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           sarif_file: ${{ steps.grype-scan.outputs.sarif }}
           # Both `superset` and `lean` are scanned now; without a distinct

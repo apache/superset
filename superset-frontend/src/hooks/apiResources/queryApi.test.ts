@@ -18,7 +18,7 @@
  */
 
 import fetchMock from 'fetch-mock';
-import configureStore, { MockStore } from 'redux-mock-store';
+import createMockStore, { MockStore } from 'redux-mock-store';
 import rison from 'rison';
 import { JsonResponse } from '@superset-ui/core';
 import { supersetClientQuery } from './queryApi';
@@ -32,7 +32,7 @@ const getBaseQueryApiMock = (store: MockStore) => ({
   type: 'query' as const,
 });
 
-const mockStore = configureStore();
+const mockStore = createMockStore();
 const store = mockStore();
 
 afterEach(() => {

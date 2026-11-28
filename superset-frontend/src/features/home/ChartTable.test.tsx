@@ -18,6 +18,7 @@
  */
 import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -249,4 +250,60 @@ test('refreshes other tab data after deleting a chart', async () => {
 
   expect(screen.getByText('cool chart 1')).toBeInTheDocument();
   expect(screen.getByText('cool chart 2')).toBeInTheDocument();
+});
+
+const deleteChartFromCard = async (index: number) => {
+  const moreButtons = screen.getAllByRole('img', { name: /more/i });
+  await userEvent.click(moreButtons[index]);
+  await userEvent.click(await screen.findByText('Delete'));
+  // Set the confirmation text in one change event: typing it key by key can
+  // race the modal's autofocus and drop characters.
+  fireEvent.change(screen.getByTestId('delete-modal-input'), {
+    target: { value: 'DELETE' },
+  });
+  const confirmButton = screen.getByTestId('modal-confirm-button');
+  await waitFor(() => expect(confirmButton).toBeEnabled());
+  await userEvent.click(confirmButton);
+};
+
+test('notifies the Home activity feed after a chart delete succeeds', async () => {
+  fetchMock.delete('glob:*/api/v1/chart/1', { message: 'Chart deleted' });
+  const onActivityRefresh = jest.fn();
+
+  await renderChartTable({
+    ...otherTabProps,
+    otherTabTitle: 'All',
+    onActivityRefresh,
+  });
+
+  expect(onActivityRefresh).not.toHaveBeenCalled();
+  await deleteChartFromCard(1);
+
+  await waitFor(() => {
+    expect(onActivityRefresh).toHaveBeenCalledTimes(1);
+  });
+});
+
+test('does not notify the Home activity feed when a chart delete fails', async () => {
+  fetchMock.delete('glob:*/api/v1/chart/2', 500);
+  const onActivityRefresh = jest.fn();
+
+  await renderChartTable({
+    ...otherTabProps,
+    otherTabTitle: 'All',
+    onActivityRefresh,
+  });
+
+  await deleteChartFromCard(2);
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(/api\/v1\/chart\/2/, { method: 'DELETE' }),
+    ).toHaveLength(1);
+  });
+  // Let the rejected delete settle before asserting nothing was notified.
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  });
+  expect(onActivityRefresh).not.toHaveBeenCalled();
 });

@@ -145,6 +145,34 @@ D3_TIME_FORMAT = {
 Restart Superset after changing `superset_config.py` so the frontend receives
 the updated formatter configuration.
 
+## CSV decimal separators
+
+CSV exports contain data values rather than the chart's D3 display strings.
+Configure the export delimiter and decimal separator independently of the UI
+language in `superset_config.py`, for example:
+
+```python
+CSV_EXPORT = {"encoding": "utf-8-sig", "sep": ";", "decimal": ","}
+```
+
+This writes `12,3400` for a database decimal value of `12.3400` and `1,25` for
+a floating-point value of `1.25`, including numeric cells in mixed object
+columns. Direct CSV serialization preserves Decimal precision and trailing zeros.
+CSV reports for table and pivot table charts, and pivoted CSV exports, pass
+through client-side post-processing that re-reads CSV data and infers numeric
+types. Those paths can drop trailing zeros (for example, `12.3400` becomes
+`12.34`, or `12,3400` becomes `12,34` with `decimal=","`). Text values
+such as `"1.25"` keep their contents, and spreadsheet formula protection
+still applies to strings. Streaming CSV exports use the same decimal
+separator. The default separator remains `.`.
+Duplicate row labels and repeated verbose column names preserve each cell's
+value independently when formatting and escaping CSV exports.
+
+Changing `BABEL_DEFAULT_LOCALE` or a chart's number format does not set these
+CSV options. These settings also do not convert numeric XLSX cells into
+localized text; spreadsheet applications render numeric cells according to
+the workbook and application settings.
+
 ## Serving translated language packs
 
 Non-English page loads need the frontend translation catalog (the "language
@@ -277,6 +305,8 @@ ORDER BY event_time DESC
 
 - The user is the logged-in Superset user. The dashboard and chart ids come
   from the request, so treat them as a hint rather than an audit record.
+- Anyone who can read `system.query_log` can see these values, so leave `user`
+  out of the returned string if usernames shouldn't be visible there.
 - Results served from Superset's cache never reach the database, so the log
   shows the queries that ran, not every chart view.
 - Metadata queries (schema, table and column lists) are not tagged.
@@ -372,10 +402,10 @@ queries instead; measure pruning cost on the selected backend before enabling it
 
 Superset supports the following database engines/versions:
 
-| Database Engine                           | Supported Versions                             |
-| ----------------------------------------- | ---------------------------------------------- |
-| [PostgreSQL](https://www.postgresql.org/) | 10.X, 11.X, 12.X, 13.X, 14.X, 15.X, 16.X, 17.X |
-| [MySQL](https://www.mysql.com/)           | 5.7, 8.X                                       |
+| Database Engine                           | Supported Versions                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [PostgreSQL](https://www.postgresql.org/) | Regularly tested against PostgreSQL 17 (see docker-compose.yml). Other actively-supported PostgreSQL versions are expected to work but aren't covered by CI. |
+| [MySQL](https://www.mysql.com/)           | 5.7, 8.X                                                                                                        |
 
 Use the following database drivers and connection strings:
 
@@ -602,6 +632,12 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 - The redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
   When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
   be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+
+- When `OAUTH_PROVIDERS` contains exactly one provider, the login page skips the provider choice and
+  sends users straight to that provider's sign-in. After logging out, users land on the login page
+  and are sent to the provider again, which may sign them straight back in while their provider
+  session is active. Set `LOGOUT_REDIRECT_URL`, or override `logout` in a custom OAuth view as in
+  [OAuth Configuration](/admin-docs/security/oauth), to send them elsewhere or end the provider session.
 
 - If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
   document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other

@@ -1850,27 +1850,37 @@ def _mapping_command(
     partition_mapped_column: str | None = None,
     main_dttm_col: str = "event_time",
     database: Database | None = None,
+    partition_expression: str | None = None,
+    supports_partition_filter_mapping: bool | None = None,
 ) -> UpdateDatasetCommand:
     """
     A command whose stored dataset maps `event_time` onto `dt_epoch`.
 
     `database` takes a real one, for the gates that read more of it than
     `backend` -- the function denylist is keyed on the engine spec's own name,
-    which a mock cannot supply.
+    which a mock cannot supply. `supports_partition_filter_mapping` pins the
+    mock database's engine capability; left unset, the mock reads as truthy.
     """
     mapped_column = mocker.MagicMock()
     mapped_column.column_name = "event_time"
     mapped_column.partition_value_transform = transform
+    mapped_column.expression = None
     partition_column = mocker.MagicMock()
     partition_column.column_name = "dt_epoch"
+    partition_column.expression = None
     # The partition column is the target of a mapping, never the source of one.
     partition_column.partition_value_transform = None
+    partition_column.expression = partition_expression
 
     mock_dataset = mocker.MagicMock(is_managed_externally=False)
     if database is not None:
         mock_dataset.database = database
     else:
         mock_dataset.database.backend = "sqlite"
+        if supports_partition_filter_mapping is not None:
+            mock_dataset.database.db_engine_spec.supports_partition_filter_mapping = (
+                supports_partition_filter_mapping
+            )
     mock_dataset.catalog = None
     mock_dataset.schema = "main"
     mock_dataset.columns = [mapped_column, partition_column]
@@ -1985,7 +1995,14 @@ def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
     Jinja is a blocking issue of its own, reported before the gate is reached.
     """
     mocker.patch("superset.commands.dataset.update.validate_stored_expression")
-    command = _mapping_command(mocker, "unix_timestamp({{ current_user_id() }})")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["columns"] = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp({{ current_user_id() }})",
+        },
+        {"column_name": "dt_epoch"},
+    ]
 
     exceptions: list[ValidationError] = []
     command._validate_partition_mapping(exceptions)
@@ -2036,24 +2053,22 @@ def test_a_self_mapping_is_rejected_while_the_feature_is_on(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=False)
-def test_no_mapping_validation_runs_while_the_feature_is_off(
+def test_a_mapping_the_request_breaks_is_rejected_while_the_feature_is_off(
     mocker: MockerFixture,
 ) -> None:
     """
-    With the flag off nothing mirrors, so a stored mapping can never be
-    consumed. Rejecting the save over it would hand the owner a validation
-    error they have no way to act on -- and every path that reads a mapping is
-    gated the same way.
+    Reading a mapping is gated on the flag; storing one is not. Skipped while
+    the flag was off, this let a PUT store a mapping no flag-on save accepts,
+    and the first flag-on save -- whatever it changed -- was refused over it.
     """
-    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
     command = _mapping_command(mocker, "unix_timestamp(:value)")
     command._properties["partition_mapped_column"] = "dt_epoch"
 
     exceptions: list[ValidationError] = []
     command._validate_partition_mapping(exceptions)
 
-    assert exceptions == []
-    gate.assert_not_called()
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
@@ -2132,3 +2147,741 @@ def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
     command._validate_partition_mapping(exceptions)
 
     assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        {"partition_column": "no_such_column"},
+        {"partition_mapped_column": "no_such_column"},
+        {"transform": "rand() + 0 * :value"},
+    ],
+    ids=["dangling-partition", "dangling-mapped", "non-deterministic"],
+)
+@pytest.mark.parametrize(
+    "request_properties",
+    [{"description": "x"}, {"metrics": [{"metric_name": "cnt"}]}],
+    ids=["description-only", "metrics-only"],
+)
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unrelated_save_survives_a_mapping_broken_in_storage(
+    mocker: MockerFixture,
+    stored: dict[str, str],
+    request_properties: dict[str, Any],
+) -> None:
+    """
+    A mapping stored broken -- while this check was flag-gated, or by a path
+    that never ran it -- is not the request's doing. Refusing the request over
+    it made every later save fail, including one that says nothing about the
+    mapping and gives the owner no field to fix.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker,
+        stored.get("transform", "unix_timestamp(:value)"),
+        partition_mapped_column=stored.get("partition_mapped_column"),
+    )
+    if "partition_column" in stored:
+        cast(Any, command._model).partition_column = stored["partition_column"]
+    command._properties.update(request_properties)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_new_problem_is_still_refused_alongside_a_stored_one(
+    mocker: MockerFixture,
+) -> None:
+    """Forgiving what storage already has does not forgive what the request adds."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="no_such_column"
+    )
+    command._properties["partition_column"] = "also_missing"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+def _stored_source_command(mocker: MockerFixture) -> UpdateDatasetCommand:
+    """
+    `_mapping_command` with the stored transform's source pinned down: the
+    model's `database_id` matches its database, and the mapped column has an
+    id, so an unchanged transform really is the stored one.
+    """
+    command = _mapping_command(
+        mocker, "rand() + 0 * :value", partition_mapped_column="event_time"
+    )
+    model = cast(Any, command._model)
+    model.database.id = model.database_id = 1
+    mapped, partition = model.columns
+    mapped.id, partition.id = 10, 11
+    other = mocker.MagicMock()
+    other.id = 12
+    other.column_name = "other_time"
+    other.partition_value_transform = None
+    model.columns.append(other)
+    return command
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_unchanged_stored_transform_skips_the_expression_gate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A transform stored before the gate existed would refuse every later save.
+    Unchanged, on the same column and source, it is not the request's doing.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties["description"] = "x"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "moved",
+    [{"database": "other"}, {"schema": "other"}, {"catalog": "other"}],
+    ids=["database", "schema", "catalog"],
+)
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_moving_the_source_re_asks_the_gate_for_an_unchanged_transform(
+    mocker: MockerFixture, moved: dict[str, str]
+) -> None:
+    """The gate depends on where the transform runs, not only on its text."""
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    if "database" in moved:
+        other_database = mocker.MagicMock()
+        other_database.id = 2
+        other_database.backend = "sqlite"
+        command._properties["database"] = other_database
+    else:
+        command._properties.update(moved)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+    gate.assert_called_once()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_stored_text_on_a_newly_mapped_column_goes_through_the_gate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Re-pointing the mapping at another column and parking the stored text on it
+    introduces that transform, so it gets the gate a new one would.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties.update(
+        {
+            "partition_mapped_column": "other_time",
+            "columns": [
+                {"id": 10, "column_name": "event_time"},
+                {"id": 11, "column_name": "dt_epoch"},
+                {
+                    "id": 12,
+                    "column_name": "other_time",
+                    "partition_value_transform": "rand() + 0 * :value",
+                },
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert "partition_value_transform" in [exc.field_name for exc in exceptions]
+    gate.assert_called_once()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_followed_rename_keeps_the_stored_transform_exempt(
+    mocker: MockerFixture,
+) -> None:
+    """Matched by id, so renaming the mapped column in place is the same column."""
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties.update(
+        {
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {
+                    "id": 10,
+                    "column_name": "event_ts",
+                    "partition_value_transform": "rand() + 0 * :value",
+                },
+                {"id": 11, "column_name": "dt_epoch"},
+                {"id": 12, "column_name": "other_time"},
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_editor_echo_after_a_rename_validates_against_the_new_name(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The editor renames a column in place and sends the stored mapping back
+    unchanged. Validated as sent, the old name is not among the columns and the
+    save is refused; the reference has to follow the rename first.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="event_time"
+    )
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+    command._properties.update(
+        {
+            "partition_column": "dt_epoch",
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {
+                    "id": 10,
+                    "column_name": "event_ts",
+                    "partition_value_transform": "unix_timestamp(:value)",
+                },
+                {"id": 11, "column_name": "dt_epoch"},
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    assert command._properties["partition_mapped_column"] == "event_ts"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_stored_issue_naming_a_renamed_column_is_still_forgiven(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A self-mapping stored broken names its column in the message. Renaming that
+    column in place changes the text but not the problem, which the request
+    did not introduce.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="dt_epoch"
+    )
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+    command._properties["columns"] = [
+        {"id": 10, "column_name": "event_time"},
+        {"id": 11, "column_name": "dt_epoch_v2"},
+    ]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    assert command._properties["partition_column"] == "dt_epoch_v2"
+    assert command._properties["partition_mapped_column"] == "dt_epoch_v2"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_different_invalid_transform_is_not_the_stored_one(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Every Jinja transform gets the same message. Replacing the stored one with
+    another is a transform the request introduces, so it is refused.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "{{ 1 }} + :value", partition_mapped_column="event_time"
+    )
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+    command._properties["columns"] = [
+        {
+            "id": 10,
+            "column_name": "event_time",
+            "partition_value_transform": "{{ 2 }} + :value",
+        },
+        {"id": 11, "column_name": "dt_epoch"},
+    ]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+
+
+@pytest.mark.parametrize(
+    "stored, sent",
+    [
+        ({"schema": ""}, {"schema": None}),
+        ({"catalog": None}, {"catalog": ""}),
+    ],
+    ids=["empty-schema", "empty-catalog"],
+)
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_empty_catalog_or_schema_is_not_a_move(
+    mocker: MockerFixture, stored: dict[str, Any], sent: dict[str, Any]
+) -> None:
+    """`""` and `None` are the same location, as in `location_changed`."""
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    for field, value in stored.items():
+        setattr(command._model, field, value)
+    command._properties.update(sent)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_normalized_default_catalog_is_not_a_move(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With multi-catalog off, source validation writes the database's default
+    catalog into the request. That is not the request moving the dataset, so a
+    description-only save keeps the stored transform exempt.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties["description"] = "x"
+    command._location_changed = command._moves_location(False)
+    command._properties["catalog"] = "default_catalog"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_stored_transform_moved_to_another_column_is_not_forgiven(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Jinja transform stored on one column is forgiven while it stays there.
+    Re-pointing the mapping at another column that carries the same text
+    introduces that transform, so it is refused as a new one would be.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "{{ 1 }} + :value", partition_mapped_column="event_time"
+    )
+    model = cast(Any, command._model)
+    mapped, partition = model.columns
+    mapped.id, partition.id = 10, 11
+    other = mocker.MagicMock()
+    other.id = 12
+    other.column_name = "other_time"
+    other.partition_value_transform = None
+    other.expression = None
+    model.columns.append(other)
+    command._properties.update(
+        {
+            "partition_mapped_column": "other_time",
+            "columns": [
+                {"id": 10, "column_name": "event_time"},
+                {"id": 11, "column_name": "dt_epoch"},
+                {
+                    "id": 12,
+                    "column_name": "other_time",
+                    "partition_value_transform": "{{ 1 }} + :value",
+                },
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert "partition_value_transform" in [exc.field_name for exc in exceptions]
+
+
+@pytest.mark.parametrize(
+    "sent, expected",
+    [
+        ({"id": 11, "column_name": "dt_epoch"}, {"partition_column": (11, 10, None)}),
+        (
+            {"id": 11, "column_name": "dt_epoch", "expression": "{{ ds }}"},
+            {"partition_column": (11, 10, "{{ ds }}")},
+        ),
+    ],
+    ids=["expression-omitted", "expression-changed"],
+)
+def test_the_partition_column_key_includes_its_expression(
+    mocker: MockerFixture, sent: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """
+    A templated partition-column expression is refused, so an issue on that
+    field is only the stored one while the expression is too. A payload that
+    leaves the expression out keeps the stored expression.
+    """
+    command = _mapping_command(mocker, None, partition_mapped_column="event_time")
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+
+    inputs = command._mapping_inputs(
+        [{"id": 10, "column_name": "event_time"}, sent],
+        "dt_epoch",
+        "event_time",
+        "event_time",
+        None,
+        "sqlite",
+    )
+    stored = command._mapping_inputs(
+        None, "dt_epoch", "event_time", "event_time", None, "sqlite"
+    )
+
+    assert inputs["partition_column"] == expected["partition_column"]
+    assert (inputs["partition_column"] == stored["partition_column"]) is (
+        "expression" not in sent
+    )
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_templated_partition_column_blocks_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The mirrored predicate is built outside the template processor, so a
+    Jinja-bearing partition key would reach every chart's SQL unrendered.
+    Read from the stored column when the request carries no column payload.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    # Stored unmapped, so naming the key is this request's doing: a templated
+    # key already in storage is forgiven like any other stored problem.
+    cast(Any, command._model).partition_column = None
+    command._properties["partition_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+    assert "Jinja" in str(exceptions[0])
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unrelated_save_survives_a_templated_key_already_stored(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A templated key stored before this check existed is not the request's
+    doing, so a save that leaves it alone is not refused over it.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    command._properties["description"] = "x"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_templated_partition_column_in_the_payload_blocks_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """The expression this request writes is the one that counts, not storage's."""
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties = {
+        "columns": [
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "unix_timestamp(:value)",
+            },
+            {"column_name": "dt_epoch", "expression": "{% if 1 %}dt{% endif %}"},
+        ]
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_partial_entry_keeps_the_stored_templated_expression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An entry with an `id` and no `expression` leaves the stored expression in
+    place, so the stored Jinja is what the save has to be refused over.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    mapped_column, partition_column = cast(Any, command._model).columns
+    mapped_column.id = 1
+    partition_column.id = 2
+    # Stored unmapped, so naming the key is this request's doing: a templated
+    # key already in storage is forgiven like any other stored problem.
+    cast(Any, command._model).partition_column = None
+    command._properties = {
+        "partition_column": "dt_epoch",
+        "columns": [
+            {"id": 1, "column_name": "event_time"},
+            {"id": 2, "column_name": "dt_epoch", "description": "partition key"},
+        ],
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+    assert "Jinja" in str(exceptions[0])
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_renamed_partial_entry_keeps_the_stored_template_of_its_id(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `_upsert_columns` writes by `id`, so a rename in the same request carries
+    the stored Jinja to the new name, where looking it up by name finds nothing.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    mapped_column, partition_column = cast(Any, command._model).columns
+    mapped_column.id = 1
+    partition_column.id = 2
+    # Stored unmapped, so naming the key is this request's doing: a templated
+    # key already in storage is forgiven like any other stored problem.
+    cast(Any, command._model).partition_column = None
+    command._properties = {
+        "partition_column": "dt_renamed",
+        "columns": [
+            {"id": 1, "column_name": "event_time"},
+            {"id": 2, "column_name": "dt_renamed"},
+        ],
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+    assert "Jinja" in str(exceptions[0])
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_override_entry_keeps_the_stored_template_of_its_name(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `override_columns` matches by name, so an entry with no `id` and no
+    `expression` still leaves the stored Jinja on that row.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    command.override_columns = True
+    command._properties = {
+        "columns": [
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "unix_timestamp(:value)",
+            },
+            {"column_name": "dt_epoch"},
+        ]
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_override_entry_ignores_a_stale_id(mocker: MockerFixture) -> None:
+    """
+    `override_columns` never matches on the payload's `id`: a renamed column
+    is inserted fresh, so the expression stored under that `id` does not follow.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    command.override_columns = True
+    _, partition_column = cast(Any, command._model).columns
+    partition_column.id = 2
+    command._properties = {
+        "partition_column": "dt_renamed",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "unix_timestamp(:value)",
+            },
+            {"id": 2, "column_name": "dt_renamed"},
+        ],
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_explicit_null_expression_clears_the_stored_template(
+    mocker: MockerFixture,
+) -> None:
+    """An explicit `None` is a clear, so the stored Jinja no longer counts."""
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+    mapped_column, partition_column = cast(Any, command._model).columns
+    mapped_column.id = 1
+    partition_column.id = 2
+    command._properties = {
+        "columns": [
+            {"id": 1, "column_name": "event_time"},
+            {"id": 2, "column_name": "dt_epoch", "expression": None},
+        ]
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_untemplated_calculated_partition_column_still_saves(
+    mocker: MockerFixture,
+) -> None:
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_expression="CAST(dt AS BIGINT)"
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_dangling_mapping_on_an_unsupported_engine_does_not_block_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    On an engine without `supports_partition_filter_mapping` the editor hides
+    the mapping controls but still sends the stored `partition_column` back.
+    A mapping kept from before the engine gate, whose partition column a sync
+    has since removed, must not 422 every save: the owner has no control left
+    to clear it, and the query path ignores the mapping anyway.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", supports_partition_filter_mapping=False
+    )
+    command._properties["columns"] = [{"column_name": "event_time"}]
+    command._properties["partition_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_same_dangling_mapping_is_rejected_on_a_supported_engine(
+    mocker: MockerFixture,
+) -> None:
+    """Where the editor shows the controls, the owner can fix it, so it blocks."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", supports_partition_filter_mapping=True
+    )
+    command._properties["columns"] = [{"column_name": "event_time"}]
+    command._properties["partition_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_jinja_transform_is_rejected_on_an_unsupported_engine_too(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Only the column references are relaxed off the engine gate. The engine
+    belongs to the database connection and can change without a dataset save,
+    so a transform let through here could become live without being vetted.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", supports_partition_filter_mapping=False
+    )
+    command._properties["columns"] = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp({{ current_user_id() }})",
+        },
+        {"column_name": "dt_epoch"},
+    ]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]

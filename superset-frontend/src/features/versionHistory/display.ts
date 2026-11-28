@@ -25,6 +25,7 @@ import type {
   SaveGroup,
   CreationKind,
 } from './types';
+import { isChartArchiveRecord } from './lifecycle';
 
 /** Activity timestamps are naive UTC; parse as UTC, render local. */
 export function parseIssuedAt(issuedAt: string) {
@@ -130,7 +131,7 @@ function recordSubject(record: ActivityRecord): string | null {
   if (fromValues && !isOpaqueId(fromValues)) {
     return fromValues;
   }
-  const last = record.path[record.path.length - 1];
+  const last = record.path?.[record.path.length - 1];
   if (typeof last === 'string' && last !== '' && !isOpaqueId(last)) {
     return last;
   }
@@ -148,7 +149,7 @@ function humanizeFieldName(field: string): string {
 }
 
 function fieldSubject(record: ActivityRecord): string {
-  const path = record.path.filter(
+  const path = (record.path ?? []).filter(
     (segment): segment is string => typeof segment === 'string',
   );
   const meaningful =
@@ -185,7 +186,7 @@ function layoutKindLabel(kind: string): string | null {
  * headline, or null when the record isn't a top-level name change.
  */
 function renameHeadline(record: ActivityRecord): string | null {
-  const field = record.path.length === 1 ? record.path[0] : null;
+  const field = record.path?.length === 1 ? record.path[0] : null;
   const to = valueLabel(record.to_value);
   switch (field) {
     case 'slice_name':
@@ -420,6 +421,12 @@ export function relatedHeadline(
   record: ActivityRecord,
   records: ActivityRecord[] = [record],
 ): string {
+  if (isChartArchiveRecord(record)) {
+    if (record.entity_deleted) {
+      return record.summary || t('Item updated: %s', entityDisplayName(record));
+    }
+    return t('Chart archived: %s', entityDisplayName(record));
+  }
   const chartCount = record.impact?.charts ?? 0;
   if (record.entity_kind === 'dataset' && chartCount > 1) {
     // tn even though this branch only runs for counts above one: English has

@@ -7,7 +7,7 @@ assignees: "apache/superset-committers"
 ---
 
 *Please make sure you are familiar with the SIP process documented*
-[here](https://github.com/apache/superset/issues/5602). The SIP will be numbered by a committer upon acceptance.
+[here](https://github.com/apache/superset/issues/5602). The SIP will be numbered automatically shortly after it is opened.
 
 ## [SIP] Proposal for ...<title>
 

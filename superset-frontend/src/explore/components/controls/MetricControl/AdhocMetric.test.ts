@@ -23,268 +23,265 @@ import AdhocMetric, {
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('AdhocMetric', () => {
-  test('sets label, hasCustomLabel and optionName in constructor', () => {
-    const adhocMetric = new AdhocMetric({
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-    });
-    expect(adhocMetric.optionName.length).toBeGreaterThan(10);
-    expect(adhocMetric).toEqual({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-      datasourceWarning: false,
-      label: 'SUM(value)',
-      hasCustomLabel: false,
-      optionName: adhocMetric.optionName,
-      sqlExpression: null,
-    });
+test('sets label, hasCustomLabel and optionName in constructor', () => {
+  const adhocMetric = new AdhocMetric({
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+  });
+  expect(adhocMetric.optionName.length).toBeGreaterThan(10);
+  expect(adhocMetric).toEqual({
+    expressionType: EXPRESSION_TYPES.SIMPLE,
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+    datasourceWarning: false,
+    label: 'SUM(value)',
+    hasCustomLabel: false,
+    optionName: adhocMetric.optionName,
+    sqlExpression: null,
+  });
+});
+
+test('can create altered duplicates', () => {
+  const adhocMetric1 = new AdhocMetric({
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+  });
+  const adhocMetric2 = adhocMetric1.duplicateWith({
+    aggregate: AGGREGATES.AVG,
   });
 
-  test('can create altered duplicates', () => {
-    const adhocMetric1 = new AdhocMetric({
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-    });
-    const adhocMetric2 = adhocMetric1.duplicateWith({
-      aggregate: AGGREGATES.AVG,
-    });
+  expect(adhocMetric1.column).toBe(adhocMetric2.column);
+  expect(adhocMetric1.column).toBe(valueColumn);
 
-    expect(adhocMetric1.column).toBe(adhocMetric2.column);
-    expect(adhocMetric1.column).toBe(valueColumn);
+  expect(adhocMetric1.aggregate).toBe(AGGREGATES.SUM);
+  expect(adhocMetric2.aggregate).toBe(AGGREGATES.AVG);
+});
 
-    expect(adhocMetric1.aggregate).toBe(AGGREGATES.SUM);
-    expect(adhocMetric2.aggregate).toBe(AGGREGATES.AVG);
+test('can verify equality', () => {
+  const adhocMetric1 = new AdhocMetric({
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+  });
+  const adhocMetric2 = adhocMetric1.duplicateWith({});
+
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric1.equals(adhocMetric2)).toBe(true);
+});
+
+test('can verify inequality', () => {
+  const adhocMetric1 = new AdhocMetric({
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+    label: 'old label',
+    hasCustomLabel: true,
+  });
+  const adhocMetric2 = adhocMetric1.duplicateWith({ label: 'new label' });
+
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric1.equals(adhocMetric2)).toBe(false);
+
+  const adhocMetric3 = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'COUNT(*)',
+    label: 'old label',
+    hasCustomLabel: true,
+  });
+  const adhocMetric4 = adhocMetric3.duplicateWith({
+    sqlExpression: 'COUNT(1)',
   });
 
-  test('can verify equality', () => {
-    const adhocMetric1 = new AdhocMetric({
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-    });
-    const adhocMetric2 = adhocMetric1.duplicateWith({});
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric3.equals(adhocMetric4)).toBe(false);
+});
 
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric1.equals(adhocMetric2)).toBe(true);
+test('updates label if hasCustomLabel is false', () => {
+  const adhocMetric1 = new AdhocMetric({
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+  });
+  const adhocMetric2 = adhocMetric1.duplicateWith({
+    aggregate: AGGREGATES.AVG,
   });
 
-  test('can verify inequality', () => {
-    const adhocMetric1 = new AdhocMetric({
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-      label: 'old label',
-      hasCustomLabel: true,
-    });
-    const adhocMetric2 = adhocMetric1.duplicateWith({ label: 'new label' });
+  expect(adhocMetric2.label).toBe('AVG(value)');
+});
 
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric1.equals(adhocMetric2)).toBe(false);
-
-    const adhocMetric3 = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'COUNT(*)',
-      label: 'old label',
-      hasCustomLabel: true,
-    });
-    const adhocMetric4 = adhocMetric3.duplicateWith({
-      sqlExpression: 'COUNT(1)',
-    });
-
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric3.equals(adhocMetric4)).toBe(false);
+test('keeps label if hasCustomLabel is true', () => {
+  const adhocMetric1 = new AdhocMetric({
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+    hasCustomLabel: true,
+    label: 'label1',
+  });
+  const adhocMetric2 = adhocMetric1.duplicateWith({
+    aggregate: AGGREGATES.AVG,
   });
 
-  test('updates label if hasCustomLabel is false', () => {
-    const adhocMetric1 = new AdhocMetric({
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-    });
-    const adhocMetric2 = adhocMetric1.duplicateWith({
-      aggregate: AGGREGATES.AVG,
-    });
+  expect(adhocMetric2.label).toBe('label1');
+});
 
-    expect(adhocMetric2.label).toBe('AVG(value)');
+test('can determine if it is valid', () => {
+  const adhocMetric1 = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SIMPLE,
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+    hasCustomLabel: true,
+    label: 'label1',
   });
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric1.isValid()).toBe(true);
 
-  test('keeps label if hasCustomLabel is true', () => {
-    const adhocMetric1 = new AdhocMetric({
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    const adhocMetric2 = adhocMetric1.duplicateWith({
-      aggregate: AGGREGATES.AVG,
-    });
-
-    expect(adhocMetric2.label).toBe('label1');
+  const adhocMetric2 = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SIMPLE,
+    column: valueColumn,
+    aggregate: null,
+    hasCustomLabel: true,
+    label: 'label1',
   });
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric2.isValid()).toBe(false);
 
-  test('can determine if it is valid', () => {
-    const adhocMetric1 = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric1.isValid()).toBe(true);
-
-    const adhocMetric2 = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-      column: valueColumn,
-      aggregate: null,
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric2.isValid()).toBe(false);
-
-    const adhocMetric3 = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'COUNT(*)',
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric3.isValid()).toBe(true);
-
-    const adhocMetric4 = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      column: valueColumn,
-      aggregate: AGGREGATES.SUM,
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric4.isValid()).toBe(false);
-
-    const adhocMetric5 = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    // eslint-disable-next-line no-unused-expressions
-    expect(adhocMetric5.isValid()).toBe(false);
+  const adhocMetric3 = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'COUNT(*)',
+    hasCustomLabel: true,
+    label: 'label1',
   });
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric3.isValid()).toBe(true);
 
-  test('can translate back from sql expressions to simple expressions when possible', () => {
-    const adhocMetric = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'AVG(my_column)',
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    expect(adhocMetric.inferSqlExpressionColumn()).toBe('my_column');
-    expect(adhocMetric.inferSqlExpressionAggregate()).toBe('AVG');
-
-    const adhocMetric2 = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'AVG(SUM(my_column)) / MAX(other_column)',
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    expect(adhocMetric2.inferSqlExpressionColumn()).toBeNull();
-    expect(adhocMetric2.inferSqlExpressionAggregate()).toBeNull();
+  const adhocMetric4 = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    column: valueColumn,
+    aggregate: AGGREGATES.SUM,
+    hasCustomLabel: true,
+    label: 'label1',
   });
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric4.isValid()).toBe(false);
 
-  test('can infer the new extended aggregates (STDDEV_SAMP/VAR_SAMP/MEDIAN) from sql expressions', () => {
-    const stddevSamp = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'STDDEV_SAMP(my_column)',
-    });
-    expect(stddevSamp.inferSqlExpressionColumn()).toBe('my_column');
-    expect(stddevSamp.inferSqlExpressionAggregate()).toBe('STDDEV_SAMP');
-
-    const varSamp = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'VAR_SAMP(my_column)',
-    });
-    expect(varSamp.inferSqlExpressionColumn()).toBe('my_column');
-    expect(varSamp.inferSqlExpressionAggregate()).toBe('VAR_SAMP');
-
-    const median = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'MEDIAN(my_column)',
-    });
-    expect(median.inferSqlExpressionColumn()).toBe('my_column');
-    expect(median.inferSqlExpressionAggregate()).toBe('MEDIAN');
+  const adhocMetric5 = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    hasCustomLabel: true,
+    label: 'label1',
   });
+  // eslint-disable-next-line no-unused-expressions
+  expect(adhocMetric5.isValid()).toBe(false);
+});
 
-  test('will infer columns and aggregates when converting to a simple expression', () => {
-    const adhocMetric = new AdhocMetric({
-      expressionType: EXPRESSION_TYPES.SQL,
-      sqlExpression: 'AVG(my_column)',
-      hasCustomLabel: true,
-      label: 'label1',
-    });
-    const adhocMetric2 = adhocMetric.duplicateWith({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-      aggregate: AGGREGATES.SUM,
-    });
-    expect(adhocMetric2.aggregate).toBe(AGGREGATES.SUM);
-    expect(adhocMetric2.column?.column_name).toBe('my_column');
-
-    const adhocMetric3 = adhocMetric.duplicateWith({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-      column: valueColumn,
-    });
-    expect(adhocMetric3.aggregate).toBe(AGGREGATES.AVG);
-    expect(adhocMetric3.column?.column_name).toBe('value');
+test('can translate back from sql expressions to simple expressions when possible', () => {
+  const adhocMetric = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'AVG(my_column)',
+    hasCustomLabel: true,
+    label: 'label1',
   });
+  expect(adhocMetric.inferSqlExpressionColumn()).toBe('my_column');
+  expect(adhocMetric.inferSqlExpressionAggregate()).toBe('AVG');
 
-  test('should transform count_distinct SQL and do not change label if does not set metric label', () => {
-    const withBrackets = new AdhocMetric({
-      column: { type: 'TEXT', column_name: '(column-with-barckets)' },
-      aggregate: AGGREGATES.COUNT_DISTINCT,
-      hasCustomLabel: false,
-    });
-    expect(withBrackets.translateToSql({ transformCountDistinct: true })).toBe(
-      'COUNT(DISTINCT (column-with-barckets))',
-    );
-    expect(withBrackets.getDefaultLabel()).toBe(
-      'COUNT_DISTINCT((column-with-barckets))',
-    );
-
-    const withoutBrackets = new AdhocMetric({
-      column: { type: 'TEXT', column_name: 'column-without-barckets' },
-      aggregate: AGGREGATES.COUNT_DISTINCT,
-      hasCustomLabel: false,
-    });
-    expect(
-      withoutBrackets.translateToSql({ transformCountDistinct: true }),
-    ).toBe('COUNT(DISTINCT column-without-barckets)');
-    expect(withoutBrackets.getDefaultLabel()).toBe(
-      'COUNT_DISTINCT(column-without-barckets)',
-    );
-
-    const emptyColumnName = new AdhocMetric({
-      column: { type: 'TEXT', column_name: '' },
-      aggregate: AGGREGATES.COUNT_DISTINCT,
-      hasCustomLabel: false,
-    });
-    expect(
-      emptyColumnName.translateToSql({ transformCountDistinct: true }),
-    ).toBe('COUNT_DISTINCT');
-    expect(emptyColumnName.getDefaultLabel()).toBe('COUNT_DISTINCT');
+  const adhocMetric2 = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'AVG(SUM(my_column)) / MAX(other_column)',
+    hasCustomLabel: true,
+    label: 'label1',
   });
+  expect(adhocMetric2.inferSqlExpressionColumn()).toBeNull();
+  expect(adhocMetric2.inferSqlExpressionAggregate()).toBeNull();
+});
 
-  test('should prefill a portable MEDIAN expression for the Custom SQL tab, but keep the raw label', () => {
-    const median = new AdhocMetric({
-      column: valueColumn,
-      aggregate: AGGREGATES.MEDIAN,
-      hasCustomLabel: false,
-    });
-    // MEDIAN(column) isn't valid SQL on every engine this PR verifies it
-    // for (e.g. PostgreSQL has no MEDIAN function), so the editable Custom
-    // SQL tab is prefilled with the portable, standards-based spelling.
-    expect(median.translateToSql({ transformCountDistinct: true })).toBe(
-      'PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value)',
-    );
-    // The display label stays the concise, human-readable form.
-    expect(median.getDefaultLabel()).toBe('MEDIAN(value)');
+test('can infer the new extended aggregates (STDDEV_SAMP/VAR_SAMP/MEDIAN) from sql expressions', () => {
+  const stddevSamp = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'STDDEV_SAMP(my_column)',
   });
+  expect(stddevSamp.inferSqlExpressionColumn()).toBe('my_column');
+  expect(stddevSamp.inferSqlExpressionAggregate()).toBe('STDDEV_SAMP');
+
+  const varSamp = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'VAR_SAMP(my_column)',
+  });
+  expect(varSamp.inferSqlExpressionColumn()).toBe('my_column');
+  expect(varSamp.inferSqlExpressionAggregate()).toBe('VAR_SAMP');
+
+  const median = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'MEDIAN(my_column)',
+  });
+  expect(median.inferSqlExpressionColumn()).toBe('my_column');
+  expect(median.inferSqlExpressionAggregate()).toBe('MEDIAN');
+});
+
+test('will infer columns and aggregates when converting to a simple expression', () => {
+  const adhocMetric = new AdhocMetric({
+    expressionType: EXPRESSION_TYPES.SQL,
+    sqlExpression: 'AVG(my_column)',
+    hasCustomLabel: true,
+    label: 'label1',
+  });
+  const adhocMetric2 = adhocMetric.duplicateWith({
+    expressionType: EXPRESSION_TYPES.SIMPLE,
+    aggregate: AGGREGATES.SUM,
+  });
+  expect(adhocMetric2.aggregate).toBe(AGGREGATES.SUM);
+  expect(adhocMetric2.column?.column_name).toBe('my_column');
+
+  const adhocMetric3 = adhocMetric.duplicateWith({
+    expressionType: EXPRESSION_TYPES.SIMPLE,
+    column: valueColumn,
+  });
+  expect(adhocMetric3.aggregate).toBe(AGGREGATES.AVG);
+  expect(adhocMetric3.column?.column_name).toBe('value');
+});
+
+test('should transform count_distinct SQL and do not change label if does not set metric label', () => {
+  const withBrackets = new AdhocMetric({
+    column: { type: 'TEXT', column_name: '(column-with-barckets)' },
+    aggregate: AGGREGATES.COUNT_DISTINCT,
+    hasCustomLabel: false,
+  });
+  expect(withBrackets.translateToSql({ transformCountDistinct: true })).toBe(
+    'COUNT(DISTINCT (column-with-barckets))',
+  );
+  expect(withBrackets.getDefaultLabel()).toBe(
+    'COUNT_DISTINCT((column-with-barckets))',
+  );
+
+  const withoutBrackets = new AdhocMetric({
+    column: { type: 'TEXT', column_name: 'column-without-barckets' },
+    aggregate: AGGREGATES.COUNT_DISTINCT,
+    hasCustomLabel: false,
+  });
+  expect(withoutBrackets.translateToSql({ transformCountDistinct: true })).toBe(
+    'COUNT(DISTINCT column-without-barckets)',
+  );
+  expect(withoutBrackets.getDefaultLabel()).toBe(
+    'COUNT_DISTINCT(column-without-barckets)',
+  );
+
+  const emptyColumnName = new AdhocMetric({
+    column: { type: 'TEXT', column_name: '' },
+    aggregate: AGGREGATES.COUNT_DISTINCT,
+    hasCustomLabel: false,
+  });
+  expect(emptyColumnName.translateToSql({ transformCountDistinct: true })).toBe(
+    'COUNT_DISTINCT',
+  );
+  expect(emptyColumnName.getDefaultLabel()).toBe('COUNT_DISTINCT');
+});
+
+test('should prefill a portable MEDIAN expression for the Custom SQL tab, but keep the raw label', () => {
+  const median = new AdhocMetric({
+    column: valueColumn,
+    aggregate: AGGREGATES.MEDIAN,
+    hasCustomLabel: false,
+  });
+  // MEDIAN(column) isn't valid SQL on every engine this PR verifies it
+  // for (e.g. PostgreSQL has no MEDIAN function), so the editable Custom
+  // SQL tab is prefilled with the portable, standards-based spelling.
+  expect(median.translateToSql({ transformCountDistinct: true })).toBe(
+    'PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value)',
+  );
+  // The display label stays the concise, human-readable form.
+  expect(median.getDefaultLabel()).toBe('MEDIAN(value)');
 });

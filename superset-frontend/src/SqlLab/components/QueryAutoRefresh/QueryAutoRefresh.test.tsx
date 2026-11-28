@@ -19,7 +19,7 @@
 import { act } from 'react';
 import { QueryState } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { cleanup } from '@testing-library/react';
@@ -38,7 +38,7 @@ import { QueryDictionary } from 'src/SqlLab/types';
 import mockDatabases from 'spec/fixtures/mockDatabases';
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 const mockState = {
   databases: mockDatabases,
 };

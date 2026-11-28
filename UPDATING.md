@@ -24,6 +24,74 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `get_table` query failures now populate `error_code`. Untyped dataset
+  engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
+  specific `SupersetErrorType` code for typed errors, while guests receive
+  `GENERIC_BACKEND_ERROR` for unsafe typed errors. Semantic provider faults
+  and transport outages use `GENERIC_BACKEND_ERROR`. Rejected semantic
+  queries use one of
+  `UNSUPPORTED_QUERY`, `UNSUPPORTED_OFFSET`,
+  `UNSUPPORTED_GROUP_OTHERS_METRIC`, `INVALID_FILTER`, or `INVALID_QUERY`.
+  Malformed query results use `INVALID_QUERY_RESULT`; host-authored access and
+  OAuth errors retain their Superset error codes, except a provider-raised
+  OAuth error on a semantic view, which uses `GENERIC_BACKEND_ERROR`. These
+  codes are intended to remain stable for MCP clients. Semantic rejections
+  previously reported `error_type="QueryError"` and now report
+  `"QueryValidationError"`; host query validation reports `"ValidationError"`.
+  Transport outages remain `"QueryError"`. Raw `SQLAlchemyError` failures
+  previously reported `"DatabaseError"` and now report `"QueryError"`.
+  The old `"Query execution failed:"` and `"Database error:"` message prefixes
+  are removed. Clients matching error types or message prefixes should handle
+  these changes.
+
+- Provider tests inheriting `SemanticProviderConformance` must supply four
+  additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,
+  and `or_not_ilike`. These check the existing normalized exclusion-filter
+  contract, including NULL retention and outer AND predicates. Update any
+  explicit conformance-case allowlist when adopting the kit; see the
+  [provider testing guide](docs/developer_docs/semantic-layer-provider-testing.md).
+
+- Dashboard history records related chart archives using the new
+  `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
+  new archive writes with versioning capture enabled. During a rollout, activity
+  reads tolerate a missing scope table and continue returning content history;
+  archive capture skipped before the migration cannot be reconstructed or
+  backfilled. Archive activity adds no content version and does not change
+  recovery or content-restore behavior. Downgrade removes archive scopes and
+  archive records but leaves content history intact; empty activity transactions
+  may remain until normal history retention removes them.
+
+- Version-history commit-time finalization rejects the whole save when a database
+  error occurs outside a recoverable savepoint, including final field or child
+  diff generation and version-transaction lookup. This applies to ordinary
+  content saves as well as chart archives. A lost transaction or savepoint also
+  rejects the save. Optional capture failures isolated by a successful savepoint
+  rollback may still omit history without rejecting the save.
+
+- **OAuth login with a single provider:** when `OAUTH_PROVIDERS` contains exactly
+  one provider, the login page now skips the provider choice and redirects
+  straight to that provider's sign-in. After logout, users land on the login page
+  and are redirected to the provider again, which may sign them straight back in
+  while their provider session is active. Set `LOGOUT_REDIRECT_URL` (or override
+  `logout` in a custom OAuth view) to send users elsewhere or end the provider
+  session.
+
+- `list` and `pages` are now reserved extension publisher names. An
+  extension already published under either will fail manifest validation
+  and the `superset-extensions` CLI will refuse to build it; the host owns
+  `/extensions/list/` and `/extensions/pages/<id>`, so a publisher of those
+  names could not be addressed. Rename the publisher and reinstall.
+
+- `navigation.getPage()` can now return `'extension'`, for a page contributed
+  by an extension. Code that switches exhaustively on the `Page` union will
+  not compile until that member is handled, and code that switches without a
+  default may fall through on an extension page at runtime.
+
+- `navigation.getLocation().pathname` is relative to the application root, so
+  on a deployment served under a prefix it does not carry that prefix.
+  `navigation.getApplicationRoot()` reports the prefix for callers that need
+  it, such as a `fetch` built by hand.
+
 - Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
 
 - Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
@@ -257,6 +325,32 @@ assists people when migrating to a new version.
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
   non-empty viewers list restricts access regardless of the flag), and removing
   viewers remains possible so stale assignments can be cleared.
+
+- The `Week` time grain for Oracle (`TRUNC(..., 'IW')`) and Impala
+  (`TRUNC(..., 'D')`) now always truncates to Monday. Previously `'WW'`
+  aligned weeks to the weekday of January 1, so the week start changed every
+  year and each year ended with a 1–2 day stub week. Existing Week-grain charts
+  on these engines will regroup, and cached results may show the old buckets
+  until they expire.
+
+- [45929](https://github.com/apache/superset/pull/45929): Partition filter
+  mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
+  `supports_partition_filter_mapping = True`: Hive and Impala, plus the specs
+  that inherit from them -- Apache Spark SQL, Databricks Interactive Cluster
+  (`databricks+pyhive://`) and Ascend. On every other engine -- Trino, Presto,
+  PostgreSQL, the other Databricks connectors (Databricks SQL Python, legacy
+  `databricks+connector://`, SQL Endpoint `databricks+pyodbc://`) and the
+  rest -- an existing mapping **silently stops applying** after upgrade: no
+  filter is mirrored onto the partition column, so queries that used to prune
+  partitions scan the whole table. The dataset editor hides the mapping
+  settings and Explore shows no pruning indicator. The stored mapping is kept,
+  not deleted, and applies again if the dataset is pointed at a database on a
+  supported engine.
+  Superset logs a warning (`Ignoring partition filter mapping on dataset ...`)
+  the first time each worker resolves such a mapping; search for it after
+  upgrading to find affected datasets. A deployment that depends on mirroring
+  on another engine has to add a predicate on the partition column to the
+  affected charts, or opt that engine spec in.
 
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
@@ -1288,6 +1382,16 @@ on `/api/v1/me/`), so grant all three permissions to any custom role whose
 members may have `password_must_change` set on their account.
 `ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
 check on; `password_must_change` is the per-user flag it acts on.
+
+- **Administrator-set passwords now force a change at next login.** With
+  `ENABLE_FORCE_PASSWORD_CHANGE` on, creating a user with a password
+  (`POST /api/v1/security/users/`) or setting another user's password from the
+  Users list edit modal (`PUT /api/v1/security/users/<pk>`) sets
+  `password_must_change` on that account, so its owner is redirected to choose
+  their own password at next login. Previously nothing set the flag, so the
+  setting had no effect. An administrator changing their own password is not
+  flagged (and a pending change of theirs is cleared). The flag is only raised
+  under `AUTH_DB`, and not at all with the setting off.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 
@@ -2986,6 +3090,8 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or the relative anchor itself) previously resolved that anchor in UTC before formatting it into a naive datetime string, which was then re-parsed elsewhere as local time. For users outside UTC, this made the resolved anchor drift by their browser's UTC offset. "Now"/"Today" now resolve directly in local time, matching the later local re-parse.
 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
+
+- [43712](https://github.com/apache/superset/pull/43712): As the `ascend.io` platform shut down, its DB integration has been removed. Any existing `ascend://` DB connections and related resources (charts, datasets, etc.) will stop working after upgrading and must be either repointed or removed.
 
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
 
