@@ -867,8 +867,7 @@ test('Enter on a page number of the new pager sends the page change once and clo
   );
   await openFirst();
   await screen.findAllByText('2 Steps');
-  const page = screen.getByTitle('2');
-  page.focus();
+  screen.getByLabelText('Page 2').focus();
   await userEvent.keyboard('{Enter}');
   await waitFor(() =>
     expect(onMask).toHaveBeenCalledWith({ ownState: { currentPage: 1 } }),
@@ -880,5 +879,5 @@ test('Enter on a page number of the new pager sends the page change once and clo
   expect(
     container.querySelector('.ant-pagination-item-active'),
   ).toHaveAttribute('title', '2');
-  expect(document.activeElement).toBe(screen.getByTitle('2'));
+  expect(document.activeElement).toBe(screen.getByLabelText('Page 2'));
 });

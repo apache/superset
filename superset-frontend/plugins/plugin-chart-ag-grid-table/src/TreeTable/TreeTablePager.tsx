@@ -33,7 +33,7 @@ export interface TreeTablePagerProps {
   onPageSizeChange: (pageSize: number) => void;
 }
 
-const ACTIVE_PAGE = '.ant-pagination-item-active';
+const ACTIVE_PAGE = '.ant-pagination-item-active a';
 const formatInteger = getNumberFormatter(NumberFormats.INTEGER);
 
 /**
