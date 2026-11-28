@@ -21,7 +21,13 @@ import { ensureIsArray } from '@superset-ui/core';
 import { ReactElement, RefObject } from 'react';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { LabeledValue as AntdLabeledValue, SELECT_ALL_VALUE } from '.';
-import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
+import {
+  StyledBulkActionsContainer,
+  StyledHelperText,
+  StyledLoadingText,
+  StyledSpin,
+} from './styles';
+import { Button } from '../Button';
 import { CustomLabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 export function isObject(value: unknown): value is Record<string, unknown> {
@@ -223,6 +229,7 @@ export const dropDownRenderHelper = (
   helperText: string | undefined,
   errorComponent?: JSX.Element,
   bulkSelectComponents?: JSX.Element,
+  onDone?: () => void,
 ) => {
   if (!isDropdownVisible) {
     originNode.ref?.current?.scrollTo({ top: 0 });
@@ -258,9 +265,83 @@ export const dropDownRenderHelper = (
         <StyledHelperText role="note">{helperText}</StyledHelperText>
       )}
       {accessibilityNode}
-      {bulkSelectComponents}
+      {(bulkSelectComponents || onDone) && (
+        <StyledBulkActionsContainer justify="center" gap="small" wrap>
+          {bulkSelectComponents}
+          {onDone && (
+            <Button
+              type="link"
+              buttonStyle="link"
+              buttonSize="xsmall"
+              // Keep focus on the select input while clicking.
+              onMouseDown={e => e.preventDefault()}
+              onClick={e => {
+                e.stopPropagation();
+                onDone();
+              }}
+            >
+              {t('Done')}
+            </Button>
+          )}
+        </StyledBulkActionsContainer>
+      )}
     </>
   );
+};
+
+/**
+ * Rows the popup list renders: a grouped option takes one header row plus a
+ * row per nested option. A helper text line above the list counts as one
+ * more row.
+ */
+export const countPopupRows = (
+  options: SelectOptionsType,
+  helperText?: string,
+) =>
+  options.reduce(
+    (rows, option) =>
+      rows +
+      ('options' in option && Array.isArray(option.options)
+        ? 1 + option.options.length
+        : 1),
+    helperText ? 1 : 0,
+  );
+
+// Rough popup height used to decide placement before the popup renders:
+// option rows (capped at antd's default listHeight) plus list padding and
+// the footer row. Approximations of the default theme.
+const ESTIMATED_OPTION_HEIGHT = 32;
+const ESTIMATED_POPUP_CHROME = 48;
+const MAX_LIST_HEIGHT = 256;
+
+export const estimatePopupHeight = (rowCount: number) =>
+  Math.min(Math.max(rowCount, 1) * ESTIMATED_OPTION_HEIGHT, MAX_LIST_HEIGHT) +
+  ESTIMATED_POPUP_CHROME;
+
+/**
+ * Inside a modal the popup is portalled into `.ant-modal-container`, which
+ * also holds the footer, so a downward popup can cover the footer actions
+ * (e.g. Save) without ever leaving the viewport, and antd never flips it.
+ * Open upward when the space down to the footer is too small and the modal
+ * has more room above the trigger; otherwise return undefined to keep
+ * antd's default placement. Evaluated once per open so the popup never
+ * jumps while the user is picking options.
+ */
+export const getPopupPlacement = (
+  container: Element | null | undefined,
+  rowCount: number,
+  direction?: string,
+): 'topLeft' | 'topRight' | undefined => {
+  const trigger = container?.querySelector('.ant-select');
+  const modal = trigger?.closest('.ant-modal-container');
+  const footer = modal?.querySelector('.ant-modal-footer');
+  if (!trigger || !modal || !footer) return undefined;
+  const triggerRect = trigger.getBoundingClientRect();
+  const spaceBelow = footer.getBoundingClientRect().top - triggerRect.bottom;
+  const spaceAbove = triggerRect.top - modal.getBoundingClientRect().top;
+  if (spaceBelow >= estimatePopupHeight(rowCount)) return undefined;
+  if (spaceAbove <= spaceBelow) return undefined;
+  return direction === 'rtl' ? 'topRight' : 'topLeft';
 };
 
 // Strips surrounding double quotes from a string, e.g. `"foo"` → `foo`.
