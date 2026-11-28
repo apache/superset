@@ -547,6 +547,14 @@ const FieldLabelWithTooltip = styled.div`
   `}
 `;
 
+const DefaultTimeFilterField = styled(Flex)`
+  ${({ theme }) => css`
+    button[name='default_time_filter'] {
+      height: ${theme.sizeXL + 2 * (theme.sizeUnit + theme.lineWidth)}px;
+    }
+  `}
+`;
+
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.sizeUnit * 3}px;
@@ -2258,6 +2266,7 @@ function DatasourceEditor({
     // An unset default time filter inherits the instance default. The field is
     // hidden while the Extra JSON is malformed.
     const extra = parseExtra(datasource.extra);
+    const showDefaultTimeFilter = isSqla && !!extra;
     const defaultTimeFilter = getDatasetDefaultTimeFilter({ extra });
     const setDefaultTimeFilter = (range?: string) => {
       // An empty range is unset. Leave the Extra JSON as written when the
@@ -2278,56 +2287,64 @@ function DatasourceEditor({
           {t('Default Column Settings')}
         </DefaultColumnSettingsTitle>
         <Flex vertical gap={(theme?.sizeUnit ?? 4) * 3}>
-          <Flex vertical gap={theme?.sizeUnit ?? 4}>
-            <FieldLabelWithTooltip>
-              <span>{t('Default datetime column')}</span>
-              <InfoTooltip
-                tooltip={t(
-                  'Sets the default temporal column for this dataset. Automatically selected as the time column when building charts that require a time dimension and used in dashboard level time filters.',
-                )}
-              />
-            </FieldLabelWithTooltip>
-            <Select
-              key={discardCancelCount}
-              ariaLabel={t('Default datetime column')}
-              options={datetimeColumns}
-              value={datasource.main_dttm_col}
-              onChange={value =>
-                handleMainDttmColChange(value as string | undefined)
-              }
-              placeholder={t('Select datetime column')}
-              allowClear
-              data-test="default-datetime-column-select"
-            />
-          </Flex>
-          {isSqla && extra && (
-            <Flex vertical gap={theme?.sizeUnit ?? 4} align="start">
-              <FieldLabelWithTooltip>
-                <span id="filter-name-default_time_filter">
-                  {t('Default time filter')}
-                </span>
-                <InfoTooltip
-                  tooltip={t(
-                    'Time range of the time filters Explore adds for this dataset, such as on new charts.',
-                  )}
+          <Row gutter={[16, (theme?.sizeUnit ?? 4) * 3]}>
+            <Col xs={24} md={showDefaultTimeFilter ? 12 : 24}>
+              <Flex vertical gap={theme?.sizeUnit ?? 4}>
+                <FieldLabelWithTooltip>
+                  <span>{t('Default datetime column')}</span>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Sets the default temporal column for this dataset. Automatically selected as the time column when building charts that require a time dimension and used in dashboard level time filters.',
+                    )}
+                  />
+                </FieldLabelWithTooltip>
+                <Select
+                  key={discardCancelCount}
+                  ariaLabel={t('Default datetime column')}
+                  options={datetimeColumns}
+                  value={datasource.main_dttm_col}
+                  onChange={value =>
+                    handleMainDttmColChange(value as string | undefined)
+                  }
+                  placeholder={t('Select datetime column')}
+                  allowClear
+                  data-test="default-datetime-column-select"
                 />
-              </FieldLabelWithTooltip>
-              <DateFilterComponent
-                name="default_time_filter"
-                placeholder={t('Use instance default')}
-                value={defaultTimeFilter}
-                onChange={setDefaultTimeFilter}
-              />
-              {defaultTimeFilter && (
-                <Button
-                  buttonStyle="link"
-                  onClick={() => setDefaultTimeFilter()}
-                >
-                  {t('Use instance default')}
-                </Button>
-              )}
-            </Flex>
-          )}
+              </Flex>
+            </Col>
+            {showDefaultTimeFilter && (
+              <Col xs={24} md={12}>
+                <DefaultTimeFilterField vertical gap={theme?.sizeUnit ?? 4}>
+                  <FieldLabelWithTooltip>
+                    <span id="filter-name-default_time_filter">
+                      {t('Default time filter')}
+                    </span>
+                    <InfoTooltip
+                      tooltip={t(
+                        'Time range of the time filters Explore adds for this dataset, such as on new charts.',
+                      )}
+                    />
+                  </FieldLabelWithTooltip>
+                  <DateFilterComponent
+                    name="default_time_filter"
+                    placeholder={t('Use instance default')}
+                    value={defaultTimeFilter}
+                    onChange={setDefaultTimeFilter}
+                  />
+                  {defaultTimeFilter && (
+                    <div>
+                      <Button
+                        buttonStyle="link"
+                        onClick={() => setDefaultTimeFilter()}
+                      >
+                        {t('Use instance default')}
+                      </Button>
+                    </div>
+                  )}
+                </DefaultTimeFilterField>
+              </Col>
+            )}
+          </Row>
           <Flex vertical gap={theme?.sizeUnit ?? 4}>
             <FieldLabelWithTooltip>
               <span>{t('Currency code column')}</span>
