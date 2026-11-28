@@ -158,7 +158,6 @@ from superset.jinja_context import (
 )
 from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import (
-    has_aggregate,
     is_constant_expression,
     sanitize_clause,
     SQLScript,
@@ -7408,36 +7407,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             dttm_col.column_name,
                             inner_from_dttm or from_dttm,
                             inner_to_dttm or to_dttm,
-                        )
-
-        # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
-        # real GROUP BY signal and also captures the timeseries time bucket. A
-        # non-aggregate Custom SQL metric under a GROUP BY is invalid SQL, so
-        # raise a clear error instead of a raw database one (#38913). Templated
-        # expressions may render to an aggregate at runtime, so leave them alone.
-        if groupby_all_columns:
-            for metric in metrics:
-                if (
-                    utils.is_adhoc_metric(metric)
-                    and metric.get("expressionType")
-                    == utils.AdhocMetricExpressionType.SQL
-                ):
-                    expression = metric.get("sqlExpression")
-                    if (
-                        isinstance(expression, str)
-                        and "{{" not in expression
-                        and "{%" not in expression
-                        and not has_aggregate(expression, self.database.backend)
-                    ):
-                        raise QueryObjectValidationError(
-                            _(
-                                'The Custom SQL metric "%(metric)s" is not an '
-                                "aggregate and can't be combined with a GROUP BY. "
-                                "Wrap it in an aggregate function, e.g. "
-                                "%(example)s.",
-                                metric=utils.get_metric_name(metric),
-                                example="MAX(%s)" % expression,
-                            )
                         )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
