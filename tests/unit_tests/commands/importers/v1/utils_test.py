@@ -50,7 +50,7 @@ class TestConvertTemporalColumns:
 
         def object_conversion(value: Any, **kwargs: Any) -> Any:
             if isinstance(value, pd.Series):
-                return converted
+                return value.astype(object)
             return real_to_datetime(value, **kwargs)
 
         with patch(

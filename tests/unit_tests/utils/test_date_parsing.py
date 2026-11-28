@@ -36,9 +36,12 @@ def test_normalize_propagates_unexpected_datetime_errors(
     frame = pd.DataFrame({"date": ["not-a-date"]})
     original = frame.copy()
     error = ValueError("unexpected datetime conversion failure")
+    real_to_datetime = pd.to_datetime
 
-    def fail_conversion(*args: object, **kwargs: object) -> None:
-        raise error
+    def fail_conversion(arg: object, *args: object, **kwargs: object) -> object:
+        if isinstance(arg, pd.Series):
+            raise error
+        return real_to_datetime(arg, *args, **kwargs)
 
     monkeypatch.setattr(pd, "to_datetime", fail_conversion)
     with pytest.raises(
