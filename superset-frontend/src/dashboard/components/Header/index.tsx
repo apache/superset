@@ -637,6 +637,8 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       placeholder: t('Add the name of the dashboard'),
       label: t('Dashboard title'),
       showTooltip: false,
+      // Matches dashboard_title Column(String(500)) / schema Length(0, 500)
+      maxLength: 500,
     }),
     [
       dashboardTitle,

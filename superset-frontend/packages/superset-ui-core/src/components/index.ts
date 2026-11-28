@@ -111,6 +111,7 @@ export {
 } from './DropdownContainer';
 export {
   DynamicEditableTitle,
+  DYNAMIC_EDITABLE_TITLE_MAX_LENGTH,
   type DynamicEditableTitleProps,
 } from './DynamicEditableTitle';
 export { EditableTitle, type EditableTitleProps } from './EditableTitle';

@@ -24,7 +24,7 @@ import {
   waitFor,
 } from '@superset-ui/core/spec';
 import { useState } from 'react';
-import { DynamicEditableTitle } from '.';
+import { DYNAMIC_EDITABLE_TITLE_MAX_LENGTH, DynamicEditableTitle } from '.';
 import type { DynamicEditableTitleProps } from './types';
 
 const createProps = (
@@ -86,6 +86,39 @@ test('click, edit and save title', async () => {
   expect(screen.getByText('Chart title edited')).toBeVisible();
   await userEvent.type(textboxElement, '{enter}');
   expect(props.onSave).toHaveBeenCalled();
+});
+
+test('truncates input to the default max length and saves the truncated value', async () => {
+  const props = createProps({ title: '' });
+  render(<DynamicEditableTitle {...props} />);
+  const textboxElement = screen.getByRole('textbox');
+  await userEvent.click(textboxElement);
+  fireEvent.change(textboxElement, {
+    target: {
+      value: 'a'.repeat(DYNAMIC_EDITABLE_TITLE_MAX_LENGTH + 50),
+    },
+  });
+  expect(textboxElement).toHaveValue(
+    'a'.repeat(DYNAMIC_EDITABLE_TITLE_MAX_LENGTH),
+  );
+  await userEvent.tab();
+  expect(props.onSave).toHaveBeenCalledWith(
+    'a'.repeat(DYNAMIC_EDITABLE_TITLE_MAX_LENGTH),
+  );
+});
+
+test('respects a custom maxLength prop', async () => {
+  const customMaxLength = 10;
+  const props = createProps({ title: '', maxLength: customMaxLength });
+  render(<DynamicEditableTitle {...props} />);
+  const textboxElement = screen.getByRole('textbox');
+  await userEvent.click(textboxElement);
+  fireEvent.change(textboxElement, {
+    target: { value: 'c'.repeat(customMaxLength + 20) },
+  });
+  expect(textboxElement).toHaveValue('c'.repeat(customMaxLength));
+  await userEvent.tab();
+  expect(props.onSave).toHaveBeenCalledWith('c'.repeat(customMaxLength));
 });
 
 test('renders in non-editable mode', async () => {
