@@ -33,6 +33,10 @@ type EditorProps = editors.EditorProps;
 
 const mockEventHandlers: Record<string, (() => void) | undefined> = {};
 
+// Captures the latest props passed to the mocked editor component so tests
+// can drive the onChange contract the way react-ace fires it.
+let mockEditorProps: Record<string, any> = {};
+
 const mockEditor = {
   focus: jest.fn(),
   getCursorPosition: jest.fn(() => ({ row: 1, column: 5 })),
@@ -55,6 +59,7 @@ let mockOnLoadCallback: ((editor: typeof mockEditor) => void) | undefined;
 jest.mock('@superset-ui/core/components', () => ({
   __esModule: true,
   FullSQLEditor: jest.fn((props: { onLoad?: () => void }) => {
+    mockEditorProps = props;
     mockOnLoadCallback = props.onLoad;
     return <div data-test="sql-editor" />;
   }),
@@ -71,6 +76,7 @@ afterEach(() => {
   cleanup();
   jest.clearAllMocks();
   mockOnLoadCallback = undefined;
+  mockEditorProps = {};
   Object.keys(mockEventHandlers).forEach(key => delete mockEventHandlers[key]);
 });
 
@@ -187,4 +193,38 @@ test('selection callback receives correct range format', async () => {
   expect(onSelectionChange).toHaveBeenCalledWith([
     { start: { line: 0, column: 0 }, end: { line: 0, column: 10 } },
   ]);
+});
+
+test('onChange emits once per task with the final value when the editor fires several change events', async () => {
+  // With several cursors Ace applies a keystroke per selection, so react-ace
+  // reports an intermediate document value (first cursor applied) and then
+  // the final one within the same task. The provider must coalesce them:
+  // an intermediate value rendered back into the controlled `value` prop
+  // makes react-ace call editor.setValue() mid-keystroke, which collapses
+  // the multi-selection and moves a cursor to the document end.
+  const onChange = jest.fn();
+  renderEditor({ onChange });
+
+  const editorOnChange = mockEditorProps.onChange as (v: string) => void;
+  expect(editorOnChange).toBeDefined();
+
+  editorOnChange('abcX');
+  editorOnChange('abcX\ndefX');
+
+  expect(onChange).not.toHaveBeenCalled();
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  expect(onChange).toHaveBeenCalledWith('abcX\ndefX');
+});
+
+test('a pending value is delivered when the editor unmounts mid-keystroke', async () => {
+  const onChange = jest.fn();
+  const { unmount } = renderEditor({ onChange });
+
+  const editorOnChange = mockEditorProps.onChange as (v: string) => void;
+  editorOnChange('abcX');
+
+  unmount();
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith('abcX'));
 });
