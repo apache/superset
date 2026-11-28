@@ -291,6 +291,13 @@ module.exports = (env, argv) => {
             singleton: true,
             import: false, // Resolved to a per-extension instance by the loader
           },
+          '@apache-superset/core/components': {
+            // A subpath needs a key of its own; the entry above does not
+            // cover it, and without this the components are bundled into
+            // the extension and lose the host's theme.
+            singleton: true,
+            import: false,
+          },
         },
       }),
     ],

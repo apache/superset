@@ -16,27 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/**
+ * Tooltip itself now lives in `@apache-superset/core`, and its behaviour is
+ * tested there, next to the implementation. What stays here is the case that
+ * cannot move: `Icons` is this package's, so a tooltip wrapping one can only
+ * be rendered here. It covers the re-export below as well.
+ */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
-import { Button, Icons, Tooltip } from '..';
-
-test('starts hidden with default props', () => {
-  render(
-    <Tooltip title="Simple tooltip">
-      <Button>Hover me</Button>
-    </Tooltip>,
-  );
-  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-});
-
-test('renders on hover', async () => {
-  render(
-    <Tooltip title="Simple tooltip">
-      <Button>Hover me</Button>
-    </Tooltip>,
-  );
-  await userEvent.hover(screen.getByRole('button'));
-  expect(await screen.findByRole('tooltip')).toBeInTheDocument();
-});
+import { Icons, Tooltip } from '..';
 
 test('renders with icon child', async () => {
   render(

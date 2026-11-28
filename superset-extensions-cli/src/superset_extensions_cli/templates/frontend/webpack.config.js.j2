@@ -61,6 +61,16 @@ module.exports = (env, argv) => {
             singleton: true,
             import: false,
           },
+          // A subpath does not match the key above -- Module Federation
+          // treats each one as a share key of its own. Without this the
+          // components are bundled into the extension, along with the
+          // `@emotion/react` the themed ones among them read the theme
+          // through, and a component such as Button finds no ThemeContext
+          // and throws on first render.
+          "@apache-superset/core/components": {
+            singleton: true,
+            import: false,
+          },
         },
       }),
     ],

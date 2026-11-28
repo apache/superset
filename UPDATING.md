@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `Button` and `Tooltip` are now published from `@apache-superset/core/components`,
+  and the host shares that subpath over Module Federation. **An extension
+  scaffolded before this change has to add the share key to its own
+  `frontend/webpack.config.js` by hand**, because `superset-extensions init`
+  writes that file once when the project is created and nothing regenerates it
+  on a later build:
+
+  ```javascript
+  shared: {
+    // ...existing keys
+    '@apache-superset/core/components': { singleton: true, import: false },
+  },
+  ```
+
+  Module Federation matches a share key against the exact request, so the
+  existing `'@apache-superset/core'` key does not cover the subpath. Without
+  the key the extension bundles its own copy of the package and of the
+  `@emotion/react` behind it, and a themed component such as `Button` finds no
+  `ThemeContext` in that second copy and throws on first render. Only
+  `@apache-superset/core` and `@apache-superset/core/components` are shared;
+  see [the extensions architecture guide](docs/developer_docs/extensions/architecture.md)
+  for why other subpaths must not be listed.
+
 - MCP `get_table` query failures now populate `error_code`. Untyped dataset
   engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
   specific `SupersetErrorType` code for typed errors, while guests receive
