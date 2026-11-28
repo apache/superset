@@ -30,6 +30,38 @@ const PDF_DOWNLOAD_FAILED_MESSAGE = t(
   'PDF download failed, please refresh and try again.',
 );
 
+const UNEXPORTABLE_CANVAS_CLASS = 'pdf-export-unexportable-canvas';
+
+/**
+ * check whether a canvas can be read back, which fails with a SecurityError
+ * once cross-origin content (e.g. external map tiles) has been drawn into it
+ *
+ * @param canvas canvas element to check
+ */
+const isCanvasExportable = (canvas: HTMLCanvasElement) => {
+  try {
+    canvas.toDataURL();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * mark tainted canvases so dom-to-pdf leaves them out instead of failing the
+ * whole export when it reads them
+ *
+ * @param element element that is about to be printed
+ * @returns the canvases that were marked
+ */
+const markUnexportableCanvases = (element: Element) => {
+  const canvases = Array.from(element.querySelectorAll('canvas')).filter(
+    canvas => !isCanvasExportable(canvas),
+  );
+  canvases.forEach(canvas => canvas.classList.add(UNEXPORTABLE_CANVAS_CLASS));
+  return canvases;
+};
+
 /**
  * generate a consistent file stem from a description and date
  *
@@ -79,13 +111,15 @@ export default function downloadAsPdf(
       addInfoToast,
     );
 
+    const unexportableCanvases = markUnexportableCanvases(elementToPrint);
+
     const options = {
       margin: 10,
       compression: pdfCompressionLevel,
       filename: `${generateFileStem(description)}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },
-      excludeClassNames: ['header-controls'],
+      excludeClassNames: ['header-controls', UNEXPORTABLE_CANVAS_CLASS],
     };
     return domToPdf(elementToPrint, options)
       .then(() => {
@@ -96,6 +130,9 @@ export default function downloadAsPdf(
         addWarningToast?.(PDF_DOWNLOAD_FAILED_MESSAGE);
       })
       .finally(() => {
+        unexportableCanvases.forEach(canvas =>
+          canvas.classList.remove(UNEXPORTABLE_CANVAS_CLASS),
+        );
         if (didForceLoad) {
           restoreVirtualization();
         }

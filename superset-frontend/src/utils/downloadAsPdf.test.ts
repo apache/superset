@@ -103,6 +103,60 @@ test('warns the user via the bound toast callback when PDF generation fails', as
   );
 });
 
+const createCanvases = () => {
+  const element = document.createElement('div');
+  const taintedCanvas = document.createElement('canvas');
+  const cleanCanvas = document.createElement('canvas');
+  jest.spyOn(taintedCanvas, 'toDataURL').mockImplementation(() => {
+    throw new DOMException('Tainted canvases may not be exported.');
+  });
+  jest.spyOn(cleanCanvas, 'toDataURL').mockReturnValue('data:,');
+  element.append(taintedCanvas, cleanCanvas);
+  return { element, taintedCanvas, cleanCanvas };
+};
+
+test('excludes tainted canvases from the PDF instead of failing the export', async () => {
+  const { element, taintedCanvas, cleanCanvas } = createCanvases();
+  jest.spyOn(document, 'querySelector').mockReturnValue(element);
+  const domToPdf = jest.requireMock('dom-to-pdf').default as jest.Mock;
+  let classesDuringExport: { tainted: string; clean: string } | undefined;
+  domToPdf.mockImplementation(() => {
+    classesDuringExport = {
+      tainted: taintedCanvas.className,
+      clean: cleanCanvas.className,
+    };
+    return Promise.resolve();
+  });
+
+  await downloadAsPdf(
+    '.some-selector',
+    'test-file',
+    true,
+  )({} as SyntheticEvent);
+
+  const { excludeClassNames } = domToPdf.mock.calls[0][1];
+  expect(excludeClassNames).toContain('header-controls');
+  expect(excludeClassNames).toContain(classesDuringExport?.tainted);
+  expect(classesDuringExport?.tainted).not.toBe('');
+  expect(classesDuringExport?.clean).toBe('');
+});
+
+test('removes the tainted canvas marker once the export settles', async () => {
+  const { element, taintedCanvas } = createCanvases();
+  jest.spyOn(document, 'querySelector').mockReturnValue(element);
+  const domToPdf = jest.requireMock('dom-to-pdf').default as jest.Mock;
+  domToPdf.mockRejectedValue(new Error('boom'));
+
+  await downloadAsPdf(
+    '.some-selector',
+    'test-file',
+    true,
+  )({} as SyntheticEvent);
+
+  expect(domToPdf).toHaveBeenCalled();
+  expect(taintedCanvas.className).toBe('');
+});
+
 test('forwards both bound toast callbacks to forceLoadAllCharts', async () => {
   const element = document.createElement('div');
   jest.spyOn(document, 'querySelector').mockReturnValue(element);

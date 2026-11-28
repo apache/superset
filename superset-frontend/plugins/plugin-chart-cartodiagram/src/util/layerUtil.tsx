@@ -55,6 +55,15 @@ export const escapeAttribution = (attribution?: string): string | undefined =>
         .replace(/'/g, '&#039;');
 
 /**
+ * The crossOrigin setting for tile images.
+ *
+ * Tiles usually come from an external server. Without a CORS request they
+ * taint the map canvas, and exporting a dashboard as PDF fails because the
+ * canvas can no longer be read.
+ */
+const TILE_CROSS_ORIGIN = 'anonymous';
+
+/**
  * Create a WMS layer.
  *
  * @param wmsLayerConf The layer configuration
@@ -71,6 +80,7 @@ export const createWmsLayer = (wmsLayerConf: WmsLayerConf) => {
         VERSION: version,
       },
       attributions: escapeAttribution(attribution),
+      crossOrigin: TILE_CROSS_ORIGIN,
     }),
   });
 };
@@ -88,6 +98,7 @@ export const createXyzLayer = (xyzLayerConf: XyzLayerConf) => {
     source: new XyzSource({
       url,
       attributions: escapeAttribution(attribution),
+      crossOrigin: TILE_CROSS_ORIGIN,
     }),
   });
 };
