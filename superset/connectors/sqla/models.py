@@ -94,7 +94,11 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.constants import EPOCH_FORMATS
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    reuse_discovered_default_schema,
+    TimestampExpression,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -3330,6 +3334,7 @@ class SqlaTable(
                 return True
         return False
 
+    @reuse_discovered_default_schema()
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         """
         The cache key of a SqlaTable needs to consider any keys added by the parent
@@ -3356,6 +3361,8 @@ class SqlaTable(
             # which the Jinja template processor collects, and the mapping's own
             # identity is appended below. A miss falls through to SQL
             # generation, which probes.
+            # Propagate construction errors without changing the caller's
+            # metadata transaction or looking up a partial macro cache key.
             sqla_query = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 mirror_partition_filters=False,
