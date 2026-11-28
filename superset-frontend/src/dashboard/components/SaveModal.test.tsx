@@ -150,6 +150,43 @@ test('blocks save and warns when the new dashboard name is empty', async () => {
   expect(screen.getByRole('dialog')).toBeInTheDocument();
 });
 
+test.each(['   ', '\t', '\u00A0'])(
+  'blocks save and keeps the modal open when the new dashboard name is %j',
+  async name => {
+    await openModal({ saveType: SAVE_TYPE_NEWDASHBOARD });
+
+    const nameInput = screen.getByPlaceholderText('[dashboard name]');
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, name);
+
+    await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
+
+    expect(defaultProps.addDangerToast).toHaveBeenCalledWith(
+      'You must pick a name for the new dashboard',
+    );
+    expect(defaultProps.onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  },
+);
+
+test('trims the new dashboard name before saving while preserving internal spaces', async () => {
+  await openModal({ saveType: SAVE_TYPE_NEWDASHBOARD });
+
+  const nameInput = screen.getByPlaceholderText('[dashboard name]');
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, '  Copied  Dashboard  ');
+
+  await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
+
+  expect(defaultProps.onSave).toHaveBeenCalledTimes(1);
+  expect(defaultProps.onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ dashboard_title: 'Copied  Dashboard' }),
+    defaultProps.dashboardId,
+    SAVE_TYPE_NEWDASHBOARD,
+  );
+  expect(defaultProps.addDangerToast).not.toHaveBeenCalled();
+});
+
 test('disables overwrite and saves as a new dashboard when the user cannot overwrite', async () => {
   await openModal({
     canOverwrite: false,
