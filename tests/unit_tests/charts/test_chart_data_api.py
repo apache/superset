@@ -1448,28 +1448,30 @@ def test_streaming_csv_response_uses_chart_name(app: SupersetApp) -> None:
     The generated streaming CSV filename (used when the client didn't
     supply one) must include the chart's name, matching the non-streaming
     path.
+
+    This exercises ``_create_streaming_csv_response`` directly, the way
+    ``_get_data_response``/``_should_stream_before_execution`` call it
+    *before* the regular query execution -- never through
+    ``_send_chart_response`` after a result is already materialized. Doing
+    the latter would re-run the chart's SQL a second time purely to stream
+    data already sitting in memory, which is exactly the redundant query
+    that let `Error in streaming CSV generator: ... InvalidCursorState`
+    reach Redshift connections restricted to a single open cursor.
     """
     query_context = MagicMock()
     query_context.result_type = ChartDataResultType.FULL
     query_context.result_format = ChartDataResultFormat.CSV
     query_context.slice_ = MagicMock(slice_name="Quarterly Revenue")
 
-    result = {
-        "query_context": query_context,
-        "queries": [{"data": "col_a,col_b\n1,2\n"}],
-    }
-
     api = ChartDataRestApi()
     with (
         app.test_request_context("/api/v1/chart/data"),
-        patch("superset.charts.data.api.security_manager") as mock_security_manager,
-        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
-        patch.object(ChartDataRestApi, "_should_use_streaming", return_value=True),
         patch("superset.charts.data.api.StreamingCSVExportCommand"),
     ):
-        mock_security_manager.can_access.return_value = True
-        response = api._send_chart_response(
-            result, form_data={"viz_type": "table", "row_limit": 10}
+        response = api._create_streaming_csv_response(
+            {"query_context": query_context},
+            form_data={"viz_type": "table", "row_limit": 10},
+            slice_=query_context.slice_,
         )
 
     assert "Quarterly_Revenue" in response.headers["Content-Disposition"]
@@ -1554,6 +1556,7 @@ def _csv_export_command(
     result_format: ChartDataResultFormat = ChartDataResultFormat.CSV,
     result_type: ChartDataResultType = ChartDataResultType.FULL,
     num_queries: int = 1,
+    form_data: dict[str, Any] | None = None,
 ) -> MagicMock:
     """Build a chart-data command mock whose query context looks like an export."""
     command = MagicMock()
@@ -1561,6 +1564,7 @@ def _csv_export_command(
     command.query_context.result_type = result_type
     command.query_context.slice_ = None
     command.query_context.queries = [MagicMock() for _ in range(num_queries)]
+    command.query_context.form_data = form_data or {}
     return command
 
 
@@ -1604,6 +1608,49 @@ def test_get_data_response_streams_large_csv_without_executing(
         expected_rows=380273,
         slice_=None,
     )
+
+
+def test_get_data_response_streams_large_row_limit_without_executing(
+    app: SupersetApp,
+) -> None:
+    """
+    A large ``row_limit`` must also decide streaming before execution, even
+    when the client didn't send ``expected_rows`` (e.g. a direct API call).
+
+    Before this, that case fell through to the regular path: ``command.execute()``
+    ran and fully materialized the result, and only afterwards -- now that the
+    whole result set was already fetched -- did a post-hoc check decide to
+    stream it, which re-ran the identical SQL a second time through
+    ``StreamingCSVExportCommand``. That redundant second query is what let
+    ``psycopg2.errors.InvalidCursorState: opening multiple cursors from
+    within the same client connection is not allowed`` reach Redshift
+    connections, which do not allow a second open cursor before the first is
+    closed.
+    """
+    command = _csv_export_command(form_data={"row_limit": 380273})
+    api = ChartDataRestApi()
+    streamed: MagicMock = MagicMock()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch(
+            "superset.charts.data.api.security_manager", new_callable=MagicMock
+        ) as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+        patch.object(
+            api, "_create_streaming_csv_response", return_value=streamed
+        ) as mock_stream,
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._get_data_response(
+            command,
+            form_data={"viz_type": "table", "row_limit": 380273},
+        )
+
+    assert response is streamed
+    command.execute.assert_not_called()
+    mock_stream.assert_called_once()
 
 
 @pytest.mark.parametrize(

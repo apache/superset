@@ -632,18 +632,20 @@ class ChartDataRestApi(ChartRestApi):
             # and the factory-resolved slice covers the rest.
             slice_ = slice_ or materialized_result["query_context"].slice_
 
-            # Check if we should use streaming for large datasets
-            if is_csv_format and self._should_use_streaming(
-                materialized_result,
-                form_data,
-            ):
-                return self._create_streaming_csv_response(
-                    materialized_result,
-                    form_data,
-                    filename=filename,
-                    expected_rows=expected_rows,
-                    slice_=slice_,
-                )
+            # Streaming for large datasets is decided *before* the regular
+            # query execution above, in ``_should_stream_before_execution``
+            # (see its caller in ``_get_data_response``). By this point
+            # ``command.execute()`` has already run the query and fetched
+            # every row into ``materialized_result``, so there is no longer
+            # any memory/latency benefit to re-running the same SQL through
+            # ``StreamingCSVExportCommand`` -- doing so only pays for a
+            # second round trip and, on warehouses such as Redshift that
+            # restrict a connection to a single open (named) cursor, risks
+            # a `psycopg2.errors.InvalidCursorState: opening multiple
+            # cursors from within the same client connection is not
+            # allowed` if the two queries' cursors ever overlap. Fall
+            # through to the regular (already-fetched) CSV response below
+            # instead of re-executing.
 
             export_filename = filename or self._get_default_export_filename(
                 form_data, slice_
@@ -976,6 +978,19 @@ class ChartDataRestApi(ChartRestApi):
         tables need the regular execution path. Multi-query contexts also stay
         on the regular path: the streaming command exports a single query,
         while the regular path bundles every query into a zip.
+
+        A configured ``row_limit`` is also checked, so clients that don't send
+        ``expected_rows`` (e.g. calling this API directly) still stream once the
+        requested row count is large enough. This decision must be made before
+        ``command.execute()`` runs the query: by the time a row count can be
+        read back from an executed result, the whole result set is already
+        fetched into memory, so re-running the same SQL through
+        ``StreamingCSVExportCommand`` afterwards would only add a redundant
+        second query -- and, on warehouses that restrict a connection to a
+        single open cursor (e.g. Redshift), risks
+        ``psycopg2.errors.InvalidCursorState: opening multiple cursors from
+        within the same client connection is not allowed`` if the two
+        queries' cursors ever overlap.
         """
         if len(query_context.queries) != 1:
             return False
@@ -984,49 +999,13 @@ class ChartDataRestApi(ChartRestApi):
         if query_context.result_type != ChartDataResultType.FULL:
             return False
         threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
-        return (expected_rows is not None and expected_rows >= threshold) or (
-            tree_export_uses_streaming(query_context.form_data)
-        )
-
-    def _should_use_streaming(
-        self, result: dict[Any, Any], form_data: dict[str, Any] | None = None
-    ) -> bool:
-        """Determine if streaming should be used based on actual row count threshold."""
-        query_context = result["query_context"]
-        result_format = query_context.result_format
-
-        # Only support CSV streaming currently
-        if result_format.lower() != "csv":
-            return False
-
-        # Get streaming threshold from config
-        threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
-
-        # Extract actual row count (same logic as frontend)
-        actual_row_count: int | None = None
-        viz_type = form_data.get("viz_type") if form_data else None
-
-        # For table viz, try to get actual row count from query results
-        if viz_type == "table" and result.get("queries"):
-            # Check if we have rowcount in the second query result (like frontend does)
-            queries = result.get("queries", [])
-            if len(queries) > 1 and queries[1].get("data"):
-                data = queries[1]["data"]
-                if isinstance(data, list) and len(data) > 0:
-                    rowcount = data[0].get("rowcount")
-                    actual_row_count = int(rowcount) if rowcount else None
-
-        # Fallback to row_limit if actual count not available
-        if actual_row_count is None:
-            if form_data and "row_limit" in form_data:
-                row_limit = form_data.get("row_limit", 0)
-                actual_row_count = int(row_limit) if row_limit else 0
-            elif query_context.form_data and "row_limit" in query_context.form_data:
-                row_limit = query_context.form_data.get("row_limit", 0)
-                actual_row_count = int(row_limit) if row_limit else 0
-
-        # Use streaming if row count meets or exceeds threshold
-        return actual_row_count is not None and actual_row_count >= threshold
+        if expected_rows is not None and expected_rows >= threshold:
+            return True
+        if tree_export_uses_streaming(query_context.form_data):
+            return True
+        form_data = query_context.form_data or {}
+        row_limit = form_data.get("row_limit")
+        return row_limit is not None and int(row_limit) >= threshold
 
     def _create_streaming_csv_response(
         self,
