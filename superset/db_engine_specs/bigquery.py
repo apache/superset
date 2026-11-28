@@ -48,7 +48,10 @@ from superset.db_engine_specs.base import (
     BasicPropertiesType,
     DatabaseCategory,
 )
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPICredentialsError,
+)
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
@@ -1000,9 +1003,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel
-        from google.auth.exceptions import DefaultCredentialsError
+        from google.auth.exceptions import DefaultCredentialsError, RefreshError
 
-        return {DefaultCredentialsError: SupersetDBAPIConnectionError}
+        return {
+            DefaultCredentialsError: SupersetDBAPIConnectionError,
+            # e.g. ``invalid_grant: Invalid JWT Signature`` after the service
+            # account key was rotated or revoked
+            RefreshError: SupersetDBAPICredentialsError,
+        }
 
     @classmethod
     def validate_parameters(

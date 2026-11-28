@@ -33,6 +33,16 @@ class SupersetDBAPIConnectionError(SupersetDBAPIError):
     pass
 
 
+class SupersetDBAPICredentialsError(SupersetDBAPIConnectionError):
+    """
+    The database rejected the credentials stored on the connection (e.g. a revoked
+    or rotated service-account key). This is fixed by the connection's owner, not a
+    server fault, so it is reported as a client error and not logged at ERROR.
+    """
+
+    status = 400
+
+
 class SupersetDBAPIOperationalError(SupersetDBAPIError):
     pass
 
