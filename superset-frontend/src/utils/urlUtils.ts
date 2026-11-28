@@ -117,6 +117,13 @@ function getUrlParams(excludedParams: string[]): URLSearchParams {
 
 export type UrlParamEntries = [string, string][];
 
+/** Serialize permalink state without losing precision in BigInt filter values. */
+function stringifyPermalinkState(state: JsonObject): string {
+  return JSON.stringify(state, (_key: string, value: unknown) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  );
+}
+
 function getUrlParamEntries(urlParams: URLSearchParams): UrlParamEntries {
   const urlEntries: [string, string][] = [];
   urlParams.forEach((value, key) => urlEntries.push([key, value]));
@@ -133,7 +140,7 @@ function getChartUrlParams(excludedUrlParams?: string[]): UrlParamEntries {
   )
     urlParams.append(
       URL_PARAMS.preselectFilters.name,
-      JSON.stringify(serializeActiveFilterValues(getActiveFilters())),
+      stringifyPermalinkState(serializeActiveFilterValues(getActiveFilters())),
     );
   return getUrlParamEntries(urlParams);
 }
@@ -149,7 +156,7 @@ export function getDashboardUrlParams(
   if (!isEmpty(filterBoxFilters))
     urlParams.append(
       URL_PARAMS.preselectFilters.name,
-      JSON.stringify(serializeActiveFilterValues(getActiveFilters())),
+      stringifyPermalinkState(serializeActiveFilterValues(getActiveFilters())),
     );
   return getUrlParamEntries(urlParams);
 }
@@ -165,7 +172,8 @@ function getPermalink(
 ): Promise<PermalinkResult> {
   return SupersetClient.post({
     endpoint,
-    jsonPayload,
+    headers: { 'Content-Type': 'application/json' },
+    body: stringifyPermalinkState(jsonPayload),
   }).then(result => ({
     key: result.json.key as string,
     url: result.json.url as string,
