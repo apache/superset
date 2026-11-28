@@ -5368,6 +5368,9 @@ msgstr ""
 msgid "Default sort"
 msgstr ""
 
+msgid "Default time filter"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 
@@ -8431,6 +8434,10 @@ msgid "Invalid dashboard id: %(id)s"
 msgstr ""
 
 msgid "Invalid date/timestamp format"
+msgstr ""
+
+#, python-format
+msgid "Invalid default time filter: %(range)s"
 msgstr ""
 
 #, python-format
@@ -16703,6 +16710,9 @@ msgstr ""
 msgid "Time range"
 msgstr ""
 
+msgid "Time range of the time filters Explore adds for this dataset, such as on new charts."
+msgstr ""
+
 msgid "Time ratio"
 msgstr ""
 
@@ -17488,6 +17498,9 @@ msgid "Use example.com for an exact domain, *.example.com for subdomains, or pre
 msgstr ""
 
 msgid "Use gradient"
+msgstr ""
+
+msgid "Use instance default"
 msgstr ""
 
 msgid "Use metric definition"

@@ -23,6 +23,8 @@ from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
 from superset.datasets.schemas import (
+    get_default_time_filter,
+    validate_default_time_filter,
     validate_partition_key,
     validate_python_date_format,
 )
@@ -53,6 +55,40 @@ def test_validate_python_date_format(payload) -> None:
 def test_validate_python_date_format_raises(payload) -> None:
     with pytest.raises(ValidationError):
         validate_python_date_format(payload)
+
+
+@pytest.mark.parametrize(
+    "extra, expected",
+    [
+        ('{"default_time_filter": "Last week", "warning_markdown": "x"}', "Last week"),
+        ({"default_time_filter": "No filter"}, "No filter"),
+        ('{"default_time_filter": ""}', None),
+        ('{"default_time_filter": 7}', None),
+        ("{bad", None),
+        ("[]", None),
+        (None, None),
+    ],
+)
+def test_get_default_time_filter(extra: Any, expected: str | None) -> None:
+    """Unparseable extra, non-string and empty values count as unset."""
+    assert get_default_time_filter(extra) == expected
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    ["No filter", "Last week", "Current day", "2024-01-01 : now", "yesterday : today"],
+)
+def test_validate_default_time_filter(time_range: str) -> None:
+    """Ranges the time range parser can evaluate are accepted."""
+    validate_default_time_filter(time_range)
+
+
+@pytest.mark.parametrize("time_range", ["Last dya", " ", "now : 2024-01-01"])
+def test_validate_default_time_filter_raises(time_range: str) -> None:
+    """Ranges the parser rejects are reported on the extra field."""
+    with pytest.raises(ValidationError) as excinfo:
+        validate_default_time_filter(time_range)
+    assert excinfo.value.field_name == "extra"
 
 
 def test_drill_info_user_schema_does_not_expose_email() -> None:

@@ -51,6 +51,8 @@ import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { getDatasetDefaultTimeFilter } from '@superset-ui/chart-controls';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -134,6 +136,7 @@ import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import {
   getDatasetCertification,
   isDatasetExtraValid,
+  parseExtra,
 } from './datasetCertification';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -541,6 +544,14 @@ const FieldLabelWithTooltip = styled.div`
     gap: ${theme.sizeUnit}px;
     font-size: ${theme.fontSizeSM}px;
     color: ${theme.colorTextLabel};
+  `}
+`;
+
+const DefaultTimeFilterField = styled(Flex)`
+  ${({ theme }) => css`
+    button[name='default_time_filter'] {
+      height: ${theme.sizeXL + 2 * (theme.sizeUnit + theme.lineWidth)}px;
+    }
   `}
 `;
 
@@ -2252,34 +2263,88 @@ function DatasourceEditor({
         label: col.verbose_name || col.column_name,
       }));
 
+    // An unset default time filter inherits the instance default. The field is
+    // hidden while the Extra JSON is malformed.
+    const extra = parseExtra(datasource.extra);
+    const showDefaultTimeFilter = isSqla && !!extra;
+    const defaultTimeFilter = getDatasetDefaultTimeFilter({ extra });
+    const setDefaultTimeFilter = (range?: string) => {
+      // An empty range is unset. Leave the Extra JSON as written when the
+      // range does not change.
+      const default_time_filter = range || undefined;
+      if (default_time_filter === defaultTimeFilter) return;
+      onDatasourceChange({
+        ...datasource,
+        extra: JSON.stringify({ ...extra, default_time_filter }),
+      });
+    };
+    const DateFilterComponent =
+      extensionsRegistry.get('filter.dateFilterControl') ?? DateFilterControl;
+
     return (
       <DefaultColumnSettingsContainer data-test="default-column-settings">
         <DefaultColumnSettingsTitle>
           {t('Default Column Settings')}
         </DefaultColumnSettingsTitle>
         <Flex vertical gap={(theme?.sizeUnit ?? 4) * 3}>
-          <Flex vertical gap={theme?.sizeUnit ?? 4}>
-            <FieldLabelWithTooltip>
-              <span>{t('Default datetime column')}</span>
-              <InfoTooltip
-                tooltip={t(
-                  'Sets the default temporal column for this dataset. Automatically selected as the time column when building charts that require a time dimension and used in dashboard level time filters.',
-                )}
-              />
-            </FieldLabelWithTooltip>
-            <Select
-              key={discardCancelCount}
-              ariaLabel={t('Default datetime column')}
-              options={datetimeColumns}
-              value={datasource.main_dttm_col}
-              onChange={value =>
-                handleMainDttmColChange(value as string | undefined)
-              }
-              placeholder={t('Select datetime column')}
-              allowClear
-              data-test="default-datetime-column-select"
-            />
-          </Flex>
+          <Row gutter={[16, (theme?.sizeUnit ?? 4) * 3]}>
+            <Col xs={24} md={showDefaultTimeFilter ? 12 : 24}>
+              <Flex vertical gap={theme?.sizeUnit ?? 4}>
+                <FieldLabelWithTooltip>
+                  <span>{t('Default datetime column')}</span>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Sets the default temporal column for this dataset. Automatically selected as the time column when building charts that require a time dimension and used in dashboard level time filters.',
+                    )}
+                  />
+                </FieldLabelWithTooltip>
+                <Select
+                  key={discardCancelCount}
+                  ariaLabel={t('Default datetime column')}
+                  options={datetimeColumns}
+                  value={datasource.main_dttm_col}
+                  onChange={value =>
+                    handleMainDttmColChange(value as string | undefined)
+                  }
+                  placeholder={t('Select datetime column')}
+                  allowClear
+                  data-test="default-datetime-column-select"
+                />
+              </Flex>
+            </Col>
+            {showDefaultTimeFilter && (
+              <Col xs={24} md={12}>
+                <DefaultTimeFilterField vertical gap={theme?.sizeUnit ?? 4}>
+                  <FieldLabelWithTooltip>
+                    <span id="filter-name-default_time_filter">
+                      {t('Default time filter')}
+                    </span>
+                    <InfoTooltip
+                      tooltip={t(
+                        'Time range of the time filters Explore adds for this dataset, such as on new charts.',
+                      )}
+                    />
+                  </FieldLabelWithTooltip>
+                  <DateFilterComponent
+                    name="default_time_filter"
+                    placeholder={t('Use instance default')}
+                    value={defaultTimeFilter}
+                    onChange={setDefaultTimeFilter}
+                  />
+                  {defaultTimeFilter && (
+                    <div>
+                      <Button
+                        buttonStyle="link"
+                        onClick={() => setDefaultTimeFilter()}
+                      >
+                        {t('Use instance default')}
+                      </Button>
+                    </div>
+                  )}
+                </DefaultTimeFilterField>
+              </Col>
+            )}
+          </Row>
           <Flex vertical gap={theme?.sizeUnit ?? 4}>
             <FieldLabelWithTooltip>
               <span>{t('Currency code column')}</span>
@@ -2329,6 +2394,7 @@ function DatasourceEditor({
     theme?.sizeUnit,
     datasource,
     onDatasourceChange,
+    isSqla,
   ]);
 
   const renderCertificationFieldset = useCallback(() => {

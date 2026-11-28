@@ -476,6 +476,38 @@ test('editing a dashboard-inherited time range filter clears isExtra so the new 
   expect(editedFilter.isExtra).toBe(false);
 });
 
+test('the date picker of a temporal filter without a time range starts with the dataset default time filter', async () => {
+  const timeRangeEndpoint = 'glob:*/api/v1/time_range/*';
+  fetchMock.get(
+    timeRangeEndpoint,
+    { result: [{ since: '', until: '', timeRange: 'Last day' }] },
+    { name: timeRangeEndpoint },
+  );
+  try {
+    setup({
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'ds',
+        operatorId: Operators.GreaterThanOrEqual,
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThanOrEqual]
+            .operation,
+        comparator: '2024-01-01',
+        clause: Clauses.Where,
+      }),
+      datasource: {
+        ...TestDataset,
+        columns: [{ column_name: 'ds', is_dttm: true }],
+        extra: JSON.stringify({ default_time_filter: 'Last day' }),
+        filter_select: false,
+      },
+    });
+    expect(await screen.findByText('Last day')).toBeInTheDocument();
+  } finally {
+    fetchMock.removeRoute(timeRangeEndpoint);
+  }
+});
+
 test('editing a dashboard-inherited filter comparator clears isExtra so the new value is kept on save', () => {
   const inheritedFilter = new AdhocFilter({
     expressionType: ExpressionTypes.Simple,

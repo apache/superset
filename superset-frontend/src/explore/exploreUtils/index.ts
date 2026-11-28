@@ -29,7 +29,12 @@ import {
   SupersetClient,
   SetDataMaskHook,
   JsonObject,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
+import {
+  Dataset,
+  getDatasetDefaultTimeFilter,
+} from '@superset-ui/chart-controls';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
@@ -529,4 +534,22 @@ export function formatSelectOptions<T extends { toString(): string }>(
   options: T[],
 ): [T, string][] {
   return options.map(opt => [opt, opt.toString()]);
+}
+
+/**
+ * Returns the range of the time filter Explore adds while it opens a chart:
+ * the dataset's default time filter for a new chart, otherwise the instance
+ * default. A `time_range` carried in the form data (for example SQL Lab's
+ * `'No filter'`) is ignored, as it was before dataset defaults existed.
+ */
+export function getInitialTimeRange(
+  isNewChart: boolean,
+  dataset: Pick<Dataset, 'extra'> | null | undefined,
+  defaultTimeFilter?: string,
+): string {
+  return (
+    (isNewChart && getDatasetDefaultTimeFilter(dataset)) ||
+    defaultTimeFilter ||
+    NO_TIME_RANGE
+  );
 }

@@ -34,10 +34,12 @@ import {
   ColumnOption,
   ColumnMeta,
   FilterOption,
+} from '..';
+import {
   temporalColumnMixin,
   datePickerInAdhocFilterMixin,
   xAxisMixin,
-} from '..';
+} from './mixins';
 
 type Control = {
   savedMetrics?: Metric[] | null;

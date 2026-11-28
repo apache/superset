@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlStateMapping } from '@superset-ui/chart-controls';
+import {
+  ControlStateMapping,
+  getDatasetDefaultTimeFilter,
+} from '@superset-ui/chart-controls';
 
 import {
   ChartState,
@@ -112,12 +115,12 @@ export const hydrateExplore =
       : [initialSlice, initialFormData];
     const initialSliceName =
       primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
+    const isNewChart = !initialSlice && !sliceId;
     // Only identities and empty filter containers are free of selections.
     // Stamp before defaults, controls and chart query snapshots are constructed.
     // The replaced state's stash is discarded by HYDRATE_EXPLORE, so it is ignored.
     if (
-      !initialSlice &&
-      !sliceId &&
+      isNewChart &&
       dataset.type === DatasourceType.SemanticView &&
       dataset.semantic_selection_version &&
       Object.entries(initialFormData).every(isNeutralNewChartEntry)
@@ -130,9 +133,12 @@ export const hydrateExplore =
       initialFormData.viz_type =
         getUrlParam(URL_PARAMS.vizType) || defaultVizType;
     }
+    const initialTimeRange =
+      (isNewChart && getDatasetDefaultTimeFilter(dataset)) ||
+      common?.conf?.DEFAULT_TIME_FILTER ||
+      NO_TIME_RANGE;
     if (!initialFormData.time_range) {
-      initialFormData.time_range =
-        common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
+      initialFormData.time_range = initialTimeRange;
     }
     if (
       initialFormData.include_time &&
@@ -248,10 +254,11 @@ export const hydrateExplore =
     // apply initial mapStateToProps for all controls, must execute AFTER
     // bootstrapState has initialized `controls`. Order of execution is not
     // guaranteed, so controls shouldn't rely on each other's mapped state.
+    const controlPanelState = { ...exploreState, initialTimeRange };
     Object.entries(exploreState.controls).forEach(([key, controlState]) => {
       exploreState.controls[key] = applyMapStateToPropsToControl(
         controlState,
-        exploreState,
+        controlPanelState,
       );
     });
     const hydratedFormData = {

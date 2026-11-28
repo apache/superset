@@ -226,6 +226,7 @@ export interface DateFilterControlProps {
   name: string;
   onChange: (timeRange: string) => void;
   value?: string;
+  placeholder?: string;
   onOpenPopover?: () => void;
   onClosePopover?: () => void;
   overlayStyle?: 'Modal' | 'Popover';
