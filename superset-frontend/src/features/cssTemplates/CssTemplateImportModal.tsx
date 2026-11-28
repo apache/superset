@@ -43,11 +43,13 @@ interface CssTemplateImportModalProps {
   show: boolean;
   onHide: () => void;
   onCssTemplatesImport: (message: string) => void;
+  /** Called with an error message when an import fails after the modal was closed. */
+  onError: (message: string) => void;
 }
 
 const CssTemplateImportModal: FunctionComponent<
   CssTemplateImportModalProps
-> = ({ show, onHide, onCssTemplatesImport }) => {
+> = ({ show, onHide, onCssTemplatesImport, onError }) => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importing, setImporting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -99,16 +101,18 @@ const CssTemplateImportModal: FunctionComponent<
         onCssTemplatesImport(json.message ?? t('CSS templates imported'));
       },
       createErrorHandler(errMsg => {
+        const message = t(
+          'An error occurred while importing CSS templates: %s',
+          typeof errMsg === 'string' ? errMsg : t('Unknown error'),
+        );
         if (importId !== importIdRef.current) {
+          // The modal was closed (and possibly reopened) while the import was
+          // in flight, so surface the failure outside the modal.
+          onError(message);
           return;
         }
         setImporting(false);
-        setErrorMessage(
-          t(
-            'An error occurred while importing CSS templates: %s',
-            typeof errMsg === 'string' ? errMsg : t('Unknown error'),
-          ),
-        );
+        setErrorMessage(message);
       }),
     );
   };

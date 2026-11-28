@@ -327,6 +327,7 @@ function CssTemplatesList({
       />
       <CssTemplateImportModal
         onCssTemplatesImport={handleCssTemplatesImport}
+        onError={addDangerToast}
         onHide={() => setImportingCssTemplates(false)}
         show={importingCssTemplates}
       />

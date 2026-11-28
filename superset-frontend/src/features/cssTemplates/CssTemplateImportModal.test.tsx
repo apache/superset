@@ -35,6 +35,7 @@ const setup = (
       show
       onHide={jest.fn()}
       onCssTemplatesImport={jest.fn()}
+      onError={jest.fn()}
       {...props}
     />,
     { useRedux: true, useTheme: true },
@@ -180,6 +181,55 @@ test('reports an import that finished after the modal was closed without touchin
     ),
   );
   expect(onHide).toHaveBeenCalledTimes(1); // only from the Cancel click
+  expect(screen.getByText('new.css')).toBeInTheDocument();
+  expect(importButton()).toBeEnabled();
+});
+
+test('reports an import failure that happened after the modal was closed without touching the reopened modal', async () => {
+  let respond: (response: object) => void = () => {};
+  fetchMock.post(
+    IMPORT_ENDPOINT,
+    new Promise(resolve => {
+      respond = resolve;
+    }),
+  );
+  const onCssTemplatesImport = jest.fn();
+  const onError = jest.fn();
+  setup({ onCssTemplatesImport, onError });
+
+  selectFiles([new File(['h1 { color: red; }'], 'old.css')]);
+  await waitFor(() => expect(importButton()).toBeEnabled());
+  fireEvent.click(importButton());
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(IMPORT_ENDPOINT)).toHaveLength(1),
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  selectFiles([new File(['h2 { color: blue; }'], 'new.css')]);
+  expect(await screen.findByText('new.css')).toBeInTheDocument();
+
+  respond({
+    status: 422,
+    body: {
+      errors: [
+        {
+          message: 'File old.css is not valid CSS',
+          error_type: 'GENERIC_COMMAND_ERROR',
+          level: 'warning',
+        },
+      ],
+    },
+  });
+
+  await waitFor(() =>
+    expect(onError).toHaveBeenCalledWith(
+      'An error occurred while importing CSS templates: File old.css is not valid CSS',
+    ),
+  );
+  expect(onCssTemplatesImport).not.toHaveBeenCalled();
+  expect(
+    screen.queryByText(/An error occurred while importing CSS templates/),
+  ).not.toBeInTheDocument();
   expect(screen.getByText('new.css')).toBeInTheDocument();
   expect(importButton()).toBeEnabled();
 });
