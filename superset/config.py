@@ -2680,6 +2680,9 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "pg_logical_emit_message",
         "pg_create_restore_point",
         "pg_drop_replication_slot",
+        # Sequence functions that change state through a plain SELECT.
+        "setval",
+        "nextval",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
@@ -2740,6 +2743,28 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getOSInformation",
         "getMacro",
         "getSetting",
+        # Table functions that read from locations outside the configured
+        # database (other servers, object storage, filesystems, other databases).
+        # Matching is by name and does not resolve aliases, so aliases are
+        # listed alongside their targets. This list is not exhaustive;
+        # restrict external reads at the source with ClickHouse's `SOURCES`
+        # grants.
+        "remote",
+        "remoteSecure",
+        "s3",
+        "s3Cluster",
+        "gcs",
+        "oss",
+        "urlCluster",
+        "file",
+        "fileCluster",
+        "hdfs",
+        "hdfsCluster",
+        "mysql",
+        "postgresql",
+        "mongodb",
+        "jdbc",
+        "odbc",
     },
     # Oracle functions that run a query handed to them as text. Same blind spot
     # as PostgreSQL's XML and full-text families above: the statement they
@@ -2812,6 +2837,8 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
     },
     "mysql": {
         "mysql.user",
+        # MariaDB 10.4+ keeps credentials here; `mysql.user` is a view over it.
+        "mysql.global_priv",
         "performance_schema.threads",
         "performance_schema.processlist",
     },
@@ -2821,6 +2848,16 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
         "sys.configurations",
     },
 }
+
+# These denylists are keyed by ``db_engine_spec.engine``. ``MariaDBEngineSpec``
+# and ``ClickHouseConnectEngineSpec`` derive from the MySQL and ClickHouse specs
+# but report ``"mariadb"`` and ``"clickhousedb"``, so mirror the parent defaults
+# onto them. Copied rather than aliased, so mutating one engine's set does not
+# change the other's. Deployments that replace these dicts wholesale should set
+# those keys explicitly.
+DISALLOWED_SQL_FUNCTIONS["mariadb"] = set(DISALLOWED_SQL_FUNCTIONS["mysql"])
+DISALLOWED_SQL_TABLES["mariadb"] = set(DISALLOWED_SQL_TABLES["mysql"])
+DISALLOWED_SQL_FUNCTIONS["clickhousedb"] = set(DISALLOWED_SQL_FUNCTIONS["clickhouse"])
 
 
 # A function that intercepts the SQL to be executed and can alter it.
