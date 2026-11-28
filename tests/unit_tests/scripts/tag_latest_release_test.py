@@ -62,3 +62,24 @@ def test_tag_latest_release(tag, expected_output):
         )
 
         assert expected_output in result.stdout
+
+
+@pytest.mark.parametrize(
+    "tag, expected_output",
+    [
+        ("2.1.1", "This release tag 2.1.1 is newer than the latest."),
+        ("1.0.0", "This release tag 1.0.0 is older than the latest."),
+        ("2.1.0", "Versions are equal"),
+    ],
+)
+def test_tag_latest_release_reads_every_decoration(tag, expected_output):
+    """
+    `git show --pretty=%d` decorates a commit with branches as well as tags, so
+    the version tag is not necessarily the first entry in the list. Every entry
+    has to be considered, not just the first one.
+    """
+    result = BashMock.tag_latest_release(
+        tag, latest_tag_list="(HEAD -> master, tag: 2.1.0, tag: latest)"
+    )
+
+    assert expected_output in result.stdout
