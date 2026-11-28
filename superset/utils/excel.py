@@ -16,7 +16,7 @@
 # under the License.
 import io
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 import numpy as np
 import pandas as pd
@@ -191,8 +191,74 @@ def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename_axis(index=_quote_formula, columns=_quote_formula)
 
 
+def _sheet_layout(df: pd.DataFrame, kwargs: Mapping[str, Any]) -> tuple[int, int, int]:
+    """Return ``(first_data_column, first_data_row, last_data_row)`` (0-based)."""
+    startrow = int(kwargs.get("startrow") or 0)
+    startcol = int(kwargs.get("startcol") or 0)
+    index_width = df.index.nlevels if kwargs.get("index", True) else 0
+    header = kwargs.get("header", True)
+    if header is False or header is None:
+        header_rows = 0
+    else:
+        header_rows = getattr(df.columns, "nlevels", 1) or 1
+    first_data_column = startcol + index_width
+    first_data_row = startrow + header_rows
+    last_data_row = first_data_row + max(len(df) - 1, 0)
+    return first_data_column, first_data_row, last_data_row
+
+
+def _apply_writer_formats(
+    writer: Any,
+    worksheet: Any,
+    df: pd.DataFrame,
+    kwargs: Mapping[str, Any],
+    number_format: Optional[str],
+    column_formats: Optional[Mapping[int, tuple[Optional[str], Optional[str]]]],
+    data_bars: Optional[Mapping[int, str]],
+) -> None:
+    """Apply column number formats and data bars on the sheet just written."""
+    first_data_column, first_data_row, last_data_row = _sheet_layout(df, kwargs)
+    styled_columns = set(column_formats or ())
+    if number_format and len(df.columns):
+        plain = [
+            offset for offset in range(len(df.columns)) if offset not in styled_columns
+        ]
+        if plain:
+            number_fmt = writer.book.add_format({"num_format": number_format})
+            for offset in plain:
+                column = first_data_column + offset
+                worksheet.set_column(column, column, None, number_fmt)
+    for offset, (num_fmt, align) in (column_formats or {}).items():
+        props: dict[str, str] = {}
+        chosen = num_fmt or number_format
+        if chosen:
+            props["num_format"] = chosen
+        if align:
+            props["align"] = align
+        if not props:
+            continue
+        column = first_data_column + int(offset)
+        worksheet.set_column(column, column, None, writer.book.add_format(props))
+    if data_bars and len(df):
+        for offset, color in data_bars.items():
+            column = first_data_column + int(offset)
+            bar_color = color if str(color).startswith("#") else f"#{color}"
+            worksheet.conditional_format(
+                first_data_row,
+                column,
+                last_data_row,
+                column,
+                {"type": "data_bar", "bar_color": bar_color},
+            )
+
+
 def df_to_excel(
-    df: pd.DataFrame, number_format: Optional[str] = None, **kwargs: Any
+    df: pd.DataFrame,
+    number_format: Optional[str] = None,
+    *,
+    column_formats: Optional[Mapping[int, tuple[Optional[str], Optional[str]]]] = None,
+    data_bars: Optional[Mapping[int, str]] = None,
+    **kwargs: Any,
 ) -> Any:
     """
     Serialize a DataFrame to an xlsx workbook.
@@ -201,6 +267,11 @@ def df_to_excel(
            columns, e.g. ``"0.0%"``. Applying it as a cell format rather than
            writing formatted text keeps the underlying value numeric, so the
            spreadsheet still sums and charts it.
+    :param column_formats: optional per data-column ``(num_format, alignment)``
+           keyed by the DataFrame column offset. Applied while writing so large
+           exports do not reload the workbook.
+    :param data_bars: optional per data-column data-bar color (``#RRGGBB``),
+           keyed the same way as ``column_formats``.
     """
     output = io.BytesIO()
 
@@ -211,18 +282,15 @@ def df_to_excel(
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, **kwargs)
 
-        if number_format and writer.sheets:
-            worksheet = next(iter(writer.sheets.values()))
-            # The sheet may start past column A, and the index occupies the
-            # leading columns when it is written out.
-            first_data_column = kwargs.get("startcol", 0) + (
-                df.index.nlevels if kwargs.get("index", True) else 0
-            )
-            worksheet.set_column(
-                first_data_column,
-                first_data_column + len(df.columns) - 1,
-                None,
-                writer.book.add_format({"num_format": number_format}),
+        if writer.sheets and (number_format or column_formats or data_bars):
+            _apply_writer_formats(
+                writer,
+                next(iter(writer.sheets.values())),
+                df,
+                kwargs,
+                number_format,
+                column_formats,
+                data_bars,
             )
 
         # Reset workbook document properties so the exported file does not

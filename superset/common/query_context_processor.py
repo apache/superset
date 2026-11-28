@@ -30,7 +30,7 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
@@ -42,7 +42,10 @@ from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.connectors.sqla.models import SqlaTable
-from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
+from superset.constants import (
+    CACHE_DISABLED_TIMEOUT,
+    CacheRegion,
+)
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
@@ -922,9 +925,52 @@ class QueryContextProcessor:
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
-                result = excel.df_to_excel(
-                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                form_data = self._query_context.form_data
+                export_kwargs = {
+                    **current_app.config["EXCEL_EXPORT"],
+                    "index": include_index,
+                }
+                # Reports request a post-processed workbook. Table and Pivot
+                # XLSX are read back and written again in apply_client_processing,
+                # which is where fractions, formats, and conditional formatting
+                # belong. Decorating this copy only to throw it away wastes the
+                # openpyxl pass. An empty frame is returned unchanged, so it
+                # still needs the decorations here.
+                viz_type = (
+                    form_data.get("viz_type") if isinstance(form_data, dict) else None
                 )
+                client_rewrites_workbook = (
+                    self._query_context.result_type
+                    == ChartDataResultType.POST_PROCESSED
+                    and viz_type in {"table", "pivot_table_v2"}
+                    and len(df) > 0
+                )
+                # Explore and dashboard downloads (RESULTS / FULL) are this
+                # response. Formats and default bars are written with
+                # xlsxwriter; openpyxl runs only for custom rules on frames
+                # small enough to reload. Percent formats stay off this path:
+                # pivot percent fractions are produced later, during client
+                # processing.
+                if isinstance(form_data, dict) and not client_rewrites_workbook:
+                    from superset.utils.excel_conditional import write_explore_xlsx
+                    from superset.utils.excel_display import attach_datasource_formats
+
+                    resolved_verbose = (
+                        verbose_map if isinstance(verbose_map, dict) else None
+                    )
+                    result = write_explore_xlsx(
+                        df,
+                        attach_datasource_formats(form_data, self._qc_datasource.data),
+                        include_index=include_index,
+                        number_format=None,
+                        export_kwargs=export_kwargs,
+                        verbose_map=resolved_verbose,
+                    )
+                else:
+                    result = excel.df_to_excel(
+                        df,
+                        **export_kwargs,
+                    )
             return result or ""
 
         # QueryObject post-processing has completed before this materialization

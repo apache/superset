@@ -256,7 +256,10 @@ def test_get_data_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df, index=False)
+    mock_df_to_excel.assert_called_once()
+    assert mock_df_to_excel.call_args.args[0] is df
+    assert mock_df_to_excel.call_args.kwargs["index"] is False
+    assert "number_format" not in mock_df_to_excel.call_args.kwargs
 
 
 def test_get_data_json(processor, mock_query_context):
@@ -381,7 +384,75 @@ def test_get_data_empty_dataframe_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data empty"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df, index=False)
+    mock_df_to_excel.assert_called_once()
+    assert mock_df_to_excel.call_args.args[0] is df
+    assert mock_df_to_excel.call_args.kwargs["index"] is False
+    assert "number_format" not in mock_df_to_excel.call_args.kwargs
+
+
+@patch("superset.utils.excel_conditional.write_explore_xlsx", return_value=b"decorated")
+def test_get_data_xlsx_pivot_percent_does_not_format_raw_aggregates(
+    mock_write_explore_xlsx, processor, mock_query_context
+):
+    """Dashboard Excel export is raw aggregates, so a percent format would lie."""
+    df = pd.DataFrame({"SUM(sales)": [1234]})
+    mock_query_context.result_format = ChartDataResultFormat.XLSX
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.form_data = {
+        "viz_type": "pivot_table_v2",
+        "showValuesAs": "percent_row",
+    }
+    mock_query_context.datasource.data = {"verbose_map": {}}
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    assert result == b"decorated"
+    assert mock_write_explore_xlsx.call_args.kwargs["number_format"] is None
+
+
+@patch(
+    "superset.common.query_context_processor.excel.df_to_excel",
+    return_value=b"plain",
+)
+@patch("superset.utils.excel_conditional.write_explore_xlsx")
+def test_get_data_xlsx_skips_decorations_when_client_processing_rewrites(
+    mock_write_explore_xlsx, mock_df_to_excel, processor, mock_query_context
+):
+    """Pivot reports rewrite the workbook, so the first copy stays undecorated."""
+    df = pd.DataFrame({"SUM(sales)": [1234]})
+    mock_query_context.result_format = ChartDataResultFormat.XLSX
+    mock_query_context.result_type = ChartDataResultType.POST_PROCESSED
+    mock_query_context.form_data = {
+        "viz_type": "pivot_table_v2",
+        "showValuesAs": "percent_row",
+        "conditional_formatting": [
+            {"column": "SUM(sales)", "operator": ">", "targetValue": 0}
+        ],
+    }
+    mock_query_context.datasource.data = {"verbose_map": {}}
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    assert result == b"plain"
+    mock_write_explore_xlsx.assert_not_called()
+    mock_df_to_excel.assert_called_once()
+
+
+@patch("superset.utils.excel_conditional.write_explore_xlsx", return_value=b"decorated")
+def test_get_data_xlsx_keeps_decorations_for_explore_results(
+    mock_write_explore_xlsx, processor, mock_query_context
+):
+    """Explore Table download is the file the user receives."""
+    df = pd.DataFrame({"sales": [10]})
+    mock_query_context.result_format = ChartDataResultFormat.XLSX
+    mock_query_context.result_type = ChartDataResultType.RESULTS
+    mock_query_context.form_data = {"viz_type": "table", "show_cell_bars": True}
+    mock_query_context.datasource.data = {"verbose_map": {}}
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    assert result == b"decorated"
+    mock_write_explore_xlsx.assert_called_once()
 
 
 def test_get_data_nan_values_json(processor, mock_query_context):
