@@ -5937,18 +5937,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if sql and database:
             query = Query(
-                database=database,
                 sql=sql,
                 schema=schema,
                 catalog=catalog,
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            # This ephemeral Query must never be persisted; with
-            # cascade_backrefs=False it is not added to the session in the
-            # first place, so only expunge if something else added it.
-            if query in self.session:
-                self.session.expunge(query)
+            # Avoid backref events: a read-only access check must not dirty the
+            # database and evict its cached engines on the next session flush.
+            set_committed_value(query, "database", database)
 
         # When only ``database`` is provided, enforce database-level access
         # here so the call is not a no-op.
