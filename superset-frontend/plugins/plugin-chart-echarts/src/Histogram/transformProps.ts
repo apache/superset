@@ -85,6 +85,7 @@ export default function transformProps(
     xAxisTitle,
     yAxisTitle,
     yAxisFormat,
+    yAxisLogScale,
   } = formData;
   const queryData = queriesData[0] ?? { data: [] };
   const data = queryData.data ?? [];
@@ -234,9 +235,10 @@ export default function transformProps(
     },
     yAxis: {
       ...defaultYAxis,
+      ...(yAxisLogScale ? { min: 1 } : {}),
       name: yAxisTitle,
       nameGap: normalize ? 55 : 40,
-      type: 'value',
+      type: yAxisLogScale ? 'log' : 'value',
       nameLocation: 'middle',
       axisLabel: {
         formatter: (value: number) => yAxisFormatter.format(value),
