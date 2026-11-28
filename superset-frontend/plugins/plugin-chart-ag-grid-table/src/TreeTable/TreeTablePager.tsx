@@ -33,12 +33,14 @@ export interface TreeTablePagerProps {
   onPageSizeChange: (pageSize: number) => void;
 }
 
-const ACTIVE_PAGE = '.ant-pagination-item-active';
+// The focusable control is inside the list item, not the item itself.
+const ACTIVE_PAGE = '.ant-pagination-item-active > [tabindex]';
 const formatInteger = getNumberFormatter(NumberFormats.INTEGER);
 
 /**
  * The parent grid's pager: a "Page Size:" select and the core pager as the
- * list screens use it (Tab reaches each control, Enter changes the page).
+ * list screens use it (Tab reaches each control, Enter or Space changes the
+ * page).
  */
 const TreeTablePager = forwardRef<HTMLDivElement, TreeTablePagerProps>(
   (
