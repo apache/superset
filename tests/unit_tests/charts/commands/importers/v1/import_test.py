@@ -546,6 +546,78 @@ def test_import_existing_active_chart_overwrite_without_can_write_returns_existi
     assert result.deleted_at is None
 
 
+def test_import_existing_chart_reuse_requires_read_access(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Reusing an existing chart matched by UUID (the non-overwrite path that
+    returns the existing row unchanged for the bundle to attach) must apply
+    the same read-access check the create / update paths enforce: a user who
+    cannot read the referenced chart is refused rather than handed the row.
+    """
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=False
+    )
+
+    slice = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+
+    user = User(
+        first_name="Bob",
+        last_name="Roe",
+        email="bob@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ForbiddenError) as excinfo:
+            import_chart(chart_config)
+    assert "permission to read it" in str(excinfo.value)
+
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
+
+
+def test_import_existing_chart_reuse_allows_reader(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    A user who can read the existing chart still gets the row back unchanged
+    on the non-overwrite reuse path, so legitimate imports keep working.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=True
+    )
+
+    existing = (
+        session_with_data.query(Slice).filter(Slice.uuid == chart_config["uuid"]).one()
+    )
+
+    reader = User(
+        first_name="Carol",
+        last_name="Lee",
+        email="carol@example.org",
+        username="carol",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(reader):
+        result = import_chart(chart_config)
+
+    assert result.id == existing.id
+    mock_can_access_chart.assert_called_once_with(existing)
+
+
 def test_import_tag_logic_for_charts(session_with_schema: Session):
     contents = {
         "tags.yaml": yaml.dump(
