@@ -92,6 +92,10 @@ from sqlalchemy_utils import UUIDType
 
 from superset import db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
+from superset.commands.chart.exceptions import (
+    TimeRangeAmbiguousError,
+    TimeRangeParseFailError,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
     grouping_marker_label,
@@ -3460,7 +3464,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(
                 query_object
             )
-        except (ValidationError, ValueError) as ex:
+        except (
+            TimeRangeParseFailError,
+            TimeRangeAmbiguousError,
+            ValidationError,
+            ValueError,
+            TypeError,
+        ) as ex:
             # The range comes from the last temporal filter, which is not
             # necessarily the one the query context was built from and so is not
             # necessarily one that has already been parsed and reported on.
@@ -3492,7 +3502,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         offset_from_dttm, offset_to_dttm = (
                             get_since_until_from_time_range(time_range=offset)
                         )
-                    except ValueError as ex:
+                    except (
+                        TimeRangeParseFailError,
+                        TimeRangeAmbiguousError,
+                        ValidationError,
+                        ValueError,
+                        TypeError,
+                    ) as ex:
                         raise QueryObjectValidationError(str(ex)) from ex
 
                     # Use the specified range directly

@@ -108,10 +108,11 @@ def get_since_until_from_temporal_filter(
             time_shift=time_shift,
             extras=extras,
         )
-    except (ValidationError, ValueError) as ex:
+    except (ValidationError, ValueError, TypeError) as ex:
         # ``TimeRangeParseFailError`` and ``TimeRangeAmbiguousError`` are
         # marshmallow ``ValidationError``s, which only the query-context
-        # handlers answer 400 for; the rest arrive as a bare ``ValueError``.
+        # handlers answer 400 for; the rest arrive as ``ValueError`` or
+        # ``TypeError`` (e.g. mixed naive/aware timestamps).
         raise QueryObjectValidationError(
             _(
                 "Invalid time range for %(column)s: %(message)s",

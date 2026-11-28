@@ -953,7 +953,7 @@ class ChartDataRestApi(ChartRestApi):
             return schema.load(prepared)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
-        except ValueError as ex:
+        except (ValueError, TypeError, QueryObjectValidationError) as ex:
             raise ValidationError(str(ex)) from ex
 
     @staticmethod
