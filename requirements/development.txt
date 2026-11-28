@@ -122,7 +122,7 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==8.0.1
+cachetools==8.0.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1042,6 +1042,7 @@ rfc3339-validator==0.1.4
 rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   cyclopts
     #   fastmcp-slim
     #   flask-limiter
