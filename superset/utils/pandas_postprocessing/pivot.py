@@ -369,7 +369,8 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     # https://github.com/pandas-dev/pandas/issues/18030
     pivot_key_set: set[tuple[Any, ...]] = set()
     if not drop_missing_columns and columns:
-        for row in df[columns].itertuples():
+        # Only the distinct combinations matter, so don't visit every row.
+        for row in df[columns].drop_duplicates().itertuples():
             for metric in aggfunc.keys():
                 pivot_key_set.add((metric, *row[1:]))
     orig_columns_df = df[columns] if columns else None
