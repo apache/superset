@@ -46,6 +46,7 @@ from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
+    SupersetGenericDBErrorException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, feature_flag_manager
@@ -403,6 +404,8 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
+        except SupersetGenericDBErrorException as ex:
+            return self.response(400, message=ex.message, errors=[ex.to_dict()])
 
     def _column_values_response(
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
