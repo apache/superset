@@ -1042,6 +1042,7 @@ rfc3339-validator==0.1.4
 rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   cyclopts
     #   fastmcp-slim
     #   flask-limiter
@@ -1120,7 +1121,7 @@ sqlalchemy==2.0.58
     #   starrocks
     #   testcontainers
     #   ydb-sqlalchemy
-sqlalchemy-bigquery==1.17.3
+sqlalchemy-bigquery==1.18.0
     # via apache-superset
 sqlalchemy-cockroachdb==2.0.4
     # via apache-superset
