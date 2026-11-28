@@ -25,6 +25,7 @@ from superset.commands.exceptions import (
     DeleteFailedError,
     ForbiddenError,
     ImportFailedError,
+    ImportRefusedError,
     UpdateFailedError,
 )
 from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
@@ -284,7 +285,13 @@ class DatasetDuplicateFailedError(CreateFailedError):
     message = _("Dataset could not be duplicated.")
 
 
-class DatasetForbiddenDataURI(ImportFailedError):  # noqa: N818
+class DatasetForbiddenDataURI(ImportRefusedError):  # noqa: N818
+    """The bundle contains a forbidden ``data:`` URI.
+
+    The import validation correctly rejected the payload, so this is a
+    client-error (bad/forbidden input), not a server fault.
+    """
+
     message = _("Data URI is not allowed.")
 
 

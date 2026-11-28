@@ -216,6 +216,27 @@ class TestLoadYaml:
         with pytest.raises(ValidationError):
             load_yaml("test.yaml", 'key: "unterminated string')
 
+    def test_unsafe_constructor_tag_raises_validation_error_not_warning_error(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A deserialization-RCE-style payload (``!!python/object/apply:...``)
+        is already refused by ``yaml.safe_load`` itself — that control works
+        correctly. ``load_yaml`` must surface this as the same
+        ``ImportFormatValidationError`` (-> 400/422 at the REST layer) as any
+        other malformed YAML, and must log it at WARNING (not ERROR/exception
+        level), since this is an expected, already-handled rejection of
+        attacker-controlled input, not an unhandled server fault."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_yaml
+
+        payload = "d: !!python/object/apply:time.sleep [0]"
+        with caplog.at_level(logging.WARNING):
+            with pytest.raises(ValidationError):
+                load_yaml("dashboards/d.yaml", payload)
+
+        _assert_logged_as_warning(caplog, "Invalid YAML in dashboards/d.yaml")
+
 
 def _assert_logged_as_warning(caplog: pytest.LogCaptureFixture, fragment: str) -> None:
     """Expected, user-input validation failures are already surfaced to the

@@ -75,7 +75,12 @@ def load_yaml(file_name: str, content: str) -> dict[str, Any]:
     try:
         return yaml.safe_load(content)
     except yaml.YAMLError as ex:
-        logger.exception("Invalid YAML in %s", file_name)
+        # This is already correctly rejected as an invalid import below (and
+        # surfaced to the client as a 400/422, not a 500) — ``yaml.safe_load``
+        # refuses unsafe tags (e.g. ``!!python/object/apply:...``) on its own.
+        # Log at warning (no full traceback) so malformed/malicious uploads
+        # don't page anyone as an unhandled error.
+        logger.warning("Invalid YAML in %s: %s", file_name, ex)
         raise ImportFormatValidationError({file_name: "Not a valid YAML file"}) from ex
 
 
@@ -483,7 +488,11 @@ def import_tag(
         try:
             tags_config = yaml.safe_load(contents["tags.yaml"])
         except yaml.YAMLError as err:
-            logger.error("Error parsing tags.yaml: %s", err)
+            # ``yaml.safe_load`` already refused anything unsafe here; this
+            # is an expected validation outcome for a malformed/malicious
+            # bundle, not a server fault, so log at warning (no traceback)
+            # instead of error to avoid paging noise.
+            logger.warning("Error parsing tags.yaml: %s", err)
             tags_config = {}
 
         for tag_info in tags_config.get("tags", []):

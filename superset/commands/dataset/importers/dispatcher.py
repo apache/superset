@@ -22,7 +22,7 @@ from marshmallow.exceptions import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.commands.dataset.importers import v1
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.exceptions import CommandInvalidError, ImportRefusedError
 from superset.commands.importers.exceptions import IncorrectVersionError
 
 logger = logging.getLogger(__name__)
@@ -65,6 +65,9 @@ class ImportDatasetsCommand(BaseCommand):
             except (CommandInvalidError, ValidationError):
                 # found right version, but file is invalid
                 logger.info("Command failed validation")
+                raise
+            except ImportRefusedError:
+                # the bundle itself was refused; the handler logs it as a warning
                 raise
             except Exception:
                 # validation succeeded but something went wrong
