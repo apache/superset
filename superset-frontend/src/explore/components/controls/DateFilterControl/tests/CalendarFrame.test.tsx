@@ -22,72 +22,69 @@ import { CalendarFrame } from '../components/CalendarFrame';
 import { PreviousCalendarWeek, PreviousCalendarQuarter } from '../types';
 import { CALENDAR_RANGE_OPTIONS } from '../utils/constants';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('CalendarFrame', () => {
-  test('calls onChange with PreviousCalendarWeek if value is not in CALENDAR_RANGE_SET', () => {
-    const mockOnChange = jest.fn();
-    render(<CalendarFrame onChange={mockOnChange} value="invalid-value" />);
+test('calls onChange with PreviousCalendarWeek if value is not in CALENDAR_RANGE_SET', () => {
+  const mockOnChange = jest.fn();
+  render(<CalendarFrame onChange={mockOnChange} value="invalid-value" />);
 
-    expect(mockOnChange).toHaveBeenCalledWith(PreviousCalendarWeek);
+  expect(mockOnChange).toHaveBeenCalledWith(PreviousCalendarWeek);
+});
+
+test('renders null if value is not in CALENDAR_RANGE_SET', () => {
+  render(<CalendarFrame onChange={jest.fn()} value="invalid-value" />);
+  expect(
+    screen.queryByText('Configure Time Range: Previous...'),
+  ).not.toBeInTheDocument();
+});
+
+test('renders the correct number of radio options', () => {
+  render(<CalendarFrame onChange={jest.fn()} value={PreviousCalendarWeek} />);
+  const radios = screen.getAllByRole('radio');
+  expect(radios).toHaveLength(CALENDAR_RANGE_OPTIONS.length);
+  CALENDAR_RANGE_OPTIONS.forEach(option => {
+    expect(screen.getByText(option.label as string)).toBeInTheDocument();
   });
+});
 
-  test('renders null if value is not in CALENDAR_RANGE_SET', () => {
-    render(<CalendarFrame onChange={jest.fn()} value="invalid-value" />);
-    expect(
-      screen.queryByText('Configure Time Range: Previous...'),
-    ).not.toBeInTheDocument();
-  });
+test('calls onChange with the correct value when a radio button is selected', () => {
+  const mockOnChange = jest.fn();
+  render(
+    <CalendarFrame
+      onChange={mockOnChange}
+      value={CALENDAR_RANGE_OPTIONS[0].value}
+    />,
+  );
 
-  test('renders the correct number of radio options', () => {
-    render(<CalendarFrame onChange={jest.fn()} value={PreviousCalendarWeek} />);
-    const radios = screen.getAllByRole('radio');
-    expect(radios).toHaveLength(CALENDAR_RANGE_OPTIONS.length);
-    CALENDAR_RANGE_OPTIONS.forEach(option => {
-      expect(screen.getByText(option.label as string)).toBeInTheDocument();
-    });
-  });
+  const secondOption = CALENDAR_RANGE_OPTIONS[1];
+  const radio = screen.getByLabelText(secondOption.label as string);
+  fireEvent.click(radio);
 
-  test('calls onChange with the correct value when a radio button is selected', () => {
-    const mockOnChange = jest.fn();
-    render(
-      <CalendarFrame
-        onChange={mockOnChange}
-        value={CALENDAR_RANGE_OPTIONS[0].value}
-      />,
-    );
+  expect(mockOnChange).toHaveBeenCalledWith(secondOption.value);
+});
 
-    const secondOption = CALENDAR_RANGE_OPTIONS[1];
-    const radio = screen.getByLabelText(secondOption.label as string);
-    fireEvent.click(radio);
+test('renders the section title correctly', () => {
+  render(
+    <CalendarFrame
+      onChange={jest.fn()}
+      value={CALENDAR_RANGE_OPTIONS[0].value}
+    />,
+  );
+  expect(
+    screen.getByText('Configure Time Range: Previous...'),
+  ).toBeInTheDocument();
+});
 
-    expect(mockOnChange).toHaveBeenCalledWith(secondOption.value);
-  });
+test('ensures the third option is PreviousCalendarQuarter', () => {
+  render(
+    <CalendarFrame
+      onChange={jest.fn()}
+      value={CALENDAR_RANGE_OPTIONS[0].value}
+    />,
+  );
 
-  test('renders the section title correctly', () => {
-    render(
-      <CalendarFrame
-        onChange={jest.fn()}
-        value={CALENDAR_RANGE_OPTIONS[0].value}
-      />,
-    );
-    expect(
-      screen.getByText('Configure Time Range: Previous...'),
-    ).toBeInTheDocument();
-  });
+  const thirdOption = CALENDAR_RANGE_OPTIONS[2];
+  expect(thirdOption.value).toBe(PreviousCalendarQuarter);
 
-  test('ensures the third option is PreviousCalendarQuarter', () => {
-    render(
-      <CalendarFrame
-        onChange={jest.fn()}
-        value={CALENDAR_RANGE_OPTIONS[0].value}
-      />,
-    );
-
-    const thirdOption = CALENDAR_RANGE_OPTIONS[2];
-    expect(thirdOption.value).toBe(PreviousCalendarQuarter);
-
-    expect(
-      screen.getByLabelText(thirdOption.label as string),
-    ).toBeInTheDocument();
-  });
+  expect(
+    screen.getByLabelText(thirdOption.label as string),
+  ).toBeInTheDocument();
 });

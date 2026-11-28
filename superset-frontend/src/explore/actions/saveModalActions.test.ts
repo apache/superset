@@ -907,19 +907,53 @@ test('getSliceDashboards with slice handles failure', async () => {
   expect(dispatch.mock.calls[0][0].type).toBe(SAVE_SLICE_FAILED);
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('getSlicePayload', () => {
-  const sliceName = 'Test Slice';
-  const formDataWithNativeFilters = {
-    datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: VizType.Pie,
-    adhoc_filters: [],
-  };
-  const dashboards = [5];
-  const editors = [0];
-  const formDataFromSlice: QueryFormData = {
-    datasource: `${datasourceId}__${datasourceType}`,
-    viz_type: VizType.Pie,
+const payloadSliceName = 'Test Slice';
+const formDataWithNativeFilters = {
+  datasource: `${datasourceId}__${datasourceType}`,
+  viz_type: VizType.Pie,
+  adhoc_filters: [],
+};
+const payloadDashboards = [5];
+const payloadEditors = [0];
+const formDataFromSlice: QueryFormData = {
+  datasource: `${datasourceId}__${datasourceType}`,
+  viz_type: VizType.Pie,
+  adhoc_filters: [
+    {
+      clause: 'WHERE',
+      subject: 'year',
+      operator: 'TEMPORAL_RANGE',
+      comparator: 'No filter',
+      expressionType: 'SIMPLE',
+    },
+  ],
+  dashboards: [],
+};
+
+test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', async () => {
+  const result = await getSlicePayload(
+    payloadSliceName,
+    formDataWithNativeFilters,
+    payloadDashboards,
+    payloadEditors as [],
+    formDataFromSlice,
+  );
+  expect(result).toHaveProperty('params');
+  expect(result).toHaveProperty('slice_name', payloadSliceName);
+  expect(result).toHaveProperty('viz_type', formDataWithNativeFilters.viz_type);
+  expect(result).toHaveProperty('datasource_id', 22);
+  expect(result).toHaveProperty('datasource_type', 'table');
+  expect(result).toHaveProperty('dashboards', payloadDashboards);
+  expect(result).toHaveProperty('editors', payloadEditors);
+  expect(result).toHaveProperty('query_context');
+  expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
+    formDataWithNativeFilters.adhoc_filters,
+  );
+});
+
+test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', async () => {
+  const formDataWithAdhocFilters: QueryFormData = {
+    ...formDataWithNativeFilters,
     adhoc_filters: [
       {
         clause: 'WHERE',
@@ -929,242 +963,198 @@ describe('getSlicePayload', () => {
         expressionType: 'SIMPLE',
       },
     ],
-    dashboards: [],
+  };
+  const result = await getSlicePayload(
+    payloadSliceName,
+    formDataWithAdhocFilters,
+    payloadDashboards,
+    payloadEditors as [],
+    formDataFromSlice,
+  );
+  expect(result).toHaveProperty('params');
+  expect(result).toHaveProperty('slice_name', payloadSliceName);
+  expect(result).toHaveProperty('viz_type', formDataWithAdhocFilters.viz_type);
+  expect(result).toHaveProperty('datasource_id', 22);
+  expect(result).toHaveProperty('datasource_type', 'table');
+  expect(result).toHaveProperty('dashboards', payloadDashboards);
+  expect(result).toHaveProperty('editors', payloadEditors);
+  expect(result).toHaveProperty('query_context');
+  expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
+    formDataWithAdhocFilters.adhoc_filters,
+  );
+});
+
+test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', async () => {
+  const formDataWithAdhocFiltersWithExtra: QueryFormData = {
+    ...formDataWithNativeFilters,
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+        expressionType: 'SIMPLE',
+      },
+    ],
+  };
+  const result = await getSlicePayload(
+    payloadSliceName,
+    formDataWithAdhocFiltersWithExtra,
+    payloadDashboards,
+    payloadEditors as [],
+    formDataFromSlice,
+  );
+  expect(result).toHaveProperty('params');
+  expect(result).toHaveProperty('slice_name', payloadSliceName);
+  expect(result).toHaveProperty(
+    'viz_type',
+    formDataWithAdhocFiltersWithExtra.viz_type,
+  );
+  expect(result).toHaveProperty('datasource_id', 22);
+  expect(result).toHaveProperty('datasource_type', 'table');
+  expect(result).toHaveProperty('dashboards', payloadDashboards);
+  expect(result).toHaveProperty('editors', payloadEditors);
+  expect(result).toHaveProperty('query_context');
+  expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
+    formDataFromSlice.adhoc_filters,
+  );
+});
+
+test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', async () => {
+  const formDataFromSliceWithAdhocFilterB: QueryFormData = {
+    ...formDataFromSlice,
+    adhoc_filters_b: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+        expressionType: 'SIMPLE',
+      },
+    ],
   };
 
-  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', async () => {
-    const result = await getSlicePayload(
-      sliceName,
-      formDataWithNativeFilters,
-      dashboards,
-      editors as [],
-      formDataFromSlice,
-    );
-    expect(result).toHaveProperty('params');
-    expect(result).toHaveProperty('slice_name', sliceName);
-    expect(result).toHaveProperty(
-      'viz_type',
-      formDataWithNativeFilters.viz_type,
-    );
-    expect(result).toHaveProperty('datasource_id', 22);
-    expect(result).toHaveProperty('datasource_type', 'table');
-    expect(result).toHaveProperty('dashboards', dashboards);
-    expect(result).toHaveProperty('editors', editors);
-    expect(result).toHaveProperty('query_context');
-    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
-      formDataWithNativeFilters.adhoc_filters,
-    );
-  });
+  const formDataWithAdhocFiltersWithExtra: QueryFormData = {
+    ...formDataWithNativeFilters,
+    viz_type: VizType.MixedTimeseries,
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+        expressionType: 'SIMPLE',
+        isExtra: true,
+      },
+    ],
+    adhoc_filters_b: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+        expressionType: 'SIMPLE',
+        isExtra: true,
+      },
+    ],
+  };
+  const result = await getSlicePayload(
+    payloadSliceName,
+    formDataWithAdhocFiltersWithExtra,
+    payloadDashboards,
+    payloadEditors as [],
+    formDataFromSliceWithAdhocFilterB,
+  );
 
-  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', async () => {
-    const formDataWithAdhocFilters: QueryFormData = {
-      ...formDataWithNativeFilters,
-      adhoc_filters: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: 'No filter',
-          expressionType: 'SIMPLE',
-        },
-      ],
-    };
-    const result = await getSlicePayload(
-      sliceName,
-      formDataWithAdhocFilters,
-      dashboards,
-      editors as [],
-      formDataFromSlice,
-    );
-    expect(result).toHaveProperty('params');
-    expect(result).toHaveProperty('slice_name', sliceName);
-    expect(result).toHaveProperty(
-      'viz_type',
-      formDataWithAdhocFilters.viz_type,
-    );
-    expect(result).toHaveProperty('datasource_id', 22);
-    expect(result).toHaveProperty('datasource_type', 'table');
-    expect(result).toHaveProperty('dashboards', dashboards);
-    expect(result).toHaveProperty('editors', editors);
-    expect(result).toHaveProperty('query_context');
-    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
-      formDataWithAdhocFilters.adhoc_filters,
-    );
-  });
+  expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
+    formDataFromSliceWithAdhocFilterB.adhoc_filters,
+  );
+  expect(JSON.parse(result.params as string).adhoc_filters_b).toEqual(
+    formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
+  );
+});
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', async () => {
-    const formDataWithAdhocFiltersWithExtra: QueryFormData = {
-      ...formDataWithNativeFilters,
-      adhoc_filters: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: 'No filter',
-          expressionType: 'SIMPLE',
-        },
-      ],
-    };
-    const result = await getSlicePayload(
-      sliceName,
-      formDataWithAdhocFiltersWithExtra,
-      dashboards,
-      editors as [],
-      formDataFromSlice,
-    );
-    expect(result).toHaveProperty('params');
-    expect(result).toHaveProperty('slice_name', sliceName);
-    expect(result).toHaveProperty(
-      'viz_type',
-      formDataWithAdhocFiltersWithExtra.viz_type,
-    );
-    expect(result).toHaveProperty('datasource_id', 22);
-    expect(result).toHaveProperty('datasource_type', 'table');
-    expect(result).toHaveProperty('dashboards', dashboards);
-    expect(result).toHaveProperty('editors', editors);
-    expect(result).toHaveProperty('query_context');
-    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
-      formDataFromSlice.adhoc_filters,
-    );
-  });
+test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', async () => {
+  const formDataFromSliceWithAdhocFilterB: QueryFormData = {
+    ...formDataFromSlice,
+    adhoc_filters: [],
+    adhoc_filters_b: [],
+  };
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', async () => {
-    const formDataFromSliceWithAdhocFilterB: QueryFormData = {
-      ...formDataFromSlice,
-      adhoc_filters_b: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: 'No filter',
-          expressionType: 'SIMPLE',
-        },
-      ],
-    };
+  const formDataWithAdhocFiltersWithExtra: QueryFormData = {
+    ...formDataWithNativeFilters,
+    viz_type: VizType.MixedTimeseries,
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+        expressionType: 'SIMPLE',
+        isExtra: true,
+      },
+    ],
+    adhoc_filters_b: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+        expressionType: 'SIMPLE',
+        isExtra: true,
+      },
+    ],
+  };
+  const result = await getSlicePayload(
+    payloadSliceName,
+    formDataWithAdhocFiltersWithExtra,
+    payloadDashboards,
+    payloadEditors as [],
+    formDataFromSliceWithAdhocFilterB,
+  );
 
-    const formDataWithAdhocFiltersWithExtra: QueryFormData = {
-      ...formDataWithNativeFilters,
-      viz_type: VizType.MixedTimeseries,
-      adhoc_filters: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: 'No filter',
-          expressionType: 'SIMPLE',
-          isExtra: true,
-        },
-      ],
-      adhoc_filters_b: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: 'No filter',
-          expressionType: 'SIMPLE',
-          isExtra: true,
-        },
-      ],
-    };
-    const result = await getSlicePayload(
-      sliceName,
-      formDataWithAdhocFiltersWithExtra,
-      dashboards,
-      editors as [],
-      formDataFromSliceWithAdhocFilterB,
-    );
+  const hasTemporalRange = (
+    JSON.parse(result.params as string).adhoc_filters_b || []
+  ).some(
+    (filter: SimpleAdhocFilter) => filter.operator === Operators.TemporalRange,
+  );
 
-    expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
-      formDataFromSliceWithAdhocFilterB.adhoc_filters,
-    );
-    expect(JSON.parse(result.params as string).adhoc_filters_b).toEqual(
-      formDataFromSliceWithAdhocFilterB.adhoc_filters_b,
-    );
-  });
+  expect(hasTemporalRange).toBe(true);
+});
 
-  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', async () => {
-    const formDataFromSliceWithAdhocFilterB: QueryFormData = {
-      ...formDataFromSlice,
-      adhoc_filters: [],
-      adhoc_filters_b: [],
-    };
+test('should reset isExtra flag to false for temporal filter when saving as a new chart', async () => {
+  const formDataWithTemporalFilterWithExtra: QueryFormData = {
+    ...formDataWithNativeFilters,
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: '2004 : ',
+        expressionType: 'SIMPLE',
+        isExtra: true,
+      },
+    ],
+  };
 
-    const formDataWithAdhocFiltersWithExtra: QueryFormData = {
-      ...formDataWithNativeFilters,
-      viz_type: VizType.MixedTimeseries,
-      adhoc_filters: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: 'No filter',
-          expressionType: 'SIMPLE',
-          isExtra: true,
-        },
-      ],
-      adhoc_filters_b: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: 'No filter',
-          expressionType: 'SIMPLE',
-          isExtra: true,
-        },
-      ],
-    };
-    const result = await getSlicePayload(
-      sliceName,
-      formDataWithAdhocFiltersWithExtra,
-      dashboards,
-      editors as [],
-      formDataFromSliceWithAdhocFilterB,
-    );
+  const result = await getSlicePayload(
+    payloadSliceName,
+    formDataWithTemporalFilterWithExtra,
+    payloadDashboards,
+    payloadEditors as [],
+    {} as QueryFormData,
+  );
 
-    const hasTemporalRange = (
-      JSON.parse(result.params as string).adhoc_filters_b || []
-    ).some(
-      (filter: SimpleAdhocFilter) =>
-        filter.operator === Operators.TemporalRange,
-    );
+  const savedFilters = JSON.parse(result.params as string).adhoc_filters;
 
-    expect(hasTemporalRange).toBe(true);
-  });
-
-  test('should reset isExtra flag to false for temporal filter when saving as a new chart', async () => {
-    const formDataWithTemporalFilterWithExtra: QueryFormData = {
-      ...formDataWithNativeFilters,
-      adhoc_filters: [
-        {
-          clause: 'WHERE',
-          subject: 'year',
-          operator: 'TEMPORAL_RANGE',
-          comparator: '2004 : ',
-          expressionType: 'SIMPLE',
-          isExtra: true,
-        },
-      ],
-    };
-
-    const result = await getSlicePayload(
-      sliceName,
-      formDataWithTemporalFilterWithExtra,
-      dashboards,
-      editors as [],
-      {} as QueryFormData,
-    );
-
-    const savedFilters = JSON.parse(result.params as string).adhoc_filters;
-
-    expect(savedFilters).toHaveLength(1);
-    expect(savedFilters[0]).toMatchObject({
-      clause: 'WHERE',
-      subject: 'year',
-      operator: 'TEMPORAL_RANGE',
-      comparator: 'No filter',
-      expressionType: 'SIMPLE',
-      isExtra: false,
-    });
+  expect(savedFilters).toHaveLength(1);
+  expect(savedFilters[0]).toMatchObject({
+    clause: 'WHERE',
+    subject: 'year',
+    operator: 'TEMPORAL_RANGE',
+    comparator: 'No filter',
+    expressionType: 'SIMPLE',
+    isExtra: false,
   });
 });
 
