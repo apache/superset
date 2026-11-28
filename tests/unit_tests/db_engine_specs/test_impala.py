@@ -58,6 +58,17 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+def test_time_expression_week_grain_starts_on_monday() -> None:
+    """
+    'WW' truncates to the weekday of January 1, so the week start shifts
+    every year; 'D' always truncates to Monday.
+    """
+    from sqlalchemy import column
+
+    expr = spec.get_timestamp_expr(column("ts"), None, "P1W")
+    assert str(expr.compile()) == "TRUNC(ts, 'D')"
+
+
 def test_get_cancel_query_id() -> None:
     query = Query()
 
@@ -721,6 +732,26 @@ def test_engines_without_a_sensible_default_offer_none() -> None:
 
     assert BaseEngineSpec.partition_value_transform_default is None
     assert PostgresEngineSpec.partition_value_transform_default is None
+
+
+def test_impala_supports_partition_filter_mapping() -> None:
+    """Impala tables are partition-directory laid out, so the editor offers it."""
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+
+    assert ImpalaEngineSpec.supports_partition_filter_mapping is True
+
+
+def test_engines_without_partition_directories_do_not_offer_the_mapping() -> None:
+    """
+    Mirroring a filter onto a partition column only prunes work where tables are
+    laid out as partition directories. Elsewhere the dropdown maps to nothing, so
+    an engine only advertises the feature by opting in.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert BaseEngineSpec.supports_partition_filter_mapping is False
+    assert PostgresEngineSpec.supports_partition_filter_mapping is False
 
 
 @pytest.mark.parametrize(

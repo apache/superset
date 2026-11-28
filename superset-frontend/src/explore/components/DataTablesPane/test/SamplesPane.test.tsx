@@ -60,6 +60,17 @@ describe('SamplesPane', () => {
     400,
   );
 
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=40&per_page=100&page=1',
+    {
+      status: 400,
+      body: {
+        message:
+          'Hive requires a partition filter for this table. Add a filter and try again.',
+      },
+    },
+  );
+
   // A 200 response that carries no `result` payload, as reported in #36840.
   fetchMock.post(
     'end:/datasource/samples?force=false&datasource_type=table&datasource_id=37&per_page=100&page=1',
@@ -134,6 +145,17 @@ describe('SamplesPane', () => {
     expect(await findByText('Failed to load samples')).toBeVisible();
     const errorDescription = await findByText('Error: Bad request');
     expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
+  });
+
+  test('Samples renders a readable Hive strict-mode error', async () => {
+    const { findByRole, queryByText } = render(
+      <SamplesPane {...createSamplesPaneProps({ datasourceId: 40 })} />,
+      { useRedux: true },
+    );
+    expect(await findByRole('alert')).toHaveTextContent(
+      'Hive requires a partition filter',
+    );
+    expect(queryByText(/TExecuteStatementResp/)).not.toBeInTheDocument();
   });
 
   test('force query, render', async () => {

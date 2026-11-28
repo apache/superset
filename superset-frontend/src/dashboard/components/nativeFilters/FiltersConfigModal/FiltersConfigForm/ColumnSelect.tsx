@@ -30,6 +30,10 @@ import {
 } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  getSemanticMemberLabels,
+  SemanticMemberLabel,
+} from 'src/components/SemanticMemberLabel';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import {
@@ -68,6 +72,29 @@ export const getDatasourceKey = (
   datasetId: number | string | undefined,
   datasourceType: DatasourceType | undefined,
 ) => `${datasetId}__${datasourceType || DatasourceType.Table}`;
+
+export const getColumnOptions = (
+  columns: Column[],
+  filterValues: (column: Column) => boolean,
+  showVerboseNames: boolean,
+  datasourceType?: DatasourceType,
+): { label: string; value: string }[] => {
+  const filtered = uniqBy(
+    ensureIsArray(columns).filter(filterValues),
+    'column_name',
+  );
+  const semantic = datasourceType === DatasourceType.SemanticView;
+  const names = filtered.map(column =>
+    (semantic || showVerboseNames) && column.verbose_name
+      ? column.verbose_name
+      : column.column_name,
+  );
+  const memberLabels = semantic ? getSemanticMemberLabels(filtered) : undefined;
+  return filtered.map((column, index) => ({
+    label: memberLabels?.get(column.column_name)?.fullName ?? names[index],
+    value: column.column_name,
+  }));
+};
 
 /** Special purpose AsyncSelect that selects a column from a dataset */
 export function ColumnSelect({
@@ -109,17 +136,21 @@ export function ColumnSelect({
 
   const options = useMemo(
     () =>
-      uniqBy(
-        ensureIsArray(columns)
-          .filter(filterValues)
-          .map((col: Column) => ({
-            label: (showVerboseNames && col.verbose_name) || col.column_name,
-            value: col.column_name,
-          })),
-        'value',
+      getColumnOptions(
+        ensureIsArray(columns),
+        filterValues,
+        showVerboseNames,
+        datasourceType,
       ),
-    [columns, filterValues, showVerboseNames],
+    [columns, filterValues, showVerboseNames, datasourceType],
   );
+  const memberLabels = useMemo(() => {
+    if (datasourceType !== DatasourceType.SemanticView) return undefined;
+    const labels = getSemanticMemberLabels(
+      uniqBy(ensureIsArray(columns).filter(filterValues), 'column_name'),
+    );
+    return new Map([...labels].filter(([, label]) => label.memberId));
+  }, [columns, filterValues, datasourceType]);
 
   // Whether the current selection still matches a loaded column. An empty
   // selection has nothing to look up and is legitimate (e.g. a cleared
@@ -238,12 +269,37 @@ export function ColumnSelect({
 
   return (
     <Select
+      css={
+        memberLabels && [...memberLabels.values()].some(label => label.memberId)
+          ? {
+              '& .ant-select-content-has-value': {
+                height: 'auto',
+              },
+              '&& .ant-select-selection-item': {
+                maxHeight: 'none',
+                height: 'auto',
+              },
+            }
+          : undefined
+      }
       mode={mode}
       value={mode === 'multiple' ? value || [] : value}
       ariaLabel={t('Column select')}
       loading={loading}
       onChange={onChange}
       options={options}
+      optionRender={option => {
+        const label = memberLabels?.get(String(option.value));
+        return label ? <SemanticMemberLabel label={label} /> : option.label;
+      }}
+      labelRender={selected => {
+        const label = memberLabels?.get(String(selected.value));
+        return label ? (
+          <SemanticMemberLabel label={label} showTitle />
+        ) : (
+          selected.label
+        );
+      }}
       placeholder={placeholder}
       notFoundContent={t('No compatible columns found')}
       showSearch

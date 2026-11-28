@@ -317,6 +317,7 @@ def test_report_to_alert_with_db_accepted(mocker: MockerFixture) -> None:
 # --- Recipient enforcement for chart/dashboard reports ---
 
 _PATCH_GET_USER_EMAIL = "superset.commands.report.update.get_user_email"
+_PATCH_IS_ADMIN = "superset.commands.report.update.security_manager.is_admin"
 
 
 def test_chart_report_update_recipient_overridden_with_owner_email(
@@ -330,6 +331,7 @@ def test_chart_report_update_recipient_overridden_with_owner_email(
         creation_method=ReportCreationMethod.CHARTS,
     )
     _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_IS_ADMIN, return_value=False)
 
     data = {
         "recipients": [
@@ -359,6 +361,7 @@ def test_dashboard_report_update_recipient_overridden_with_owner_email(
         creation_method=ReportCreationMethod.DASHBOARDS,
     )
     _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_IS_ADMIN, return_value=False)
 
     data = {
         "recipients": [
@@ -375,6 +378,41 @@ def test_dashboard_report_update_recipient_overridden_with_owner_email(
     recipients = cmd._properties["recipients"]
     assert len(recipients) == 1
     assert recipients[0]["recipient_config_json"]["target"] == "owner@example.com"
+
+
+@pytest.mark.parametrize(
+    "creation_method",
+    [ReportCreationMethod.CHARTS, ReportCreationMethod.DASHBOARDS],
+)
+def test_chart_dashboard_report_update_recipients_kept_for_admin(
+    mocker: MockerFixture,
+    creation_method: ReportCreationMethod,
+) -> None:
+    """Admins editing a chart/dashboard report keep the recipients they set."""
+    model = _make_model(
+        mocker,
+        model_type=ReportScheduleType.REPORT,
+        database_id=None,
+        creation_method=creation_method,
+    )
+    _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_IS_ADMIN, return_value=True)
+
+    recipients = [
+        {
+            "type": "Email",
+            "recipient_config_json": {"target": "owner@example.com"},
+        },
+        {
+            "type": "Email",
+            "recipient_config_json": {"target": "team@example.com"},
+        },
+    ]
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"recipients": recipients})
+    with patch(_PATCH_GET_USER_EMAIL, return_value="admin@example.com"):
+        cmd.validate()
+
+    assert cmd._properties["recipients"] == recipients
 
 
 def test_alerts_reports_update_recipient_not_overridden(
@@ -433,6 +471,7 @@ def test_chart_report_update_no_user_email_raises(mocker: MockerFixture) -> None
         creation_method=ReportCreationMethod.CHARTS,
     )
     _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_IS_ADMIN, return_value=False)
 
     cmd = UpdateReportScheduleCommand(
         model_id=1,

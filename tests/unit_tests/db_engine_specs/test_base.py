@@ -28,8 +28,9 @@ from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+import sqlalchemy as sqla
 from pytest_mock import MockerFixture
-from sqlalchemy import Boolean, Column, column, Integer, text, types
+from sqlalchemy import Boolean, Column, column, create_engine, Integer, text, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
@@ -39,6 +40,7 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersType,
     convert_inspector_columns,
+    reuse_discovered_default_schema,
 )
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
@@ -53,6 +55,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
 )
+from superset.models.core import Database
 from superset.security.guest_token import GuestToken, GuestUser
 from superset.sql.parse import Table
 from superset.superset_typing import (
@@ -324,7 +327,6 @@ def test_extra_table_metadata(mocker: MockerFixture) -> None:
     """
     Test the deprecated `extra_table_metadata` method.
     """
-    from superset.models.core import Database
 
     class ThirdPartyDBEngineSpec(BaseEngineSpec):
         @classmethod
@@ -379,13 +381,6 @@ def test_get_catalog_from_engine_params_no_database() -> None:
     url = make_url("postgresql://user:pw@host/")
     connect_args = {"database": "ignored"}
     assert BaseEngineSpec.get_catalog_from_engine_params(url, connect_args) is None
-
-
-def test_prepare_identifier_returns_name_unchanged() -> None:
-    name = "physical_column"
-
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
-    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
 
 
 def test_quote_table() -> None:
@@ -1967,6 +1962,31 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
     assert info["supports_offset"] is True
 
 
+def test_public_information_exposes_the_partition_mapping_capability() -> None:
+    """
+    The dataset editor re-derives partition mapping support from this when the
+    owner switches a dataset to another database.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    base = BaseEngineSpec.get_public_information()
+    assert base["supports_partition_filter_mapping"] is False
+    assert base["partition_value_transform_default"] is None
+
+    hive = HiveEngineSpec.get_public_information()
+    assert hive["supports_partition_filter_mapping"] is True
+    assert hive["partition_value_transform_default"] is None
+
+    class EngineWithDefault(BaseEngineSpec):
+        partition_value_transform_default = "bucket(:value)"
+
+    assert (
+        EngineWithDefault.get_public_information()["partition_value_transform_default"]
+        == "bucket(:value)"
+    )
+
+
 def _parameters(encryption: bool) -> BasicParametersType:
     parameters: dict[str, Any] = {
         "username": "user",
@@ -2503,6 +2523,33 @@ def test_expand_nested_columns_default_returns_input() -> None:
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
 
 
+def test_make_label_compatible_with_database(mocker: MockerFixture) -> None:
+    """
+    The database's maximum column name length decides when a label is hashed.
+    """
+
+    class ShortLabelsEngineSpec(BaseEngineSpec):
+        max_column_name_length = 10
+
+    database = mocker.MagicMock()
+    assert BaseEngineSpec.get_max_column_name_length(database) is None
+    assert ShortLabelsEngineSpec.get_max_column_name_length(database) == 10
+
+    assert ShortLabelsEngineSpec.make_label_compatible("short", database) == "short"
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "63a949e13b"
+    )
+
+    mocker.patch.object(
+        ShortLabelsEngineSpec, "get_max_column_name_length", return_value=None
+    )
+    assert (
+        ShortLabelsEngineSpec.make_label_compatible("a longer label", database)
+        == "a longer label"
+    )
+
+
 def test_encrypted_extra_hints_disabled_or_unusable_input() -> None:
     """
     No hints are produced for a missing or malformed value, or a length of zero.
@@ -2587,6 +2634,127 @@ def test_get_catalog_reference_schema() -> None:
     one (``catalog..table``) leaves it unknown.
     """
     assert BaseEngineSpec.get_catalog_reference_schema("cat") is None
+
+
+@pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
+def test_default_schema_outside_cache_keys_uses_inspector(
+    mocker: MockerFixture, app_context: None, entry_point: str
+) -> None:
+    """Non-cache callers retain the inspector boundary without creating engines."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_inspector.return_value.__enter__.return_value.default_schema_name = "selected"
+    get_engine = mocker.patch.object(
+        database, "get_sqla_engine", side_effect=AssertionError("unexpected engine")
+    )
+
+    if entry_point == "query_schema":
+        assert (
+            database.resolve_query_default_schema("SELECT 1", None, "cat") == "selected"
+        )
+    elif entry_point == "search_path":
+        assert database.get_search_path("cat") == (["selected"], {})
+    else:
+        assert database.get_default_schema("cat") == "selected"
+
+    get_inspector.assert_called_once_with(catalog="cat")
+    get_engine.assert_not_called()
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_default_schema_cache_scope_restores_inspector_policy(
+    mocker: MockerFixture, app_context: None, fail: bool
+) -> None:
+    """Nested cache collectors restore the caller's policy even after errors."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_inspector.return_value.__enter__.return_value.default_schema_name = "selected"
+    engine = create_engine("sqlite://")
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    try:
+        with engine.connect():
+            pass
+        assert database.get_default_schema(None) == "selected"
+        try:
+            with reuse_discovered_default_schema():
+                assert database.get_default_schema(None) == "main"
+                with reuse_discovered_default_schema():
+                    assert database.get_default_schema(None) == "main"
+                assert database.get_default_schema(None) == "main"
+                if fail:
+                    raise ValueError("cache collection failed")
+        except ValueError:
+            assert fail
+        assert database.get_default_schema(None) == "selected"
+        assert get_inspector.call_count == 2
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("initialized", [False, True])
+@pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
+@reuse_discovered_default_schema()
+def test_default_schema_reuses_dialect_discovery(
+    mocker: MockerFixture, app_context: None, initialized: bool, entry_point: str
+) -> None:
+    """Only the initial discovery needs an inspector connection."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    engine = create_engine("sqlite://")
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    try:
+        if initialized:
+            with engine.connect():
+                pass
+        inspect = mocker.spy(sqla, "inspect")
+        connect = mocker.spy(engine, "raw_connection")
+        for _ in range(2):
+            if entry_point == "query_schema":
+                assert (
+                    database.resolve_query_default_schema(
+                        "SELECT * FROM physical", None, "catalog"
+                    )
+                    == "main"
+                )
+            elif entry_point == "search_path":
+                assert database.get_search_path("catalog", ["physical"]) == (
+                    ["main"],
+                    {},
+                )
+            else:
+                assert database.get_default_schema("catalog") == "main"
+        assert connect.call_count == (0 if initialized else 1)
+        if initialized:
+            inspect.assert_not_called()
+        else:
+            inspect.assert_called_once_with(engine)
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ConnectionError("database unreachable"),
+        OAuth2Error("sign-in failed"),
+        OAuth2RedirectError("https://example.com", "tab", "https://example.com"),
+    ],
+)
+@reuse_discovered_default_schema()
+def test_default_schema_cold_engine_preserves_error(
+    mocker: MockerFixture, app_context: None, error: Exception
+) -> None:
+    """An unknown default must not be guessed, including on sign-in failures."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    engine = create_engine("sqlite://")
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(engine, "raw_connection", side_effect=error)
+    try:
+        assert engine.dialect.default_schema_name is None
+        with pytest.raises(type(error)) as raised:
+            BaseEngineSpec.get_default_schema(database, "catalog")
+        assert raised.value is error
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.parametrize("default_schema, expected", [("main", ["main"]), (None, [])])

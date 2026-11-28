@@ -55,6 +55,7 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
+from superset.utils.i18n import translate
 from superset.utils.schema import is_query_context_metadata_complete
 
 if TYPE_CHECKING:
@@ -197,6 +198,19 @@ class Slice(  # pylint: disable=too-many-public-methods
         lazy="selectin",
     )
 
+    # Counterpart of ``semantic_view`` for charts built on a saved query: same
+    # type-guarded, view-only join, so display and access resolution hit the
+    # identity map / one batched ``IN`` query instead of a SELECT per chart.
+    saved_query = relationship(
+        "SavedQuery",
+        foreign_keys=[datasource_id],
+        primaryjoin="and_(Slice.datasource_id == SavedQuery.id, "
+        "Slice.datasource_type == 'saved_query')",
+        remote_side="SavedQuery.id",
+        viewonly=True,
+        lazy="selectin",
+    )
+
     token = ""
 
     export_fields = [
@@ -221,7 +235,9 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource(self) -> SqlaTable | None:
         return self.table
 
-    def _display_datasource(self) -> SqlaTable | SemanticView | None:
+    def _display_datasource(
+        self,
+    ) -> SqlaTable | SemanticView | Datasource | None:
         """Return the datasource used to name and link this chart in listings.
 
         Display-only counterpart of ``datasource``: it also resolves semantic
@@ -232,6 +248,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         """
         if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
             return self.semantic_view
+        if self.datasource_type == utils.DatasourceType.SAVEDQUERY:
+            return self.saved_query
         return self.table
 
     @property
@@ -262,6 +280,9 @@ class Slice(  # pylint: disable=too-many-public-methods
             # predicate already enforces the type constraint. ``None`` when
             # the row is gone, matching the DAO fallback's semantics.
             return self.semantic_view
+        if self.datasource_type == utils.DatasourceType.SAVEDQUERY:
+            # Same type-guarded relationship approach as semantic views.
+            return self.saved_query if hasattr(self.saved_query, "perm") else None
         # pylint: disable=import-outside-toplevel
         # Deferred to avoid a circular import: superset.daos.datasource
         # imports connectors and sql_lab models at module top.
@@ -338,6 +359,21 @@ class Slice(  # pylint: disable=too-many-public-methods
                 resolved if resolved is not None and hasattr(resolved, "perm") else None
             )
 
+    @property
+    def localized_name(self) -> str | None:
+        """``slice_name`` resolved for the viewer's locale.
+
+        Returns the canonical ``slice_name`` unchanged unless asset-metadata
+        translation is enabled and a translation exists; see
+        ``superset.utils.i18n``. This is a read-only display value -- editing
+        flows continue to use ``slice_name``.
+        """
+        return translate(
+            self.slice_name,
+            model_name="Slice",
+            field_name="slice_name",
+        )
+
     def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
@@ -369,7 +405,9 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def datasource_edit_url(self) -> str | None:
-        return getattr(self._display_datasource(), "url", None)
+        url = getattr(self._display_datasource(), "url", None)
+        # ``SavedQuery.url`` is a method, not a property; only surface strings.
+        return url if isinstance(url, str) else None
 
     @property
     def description_markeddown(self) -> str:
@@ -401,7 +439,11 @@ class Slice(  # pylint: disable=too-many-public-methods
             "extra_editors": get_extra_editor_subject_ids(self),
             "viewers": [s.id for s in self.viewers],
             "slice_id": self.id,
+            # ``slice_name`` stays canonical: the dashboard layout seeds
+            # ``meta.sliceName`` from it and persists it on save. The localized
+            # value is exposed separately for display only.
             "slice_name": self.slice_name,
+            "localized_name": self.localized_name,
             "slice_url": self.slice_url,
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,

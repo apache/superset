@@ -42,5 +42,15 @@ test('Sunburst samples carry chart type with an independent temporal drill', () 
     time_range: '2026-07-01 : 2026-10-01',
     filters: [drill],
     extras: { time_grain_sqla: 'P1M', where: '' },
+    url_params: {},
   });
+});
+
+test('carries the chart url_params so url_param() renders like the chart', () => {
+  const payload = getDrillPayload({
+    datasource: '1__table',
+    viz_type: 'table',
+    url_params: { tenant: 'zenda' },
+  } as QueryFormData);
+  expect(payload?.url_params).toEqual({ tenant: 'zenda' });
 });

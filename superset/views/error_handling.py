@@ -135,6 +135,28 @@ def log_superset_error_exception(
     logger.warning(message, exc_info=True)
 
 
+def command_exception_response(ex: CommandException) -> FlaskResponse:
+    """
+    Build the standard JSON error response for a ``CommandException``.
+
+    This is shared between the global ``CommandException`` error handler and
+    API endpoints that catch a ``CommandException`` locally (e.g. an expected
+    validation failure) and return the same well-formed error body.
+    """
+    extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
+    return json_error_response(
+        [
+            SupersetError(
+                message=ex.message,
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=get_error_level_from_status(ex.status),
+                extra=extra,
+            ),
+        ],
+        status=ex.status,
+    )
+
+
 def handle_ssh_tunnel_error(ex: sshtunnel.BaseSSHTunnelForwarderError) -> FlaskResponse:
     """
     Build the structured response for an unreachable/misconfigured SSH tunnel
@@ -317,10 +339,19 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         Temporary handler for CommandException; if an API raises a
         CommandException it should be fixed to map it to SupersetErrorException
         or SupersetErrorsException, with a specific status code and error type
+
+        Only 5xx command errors get the branded HTML error page; 4xx ones
+        (expected, client-caused failures such as a malformed import bundle or
+        a validation error) keep their status and JSON body whatever the
+        ``Accept`` header says.
         """
         logger.warning("CommandException", exc_info=True)
 
-        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+        if (
+            ex.status >= 500
+            and "text/html" in request.accept_mimetypes
+            and not app.config["DEBUG"]
+        ):
             path = files("superset") / "static/assets/500.html"
             # Try to serve HTML file; fall back to JSON if not built
             try:
@@ -328,18 +359,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
             except FileNotFoundError:
                 pass
 
-        extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
-        return json_error_response(
-            [
-                SupersetError(
-                    message=ex.message,
-                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                    level=get_error_level_from_status(ex.status),
-                    extra=extra,
-                ),
-            ],
-            status=ex.status,
-        )
+        return command_exception_response(ex)
 
     @app.errorhandler(sshtunnel.BaseSSHTunnelForwarderError)
     def show_ssh_tunnel_error(

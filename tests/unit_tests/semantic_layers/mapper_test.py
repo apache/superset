@@ -42,6 +42,7 @@ from superset_core.semantic_layers.types import (
     Metric,
     Operator,
     OrderDirection,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticRequest,
@@ -443,6 +444,9 @@ def test_get_filters_from_extras_rejects_sql(extras: dict[str, str]) -> None:
     [
         {"where": "customer_id > 100"},
         {"having": "SUM(sales) > 1000"},
+        {"having": "SUM(sales) != 1000"},
+        {"having": "MAX(category) NOT LIKE 'a%'"},
+        {"having": "MAX(category) NOT ILIKE 'A%'"},
         {"where": "region = 'US'", "having": "COUNT(*) > 10"},
     ],
 )
@@ -620,6 +624,20 @@ def test_convert_query_object_filter_ilike(
         assert result is not None
         assert len(result) == 1
         converted: FilterExpression = next(iter(result))
+        if expected == Operator.NOT_ILIKE:
+            assert isinstance(converted, OrFilter)
+            assert (
+                Filter(
+                    PredicateType.WHERE,
+                    all_dimensions["category"],
+                    Operator.IS_NULL,
+                    None,
+                )
+                in converted.filters
+            )
+            converted = next(
+                leaf for leaf in converted.filters if leaf.operator == expected
+            )
         assert isinstance(converted, Filter)
         assert converted.operator == expected
         assert converted.column == all_dimensions["category"]
@@ -1996,14 +2014,31 @@ def test_convert_query_object_filter(
 
     result = _convert_query_object_filter(filter_, all_dimensions)
 
-    assert result == {
-        Filter(
-            type=PredicateType.WHERE,
-            column=all_dimensions["category"],
-            operator=expected_operator,
-            value="Electronics",
-        )
-    }
+    expected: Filter = Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["category"],
+        operator=expected_operator,
+        value="Electronics",
+    )
+    assert result == (
+        {
+            OrFilter(
+                frozenset(
+                    {
+                        expected,
+                        Filter(
+                            PredicateType.WHERE,
+                            all_dimensions["category"],
+                            Operator.IS_NULL,
+                            None,
+                        ),
+                    }
+                )
+            )
+        }
+        if filter_op == "!="
+        else {expected}
+    )
 
 
 def test_convert_query_object_filter_like() -> None:
@@ -2162,6 +2197,75 @@ def test_get_results_without_time_offsets(
 
     # Verify DataFrame matches main query result
     pd.testing.assert_frame_equal(result.df, main_df)
+
+
+def test_date_resample_fills_gaps_through_get_results(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    """Provider DATE results fill chart gaps without shifting the selected range."""
+    mock_datasource.implementation._dimensions = {
+        Dimension("orders.order_date", "order_date", pa.date32())
+    }
+    mock_datasource.implementation.get_table = mocker.Mock(
+        side_effect=[
+            SemanticResult(
+                requests=[],
+                results=pa.table(
+                    {
+                        "order_date": pa.array(
+                            [date(2026, 1, 5), date(2026, 1, 7)], type=pa.date32()
+                        ),
+                        "total_sales": [1, 3],
+                    }
+                ),
+            ),
+        ]
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2026, 1, 5),
+        to_dttm=datetime(2026, 1, 8),
+        metrics=["total_sales"],
+        columns=["order_date"],
+        granularity="order_date",
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {
+                    "index": ["order_date"],
+                    "columns": [],
+                    "aggregates": {
+                        "total_sales": {"operator": "mean"},
+                    },
+                },
+            },
+            {
+                "operation": "resample",
+                "options": {"method": "asfreq", "rule": "1D", "fill_value": 0},
+            },
+            {"operation": "flatten"},
+        ],
+    )
+    result: QueryResult = get_results(query)
+    frame: pd.DataFrame = query.exec_post_processing(result.df)
+    assert frame["total_sales"].tolist() == [1, 0, 3]
+    assert frame["order_date"].dt.date.tolist() == [
+        date(2026, 1, 5),
+        date(2026, 1, 6),
+        date(2026, 1, 7),
+    ]
+    main_query: SemanticQuery = mock_datasource.implementation.get_table.call_args_list[
+        0
+    ].args[0]
+    assert main_query.filters is not None
+    conditions: list[Filter] = [
+        item for item in main_query.filters if isinstance(item, Filter)
+    ]
+    assert len(conditions) == len(main_query.filters)
+    assert {(item.operator, item.value) for item in conditions} == {
+        (Operator.GREATER_THAN_OR_EQUAL, datetime(2026, 1, 5)),
+        (Operator.LESS_THAN, datetime(2026, 1, 8)),
+    }
 
 
 def test_get_results_with_single_time_offset(
@@ -5124,10 +5228,11 @@ def test_row_offset_mapping_without_advertised_capability(
     assert queries[0].order[0][0].name == "category"
 
 
+@pytest.mark.parametrize("offset", [0, 2])
 def test_unadvertised_offset_reaches_provider(
-    mock_datasource: MagicMock, mocker: MockerFixture
+    mock_datasource: MagicMock, mocker: MockerFixture, offset: int
 ) -> None:
-    """Do not add host-wide rejection for capable but unadvertised providers."""
+    """Keep first and later page offsets for capable providers."""
     mock_datasource.implementation.features = frozenset()
     result: SemanticResult = SemanticResult(
         requests=[], results=pa.table({"category": ["third"], "total_sales": [3.0]})
@@ -5138,14 +5243,14 @@ def test_unadvertised_offset_reaches_provider(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category"],
-        row_offset=2,
+        row_offset=offset,
         row_limit=2,
     )
 
     get_results(query_object)
 
     execute.assert_called_once()
-    assert execute.call_args.args[0].offset == 2
+    assert execute.call_args.args[0].offset == offset
     assert execute.call_args.args[0].limit == 2
 
 
@@ -5674,9 +5779,15 @@ def test_dormant_grain_keeps_temporal_validation(
         ("date.day", Grains.DAY) if grain == "P1D" else ("date.month", Grains.MONTH),
         ("segment.id", None),
     ]
-    assert len(mapped.filters) == 2
-    assert {condition.column.id for condition in mapped.filters} == {"date.raw"}
-    assert {condition.value for condition in mapped.filters} == {
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
+    assert {condition.value for condition in conditions} == {
         datetime(2026, 1, 1),
         datetime(2026, 2, 1),
     }
@@ -5820,8 +5931,14 @@ def test_dormant_grain_ignores_filter_only_temporal_axis(
     mapped: SemanticQuery = map_query_object(query)[0]
     assert [dimension.name for dimension in mapped.dimensions] == columns
     assert all(dimension.grain is None for dimension in mapped.dimensions)
-    assert len(mapped.filters) == 2
-    assert {condition.column.id for condition in mapped.filters} == {"date.raw"}
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
 
 
 @pytest.mark.parametrize("dtype", [pa.string(), pa.int64()])
@@ -5992,9 +6109,15 @@ def test_dormant_grain_launch_shapes_keep_dashboard_time_range(
     assert [(dimension.id, dimension.grain) for dimension in mapped.dimensions] == [
         ("segment.id", None),
     ]
-    assert len(mapped.filters) == 2
-    assert {condition.column.id for condition in mapped.filters} == {"date.raw"}
-    assert {condition.value for condition in mapped.filters} == {
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
+    assert {condition.value for condition in conditions} == {
         datetime(2026, 1, 1),
         datetime(2026, 2, 1),
     }

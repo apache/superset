@@ -239,7 +239,15 @@ class SecurityRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         try:
-            body = guest_token_create_schema.load(request.json)
+            request_json = request.get_json(silent=True)
+            if request_json is None:
+                return self.response_400(
+                    message=(
+                        "Request is not JSON. Ensure the Content-Type header "
+                        "is set to 'application/json'."
+                    )
+                )
+            body = guest_token_create_schema.load(request_json)
             self.appbuilder.sm.validate_guest_token_resources(
                 body["resources"], datasets=body.get("datasets")
             )
