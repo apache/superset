@@ -12267,6 +12267,9 @@ msgstr ""
 msgid "Resize"
 msgstr ""
 
+msgid "Resize column"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr ""
 
