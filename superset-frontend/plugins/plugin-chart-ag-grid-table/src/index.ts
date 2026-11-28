@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import transformProps from './transformProps';
+import transformProps from './transformPropsByMode';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/Table.jpg';
@@ -28,8 +28,9 @@ import example2Dark from './images/Table2-dark.jpg';
 import example3 from './images/Table3.jpg';
 import example3Dark from './images/Table3-dark.jpg';
 import controlPanel from './controlPanel';
-import buildQuery from './buildQuery';
+import buildQuery from './buildQueryByMode';
 import { TableChartFormData, TableChartProps } from './types';
+import { TreeTableFormData, TreeTableChartProps } from './TreeTable/types';
 
 export * from './types';
 export {
@@ -37,6 +38,8 @@ export {
   convertSortModel,
   convertColumnState,
 } from './stateConversion';
+export { isTreeQueryMode } from './queryMode';
+export type { TreeLevel, TreeMirrors } from './TreeTable/types';
 
 const metadata = new ChartMetadata({
   behaviors: [
@@ -70,12 +73,12 @@ const metadata = new ChartMetadata({
 });
 
 export default class AgGridTableChartPlugin extends ChartPlugin<
-  TableChartFormData,
-  TableChartProps
+  TableChartFormData | TreeTableFormData,
+  TableChartProps | TreeTableChartProps
 > {
   constructor() {
     super({
-      loadChart: () => import('./AgGridTableChart'),
+      loadChart: () => import('./ChartByMode'),
       metadata,
       transformProps,
       controlPanel,
