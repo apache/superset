@@ -23,6 +23,7 @@ from cron_descriptor import ExpressionDescriptor, get_description
 from croniter import croniter, CroniterBadDateError
 from flask import current_app
 from pytz import timezone as pytz_timezone, UnknownTimeZoneError
+from pytz.tzinfo import BaseTzInfo
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,32 @@ def get_cron_description(cron: str) -> str:
     return description.replace(day_of_week_clause, f", or {clause}", 1)
 
 
+def _is_fixed_time(cron: str) -> bool:
+    """
+    Whether a cron runs at fixed times of day, the way cron decides it.
+
+    cron treats a schedule whose minute or hour field starts with ``*`` (and
+    ``@hourly``) as a wildcard job, and any other schedule as a fixed-time job.
+    """
+    fields = cron.lower().split()
+    if fields[0].startswith("@"):
+        return fields[0] != "@hourly"
+    return not (fields[0].startswith("*") or fields[1].startswith("*"))
+
+
+def _is_repeated_wall_time(schedule: datetime, tz: BaseTzInfo) -> bool:
+    """
+    Whether ``schedule`` is the second pass through a local time that the end
+    of daylight saving time repeats.
+
+    ``is_dst`` only changes how pytz reads an ambiguous local time, so the two
+    readings differ exactly when the time is repeated.
+    """
+    naive = schedule.replace(tzinfo=None)
+    first = min(tz.localize(naive, is_dst=is_dst) for is_dst in (True, False))
+    return schedule > first
+
+
 def cron_schedule_window(
     triggered_at: datetime, cron: str, timezone: str
 ) -> Iterator[datetime]:
@@ -87,10 +114,16 @@ def cron_schedule_window(
     start_at = time_now - timedelta(seconds=window_size / 2)
     stop_at = time_now + timedelta(seconds=window_size / 2)
     crons = croniter(cron, start_at)
+    # When the clock falls back, croniter matches a repeated local time twice.
+    # Like cron, run a fixed-time schedule only on the first pass, so a daily
+    # report at 01:30 is not sent twice that night.
+    skip_repeated = _is_fixed_time(cron)
     try:
         for schedule in crons.all_next(datetime):
             if schedule >= stop_at:
                 break
+            if skip_repeated and _is_repeated_wall_time(schedule, tz):
+                continue
             # convert schedule back to utc
             yield schedule.astimezone(utc).replace(tzinfo=None)
     except CroniterBadDateError:

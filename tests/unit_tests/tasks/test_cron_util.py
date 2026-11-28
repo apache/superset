@@ -239,6 +239,45 @@ def test_cron_schedule_window_chicago_daylight(
 
 
 @pytest.mark.parametrize(
+    "timezone, current_dttm, cron, expected",
+    [
+        # 01:30 happens twice in New York on 2026-11-01: 05:30 and 06:30 UTC.
+        ("America/New_York", "2026-11-01T05:30:00+00:00", "30 1 * * *", ["05:30"]),
+        ("America/New_York", "2026-11-01T06:30:00+00:00", "30 1 * * *", []),
+        ("America/New_York", "2026-11-01T06:30:00+00:00", "30 1 1 11 *", []),
+        ("America/New_York", "2026-11-01T06:30:00+00:00", "0,30 1-3 * * *", []),
+        # Wildcard minute or hour fields run on both passes, as in cron.
+        ("America/New_York", "2026-11-01T06:30:00+00:00", "*/30 1 * * *", ["06:30"]),
+        ("America/New_York", "2026-11-01T06:00:00+00:00", "0 * * * *", ["06:00"]),
+        ("America/New_York", "2026-11-01T06:00:00+00:00", "0 */1 * * *", ["06:00"]),
+        ("America/New_York", "2026-11-01T06:00:00+00:00", "@hourly", ["06:00"]),
+        ("America/New_York", "2026-11-01T06:00:00+00:00", "@HOURLY", ["06:00"]),
+        # Midnight repeats in Havana on 2026-11-01: 04:00 and 05:00 UTC.
+        ("America/Havana", "2026-11-01T04:00:00+00:00", "@daily", ["04:00"]),
+        ("America/Havana", "2026-11-01T05:00:00+00:00", "@daily", []),
+        ("America/Havana", "2026-11-01T05:00:00+00:00", "@DAILY", []),
+        # 01:30 repeats in London on 2026-10-25: 00:30 and 01:30 UTC.
+        ("Europe/London", "2026-10-25T00:30:00+00:00", "30 1 * * *", ["00:30"]),
+        ("Europe/London", "2026-10-25T01:30:00+00:00", "30 1 * * *", []),
+        # Times that are not repeated are unaffected.
+        ("America/New_York", "2026-11-01T07:30:00+00:00", "30 2 * * *", ["07:30"]),
+        ("America/New_York", "2026-03-08T07:00:00+00:00", "30 2 * * *", ["07:00"]),
+    ],
+)
+def test_cron_schedule_window_dst_end_runs_fixed_times_once(
+    timezone: str, current_dttm: str, cron: str, expected: list[str]
+) -> None:
+    """
+    Reports scheduler: a fixed-time schedule runs once when the end of
+    daylight saving time repeats its local time
+    """
+    datetimes = cron_schedule_window(
+        datetime.fromisoformat(current_dttm), cron, timezone
+    )
+    assert [dttm.strftime("%H:%M") for dttm in datetimes] == expected
+
+
+@pytest.mark.parametrize(
     "current_dttm, cron, expected",
     [
         ("2020-01-01T08:59:01+00:00", "0 0 30 2 *", []),
