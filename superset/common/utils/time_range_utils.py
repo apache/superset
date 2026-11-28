@@ -89,7 +89,11 @@ def get_column_identifiers(column: object) -> tuple[str, ...]:
     return ()
 
 
-_SQL_IDENTIFIER = re.compile(r'"([^"]+)"|`([^`]+)`|\[([^\]]+)\]|([A-Za-z_]\w*)')
+# Quoted names are length-bounded so an unterminated opener cannot make the scan
+# rescan the rest of the expression from every opener (quadratic backtracking).
+_SQL_IDENTIFIER = re.compile(
+    r'"([^"]{1,255})"|`([^`]{1,255})`|\[([^\]]{1,255})\]|([A-Za-z_]\w{0,254})'
+)
 
 
 def get_axis_temporal_columns(
