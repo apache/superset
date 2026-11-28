@@ -487,12 +487,14 @@ httpcore2==2.15.1
 httpx==0.28.1
     # via
     #   apache-superset
-    #   microsoft-teams-common
     #   testcontainers
 httpx2==2.15.1
     # via
     #   fastmcp-slim
     #   mcp
+    #   microsoft-teams-api
+    #   microsoft-teams-apps
+    #   microsoft-teams-common
 humanize==4.12.3
     # via
     #   -c requirements/base-constraint.txt
@@ -636,13 +638,13 @@ mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   markdown-it-py
-microsoft-teams-api==2.1.1
+microsoft-teams-api==2.2.1
     # via microsoft-teams-apps
-microsoft-teams-apps==2.1.1
+microsoft-teams-apps==2.2.1
     # via apache-superset
-microsoft-teams-cards==2.1.1
+microsoft-teams-cards==2.2.1
     # via microsoft-teams-api
-microsoft-teams-common==2.1.1
+microsoft-teams-common==2.2.1
     # via
     #   microsoft-teams-api
     #   microsoft-teams-apps
@@ -1042,6 +1044,7 @@ rfc3339-validator==0.1.4
 rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   cyclopts
     #   fastmcp-slim
     #   flask-limiter
@@ -1292,7 +1295,9 @@ wcwidth==0.2.13
     #   -c requirements/base-constraint.txt
     #   prompt-toolkit
 websockets==15.0.1
-    # via fastmcp-slim
+    # via
+    #   fastmcp-slim
+    #   microsoft-teams-apps
 werkzeug==3.1.9
     # via
     #   -c requirements/base-constraint.txt
