@@ -139,7 +139,19 @@ def collect_request_payload(include_request_data: bool = True) -> dict[str, Any]
 
         if request.is_json:
             json_payload = request.get_json(cache=True, silent=True) or {}
-            payload.update(json_payload)
+            # The JSON body is expected to be a dict, but a malformed/
+            # unexpected request (e.g. a JSON list or scalar) can slip
+            # through to here before payload validation runs. Guard against
+            # that so a bad request body only ever results in a 4xx from
+            # validation, never a 500 from logging instrumentation.
+            if isinstance(json_payload, dict):
+                payload.update(json_payload)
+            else:
+                logger.debug(
+                    "Skipping non-dict JSON request body in request payload "
+                    "logging: %r",
+                    type(json_payload),
+                )
 
     # save URL match pattern in addition to the request path
     url_rule = str(request.url_rule)

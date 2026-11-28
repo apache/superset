@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset.utils.log import (
+    collect_request_payload,
     DBEventLogger,
     get_logger_from_status,
     get_object_ids_from_view_args,
@@ -125,6 +126,42 @@ def test_get_object_ids_from_view_args_resolves_slug_and_uuid(
     }
     assert get_object_ids_from_view_args(view, {"uuid_str": str(uuid.uuid4())}) == {}
     assert get_object_ids_from_view_args(view, {"id_or_slug": "missing"}) == {}
+
+
+def test_collect_request_payload_ignores_non_dict_json_body(
+    app_context: None,
+) -> None:
+    """A malformed JSON body (e.g. a list instead of an object) must not
+    crash request-payload logging with a ``TypeError`` from ``dict.update``.
+
+    Regression test for SUPERSET-PYTHON-1CKS: a client POSTing a JSON array
+    body to an endpoint like ``DashboardRestApi.post`` previously blew up
+    inside ``collect_request_payload`` before the request even reached
+    payload validation, turning what should be a 400 into an unhandled 500.
+    """
+    with current_app.test_request_context(
+        "/api/v1/dashboard/",
+        method="POST",
+        json=["not", "a", "dict"],
+    ):
+        payload = collect_request_payload()
+
+    assert payload["path"] == "/api/v1/dashboard/"
+    assert "not" not in payload
+
+
+def test_collect_request_payload_with_dict_json_body(
+    app_context: None,
+) -> None:
+    """Sanity check that the normal, well-formed case is unaffected."""
+    with current_app.test_request_context(
+        "/api/v1/dashboard/",
+        method="POST",
+        json={"dashboard_title": "my dashboard"},
+    ):
+        payload = collect_request_payload()
+
+    assert payload["dashboard_title"] == "my dashboard"
 
 
 def test_log_this_with_context_derives_object_id_from_route(
