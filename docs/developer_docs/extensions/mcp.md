@@ -37,6 +37,47 @@ immediate saves; dataset-only rebinds return a validation error instead of
 clearing saved query roles. Sending the existing dataset ID does not require
 a replacement config.
 
+## Progressive Canvas discovery
+
+With the `CANVAS` feature enabled, `list_widget_types` and
+`get_widget_control_schema` require `can_read` on `Canvas`. Chart read permission
+alone does not grant access to these tools.
+
+Start with `list_widget_types`: its `definition_version` identifies the Canvas
+document format, and each entry's `schema_version` identifies the current props
+schema available for authoring. These are separate contracts; older props that
+can be migrated are not advertised as historical authoring schemas.
+
+Request `get_widget_control_schema` for a selected type. Its response identifies
+the `widget_type`, `schema_version` and `definition_version` alongside the minimal
+root or requested `paths`. Expand optional branches only when needed. Unknown
+types return a structured error and a null `schema_version`.
+
+Cache schemas by widget type and `schema_version`. Refresh discovery before
+using a cached schema to author props; compare the returned version and refetch
+changed schemas. There is no push notification that invalidates an agent's
+cache. Always send the version used to author props as `schemaVersion` in
+`add` and `set_props` draft operations. If the server upgrades between discovery
+and submission, that explicit version lets it migrate the old props. Omitting
+it means the server treats props as written for its current version; it cannot
+infer their version from their shape.
+
+For `filter.select`, MCP schemas retain the types and validation constraints for
+`datasetId` and `column` but omit dropdown enumerations. Discover an accessible
+dataset with `list_datasets`, then its filterable columns with `get_dataset_info`;
+the schema does not load the entire dataset catalog or column list. This does
+not grant source access. Human Canvas forms retain their enriched dropdowns,
+and other widgets retain their dynamic schema branches.
+
+Extension widgets can declare `mcp_static_fields`, a mapping from dynamic field
+paths (for example, `dataBinding/datasetId`) to discovery guidance. The MCP tool
+calls `get_control_schema(..., for_mcp=True)`: declared fields skip their
+enrichers and omit enum constraints while preserving types and validation.
+Other dynamic fields still enrich, and empty dynamic dropdown enums are removed
+before progressive disclosure. A widget overriding `get_control_schema` must
+accept the `for_mcp` keyword and honor this contract. The default REST path does
+not set `for_mcp`, so human forms retain all enrichers.
+
 ## Progressive source discovery
 
 Discover source summaries before requesting selected members. All operations
@@ -240,6 +281,67 @@ def random_number_generator(request: RandomNumberRequest) -> dict:
 ```
 
 ## Best Practices
+
+### Canvas response links and errors
+
+Canvas tools return absolute URLs using the current workspace's
+`WEBDRIVER_BASEURL_USER_FRIENDLY`, including any configured path prefix.
+Published canvas links use the canonical slug (or ID). Draft links retain
+`#draft=<token>`; committing or discarding a draft returns the published canvas
+link. Creating a canvas with initial operations returns both `url` and
+`draft_url`, and previewing a draft links to that draft's authorized canvas.
+
+Returned Canvas failures retain their validation and revision-conflict recovery
+categories. REST placement queries, `preview_widget`, and `get_canvas_data` share
+query-error classification based on the outermost exception, never its nested
+cause. Datasource, table or database access denials return generic access text
+and `DatasetNotAccessible`; REST returns 403. Query validation, including a
+disallowed SQL subquery, returns `QueryError` and REST 400, even when a nested
+cause is a security exception. Other security refusals retain their status;
+cache-load failures return REST 422. Structured Superset errors preserve their
+status and sanitized details, including parse diagnostics and OAuth reconnect
+metadata. OAuth redirects retain authorization guidance in MCP responses.
+Unexpected failures remain REST 500 with a generic message and server-side
+tracebacks. `get_canvas_data` reports `error` and `error_type` on
+each failed widget without its rows, columns or row count.
+
+Query diagnostics use Superset's existing principal-sensitive sanitizers:
+source-authorized non-guests retain actionable known query diagnostics, while
+guest-sensitive paths apply the existing redaction policy. MCP diagnostic text
+also requires `can_view_query`; security refusals use fixed messages, and missing
+datasets read the same as inaccessible ones. OAuth reconnect guidance remains
+available without query-text permission. This does not grant
+guests Canvas access. Visible non-OAuth MCP query diagnostics retain the `The widget's query failed: `
+prefix so clients can recognize repairable input failures. An invalid saved
+dataset expression may require a dataset change; editing the widget does not
+repair that saved expression.
+
+MCP metrics count returned preview errors as failures. Warnings alone remain
+successful tool results, including an unavailable optional renderer. A successful
+renderer result retains its image and option alongside up to ten actionable
+warning strings, each limited to 500 characters. Warnings require review; tool
+success alone must not be presented as successful visual verification. The
+operator-configured renderer's nonempty string error is an application repair
+hint: it is limited to 500 characters and returned with `RendererError` and the
+resolved option, when that option is an object. These failed renders set
+`rendered: false` and return no image, even if the response contained one.
+Transport, HTTP and decoding failures, non-object responses, and malformed error
+payloads instead return fixed
+guidance that the chart was not visually checked, without publishing exception
+details or an option. Clients can keep these unavailable visual checks as notes
+while treating structured renderer errors as actionable chart problems.
+
+The Canvas client clears prior rows and query text when runtime filter values,
+the binding, or the Canvas, placement, draft or version context changes. A filter
+change starts a new query, so results from the previous selection are hidden while
+it is pending. Background refreshes of the same binding, filter values and context
+retain current rows and query text until a result or denial arrives. Filter
+controls discard old options when their source or context changes; a changed
+binding applies its new default, while draft transitions retain selections for
+unchanged bindings. Canvas and version changes reset parent filter state.
+Delayed responses cannot restore the previous source's state. Unavailable
+canvases and drafts do not return identifying URLs. Canvas tools remain subject
+to the `CANVAS` feature flag and their existing permission checks.
 
 ### Response Format
 

@@ -1058,6 +1058,39 @@ describe('active tab highlighting (regression #36403)', () => {
     );
   });
 
+  test.each([
+    ['/canvas/list/', 'the canvas list'],
+    ['/canvas/q3-sales-review/', 'a canvas'],
+  ])('highlights the Canvases tab on %s (%s)', async route => {
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', route);
+    const props = {
+      ...mockedProps,
+      data: {
+        ...mockedProps.data,
+        menu: [
+          ...mockedProps.data.menu,
+          {
+            name: 'Canvases',
+            icon: 'fa-object-group',
+            label: 'Canvases',
+            url: '/canvas/list/',
+          },
+        ],
+      },
+    };
+
+    render(<Menu {...props} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await screen.findByText('Canvases');
+    expect(getMenuItemByText('Canvases')).toHaveClass('ant-menu-item-selected');
+  });
+
   test('highlights the active top-level tab when the label is localized', async () => {
     // Russian locale: the FAB `name` stays the stable English identifier while
     // the displayed `label` is translated. Highlighting must still work.

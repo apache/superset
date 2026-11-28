@@ -1,0 +1,279 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""MCP tool: get_canvas_data"""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+from typing import Any
+
+from superset_core.canvas import WidgetResolver
+from superset_core.mcp.decorators import tool, ToolAnnotations
+
+from superset.canvas.data import run_binding, RuntimeFilter
+from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.render import render_context
+from superset.canvas.definition.versions import DefinitionVersionError
+from superset.commands.canvas.draft import load_draft
+from superset.commands.canvas.exceptions import (
+    CanvasDraftNotFoundError,
+    CanvasForbiddenError,
+    CanvasNotFoundError,
+)
+from superset.daos.canvas import CanvasDAO
+from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
+from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
+from superset.mcp_service.canvas.tool.canvas_ops_common import (
+    absolute_url,
+    keeps_own_data,
+    query_error,
+    UNREAD_REASON,
+)
+from superset.utils import json
+
+MAX_ROWS = 500
+MAX_WIDGETS = 50
+# Under the MCP response size guard, which fails the whole call when crossed:
+# rows are trimmed to fit instead.
+MAX_RESPONSE_BYTES = 40_000
+# The most ``unread`` and ``skipped`` entries listed; the counts say how many
+# there were.
+MAX_LISTED = 20
+
+
+def _in_layout_order(definition: dict[str, Any]) -> Iterator[str]:
+    """Node ids depth first, in the order each container lists its children."""
+    nodes = definition["nodes"]
+    stack = list(reversed(definition["root"].get("children") or []))
+    seen: set[str] = set()
+    while stack:
+        node_id = stack.pop()
+        if node_id in seen or node_id not in nodes:
+            continue
+        seen.add(node_id)
+        yield node_id
+        stack.extend(reversed(nodes[node_id].get("children") or []))
+
+
+def _load(
+    canvas_id: int | str, draft_token: str | None
+) -> tuple[dict[str, Any], WidgetResolver, dict[str, Any]] | str:
+    """The definition to read, its resolver, and the canvas fields to report."""
+    if draft_token:
+        try:
+            draft = load_draft(draft_token)
+        except (CanvasDraftNotFoundError, CanvasNotFoundError, CanvasForbiddenError):
+            return NOT_FOUND
+        # The draft's canvas and the one named have to agree, as the REST
+        # route insists: a token must not read another canvas.
+        if str(canvas_id) not in {str(draft.canvas.id), str(draft.canvas.uuid)}:
+            return NOT_FOUND
+        about = {
+            "canvas_id": draft.canvas.id,
+            "title": draft.canvas.title,
+            "url": draft_url(draft),
+        }
+        return draft.definition, draft.resolver(), about
+    canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
+    if canvas is None:
+        return f"Canvas {canvas_id} not found, or no access to it"
+    try:
+        definition = CanvasDAO.load(canvas)
+    except DefinitionVersionError as ex:
+        return str(ex)
+    about = {
+        "canvas_id": canvas.id,
+        "title": canvas.title,
+        "url": absolute_url(canvas.url),
+    }
+    return definition, get_widget_resolver(), about
+
+
+def _widget_data(
+    placement_id: str,
+    widget_type: str | None,
+    props: dict[str, Any],
+    title: str | None,
+    max_rows: int,
+    runtime_filters: list[RuntimeFilter] | None,
+) -> dict[str, Any]:
+    entry: dict[str, Any] = {
+        "placement_id": placement_id,
+        "title": title,
+        "widget_type": widget_type,
+    }
+    try:
+        rows = run_binding(props["dataBinding"], runtime_filters).rows
+    except Exception as ex:  # pylint: disable=broad-except
+        entry.update(query_error(ex))
+        return entry
+    entry["row_count"] = len(rows)
+    entry["columns"] = list(rows[0]) if rows else []
+    entry["rows"] = rows[:max_rows]
+    if len(rows) > max_rows:
+        entry["truncated"] = True
+    return entry
+
+
+def _unread(
+    node_id: str, node: dict[str, Any], widget_type: str | None
+) -> list[dict[str, Any]]:
+    """The placement as an ``unread`` entry, when it may have data elsewhere."""
+    if "children" in node or not keeps_own_data(widget_type):
+        return []
+    return [
+        {"placement_id": node_id, "widget_type": widget_type, "reason": UNREAD_REASON}
+    ]
+
+
+def _get_canvas_data_impl(
+    canvas_id: int | str,
+    draft_token: str | None,
+    placement_ids: list[str] | None,
+    max_rows: int,
+    max_widgets: int,
+    runtime_filters: list[RuntimeFilter] | None,
+) -> dict[str, Any]:
+    loaded = _load(canvas_id, draft_token)
+    if isinstance(loaded, str):
+        return {"error": loaded}
+    definition, resolver, result = loaded
+    nodes = definition["nodes"]
+    wanted = set(placement_ids or [])
+    if missing := sorted(wanted - nodes.keys()):
+        return {**result, "error": f"No placements {missing!r} on this canvas"}
+    titles = render_context(definition, resolver=resolver).get("titles", {})
+    widgets = resolver.widgets(
+        {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
+    )
+    entries: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    unread: list[dict[str, Any]] = []
+    for node_id in _in_layout_order(definition):
+        if wanted and node_id not in wanted:
+            continue
+        node = nodes[node_id]
+        widget_type, props = node.get("widgetType"), node.get("props") or {}
+        if widget_id := node.get("widgetId"):
+            if (widget := widgets.get(widget_id)) is None:
+                continue
+            widget_type, props = widget.widget_type, widget.props
+        binding = props.get("dataBinding")
+        if not isinstance(binding, dict) or not binding.get("datasetId"):
+            unread.extend(_unread(node_id, node, widget_type))
+            continue
+        if len(entries) >= max_widgets:
+            skipped.append(node_id)
+            continue
+        entries.append(
+            _widget_data(
+                node_id,
+                widget_type,
+                props,
+                titles.get(node_id),
+                max_rows,
+                runtime_filters,
+            )
+        )
+    result["widgets"] = entries
+    _list(result, "skipped", skipped)
+    _list(result, "unread", unread)
+    _fit(result, MAX_RESPONSE_BYTES)
+    return result
+
+
+def _list(result: dict[str, Any], key: str, items: list[Any]) -> None:
+    """``items`` under ``key``, with the count ``_fit`` may cap them against."""
+    if items:
+        result[key], result[f"{key}_count"] = items, len(items)
+
+
+def _fit(result: dict[str, Any], budget: int) -> None:
+    """Trim ``result`` until it serializes within ``budget``.
+
+    The lists are capped first, then the longest row list is halved until the
+    rows are gone, then whole entries are dropped from the end into
+    ``skipped``: an entry's columns, title or error can outweigh its rows.
+    The counts keep saying how many placements each list stands for.
+    """
+    for key in ("skipped", "unread"):
+        if key in result:
+            result[key] = result[key][:MAX_LISTED]
+    entries: list[dict[str, Any]] = result["widgets"]
+    while len(json.dumps(result, default=str)) > budget:
+        if not entries:
+            return
+        longest = max(entries, key=lambda entry: len(entry.get("rows") or []))
+        rows = longest.get("rows") or []
+        if rows:
+            longest["rows"] = rows[: len(rows) // 2]
+            longest["truncated"] = True
+            continue
+        dropped = entries.pop()
+        # Ahead of the ones ``max_widgets`` skipped: it comes first in layout.
+        result["skipped"] = [dropped["placement_id"], *result.get("skipped", [])][
+            :MAX_LISTED
+        ]
+        result["skipped_count"] = result.get("skipped_count", 0) + 1
+
+
+@tool(
+    tags=["discovery"],
+    class_permission_name="Canvas",
+    annotations=ToolAnnotations(
+        title="Get a canvas's data",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+def get_canvas_data(
+    canvas_id: int | str,
+    draft_token: str | None = None,
+    placement_ids: list[str] | None = None,
+    max_rows: int = 15,
+    max_widgets: int = 10,
+    filters: list[RuntimeFilter] | None = None,
+) -> GetCanvasDataResponse:
+    """Get the data behind a canvas's widgets in one call, to answer questions
+    about what the canvas shows.
+
+    Runs each placement's query as you, in layout order, and returns its
+    title, row count, columns and up to ``max_rows`` rows (at most 500);
+    rows are trimmed further, marked ``truncated``, to keep the response small.
+    Placements without a query (containers, text, filters) are left out;
+    extension widgets with no ``dataBinding`` are listed in ``unread``.
+    ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
+    50) caps how many queries run, and the rest are listed in ``skipped``, as
+    are widgets dropped to keep the response small. Each list shows at most
+    20 entries; ``skipped_count`` and ``unread_count`` give the totals.
+    With ``draft_token``, reads the draft instead of the published canvas.
+    ``filters`` narrows the queries the way the canvas's filters do, one
+    ``{datasetId, column, values}`` per filter; filters on other datasets
+    don't apply. For one widget's rendered output, use ``preview_widget``.
+    """
+    return GetCanvasDataResponse.model_validate(
+        _get_canvas_data_impl(
+            canvas_id,
+            draft_token,
+            placement_ids,
+            max(1, min(max_rows, MAX_ROWS)),
+            max(1, min(max_widgets, MAX_WIDGETS)),
+            filters,
+        )
+    )

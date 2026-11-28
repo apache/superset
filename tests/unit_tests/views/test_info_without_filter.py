@@ -20,6 +20,12 @@ import pytest
 from flask import current_app
 from flask_appbuilder import ModelRestApi
 
+# Canvas and widget APIs 404 while the CANVAS flag is off; enable it so their
+# _info endpoints are covered too.
+pytestmark = pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"CANVAS": True}}], indirect=True
+)
+
 
 @pytest.mark.parametrize("resource", ["database", "tag"])
 def test_info_without_filter_returns_metadata(

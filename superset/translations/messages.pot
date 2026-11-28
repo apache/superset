@@ -409,6 +409,10 @@ msgid "%s aggregates(s)"
 msgstr ""
 
 #, python-format
+msgid "%s change(s)"
+msgstr ""
+
+#, python-format
 msgid "%s chart"
 msgid_plural "%s charts"
 msgstr[0] ""
@@ -1210,6 +1214,12 @@ msgstr ""
 msgid "A-Z"
 msgstr ""
 
+msgid "AI"
+msgstr ""
+
+msgid "AI assistant"
+msgstr ""
+
 msgid "AND"
 msgstr ""
 
@@ -1540,6 +1550,12 @@ msgstr ""
 #, python-format
 msgid "Added %s '%s'"
 msgstr ""
+
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Added '%s' dimension"
@@ -2078,6 +2094,10 @@ msgid "An error occurred while fetching function names."
 msgstr ""
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2497,6 +2517,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr ""
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr ""
 
@@ -2573,6 +2596,9 @@ msgstr ""
 
 #, python-format
 msgid "Ask an administrator to grant you %(permission)s on %(resource)s."
+msgstr ""
+
+msgid "Ask the chat to add widgets to it."
 msgstr ""
 
 msgid "Assign a set of parameters as"
@@ -2705,6 +2731,9 @@ msgid "Back"
 msgstr ""
 
 msgid "Back to all"
+msgstr ""
+
+msgid "Back to current"
 msgstr ""
 
 msgid "Back to sign in"
@@ -3129,6 +3158,24 @@ msgstr ""
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr ""
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr ""
 
@@ -3273,11 +3320,20 @@ msgstr ""
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
 msgstr ""
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
+msgstr ""
+
+msgid "Changed settings"
 msgstr ""
 
 msgid "Changed the time range"
@@ -3303,6 +3359,9 @@ msgid "Changing these settings will affect all charts using this dataset, includ
 msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
+msgstr ""
+
+msgid "Changing this canvas is forbidden"
 msgstr ""
 
 msgid "Changing this chart is forbidden"
@@ -3336,6 +3395,9 @@ msgid "Changing this task is forbidden"
 msgstr ""
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4483,6 +4545,9 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
+msgid "Could not enrich the controls for this widget; showing the default form. See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr ""
 
@@ -5494,6 +5559,12 @@ msgstr ""
 msgid "Delete annotation"
 msgstr ""
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -5567,6 +5638,12 @@ msgstr[1] ""
 #, python-format
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -5990,6 +6067,15 @@ msgstr ""
 msgid "Draft dashboard access"
 msgstr ""
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
+msgid "Draft. Only you can see these changes."
+msgstr ""
+
 #, python-format
 msgid "Drag %s folder"
 msgstr ""
@@ -6070,6 +6156,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Drop a temporal column here or click"
+msgstr ""
+
+msgid "Drop a widget here"
 msgstr ""
 
 msgid "Drop columns/metrics here or click"
@@ -6252,6 +6341,9 @@ msgstr ""
 msgid "Edit annotation layer properties"
 msgstr ""
 
+msgid "Edit canvas"
+msgstr ""
+
 msgid "Edit chart"
 msgstr ""
 
@@ -6310,6 +6402,15 @@ msgid "Editable"
 msgstr ""
 
 msgid "Edited"
+msgstr ""
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
 msgstr ""
 
 msgid "Editing 1 filter:"
@@ -8591,6 +8692,9 @@ msgstr ""
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr ""
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid "It won't be removed even if empty. It won't be shown in chart editing view if empty."
 msgstr ""
 
@@ -9862,6 +9966,12 @@ msgstr ""
 msgid "Move only"
 msgstr ""
 
+msgid "Move widget"
+msgstr ""
+
+msgid "Moved"
+msgstr ""
+
 #, python-format
 msgid "Moved %s '%s'"
 msgstr ""
@@ -10457,6 +10567,9 @@ msgid "Not up to date"
 msgstr ""
 
 msgid "Nothing here yet"
+msgstr ""
+
+msgid "Nothing to save yet"
 msgstr ""
 
 msgid "Nothing triggered"
@@ -11266,6 +11379,9 @@ msgstr ""
 msgid "Pixels"
 msgstr ""
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr ""
 
@@ -11769,6 +11885,9 @@ msgstr ""
 msgid "Rearranged layout"
 msgstr ""
 
+msgid "Rearranged the layout"
+msgstr ""
+
 msgid "Rebase each series to its percent change from a baseline point, like the legacy Time-series Percent Change chart. Drag the vertical baseline on the chart to re-index."
 msgstr ""
 
@@ -11800,6 +11919,9 @@ msgid "Rectangle"
 msgstr ""
 
 msgid "Recurring (every)"
+msgstr ""
+
+msgid "Redo"
 msgstr ""
 
 msgid "Redo the action"
@@ -11970,9 +12092,21 @@ msgstr ""
 msgid "Remove sheet"
 msgstr ""
 
+msgid "Remove widget"
+msgstr ""
+
+msgid "Removed"
+msgstr ""
+
 #, python-format
 msgid "Removed %s '%s'"
 msgstr ""
+
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Removed '%s' dimension"
@@ -12009,6 +12143,10 @@ msgid "Rename tab"
 msgstr ""
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 msgid "Render HTML"
@@ -12267,6 +12405,13 @@ msgstr ""
 msgid "Resize"
 msgstr ""
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
+msgid "Resized"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr ""
 
@@ -12286,6 +12431,19 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid "Restored %s; %s widget no longer exists or is no longer yours to place, so it was left out."
+msgid_plural "Restored %s; %s widgets no longer exist or are no longer yours to place, so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -12297,10 +12455,17 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid "Restoring creates a new version. Your existing version history will not be lost."
+msgstr ""
+
+msgid "Restoring saves a new version, so no history is lost. Drafts started before the restore can no longer be published."
 msgstr ""
 
 #, python-format
@@ -12814,6 +12979,9 @@ msgid "Saved semantic selections use a different identity format. Reset the char
 msgstr ""
 
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -13873,6 +14041,9 @@ msgstr ""
 msgid "Show the numbers along the value axis."
 msgstr ""
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr ""
 
@@ -14046,6 +14217,9 @@ msgid "Some tables are not shown. Refine your search."
 msgstr ""
 
 msgid "Someone else, or another one of your browser tabs, saved this dataset after you opened it. Saving now would undo those changes, so it was cancelled. Copy your edits, close this dialog, and reopen the dataset to reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid "Something went wrong loading the dashboard. Check the dev console for details."
@@ -14806,6 +14980,15 @@ msgstr ""
 msgid "Text embedded in email"
 msgstr ""
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr ""
@@ -14921,6 +15104,16 @@ msgstr ""
 
 #, python-format
 msgid "The bundle is missing a %(asset_type)s required by an imported asset. Re-export the dashboard with its dependencies from a compatible Superset version, then retry."
+msgstr ""
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
 msgstr ""
 
 msgid "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used."
@@ -15131,6 +15324,9 @@ msgid "The display name of your dashboard"
 msgstr ""
 
 msgid "The distance between cells, in pixels"
+msgstr ""
+
+msgid "The draft changed since your revision; reload it."
 msgstr ""
 
 msgid "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache."
@@ -15773,6 +15969,13 @@ msgstr ""
 msgid "The way the ticks are laid out on the X-axis"
 msgstr ""
 
+#, python-format
+msgid "The widget was changed by someone else. Reload it and apply your change to revision %(revision)s."
+msgstr ""
+
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr ""
 
@@ -15798,6 +16001,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 msgid "Theme imported"
@@ -15952,6 +16158,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr ""
 
@@ -15977,6 +16187,10 @@ msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
 msgstr ""
 
 #, python-format
@@ -16160,6 +16374,15 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 #, python-format
 msgid "This change discards the value transform on %s. Once you save, filters on %s will no longer be applied to the partition column, so charts on this dataset can scan every partition and time out. Selecting %s again will not restore the transform."
 msgstr ""
@@ -16168,6 +16391,10 @@ msgid "This chart applies cross-filters to charts whose datasets contain columns
 msgstr ""
 
 msgid "This chart can't be shown here because its database connection isn't set up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
+#, python-format
+msgid "This chart could not be drawn: %s"
 msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
@@ -16327,7 +16554,16 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr ""
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid "This dimension is not compatible with the current selections. Select a compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
+
+msgid "This draft was published, discarded or expired elsewhere."
 msgstr ""
 
 msgid "This email is already associated with an account. Please choose another one."
@@ -16462,6 +16698,9 @@ msgstr ""
 msgid "This pivot table used a legacy per-table aggregation setting that could be stale or incorrect, depending on which version you upgraded from. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 #, python-format
 msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or ask an administrator to update the execution account's access."
 msgstr ""
@@ -16553,6 +16792,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "This widget is unavailable"
+msgstr ""
 
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
@@ -17349,6 +17591,9 @@ msgstr ""
 msgid "Untitled Query"
 msgstr ""
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -17359,6 +17604,9 @@ msgid "Untitled dataset"
 msgstr ""
 
 msgid "Untitled query"
+msgstr ""
+
+msgid "Untitled tab"
 msgstr ""
 
 msgid "Unverified"
@@ -17693,6 +17941,10 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -17759,6 +18011,10 @@ msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled
 msgstr ""
 
 msgid "Viewers is a list of subjects who can view the dashboard. If no viewers are defined, the dashboard is accessible to all users with appropriate datasource permissions."
+msgstr ""
+
+#, python-format
+msgid "Viewing %s"
 msgstr ""
 
 msgid "Viewport"
@@ -18197,6 +18453,21 @@ msgstr ""
 msgid "Why do I need to create a database?"
 msgstr ""
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr ""
 
@@ -18374,6 +18645,9 @@ msgstr ""
 msgid "Yes, overwrite changes"
 msgstr ""
 
+msgid "You"
+msgstr ""
+
 #, python-format
 msgid "You are adding tags to %s %ss"
 msgstr ""
@@ -18468,6 +18742,9 @@ msgid "You do not have access to the following tables: %s."
 msgstr ""
 
 msgid "You do not have permission to access this datasource"
+msgstr ""
+
+msgid "You do not have permission to change this layout."
 msgstr ""
 
 #, python-format
@@ -18932,6 +19209,12 @@ msgstr ""
 msgid "bottom"
 msgstr ""
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr ""
 
@@ -18945,6 +19228,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "cannot be empty"
+msgstr ""
+
+msgid "canvases"
 msgstr ""
 
 msgid "cell bar"
@@ -19724,6 +20010,12 @@ msgid "to"
 msgstr ""
 
 msgid "top"
+msgstr ""
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
 msgstr ""
 
 msgid "undo"

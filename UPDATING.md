@@ -51,6 +51,35 @@ assists people when migrating to a new version.
   explicit conformance-case allowlist when adopting the kit; see the
   [provider testing guide](docs/developer_docs/semantic-layer-provider-testing.md).
 
+- [46276](https://github.com/apache/superset/pull/46276): Adds a `canvas_id`
+  column to the `logs` table so canvas activity can be attributed the way
+  dashboard and chart activity already is. The column is nullable with no
+  backfill, and `AbstractEventLogger.log()` is unchanged — `canvas_id` is
+  passed as a keyword argument, so a custom `EVENT_LOGGER` that predates the
+  column keeps working untouched.
+
+- **`superset init` adds Canvas and Widget permissions to the built-in roles.**
+  Gamma and Alpha receive `can_read` and `can_write` on `Canvas` and `Widget`,
+  even with the `CANVAS` feature flag off: the APIs are registered regardless
+  and answer 404 while the flag is off, so roles are ready before it is turned
+  on. Grant those permissions to custom roles that should use canvases, or
+  remove them from the built-in roles to keep canvases off for those users.
+
+- **`build_configuration_schema` reads a `field_order` class attribute.** A
+  configuration model (or a nested model in its `$defs`) that declares
+  `field_order: ClassVar[list[str]]` has its properties rendered in that order,
+  and the builder raises `ValueError` unless the list is an exact permutation of
+  the model's properties. Models without the attribute are unchanged; rename an
+  unrelated attribute that happens to use the name.
+
+- **`AFTER_ASSET_CREATE` now also fires for canvases.** The hook's `asset_type`
+  argument can be `"canvas"` as well as `"chart"` and `"dashboard"`, and a
+  canvas has neither `slice_name` nor `dashboard_title` — its name is `title`.
+  Because the hook runs inside the creation transaction, a hook that assumes a
+  chart or dashboard model raises and cancels every canvas create. Branch on
+  `asset_type` before reading model fields. Canvases are behind the `CANVAS`
+  feature flag, so deployments with the flag off are unaffected.
+
 - Dashboard history records related chart archives using the new
   `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
   new archive writes with versioning capture enabled. During a rollout, activity

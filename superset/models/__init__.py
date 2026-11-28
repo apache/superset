@@ -17,6 +17,7 @@
 from superset.integrations.teams import models as teams_models  # noqa: F401
 
 from . import (  # noqa: F401
+    canvas,
     core,
     dynamic_plugins,
     purge_audit_log,

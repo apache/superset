@@ -1,0 +1,411 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Built-in Dashboard V2 widgets. Importing this registers them.
+
+Built-ins use the exact same public contract an extension does — ``@widget`` +
+``Widget`` from ``superset_core.widgets`` — so there is no parallel registration
+path. This module is imported (for its decorator side-effects) by
+``inject_widget_implementations`` once the decorator is concrete.
+"""
+
+from __future__ import annotations
+
+import logging
+from copy import deepcopy
+from typing import Any, ClassVar
+
+from pydantic import BaseModel, TypeAdapter, ValidationError
+from superset_core.widgets import (
+    EnricherFn,
+    Widget,
+    widget,
+    WidgetBehavior,
+    WidgetUi,
+)
+
+from superset.daos.dataset import DatasetDAO
+from superset.exceptions import SupersetSecurityException
+from superset.utils.core import FilterOperator
+from superset.widgets.controls import (
+    AgGridTableControls,
+    BindingFilter,
+    EchartsControls,
+    FilterBarControls,
+    FilterSelectControls,
+    GroupControls,
+    MarkdownControls,
+    MetricTileControls,
+    TabControls,
+    TabsControls,
+)
+
+# A widget that queries data takes runtime filters. No built-in renderer emits
+# a cross-filter yet, so none declares ``emits_filters``: agents read it as a
+# promise.
+QUERYING = WidgetBehavior(filterable=True)
+
+logger = logging.getLogger(__name__)
+
+
+def _metric_key(metric: Any) -> str:
+    """The stable label a `dataBinding` metric renders/queries under —
+    mirrors the frontend's `getMetricLabel` (`@superset-ui/core`) exactly,
+    since the two must agree: this is also the query result column name a
+    structured series reads its data from."""
+    if isinstance(metric, str):
+        return metric
+    if isinstance(metric, dict):
+        label = metric.get("label")
+        if label:
+            return str(label)
+        if metric.get("expressionType") != "SQL":
+            column = metric.get("column") or {}
+            column_name = column.get("columnName") or column.get("column_name") or ""
+            aggregate = metric.get("aggregate") or ""
+            return f"{aggregate}({column_name})"
+        return str(metric.get("sqlExpression", ""))
+    return str(metric)
+
+
+_binding_filter = TypeAdapter(BindingFilter)
+
+
+def _binding_filter_from_adhoc(stored: Any) -> dict[str, Any] | None:
+    """A ``dataBinding`` filter as version 1 stored it, in the current shape;
+    ``None`` when it has no equivalent.
+
+    Version 1 took any dict and applied only Explore's adhoc shape: a
+    ``SIMPLE`` filter became a query-object filter, a ``SQL`` one a WHERE or
+    HAVING clause, and anything else was skipped. Here each becomes the
+    filter it was applied as, and a filter never applied is left out, so the
+    rows a widget shows don't change with the upgrade.
+    """
+    if not isinstance(stored, dict):
+        return None
+    if stored.get("expressionType") == "SQL":
+        candidate: dict[str, Any] = {
+            "sql": stored.get("sqlExpression"),
+            "clause": stored.get("clause") or "WHERE",
+        }
+    elif stored.get("expressionType") == "SIMPLE":
+        if stored.get("clause") == "HAVING":
+            return None
+        operator = stored.get("operator")
+        if operator is None and stored.get("operatorId") in FilterOperator.__members__:
+            operator = FilterOperator[stored["operatorId"]].value
+        candidate = {
+            "column": stored.get("subject"),
+            "op": "=" if operator == FilterOperator.EQUALS else operator,
+        }
+        if stored.get("comparator") is not None:
+            candidate["value"] = stored["comparator"]
+    else:
+        candidate = stored
+    try:
+        return _binding_filter.validate_python(candidate).model_dump(
+            exclude_defaults=True
+        )
+    except ValidationError:
+        return None
+
+
+def _upgrade_binding_filters(props: dict[str, Any]) -> dict[str, Any]:
+    """Props migrator from schema version 1: typed ``dataBinding.filters``."""
+    binding = props.get("dataBinding")
+    if not isinstance(binding, dict) or "filters" not in binding:
+        return props
+    filters = binding.get("filters")
+    upgraded = [
+        converted
+        for stored in (filters if isinstance(filters, list) else [])
+        if (converted := _binding_filter_from_adhoc(stored)) is not None
+    ]
+    return {**props, "dataBinding": {**binding, "filters": upgraded}}
+
+
+# ``dataBinding.filters`` took any dict at version 1.
+BINDING_SCHEMA_VERSION = 2
+BINDING_MIGRATORS = {1: _upgrade_binding_filters}
+
+
+@widget(
+    widget_type="markdown",
+    name="Markdown",
+    description="Rich text authored in Markdown.",
+)
+class Markdown(Widget):
+    controls_class = MarkdownControls
+    behavior = WidgetBehavior(filterable=True, structural=True)
+    ui = WidgetUi(default_size=(6, 4))
+
+
+@widget(
+    widget_type="echarts",
+    name="ECharts",
+    description="A chart from a raw ECharts option with $bind data markers.",
+)
+class Echarts(Widget):
+    """
+    A raw-ECharts-option chart, plus an optional structured layer: when
+    ``chartType`` is set, ``customize.series`` offers one entry per
+    ``dataBinding`` metric (the SIP's ``x-dynamic`` pattern) so a series can
+    be colored, hidden, or relabeled without hand-editing ``echartsOptions``.
+    """
+
+    controls_class = EchartsControls
+    behavior = QUERYING
+    schema_version = BINDING_SCHEMA_VERSION
+    migrators = BINDING_MIGRATORS
+    ui = WidgetUi(default_size=(12, 8))
+
+    # Upper bound on distinct series inlined into the schema.
+    MAX_SERIES = 100
+
+    @staticmethod
+    def _populate_chart_series(
+        schema: dict[str, Any],
+        node: dict[str, Any],
+        parsed: BaseModel | None,
+        series: list[str],
+        upstream: dict[str, Any],
+    ) -> None:
+        # A structured series' identity comes entirely from
+        # `dataBinding.metrics`, a field already on `parsed` once the
+        # `dataBinding`/`chartType` gate above has passed.
+        style_def = schema.get("$defs", {}).get("SeriesOverride")
+        if style_def is None:
+            return
+        data_binding = getattr(parsed, "data_binding", None) if parsed else None
+        metrics = getattr(data_binding, "metrics", None) or []
+        discovered_keys = [_metric_key(metric) for metric in metrics]
+        customize = getattr(parsed, "customize", None) if parsed else None
+        stored = getattr(customize, "series", None) or {}
+        # Union with already-stored override keys, so an override for a
+        # metric temporarily removed from dataBinding.metrics stays visible
+        # (and thus editable/removable) instead of silently disappearing.
+        combined_keys = list(dict.fromkeys([*discovered_keys, *stored.keys()]))
+        if not combined_keys:
+            # Also sidesteps a forward reference to `Echarts.MAX_SERIES`
+            # below: this enricher runs once during the class's own
+            # `@widget` registration check (control_values=None), before the
+            # `Echarts` name is bound in this module.
+            return
+        all_keys = combined_keys[: Echarts.MAX_SERIES]
+        node.pop("additionalProperties", None)
+        properties: dict[str, Any] = {}
+        for key in all_keys:
+            style = deepcopy(style_def)
+            style["title"] = key
+            properties[key] = style
+        node["properties"] = properties
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {
+        "customize/series": _populate_chart_series
+    }
+
+
+@widget(
+    widget_type="metric-tile",
+    name="Metric Tile",
+    description="A single live metric value rendered as a big number.",
+)
+class MetricTile(Widget):
+    controls_class = MetricTileControls
+    behavior = QUERYING
+    schema_version = BINDING_SCHEMA_VERSION
+    migrators = BINDING_MIGRATORS
+    ui = WidgetUi(default_size=(6, 4))
+
+
+@widget(
+    widget_type="ag-grid-table",
+    name="Table",
+    description="Query results rendered as an AG Grid table.",
+)
+class AgGridTable(Widget):
+    controls_class = AgGridTableControls
+    behavior = QUERYING
+    schema_version = BINDING_SCHEMA_VERSION
+    migrators = BINDING_MIGRATORS
+    ui = WidgetUi(default_size=(12, 8))
+
+
+@widget(
+    widget_type="filter.select",
+    name="Filter",
+    description="A value/multi-select dashboard filter.",
+)
+class FilterSelect(Widget):
+    """
+    A leaf ``filter.*`` widget: reads ``datasetId``/``column`` and, at
+    render time, either the author's static ``options`` or the column's own
+    distinct values. Its live selection travels over the widget event bus
+    (``dashboard.emit``/``getValue``), not ``props`` — see the frontend
+    ``FilterSelectWidget`` and ``collectActiveFilters`` — so nothing about
+    that selection lives in this schema.
+    """
+
+    controls_class = FilterSelectControls
+    mcp_static_fields = {
+        "datasetId": (
+            "Select an accessible ID with list_datasets; "
+            "choices are not enumerated here."
+        ),
+        "column": (
+            "Discover filterable columns with get_dataset_info; "
+            "choices are not enumerated here."
+        ),
+    }
+    # Not filterable: its options are the column's distinct values, which other
+    # filters don't narrow.
+    behavior = WidgetBehavior(filter=True)
+    # Titled by its name, in the same row as every other widget's.
+    ui = WidgetUi(default_size=(6, 2))
+
+    # The most datasets the dataset picker lists, by name.
+    MAX_DATASET_CHOICES: ClassVar[int] = 500
+
+    @staticmethod
+    def _populate_datasets(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        """
+        Populate the dataset picker with datasets the caller can view, up to
+        ``MAX_DATASET_CHOICES`` plus the one already chosen.
+
+        Left blank for the base schema, asked for without control values, as
+        the column picker is: listing the catalog there is a large payload on
+        a request that did not ask for choices.
+        """
+        node["enum"] = []
+        node["x-enumNames"] = []
+        if parsed is None:
+            return
+        datasets, _ = DatasetDAO.list(
+            order_column="table_name",
+            order_direction="asc",
+            page_size=FilterSelect.MAX_DATASET_CHOICES,
+            with_count=False,
+        )
+        chosen = getattr(parsed, "dataset_id", None)
+        if chosen and chosen not in {dataset.id for dataset in datasets}:
+            if dataset := DatasetDAO.find_by_id(chosen):
+                datasets = [*datasets, dataset]
+        node["enum"] = [dataset.id for dataset in datasets]
+        node["x-enumNames"] = [dataset.name for dataset in datasets]
+
+    @staticmethod
+    def _populate_columns(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        # Every early-return below leaves `enum` explicitly blank (rather than
+        # merely absent) so the field degrades to a plain text input instead
+        # of an enum-typed control with no choices. `build_configuration_schema`
+        # already does this when `parsed` is None; these branches cover the
+        # cases it doesn't (a dataset that's unset, missing, or inaccessible).
+        node["enum"] = []
+        dataset_id = getattr(parsed, "dataset_id", None) if parsed else None
+        if not dataset_id:
+            return
+        dataset = DatasetDAO.find_by_id(dataset_id)
+        if dataset is None:
+            return
+        try:
+            dataset.raise_for_access()
+        except SupersetSecurityException:
+            # Same fail-open as an unset dataset: the field just falls back to
+            # a plain text input rather than a 500 or a schema that leaks
+            # column names for a dataset this caller cannot read.
+            logger.info(
+                "Access denied enriching filter.select column enum for dataset %s",
+                dataset_id,
+            )
+            return
+        node["enum"] = dataset.filterable_column_names
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {
+        "datasetId": _populate_datasets,
+        "column": _populate_columns,
+    }
+
+
+@widget(
+    widget_type="filter.bar",
+    name="Filter Bar",
+    description="A plain arranging container for filter.* children.",
+)
+class FilterBar(Widget):
+    controls_class = FilterBarControls
+    behavior = WidgetBehavior(
+        container=True,
+        grid_columns=24,
+        accepted_children=frozenset({"filter.select"}),
+        # Filters in the bar drive the canvas, not just the bar.
+        bounds_filter_scope=False,
+        structural=True,
+    )
+    ui = WidgetUi(default_size=(24, 2))
+
+
+@widget(
+    widget_type="tabs",
+    name="Tabs",
+    description="Shows one of its tabs at a time.",
+)
+class Tabs(Widget):
+    controls_class = TabsControls
+    behavior = WidgetBehavior(
+        container=True, accepted_children=frozenset({"tab"}), structural=True
+    )
+    ui = WidgetUi(default_size=(24, 12), chrome_rows=1)
+
+
+@widget(
+    widget_type="tab",
+    name="Tab",
+    description="One tab of a tabs container; lays its children out on a grid.",
+)
+class Tab(Widget):
+    controls_class = TabControls
+    behavior = WidgetBehavior(
+        container=True,
+        allowed_parents=frozenset({"tabs"}),
+        grid_columns=24,
+        structural=True,
+    )
+
+
+@widget(
+    widget_type="group",
+    name="Group",
+    description="Groups widgets on a grid of their own, e.g. a KPI row.",
+)
+class Group(Widget):
+    controls_class = GroupControls
+    behavior = WidgetBehavior(container=True, grid_columns=12, structural=True)
+    # A row for the title drawn above the grid: without it the group is grown
+    # to exactly its children's rows, the title pushes them down by its own
+    # height, and the last row is drawn outside the group's box.
+    ui = WidgetUi(default_size=(24, 6), chrome_rows=1)

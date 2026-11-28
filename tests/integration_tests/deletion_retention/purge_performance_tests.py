@@ -49,9 +49,10 @@ from ._base import DeletionRetentionTestBase
 # Archive scopes require an existence probe, scoped candidate collection/deletion,
 # and an extra orphan-reference check. Change-only transactions also contribute
 # candidates. Both shadow endpoints are collected in one SELECT per table.
-CHART_PURGE_BASELINE_STATEMENTS: int = 42
-DASHBOARD_PURGE_BASELINE_STATEMENTS: int = 41
-DATASET_PURGE_BASELINE_STATEMENTS: int = 51
+# canvases_version adds two statements to each.
+CHART_PURGE_BASELINE_STATEMENTS: int = 44
+DASHBOARD_PURGE_BASELINE_STATEMENTS: int = 43
+DATASET_PURGE_BASELINE_STATEMENTS: int = 53
 MAX_STATEMENT_REGRESSION: float = 0.10
 WARMUP_RUNS: int = 5
 MEASURED_RUNS: int = 20

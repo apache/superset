@@ -39,13 +39,23 @@ from superset.utils.core import get_user_id, LoggerLevel, to_int
 
 logger = logging.getLogger(__name__)
 
-# The ``logs`` table has an integer column for the dashboard or chart a request
-# touched. This maps the model behind a REST API's ``datamodel`` to that column
-# so every route on the matching API populates it without per-endpoint plumbing.
+# The ``logs`` table has an integer column for the dashboard, chart or canvas a
+# request touched. This maps the model behind a REST API's ``datamodel`` to that
+# column so every route on the matching API populates it without per-endpoint
+# plumbing.
 LOG_OBJECT_ID_COLUMNS: dict[str, str] = {
     "Dashboard": "dashboard_id",
     "Slice": "slice_id",
+    "Canvas": "canvas_id",
 }
+
+# ``dashboard_id`` and ``slice_id`` are named parameters of
+# ``AbstractEventLogger.log``, and ``slice_id`` can also be read out of
+# ``form_data``, so both are resolved by hand below. Every other column in
+# ``LOG_OBJECT_ID_COLUMNS`` is derived generically and travels to ``log()`` as a
+# keyword argument, which keeps the abstract signature -- and so every
+# downstream logger -- unchanged as columns are added.
+LOG_NAMED_OBJECT_ID_COLUMNS: frozenset[str] = frozenset({"dashboard_id", "slice_id"})
 
 # Route parameters that identify the single object a REST API route acts on.
 OBJECT_ID_VIEW_ARGS: tuple[str, ...] = (
@@ -98,7 +108,8 @@ def get_object_ids_from_view_args(
     view: Any, view_args: dict[str, Any]
 ) -> dict[str, Any]:
     """
-    Derive the ``dashboard_id`` / ``slice_id`` log fields for a REST API route.
+    Derive the object-id log field (``dashboard_id``, ``slice_id``,
+    ``canvas_id``) for a REST API route.
 
     ``view`` is the API instance the logged route was called on and
     ``view_args`` are the keyword arguments Flask passed to it. The result is
@@ -321,6 +332,16 @@ class AbstractEventLogger(ABC):
 
         slice_id = to_int(slice_id)
 
+        # Columns beyond the two the abstract ``log()`` names. Passing them as
+        # keyword arguments means a logger that has never heard of them simply
+        # collects them in ``**kwargs``, exactly as it already does for
+        # ``database_id``.
+        extra_object_ids = {
+            column: to_int(payload.get(column))
+            for column in LOG_OBJECT_ID_COLUMNS.values()
+            if column not in LOG_NAMED_OBJECT_ID_COLUMNS
+        }
+
         if log_to_statsd:
             stats_logger_manager.instance.incr(action)
 
@@ -341,6 +362,7 @@ class AbstractEventLogger(ABC):
             referrer=referrer,
             curated_payload=self.curate_payload(payload),
             curated_form_data=self.curate_form_data(form_data),
+            **extra_object_ids,
             **database_params,
         )
 
@@ -512,6 +534,7 @@ class DBEventLogger(AbstractEventLogger):
 
         records = kwargs.get("records", [])
         curated_payload = kwargs.get("curated_payload")
+        canvas_id = kwargs.get("canvas_id")
 
         # If no records but curated_payload exists, use it as a single record
         # This enables MCP middleware logging which passes curated_payload
@@ -530,6 +553,9 @@ class DBEventLogger(AbstractEventLogger):
                 json=json_string,
                 dashboard_id=dashboard_id or record.get("dashboard_id"),
                 slice_id=slice_id or record.get("slice_id"),
+                # Each record first: a beacon batch names the canvas its first
+                # event was on, and a batch can span a canvas switch.
+                canvas_id=record.get("canvas_id") or canvas_id,
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,
