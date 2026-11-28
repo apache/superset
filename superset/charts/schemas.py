@@ -1210,6 +1210,13 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
+    dimension_grains: fields.Dict = fields.Dict(
+        keys=fields.String(),
+        values=fields.String(allow_none=True),
+        metadata={
+            "description": "Explicit semantic dimension grains; null selects native."
+        },
+    )
     semantic_selection_version: fields.String = fields.String(
         allow_none=True,
         metadata={

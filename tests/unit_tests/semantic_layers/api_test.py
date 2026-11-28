@@ -68,22 +68,29 @@ SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
 
 
 @SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("reselect", [False, True])
 def test_put_semantic_view(
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
+    reselect: bool,
 ) -> None:
     """Test successful PUT updates a semantic view."""
-    changed_model = MagicMock()
+    changed_model: MagicMock = MagicMock()
     changed_model.id = 1
 
-    mock_command = mocker.patch(
+    mock_command: MagicMock = mocker.patch(
         "superset.semantic_layers.api.UpdateSemanticViewCommand",
     )
     mock_command.return_value.run.return_value = changed_model
 
-    payload = {"description": "Updated description", "cache_timeout": 300}
-    response = client.put(
+    payload: dict[str, Any] = {
+        "description": "Updated description",
+        "cache_timeout": 300,
+    }
+    if reselect:
+        payload["configuration"] = {"dimensions": ["time__day", "time__month"]}
+    response: TestResponse = client.put(
         "/api/v1/semantic_view/1",
         json=payload,
     )
@@ -2853,7 +2860,10 @@ def test_get_views(
 ) -> None:
     """Test POST /<uuid>/views returns available views."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
 
     mock_view1 = MagicMock()
@@ -2891,7 +2901,10 @@ def test_get_views_forbidden(
 ) -> None:
     """Test POST /<uuid>/views returns 403 when access is denied."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
     mock_layer.raise_for_access.side_effect = SupersetSecurityException(
         SupersetError(
@@ -2922,7 +2935,10 @@ def test_get_views_with_existing(
 ) -> None:
     """Test POST /<uuid>/views marks already-added views."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
 
     mock_view = MagicMock()
@@ -2934,7 +2950,12 @@ def test_get_views_with_existing(
 
     existing_view = MagicMock()
     existing_view.name = "Existing View"
-    existing_view.configuration = '{"database": "mydb"}'
+    existing_view.configuration = '{"database": "mydb", "format_version": 2}'
+    mock_layer.implementation.prepare_view_configuration.side_effect = None
+    mock_layer.implementation.prepare_view_configuration.return_value = {
+        "database": "mydb",
+        "format_version": 2,
+    }
 
     mock_dao.get_semantic_views.return_value = [existing_view]
 
@@ -2976,7 +2997,10 @@ def test_get_views_exception(
 ) -> None:
     """Test POST /<uuid>/views returns 400 when implementation raises."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
     mock_layer.implementation.get_semantic_views.side_effect = ValueError(
         "Connection failed"
@@ -3002,7 +3026,10 @@ def test_get_views_existing_dict_config(
 ) -> None:
     """Test POST /<uuid>/views handles dict configuration on existing views."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
 
     mock_view = MagicMock()
@@ -3058,14 +3085,15 @@ def test_get_semantic_view_structure(
     verbose_name: str | None,
 ) -> None:
     """Test GET /<pk>/structure returns dimensions and metrics."""
-    mock_dim = MagicMock()
-    mock_dim.name = "order_date"
-    mock_dim.type = "timestamp[us]"
-    mock_dim.definition = "ordered_at"
-    mock_dim.description = "Order date"
-    mock_dim.grain = MagicMock()
-    mock_dim.grain.name = "Day"
-    mock_dim.verbose_name = verbose_name
+    mock_dim: Dimension = Dimension(
+        "order_date",
+        "order_date",
+        pa.timestamp("us"),
+        definition="ordered_at",
+        description="Order date",
+        verbose_name=verbose_name,
+        grains=frozenset({Grains.DAY}),
+    )
 
     mock_metric = MagicMock()
     mock_metric.name = "orders"
@@ -3076,6 +3104,9 @@ def test_get_semantic_view_structure(
     mock_view: MagicMock = MagicMock(
         implementation=MagicMock(selection_identity_version="cube-member-id-v1")
     )
+    mock_view.get_time_grains.return_value = [
+        {"duration": "P1D", "name": "Day", "function": ""}
+    ]
     mock_view.name = "orders"
     mock_view.description = "All orders"
     mock_view.cache_timeout = 600
@@ -3091,6 +3122,7 @@ def test_get_semantic_view_structure(
 
     assert response.status_code == 200
     result = response.json["result"]
+    assert result["time_grains"] == [{"duration": "P1D", "name": "Day", "function": ""}]
     assert result["name"] == "orders"
     assert result["semantic_selection_version"] == "cube-member-id-v1"
     # The edit modal has no detail route to hydrate from, so these must ride
@@ -3102,7 +3134,10 @@ def test_get_semantic_view_structure(
     assert result["dimensions"][0]["type"] == "timestamp[us]"
     assert result["dimensions"][0]["definition"] == "ordered_at"
     assert result["dimensions"][0]["description"] == "Order date"
-    assert result["dimensions"][0]["grain"] == "Day"
+    assert result["dimensions"][0]["grains"] == ["P1D"]
+    assert result["dimensions"][0]["allows_default_grain"] is True
+    assert result["dimensions"][0]["omitted_grain"] == "native"
+    assert result["dimensions"][0]["ungrained_filter"] == "native"
     assert result["dimensions"][0]["verbose_name"] == verbose_name
     assert len(result["metrics"]) == 1
     assert result["metrics"][0]["name"] == "orders"
@@ -3113,29 +3148,31 @@ def test_get_semantic_view_structure(
 
 
 @SEMANTIC_LAYERS_APP
-def test_get_semantic_view_structure_orders_grain_variants(
+def test_get_semantic_view_structure_reports_grains_once(
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """Order an unordered provider set by the same grain preference as Explore."""
+    """A single catalog member exposes its grains and its display label."""
     dimensions: set[Dimension] = {
         Dimension(
-            id=grain.name,
+            id="order_date",
             name="order_date",
-            type=pa.int64() if grain == Grains.YEAR else pa.date32(),
-            grain=grain,
-            verbose_name=f"Order {grain.name.lower()}",
-        )
-        for grain in (
-            Grains.DAY,
-            Grains.WEEK,
-            Grains.MONTH,
-            Grains.YEAR,
-            Grains.get("P2W", "Fortnight"),
+            type=pa.date32(),
+            grains=frozenset(
+                {
+                    Grains.DAY,
+                    Grains.WEEK,
+                    Grains.MONTH,
+                    Grains.YEAR,
+                    Grains.get("P2W", "Fortnight"),
+                }
+            ),
+            verbose_name="Order date",
         )
     }
     mock_view: MagicMock = MagicMock()
+    mock_view.get_time_grains.return_value = []
     mock_view.name = "orders"
     mock_view.description = None
     mock_view.cache_timeout = None
@@ -3150,16 +3187,15 @@ def test_get_semantic_view_structure_orders_grain_variants(
     response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
 
     assert response.status_code == 200
-    assert [
-        dimension["grain"] for dimension in response.json["result"]["dimensions"]
-    ] == [
-        "Day",
-        "Week",
-        "Month",
-        "Year",
-        "Fortnight",
+    assert len(response.json["result"]["dimensions"]) == 1
+    assert response.json["result"]["dimensions"][0]["grains"] == [
+        "P1D",
+        "P1M",
+        "P1W",
+        "P1Y",
+        "P2W",
     ]
-    assert response.json["result"]["dimensions"][0]["verbose_name"] == "Order day"
+    assert response.json["result"]["dimensions"][0]["verbose_name"] == "Order date"
 
 
 @SEMANTIC_LAYERS_APP
@@ -3228,17 +3264,12 @@ def test_get_semantic_view_structure_no_grain(
     mocker: MockerFixture,
 ) -> None:
     """Test GET /<pk>/structure handles dimensions without grain."""
-    mock_dim = MagicMock()
-    mock_dim.name = "customer_id"
-    mock_dim.type = "int64"
-    mock_dim.definition = None
-    mock_dim.description = None
-    mock_dim.grain = None
-    mock_dim.verbose_name = None
+    mock_dim: Dimension = Dimension("customer_id", "customer_id", pa.int64())
 
     mock_view: MagicMock = MagicMock(
         implementation=MagicMock(selection_identity_version=None)
     )
+    mock_view.get_time_grains.return_value = []
     mock_view.name = "customers"
     mock_view.description = None
     mock_view.cache_timeout = None
@@ -3254,9 +3285,13 @@ def test_get_semantic_view_structure_no_grain(
 
     assert response.status_code == 200
     result = response.json["result"]
-    assert result["dimensions"][0]["grain"] is None
+    assert result["dimensions"][0]["grains"] == []
+    assert result["dimensions"][0]["allows_default_grain"] is True
+    assert result["dimensions"][0]["omitted_grain"] == "native"
+    assert result["dimensions"][0]["ungrained_filter"] == "native"
     assert result["dimensions"][0]["verbose_name"] is None
     assert result["metrics"] == []
+    assert result["time_grains"] == []
     assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal
     # distinguishes "cleared" from "absent" when hydrating.
@@ -3623,6 +3658,9 @@ def test_post_semantic_view_provider_validation(
 ) -> None:
     """Keep lookup and duplicate errors distinct without exposing provider secrets."""
     layer: MagicMock = MagicMock()
+    layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     layer.implementation.get_semantic_view.return_value = lookup_result
     layer.implementation.get_semantic_view.side_effect = lookup_error
     mocker.patch(
@@ -3724,3 +3762,23 @@ def test_metadata_endpoints_preserve_only_typed_transport_errors(
             expected = "Unable to fetch semantic layer runtime schema."
     assert response.json["message"] == expected
     assert "provider-private-detail" not in response.get_data(as_text=True)
+
+
+@SEMANTIC_LAYERS_APP
+def test_old_view_configuration_returns_actionable_structure_error(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.semantic_layers.errors import SemanticViewConfigurationError
+
+    view: MagicMock = MagicMock(id=1, semantic_layer_uuid="layer")
+    view.name = "saved"
+    view.implementation.get_dimensions.side_effect = SemanticViewConfigurationError()
+    session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = view
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
+    assert response.status_code == 422
+    assert response.json["error_type"] == "SemanticViewConfigurationError"
+    assert "re-select" in response.json["message"]
+    assert "re-add" in response.json["message"]

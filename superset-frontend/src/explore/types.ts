@@ -25,6 +25,7 @@ import {
   LatestQueryFormData,
 } from '@superset-ui/core';
 import {
+  SemanticDimensionSupport,
   ColumnMeta,
   ControlStateMapping,
   Dataset,
@@ -156,7 +157,12 @@ export interface ColumnPickerCapabilities {
 export type CompatibilityResult =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'verified'; metrics: string[]; dimensions: string[] }
+  | {
+      status: 'verified';
+      metrics: string[];
+      dimensions: string[];
+      dimensionSupport?: Record<string, SemanticDimensionSupport>;
+    }
   | { status: 'failed' };
 
 export interface ExplorePageState {

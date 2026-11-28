@@ -21,6 +21,7 @@ from functools import partial
 from typing import Any
 
 from flask_appbuilder.models.sqla import Model
+from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
@@ -31,6 +32,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
     SemanticViewForbiddenError,
+    SemanticViewInvalidError,
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
@@ -87,6 +89,11 @@ class UpdateSemanticViewCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model
+        if "configuration" in self._properties:
+            self._properties["configuration"] = json.dumps(
+                self._properties["configuration"]
+            )
+            self._model.semantic_layer.clear_metadata_cache()
         return SemanticViewDAO.update(self._model, attributes=self._properties)
 
     def validate(self) -> None:
@@ -101,12 +108,18 @@ class UpdateSemanticViewCommand(BaseCommand):
         if not current_user_can_modify_object(self._model):
             raise SemanticViewForbiddenError()
 
-        name = self._properties.get("name", self._model.name)
-        layer_uuid = str(self._model.semantic_layer_uuid)
-        configuration = self._properties.get(
-            "configuration",
-            json.loads(self._model.configuration),
+        name: str = self._properties.get("name", self._model.name)
+        layer_uuid: str = str(self._model.semantic_layer_uuid)
+        configuration: dict[str, Any] = (
+            self._properties["configuration"]
+            if "configuration" in self._properties
+            else json.loads(self._model.configuration)
         )
+        if "configuration" in self._properties:
+            configuration = self._prepare_configuration(
+                self._model.semantic_layer, name, configuration
+            )
+            self._properties["configuration"] = configuration
         if not SemanticViewDAO.validate_update_uniqueness(
             view_uuid=str(self._model.uuid),
             name=name,
@@ -117,6 +130,37 @@ class UpdateSemanticViewCommand(BaseCommand):
                 f"A semantic view with name '{name}' and the same "
                 "configuration already exists in this semantic layer."
             )
+
+    @staticmethod
+    def _prepare_configuration(
+        layer: SemanticLayer, name: str, configuration: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Authorize and validate an explicit replacement before any write."""
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SemanticViewForbiddenError() from ex
+        if not current_user_can_modify_object(layer):
+            raise SemanticViewForbiddenError()
+        if not isinstance(configuration, dict):
+            raise SemanticViewInvalidError(
+                _("The view configuration must be a JSON object.")
+            )
+        try:
+            configuration = layer.implementation.prepare_view_configuration(
+                name, configuration
+            )
+            if layer.implementation.get_semantic_view(name, configuration) is None:
+                raise ValueError("No semantic view")
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning("Semantic view re-selection failed: %s", type(ex).__name__)
+            raise SemanticViewInvalidError(
+                _(
+                    "Couldn't validate the selected fields. "
+                    "Check the selection and try again."
+                )
+            ) from None
+        return configuration
 
 
 def _load_modifiable_layer(uuid: str) -> SemanticLayer:

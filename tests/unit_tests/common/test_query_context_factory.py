@@ -25,6 +25,7 @@ import pytest
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Operator,
     PredicateType,
@@ -1448,13 +1449,13 @@ def test_saved_temporal_bindings_use_default_only_for_omitted_granularity(
         {
             Filter(
                 PredicateType.WHERE,
-                dimensions[predicate_subject],
+                DimensionSelection(dimensions[predicate_subject]),
                 Operator.GREATER_THAN_OR_EQUAL,
                 start,
             ),
             Filter(
                 PredicateType.WHERE,
-                dimensions[predicate_subject],
+                DimensionSelection(dimensions[predicate_subject]),
                 Operator.LESS_THAN,
                 end,
             ),

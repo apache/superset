@@ -18,6 +18,7 @@
 import pyarrow as pa
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     SemanticQuery,
@@ -44,7 +45,7 @@ class MinimalView(SemanticView):
         return set()
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: DimensionSelection, filters: set[Filter] | None = None
     ) -> SemanticResult:
         """Return an empty result."""
         return SemanticResult(requests=[], results=pa.table({}))
@@ -58,13 +59,17 @@ class MinimalView(SemanticView):
         return SemanticResult(requests=[], results=pa.table({"count": [0]}))
 
     def get_compatible_metrics(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Metric]:
         """Return no compatible metrics."""
         return set()
 
     def get_compatible_dimensions(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Dimension]:
         """Return no compatible dimensions."""
         return set()

@@ -236,6 +236,7 @@ def test_permitted_structure_tracks_runtime_toggle(
     view.description = None
     view.cache_timeout = None
     view.implementation.selection_identity_version = 1
+    view.get_time_grains.return_value = []
     view.implementation.get_dimensions.return_value = []
     view.implementation.get_metrics.return_value = []
     query: MagicMock = mocker.patch("superset.semantic_layers.api.db.session.query")

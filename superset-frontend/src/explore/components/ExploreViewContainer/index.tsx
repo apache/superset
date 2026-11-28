@@ -491,15 +491,27 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       [
         ...ensureIsArray(props.form_data.groupby),
         ...ensureIsArray(props.form_data.columns),
-        ...(typeof props.form_data.x_axis === 'string'
-          ? [props.form_data.x_axis]
+        ...(props.form_data.x_axis ? [props.form_data.x_axis] : []),
+        ...(props.form_data.is_timeseries &&
+        typeof props.form_data.granularity_sqla === 'string'
+          ? [props.form_data.granularity_sqla]
           : []),
-      ].filter((d): d is string => typeof d === 'string'),
+      ]
+        .map(d =>
+          typeof d === 'string'
+            ? d
+            : d?.isColumnReference
+              ? d.sqlExpression
+              : undefined,
+        )
+        .filter((d): d is string => typeof d === 'string'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       JSON.stringify(props.form_data.groupby),
       JSON.stringify(props.form_data.columns),
       props.form_data.x_axis,
+      props.form_data.is_timeseries,
+      props.form_data.granularity_sqla,
     ],
   );
   useEffect(() => {
@@ -509,10 +521,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       selectedMetrics,
       selectedDimensions,
     );
-    // props.datasource.id covers the saved-chart-loading case (M4)
+    // A viz switch resets compatibility even when member selections stay the same.
   }, [
     props.datasource.id,
     props.datasource.type,
+    props.form_data.viz_type,
     selectedMetrics,
     selectedDimensions,
   ]);

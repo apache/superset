@@ -20,7 +20,7 @@ from dataclasses import replace
 from datetime import date
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import NoReturn, TYPE_CHECKING
 
 import pyarrow as pa
 import pytest
@@ -28,6 +28,7 @@ from superset_core.semantic_layers.errors import SemanticResultCompletenessReaso
 from superset_core.semantic_layers.testing import SemanticProviderConformance
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     Grain,
@@ -77,11 +78,12 @@ def semantic_query_cases(
     semantic_view: "QueryView",
 ) -> dict[str, tuple[SemanticQuery, pa.Table]]:
     """Expected answers are independent of the provider's query implementation."""
-    category: Dimension = next(
-        d for d in semantic_view.get_dimensions() if d.name == "category"
+    category: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "category")
     )
-    month: Dimension = next(
-        d for d in semantic_view.get_dimensions() if d.grain == Grains.MONTH
+    month: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "occurred"),
+        Grains.MONTH,
     )
     total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
     count: Metric = next(
@@ -91,10 +93,8 @@ def semantic_query_cases(
     membership: Filter = Filter(
         PredicateType.WHERE, category, Operator.IN, frozenset({"A", "B"})
     )
-    occurred: Dimension = next(
-        d
-        for d in semantic_view.get_dimensions()
-        if d.name == "occurred" and d.grain is None
+    occurred: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "occurred")
     )
     start: Filter = Filter(
         PredicateType.WHERE, occurred, Operator.GREATER_THAN_OR_EQUAL, date(2026, 2, 1)
@@ -243,8 +243,8 @@ def test_exclusion_witness_rejects_weak_fixtures(
         expected = expected.slice(1)
     query = replace(query, filters={group, *outer})
 
-    def must_not_execute(query: SemanticQuery) -> SemanticResult:
-        pytest.fail("invalid fixture reached provider execution")
+    def must_not_execute(query: SemanticQuery) -> NoReturn:
+        raise RuntimeError("invalid fixture reached provider execution")
 
     monkeypatch.setattr(semantic_view, "get_table", must_not_execute)
     with pytest.raises(AssertionError):
@@ -258,8 +258,8 @@ def semantic_capability_cases(
     semantic_view: "QueryView",
 ) -> dict[str, tuple[SemanticQuery, pa.Table]]:
     """ROW_OFFSET must skip the highest group after ordering."""
-    category: Dimension = next(
-        d for d in semantic_view.get_dimensions() if d.name == "category"
+    category: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "category")
     )
     total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
     return {
@@ -288,11 +288,11 @@ def _error_operation(method: str, kind: str) -> SemanticResult:
         )
         source.completeness = reason
     view: QueryView = QueryView(source)
-    dimension: Dimension = next(
-        d for d in view.get_dimensions() if d.name == "category"
+    dimension: DimensionSelection = DimensionSelection(
+        next(d for d in view.get_dimensions() if d.name == "category")
     )
     if kind == "refusal":
-        dimension = Dimension("invalid", "invalid", pa.string())
+        dimension = DimensionSelection(Dimension("invalid", "invalid", pa.string()))
     query: SemanticQuery = SemanticQuery(metrics=[], dimensions=[dimension])
     if method == "get_values":
         return view.get_values(dimension)
@@ -785,12 +785,12 @@ def test_or_lane_rejects_non_host_fixture_shapes(
 
 
 @pytest.mark.parametrize("preferred", [None, "occurred"])
-def test_temporal_preference_accepts_optional_name_and_shared_variants(
+def test_temporal_preference_accepts_optional_name_and_grains(
     semantic_view: "QueryView",
     semantic_reloaded_view: "QueryView",
     preferred: str | None,
 ) -> None:
-    """Legacy providers and temporal names shared by grains remain conforming."""
+    """An optional preference names the unique temporal catalog member."""
     semantic_view.preferred_temporal_dimension = preferred
     semantic_reloaded_view.preferred_temporal_dimension = preferred
     SemanticProviderConformance().test_catalog_identity(
@@ -968,41 +968,26 @@ def test_or_group_witness_rejects_dropped_empty_leaf(
         )
 
 
-@pytest.mark.parametrize(
-    "preferred_grain,other_grain",
-    [
-        (None, Grains.MONTH),
-        (Grains.HOUR, Grains.DAY),
-        (Grains.WEEK, Grains.QUARTER),
-        (Grains.YEAR, Grain("Custom", "P2D")),
-        (Grain("Later name", "P2D"), Grain("Earlier name", "P3D")),
-    ],
-)
+@pytest.mark.parametrize("grain", [None, Grains.DAY, Grains.MONTH])
 @pytest.mark.parametrize("selected_temporal", [False, True])
 @pytest.mark.parametrize("reverse", [False, True])
-def test_temporal_preference_checks_host_selected_variant(
+def test_temporal_preference_checks_catalog_type(
     semantic_view: "QueryView",
     semantic_reloaded_view: "QueryView",
     monkeypatch: pytest.MonkeyPatch,
-    preferred_grain: Grain | None,
-    other_grain: Grain,
+    grain: Grain | None,
     selected_temporal: bool,
     reverse: bool,
 ) -> None:
-    """Temporal eligibility follows raw/finest selection, not any sibling variant."""
+    """Grain support and catalog order cannot change temporal eligibility."""
     dimensions: list[Dimension] = [
         Dimension(
             "selected",
             "occurred",
             pa.date32() if selected_temporal else pa.string(),
-            grain=preferred_grain,
+            grains=frozenset({grain}) if grain else frozenset(),
         ),
-        Dimension(
-            "other",
-            "occurred",
-            pa.string() if selected_temporal else pa.date32(),
-            grain=other_grain,
-        ),
+        Dimension("other", "other", pa.date32()),
     ]
     if reverse:
         dimensions.reverse()

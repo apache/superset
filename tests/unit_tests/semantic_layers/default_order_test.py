@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
+    DimensionSelection,
     Metric,
     OrderDirection,
     OrderTuple,
@@ -63,17 +64,21 @@ SALES: Metric = Metric(
     type=pa.float64(),
     definition="SUM(amount)",
 )
-REGION: Dimension = Dimension(
-    id="customers.region", name="region", type=pa.utf8(), definition="region"
+REGION: DimensionSelection = DimensionSelection(
+    Dimension(id="customers.region", name="region", type=pa.utf8(), definition="region")
 )
-ORDER_DATE: Dimension = Dimension(
-    id="orders.order_date", name="order_date", type=pa.date32(), definition="d"
+ORDER_DATE: DimensionSelection = DimensionSelection(
+    Dimension(
+        id="orders.order_date", name="order_date", type=pa.date32(), definition="d"
+    )
 )
-SHIPPED_AT: Dimension = Dimension(
-    id="orders.shipped_at",
-    name="shipped_at",
-    type=pa.timestamp("us"),
-    definition="s",
+SHIPPED_AT: DimensionSelection = DimensionSelection(
+    Dimension(
+        id="orders.shipped_at",
+        name="shipped_at",
+        type=pa.timestamp("us"),
+        definition="s",
+    )
 )
 EMPTY_RESULT: SemanticResult = SemanticResult(
     requests=[], results=pa.table({"total_sales": pa.array([], pa.float64())})
@@ -102,7 +107,7 @@ def _dispatch(mocker: MockerFixture, query: SemanticQuery) -> SemanticQuery:
 )
 def test_unordered_query_gets_default_chronological_order(
     mocker: MockerFixture,
-    dimensions: list[Dimension],
+    dimensions: list[DimensionSelection],
     expected: list[OrderTuple] | None,
 ) -> None:
     query: SemanticQuery = SemanticQuery(
@@ -203,8 +208,10 @@ class _InlineCoordinator:
         return True
 
 
-PRODUCT: Dimension = Dimension(
-    id="products.product", name="product", type=pa.utf8(), definition="product"
+PRODUCT: DimensionSelection = DimensionSelection(
+    Dimension(
+        id="products.product", name="product", type=pa.utf8(), definition="product"
+    )
 )
 SUMMED_SALES: Metric = replace(SALES, aggregation=AggregationType.SUM)
 
@@ -316,8 +323,8 @@ def test_limited_hit_is_not_reused_under_a_different_default_order() -> None:
     ],
 )
 def test_rollup_reuses_an_unlimited_entry_whatever_its_default_order(
-    stored_dimensions: list[Dimension],
-    query_dimensions: list[Dimension],
+    stored_dimensions: list[DimensionSelection],
+    query_dimensions: list[DimensionSelection],
     expected: dict[str, list[object]],
 ) -> None:
     columns: dict[str, list[object]] = {

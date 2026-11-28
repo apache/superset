@@ -24,12 +24,16 @@ import logging
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.semantic_layers.types import Dimension
 
 from superset.extensions import event_logger
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     requires_data_model_metadata_access,
     user_can_view_data_model_metadata,
+)
+from superset.mcp_service.semantic_layer.compatibility_errors import (
+    compatibility_error_response,
 )
 from superset.mcp_service.semantic_layer.schemas import (
     CompatibleDimensionsResponse,
@@ -45,7 +49,9 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.dimension_resolution import (
+    dimension_support,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +145,11 @@ async def _resolve_compatible_dimensions(
         # Built-in dataset path
         # ------------------------------------------------------------------
         if request.dataset_id is not None:
+            if request.dimension_grains:
+                return SemanticLayerError.create(
+                    error="dimension_grains is only supported for semantic views.",
+                    error_type="ValidationError",
+                )
             from sqlalchemy.orm import subqueryload
 
             from superset.connectors.sqla.models import SqlaTable
@@ -239,10 +250,18 @@ async def _resolve_compatible_dimensions(
                 error="; ".join(selection_errors), error_type="ValidationError"
             )
 
-        compatible_names: list[str] = view.get_compatible_dimensions(
-            request.selected_metrics,
-            request.selected_dimensions,
-        )
+        compatible: dict[str, Dimension] = {
+            dimension.name: dimension
+            for dimension in view.get_compatible_dimension_metadata(
+                request.selected_metrics,
+                request.selected_dimensions,
+                **(
+                    {"dimension_grains": request.dimension_grains}
+                    if request.dimension_grains
+                    else {}
+                ),
+            )
+        }
 
         # Enrich with full column metadata
         all_cols: dict[str, ColumnMetadata] = {
@@ -258,8 +277,9 @@ async def _resolve_compatible_dimensions(
                 groupby=all_cols[name].groupby if name in all_cols else True,
                 filterable=all_cols[name].filterable if name in all_cols else True,
                 source="external",
+                **dimension_support(compatible[name]),
             )
-            for name in compatible_names
+            for name in sorted(compatible)
         ]
 
         await ctx.info(
@@ -271,17 +291,5 @@ async def _resolve_compatible_dimensions(
             source="external",
         )
 
-    except AmbiguousDimensionError as exc:
-        return SemanticLayerError.create(error=str(exc), error_type="ValidationError")
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error in get_compatible_dimensions: %s: %s",
-            type(exc).__name__,
-            str(exc),
-        )
-        message: str = "Unable to retrieve compatible dimensions."
-        await ctx.error(message)
-        return SemanticLayerError.create(
-            error=message,
-            error_type="InternalError",
-        )
+    except Exception as exc:  # noqa: BLE001
+        return await compatibility_error_response(exc, ctx, "dimensions")

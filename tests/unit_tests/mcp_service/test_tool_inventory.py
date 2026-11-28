@@ -80,7 +80,9 @@ TOOL_BUDGETS = {
     "get_chart_sql": 2_100,
     "get_chart_type_schema": 900,
     "get_compatible_dimensions": 1_500,
-    "get_compatible_metrics": 1_500,
+    # Includes dimension_grains: 1,591 bytes, rounded up plus the standard
+    # 100-byte headroom.
+    "get_compatible_metrics": 1_700,
     "get_dashboard_data": 2_400,
     "get_dashboard_datasets": 1_100,
     # Includes bounded dropdown discovery/proposal schemas: 4,926 bytes,
@@ -98,9 +100,10 @@ TOOL_BUDGETS = {
     "get_role_info": 900,
     "get_saved_query_info": 1_200,
     "get_schema": 1_100,
-    # Includes semantic_selection_version and its explicit-reselection guidance:
-    # 3,957 bytes, rounded up plus the standard 100-byte headroom.
-    "get_table": 4_100,
+    # Includes semantic_selection_version, explicit-reselection guidance,
+    # dimension_grains and filter grain: 4,195 bytes, rounded up plus the
+    # standard 100-byte headroom.
+    "get_table": 4_300,
     "get_tag_info": 1_000,
     "get_task_info": 1_100,
     "get_theme_info": 1_000,

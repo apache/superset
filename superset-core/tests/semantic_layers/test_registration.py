@@ -33,6 +33,7 @@ from superset_core.semantic_layers.layer import ConfigT, SemanticLayer
 from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Operator,
     PredicateType,
@@ -88,9 +89,9 @@ def test_sdk_only_provider(semantic_layer_registration: None) -> None:
     }
     view: ExampleView = layer.get_semantic_view("example", {})
     assert view.uid() == "example"
-    assert view.get_values(next(iter(view.get_dimensions()))).results.to_pydict() == {
-        "category": ["A", "B"]
-    }
+    assert view.get_values(
+        DimensionSelection(next(iter(view.get_dimensions())))
+    ).results.to_pydict() == {"category": ["A", "B"]}
     assert view.metadata_cache_token == generation
     transport.request.assert_not_called()
 
@@ -130,7 +131,7 @@ def test_example_rejects_unknown_dimension(semantic_layer_registration: None) ->
     dimension: Dimension = Dimension(id="unknown", name="unknown", type=pa.string())
     error: pytest.ExceptionInfo[SemanticQueryRejectedError]
     with pytest.raises(SemanticQueryRejectedError) as error:
-        ExampleView().get_values(dimension)
+        ExampleView().get_values(DimensionSelection(dimension))
     assert error.value.code == SemanticQueryErrorCode.INVALID_QUERY
 
 
@@ -142,13 +143,13 @@ def test_example_refuses_unsupported_search(semantic_layer_registration: None) -
     dimension: Dimension = next(iter(view.get_dimensions()))
     narrowing: Filter = Filter(
         type=PredicateType.WHERE,
-        column=dimension,
+        column=DimensionSelection(dimension),
         operator=Operator.LIKE,
         value="%A%",
     )
     error: pytest.ExceptionInfo[SemanticQueryRejectedError]
     with pytest.raises(SemanticQueryRejectedError) as error:
-        view.get_values(dimension, {narrowing})
+        view.get_values(DimensionSelection(dimension), {narrowing})
     assert error.value.code == SemanticQueryErrorCode.UNSUPPORTED_QUERY
 
 

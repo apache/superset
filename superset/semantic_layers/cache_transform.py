@@ -24,7 +24,7 @@ import pandas as pd
 import pyarrow as pa
 from superset_core.semantic_layers.types import (
     AggregationType,
-    Dimension,
+    DimensionSelection,
     Filter,
     Operator,
     SemanticQuery,
@@ -167,7 +167,7 @@ def _apply_leftovers(
     for filter_ in sorted(
         leftovers,
         key=lambda item: (
-            item.column.id if item.column else "",
+            item.column.name if item.column else "",
             item.operator.value,
         ),
     ):
@@ -221,7 +221,7 @@ def _sort_by_default_order(frame: pd.DataFrame, query: SemanticQuery) -> pd.Data
     NULL placement and tie order can differ from the provider. Limited rollups
     are accepted only when this local order cannot cut rows from the result.
     """
-    dimension: Dimension | None = default_order_dimension(query)
+    dimension: DimensionSelection | None = default_order_dimension(query)
     if dimension is None:
         return frame
     return frame.sort_values(dimension.name, kind="stable", ignore_index=True)

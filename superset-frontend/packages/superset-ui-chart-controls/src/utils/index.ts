@@ -35,3 +35,4 @@ export * from './buildSortMetricOrderby';
 export * from './isServerPaginationUnsupported';
 export * from './headerGroups';
 export * from './omitDormantTimeGrain';
+export * from './semanticGrainChoices';

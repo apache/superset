@@ -190,3 +190,31 @@ test.each([
     );
   },
 );
+
+test('one temporal member stays one native-filter column with all grain support', () => {
+  const columns = semanticViewDimensionsToColumns([
+    {
+      name: 'created_at',
+      type: 'timestamp[us]',
+      grains: ['P1D', 'P1M'],
+      allows_default_grain: false,
+      omitted_grain: 'P1D',
+      ungrained_filter: 'P1D',
+    },
+    {
+      name: 'updated_at',
+      type: 'timestamp[us]',
+      grains: ['P1D'],
+      allows_default_grain: true,
+      omitted_grain: 'native',
+      ungrained_filter: 'native',
+    },
+  ]);
+  expect(columns.map(column => column.column_name)).toEqual([
+    'created_at',
+    'updated_at',
+  ]);
+  expect(columns.every(column => column.is_dttm && column.filterable)).toBe(
+    true,
+  );
+});

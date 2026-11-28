@@ -470,3 +470,40 @@ test('fetchCompatibility ignores a stale failure after a newer success', async (
 
   postSpy.mockRestore();
 });
+
+test('fetchCompatibility retains contextual grain support beside member names', async () => {
+  const dispatch = jest.fn();
+  const support = {
+    event_time: {
+      grains: ['P1M'],
+      allows_default_grain: false,
+      omitted_grain: 'P1M',
+      ungrained_filter: 'P1D',
+    },
+  };
+  const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValueOnce({
+    json: {
+      result: {
+        compatible_metrics: ['m1'],
+        compatible_dimensions: ['event_time'],
+        dimension_support: support,
+      },
+    },
+  } as never);
+  await actions.fetchCompatibility('semantic_view', 7, ['m1'], [])(dispatch);
+  expect(
+    getCompatibilityActions(dispatch).at(-1).compatibility.dimensionSupport,
+  ).toEqual(support);
+  postSpy.mockRestore();
+});
+
+test('SQL axis changes invalidate pending compatibility without idle redispatch', async () => {
+  const dispatch = jest.fn();
+  await actions.fetchCompatibility(
+    'table',
+    3,
+    [],
+    ['event_time'],
+  )(dispatch, () => ({ explore: { compatibility: { status: 'idle' } } }));
+  expect(dispatch).not.toHaveBeenCalled();
+});

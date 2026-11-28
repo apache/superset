@@ -45,6 +45,7 @@ from superset.mcp_service.middleware import (
 from superset.mcp_service.semantic_layer.schemas import ListMetricsRequest
 from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.exceptions import SemanticLayerConfigurationError
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
@@ -117,6 +118,10 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.metrics = [_make_metric("bookings"), _make_metric("revenue", "SUM(revenue)")]
     view.columns = [_make_column("listing__country_name"), _make_column("channel")]
     view.get_compatible_dimensions = MagicMock(return_value=["listing__country_name"])
+    view.get_compatible_dimension_metadata.side_effect = lambda metrics, dimensions: {
+        Dimension(name, name, pa.string())
+        for name in view.get_compatible_dimensions(metrics, dimensions)
+    }
     return view
 
 
@@ -132,17 +137,18 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
             name=f"dimension_{i}",
             type=pa.timestamp("us"),
             definition=f"dimension_{i}",
-            grain=grain,
+            grains=frozenset(
+                {
+                    Grains.HOUR,
+                    Grains.DAY,
+                    Grains.WEEK,
+                    Grains.MONTH,
+                    Grains.QUARTER,
+                    Grains.YEAR,
+                }
+            ),
         )
         for i in range(40)
-        for grain in (
-            Grains.HOUR,
-            Grains.DAY,
-            Grains.WEEK,
-            Grains.MONTH,
-            Grains.QUARTER,
-            Grains.YEAR,
-        )
     }
     view.implementation.get_dimensions.return_value = dimensions
     view.implementation.get_metrics.return_value = []
@@ -480,6 +486,11 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
     assert [d["name"] for d in metrics["bookings"]["compatible_dimensions"]] == [
         "listing__country_name"
     ]
+    assert metrics["bookings"]["compatible_dimensions"][0]["grains"] == []
+    assert (
+        metrics["bookings"]["compatible_dimensions"][0]["allows_default_grain"] is True
+    )
+    assert metrics["bookings"]["compatible_dimensions"][0]["omitted_grain"] == "native"
     assert metrics["revenue"]["compatible_dimensions"] == []
     assert mock_view.get_compatible_dimensions.call_args_list == [
         call(["bookings"], []),
@@ -877,6 +888,66 @@ async def test_list_metrics_partial_failure_keeps_only_safe_warning(
         )
         assert "provider-private-detail" not in str(result)
         assert f"{error_class.__name__}: provider-private-detail" in caplog.text
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scoped", [False, True])
+@pytest.mark.parametrize("failure_site", ["metrics", "columns", "compatibility"])
+async def test_list_metrics_configuration_failure_preserves_recovery(
+    mcp_server: FastMCP, scoped: bool, failure_site: str
+) -> None:
+    """Skipped obsolete views mark discovery incomplete; explicit lookups fail."""
+    error: SemanticLayerConfigurationError = SemanticLayerConfigurationError()
+    view: MagicMock = _make_view(5)
+    if failure_site == "compatibility":
+        view.get_compatible_dimension_metadata.side_effect = [
+            {Dimension("channel", "channel", pa.string())},
+            error,
+        ]
+    else:
+        setattr(type(view), failure_site, PropertyMock(side_effect=error))
+    request: dict[str, object] = {"include_compatible_dimensions": True, "page_size": 4}
+    if scoped:
+        request["view_id"] = 5
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    warning: AsyncMock
+    client: Client
+    with (
+        _patched_dataset_search([]) as daos,
+        patch.object(Context, "warning", new_callable=AsyncMock) as warning,
+    ):
+        daos[1].find_accessible.return_value = [view, _make_view(6)]
+        daos[1].find_by_id.return_value = view
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": request}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    if scoped:
+        assert data["success"] is False
+        assert data["error_type"] == "SemanticViewConfigurationError"
+        assert "re-select" in data["error"]
+        assert "re-add" in data["error"]
+        assert "metrics" not in data
+        warning.assert_not_awaited()
+        view.raise_for_access.assert_called_once()
+    else:
+        assert data["success"] is True
+        assert data["incomplete"] is True
+        assert data["refused_views"] == []
+        assert data["total_count"] == 2
+        assert {(metric["view_id"], metric["name"]) for metric in data["metrics"]} == {
+            (6, "bookings"),
+            (6, "revenue"),
+        }
+        warning.assert_awaited_once()
+        assert warning.await_args is not None
+        warning_text: str = warning.await_args.args[0]
+        assert "view 5 (view_5)" in warning_text
+        assert "re-select" in warning_text
+        assert "re-add" in warning_text
+        view.raise_for_access.assert_not_called()
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")

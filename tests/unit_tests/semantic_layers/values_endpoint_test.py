@@ -562,7 +562,9 @@ def test_versioned_suggestions_require_selection_provenance(
         cache.get.assert_called_once()
         assert implementation.get_values.call_count == (0 if cached else 1)
         if not cached:
-            assert implementation.get_values.call_args.args[0].id == "category"
+            assert (
+                implementation.get_values.call_args.args[0].dimension.id == "category"
+            )
     else:
         assert response.json == {
             "result": [],
@@ -694,7 +696,9 @@ def test_disabled_compatible_cache_skips_reads_and_writes(
         SemanticView, "get_compatible_metrics", return_value=["revenue"]
     )
     dimensions: MagicMock = mocker.patch.object(
-        SemanticView, "get_compatible_dimensions", return_value=["category"]
+        SemanticView,
+        "get_compatible_dimension_metadata",
+        return_value={Dimension("category", "category", pa.string())},
     )
     cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
     cache.get.return_value = {"stale": True} if warm else None
@@ -707,9 +711,17 @@ def test_disabled_compatible_cache_skips_reads_and_writes(
     assert response.json["result"] == {
         "compatible_metrics": ["revenue"],
         "compatible_dimensions": ["category"],
+        "dimension_support": {
+            "category": {
+                "grains": [],
+                "allows_default_grain": True,
+                "omitted_grain": "native",
+                "ungrained_filter": "native",
+            }
+        },
     }
-    metrics.assert_called_once_with([], [])
-    dimensions.assert_called_once_with([], [])
+    metrics.assert_called_once_with([], [], {})
+    dimensions.assert_called_once_with([], [], {})
     cache.get.assert_not_called()
     cache.set.assert_not_called()
 
@@ -736,7 +748,9 @@ def test_enabled_suggestion_caches_preserve_timeout_and_hits(
     mocker.patch.dict(current_app.config, {"CACHE_DEFAULT_TIMEOUT": default_timeout})
     mocker.patch.object(SemanticView, "get_compatible_metrics", return_value=[])
     mocker.patch.object(
-        SemanticView, "get_compatible_dimensions", return_value=["category"]
+        SemanticView,
+        "get_compatible_dimension_metadata",
+        return_value={Dimension("category", "category", pa.string())},
     )
     cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
     cache.get.return_value = None
@@ -775,11 +789,13 @@ def test_compatible_cache_invalidates_after_datasource_edit(
         SemanticView, "get_compatible_metrics", return_value=["old_metric"]
     )
     dimensions: MagicMock = mocker.patch.object(
-        SemanticView, "get_compatible_dimensions", return_value=["category"]
+        SemanticView,
+        "get_compatible_dimension_metadata",
+        return_value={Dimension("category", "category", pa.string())},
     )
-    entries: dict[str, dict[str, list[str]]] = {}
+    entries: dict[str, dict[str, Any]] = {}
 
-    def write_entry(key: str, value: dict[str, list[str]], timeout: int) -> None:
+    def write_entry(key: str, value: dict[str, Any], timeout: int) -> None:
         entries[key] = value
 
     cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
