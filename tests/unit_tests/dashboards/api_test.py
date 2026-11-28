@@ -23,6 +23,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.dashboards.schemas import DashboardGetResponseSchema
 from superset.utils import json
 
@@ -240,13 +241,92 @@ def test_export_as_example_is_refused_without_a_user_id(
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """``export_as_example`` carries ``@permission_name("export")``, so the same
-    grant reaches it, and it emits dataset YAML plus Parquet rows."""
+    """``export_as_example`` emits dataset YAML plus Parquet rows, so it is
+    refused for callers without a user id."""
     mocker.patch("superset.dashboards.api.get_user_id", return_value=None)
 
     response = client.get("/api/v1/dashboard/1/export_as_example/")
 
     assert response.status_code == 403
+
+
+def _grant_only_on_dashboard(mocker: MockerFixture, permission: str) -> None:
+    """Grant exactly one permission on Dashboard, as a custom role would hold it."""
+    mocker.patch(
+        "flask_appbuilder.security.decorators.verify_jwt_in_request",
+        return_value=True,
+    )
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    mocker.patch.object(
+        security_manager,
+        "has_access",
+        side_effect=lambda perm, view: (perm, view) == (permission, "Dashboard"),
+    )
+    mocker.patch("superset.dashboards.api.get_user_id", return_value=1)
+
+
+def test_export_as_example_requires_its_own_permission(
+    session: Session,
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """``can_export`` no longer opens the example export."""
+    _grant_only_on_dashboard(mocker, "can_export")
+
+    response = client.get("/api/v1/dashboard/1/export_as_example/")
+
+    assert response.status_code == 403
+
+
+def test_export_as_example_is_allowed_with_its_own_permission(
+    session: Session,
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """``can_export_as_example`` alone gets past the permission check. The
+    command is stubbed to report a missing dashboard, so the request ends at
+    404, not 403."""
+    _grant_only_on_dashboard(mocker, "can_export_as_example")
+    mocker.patch(
+        "superset.dashboards.api.ExportExampleCommand",
+        return_value=MagicMock(run=MagicMock(side_effect=DashboardNotFoundError())),
+    )
+
+    response = client.get("/api/v1/dashboard/1/export_as_example/")
+
+    assert response.status_code == 404
+
+
+def test_export_bundle_is_not_opened_by_the_example_permission(
+    session: Session,
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """The permission split goes both ways: ``can_export_as_example`` does not
+    open the YAML bundle export."""
+    _grant_only_on_dashboard(mocker, "can_export_as_example")
+
+    response = client.get("/api/v1/dashboard/export/?q=!(1)")
+
+    assert response.status_code == 403
+
+
+def test_export_bundle_is_allowed_with_can_export(
+    session: Session,
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """``can_export`` alone still opens the YAML bundle export. The command is
+    stubbed to report a missing dashboard, so the request ends at 404, not 403."""
+    _grant_only_on_dashboard(mocker, "can_export")
+    mocker.patch(
+        "superset.dashboards.api.ExportDashboardsCommand",
+        return_value=MagicMock(run=MagicMock(side_effect=DashboardNotFoundError())),
+    )
+
+    response = client.get("/api/v1/dashboard/export/?q=!(1)")
+
+    assert response.status_code == 404
 
 
 def test_export_bundle_is_not_refused_for_logged_in_users(

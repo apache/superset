@@ -1819,7 +1819,6 @@ class DashboardRestApi(
     @expose("/<pk>/export_as_example/", methods=("GET",))
     @protect()
     @safe
-    @permission_name("export")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (
@@ -1873,7 +1872,8 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        # Same permission and the same audience as the bundle export.
+        # Gated by its own ``can_export_as_example`` permission. Like the bundle
+        # export, it is refused for sessions with no user id.
         if get_user_id() is None:
             return self.response_403()
 

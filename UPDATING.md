@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard "Export as Example" (`GET /api/v1/dashboard/<pk>/export_as_example/`)
+  is now gated by its own `can_export_as_example on Dashboard` permission
+  instead of `can_export on Dashboard`. The permission is granted only to the
+  `Admin` role by default, so Alpha, Gamma and other roles that could export a
+  dashboard as YAML can no longer export it as an example. Run `superset init`
+  to create the permission, and grant it to additional roles if needed.
+
 - MCP `get_table` query failures now populate `error_code`. Untyped dataset
   engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
   specific `SupersetErrorType` code for typed errors, while guests receive
