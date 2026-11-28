@@ -49,8 +49,13 @@ const ASYNC_PAGE_SIZE = 200;
 interface CompactSelectPanelProps {
   selects?: Filter['selects'];
   fetchSelects?: Filter['fetchSelects'];
-  value?: SelectOption;
-  onSelect: (option: SelectOption | undefined, isClear?: boolean) => void;
+  /** Allow picking several options; the panel stays open between picks. */
+  multiple?: boolean;
+  value?: SelectOption | SelectOption[];
+  onSelect: (
+    option: SelectOption | SelectOption[] | undefined,
+    isClear?: boolean,
+  ) => void;
   onClose?: () => void;
   isOpen?: boolean;
   /** Forwarded from the filter config's popupStyle for per-filter width overrides */
@@ -135,6 +140,7 @@ function CompactSelectPanel(
   {
     selects = [],
     fetchSelects,
+    multiple = false,
     value,
     onSelect,
     onClose,
@@ -220,8 +226,14 @@ function CompactSelectPanel(
 
   const showSearch = !!fetchSelects || selects.length > SEARCH_THRESHOLD;
 
+  const selectedValues = (
+    Array.isArray(value) ? value : value ? [value] : []
+  ).map(v => v.value);
+  const isSelected = (opt: SelectOption) =>
+    selectedValues.some(v => v === opt.value);
+
   const handleSelect = (opt: SelectOption, displayText?: string) => {
-    const isDeselect = value?.value === opt.value;
+    const isDeselect = isSelected(opt);
     // Normalize to a plain string label for URL serialization:
     // 1. String labels pass through unchanged.
     // 2. ReactNode labels with a `title` field use that (set by callers for
@@ -231,6 +243,15 @@ function CompactSelectPanel(
       typeof opt.label === 'string'
         ? opt.label
         : (opt.title ?? displayText ?? String(opt.value ?? ''));
+    if (multiple) {
+      // Toggle the option and keep the panel open so several can be picked.
+      const current = Array.isArray(value) ? value : value ? [value] : [];
+      const next = isDeselect
+        ? current.filter(v => v.value !== opt.value)
+        : [...current, { label, value: opt.value }];
+      onSelect(next.length ? next : undefined, !next.length);
+      return;
+    }
     const next = isDeselect ? undefined : { label, value: opt.value };
     onSelect(next, isDeselect);
     onClose?.();
@@ -263,15 +284,19 @@ function CompactSelectPanel(
           rich per-option content (active state, icons); native <select>/
           <option> can't render that, so the ARIA listbox pattern is used
           instead of the tag the linter suggests. */}
-      {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
-      <OptionList role="listbox" aria-label={t('Filter options')}>
+      <OptionList
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+        role="listbox"
+        aria-label={t('Filter options')}
+        aria-multiselectable={multiple || undefined}
+      >
         {isLoading ? (
           <StatusText>{t('Loading...')}</StatusText>
         ) : displayOptions.length === 0 ? (
           <StatusText>{t('No results')}</StatusText>
         ) : (
           displayOptions.map((opt, i) => {
-            const isActive = value?.value === opt.value;
+            const isActive = isSelected(opt);
             const getDisplayText = (el: HTMLElement) =>
               el.textContent?.trim() || undefined;
             const isFirst = i === 0;

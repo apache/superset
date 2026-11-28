@@ -45,6 +45,16 @@ import CompactFilterTrigger from './CompactFilterTrigger';
 import CompactSelectPanel from './CompactSelectPanel';
 import FilterPopoverContent from './FilterPopoverContent';
 
+// Normalize a select filter value (one option, a list of options, or empty)
+// into a list of options.
+const toSelectOptions = (value: unknown): SelectOption[] => {
+  const list: unknown[] = Array.isArray(value) ? value : value ? [value] : [];
+  return list.filter(
+    (v): v is SelectOption =>
+      !!v && typeof v === 'object' && 'value' in v && v.value != null,
+  );
+};
+
 interface UIFiltersProps {
   filters: Filters;
   internalFilters: InternalFilter[];
@@ -81,18 +91,19 @@ function UIFilters(
     filters.forEach((filter, index) => {
       if (filter.input !== 'select' || !filter.fetchSelects) return;
       if (tooltipLabels[index]) return;
-      const val = internalFilters?.[index]?.value as SelectOption | undefined;
-      if (!val?.value) return;
+      const vals = toSelectOptions(internalFilters?.[index]?.value);
+      if (!vals.length) return;
       filter.fetchSelects('', 0, 500).then(result => {
-        const match = result?.data?.find(
-          (s: SelectOption) => s.value === val.value,
-        );
-        if (match) {
-          const lbl =
+        const labels = vals
+          .map(val => result?.data?.find(s => s.value === val.value))
+          .filter((match): match is SelectOption => !!match)
+          .map(match =>
             typeof match.label === 'string'
               ? match.label
-              : (match.title ?? String(match.value ?? ''));
-          setTooltipLabels(prev => ({ ...prev, [index]: lbl }));
+              : (match.title ?? String(match.value ?? '')),
+          );
+        if (labels.length) {
+          setTooltipLabels(prev => ({ ...prev, [index]: labels.join(', ') }));
         }
       });
     });
@@ -184,25 +195,30 @@ function UIFilters(
       inputName,
       popupStyle,
       dateFilterValueType,
+      selectMode,
     } = filters[index];
     const initialValue = internalFilters?.[index]?.value;
     if (input === 'select') {
-      const selectValue = initialValue as SelectOption | undefined;
+      const isMultiple = selectMode === 'multiple';
+      const selectedOptions = toSelectOptions(initialValue);
+      const hasSelectValue = selectedOptions.length > 0;
       // Prefer cached label (survives URL round-trips where only the value
       // is preserved). Fall back to the static selects list for cold loads.
       const cachedLabel = tooltipLabels[index];
-      const staticFallback = cachedLabel
+      const staticLabel = cachedLabel
         ? undefined
-        : selects?.find(s => s.value === selectValue?.value)?.label;
-      const tooltipTitle = !!selectValue
-        ? cachedLabel ||
-          (typeof staticFallback === 'string' ? staticFallback : undefined)
+        : selectedOptions
+            .map(o => selects?.find(s => s.value === o.value)?.label)
+            .filter((l): l is string => typeof l === 'string')
+            .join(', ');
+      const tooltipTitle = hasSelectValue
+        ? cachedLabel || staticLabel || undefined
         : t('Choose...');
       return (
         <span key={key} data-test="select-filter-container">
           <CompactFilterTrigger
             label={Header}
-            hasValue={!!selectValue}
+            hasValue={hasSelectValue}
             tooltipTitle={tooltipTitle}
             onClear={() => clearFilterAtIndex(index)}
           >
@@ -211,23 +227,33 @@ function UIFilters(
                 ref={filterRefs[index]}
                 selects={selects}
                 fetchSelects={fetchSelects}
-                value={initialValue as SelectOption | undefined}
+                multiple={isMultiple}
+                value={
+                  isMultiple
+                    ? selectedOptions
+                    : (initialValue as SelectOption | undefined)
+                }
                 loading={loading ?? false}
                 isOpen={isOpen}
                 onClose={onClose}
                 panelStyle={popupStyle}
                 onSelect={(
-                  option: SelectOption | undefined,
+                  option: SelectOption | SelectOption[] | undefined,
                   isClear?: boolean,
                 ) => {
                   if (option && !isClear) {
                     setTooltipLabels(prev => ({
                       ...prev,
-                      [index]:
-                        typeof option.label === 'string'
-                          ? option.label
-                          : String(option.value ?? ''),
+                      [index]: toSelectOptions(option)
+                        .map(o =>
+                          typeof o.label === 'string'
+                            ? o.label
+                            : String(o.value ?? ''),
+                        )
+                        .join(', '),
                     }));
+                  } else if (isClear) {
+                    setTooltipLabels(({ [index]: _removed, ...rest }) => rest);
                   }
                   if (onFilterUpdate && !isClear) {
                     onFilterUpdate(option);

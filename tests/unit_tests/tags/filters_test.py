@@ -83,3 +83,55 @@ def test_base_tag_filter_by_id(session: Session, model: Model, id: int) -> None:
 
     # Assert the WHERE clause is correct
     assert str(compiled_query).endswith(f"WHERE tag.id = {id})")
+
+
+@pytest.mark.parametrize("model", FILTER_MODELS)
+def test_base_tag_filter_by_multiple_ids(session: Session, model: Model) -> None:
+    """Multiple tag IDs match objects tagged with all of them (AND)."""
+    table = model.__tablename__
+    engine = session.get_bind()
+    query = session.query(model)
+
+    filter = BaseTagIdFilter("tags", SQLAInterface(model))
+    filter.id_based_filter = True
+    final_query = filter.apply(query, [3, 5, 3])
+    compiled = str(
+        final_query.statement.compile(
+            engine,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert "WHERE tag.id IN (3, 5)" in compiled
+    assert f"GROUP BY {table}.id" in compiled
+    assert "HAVING count(DISTINCT tag.id) = 2" in compiled
+
+
+@pytest.mark.parametrize("model", FILTER_MODELS)
+def test_base_tag_filter_by_empty_ids(session: Session, model: Model) -> None:
+    """An empty list of tag IDs leaves the query unfiltered."""
+    query = session.query(model)
+
+    filter = BaseTagIdFilter("tags", SQLAInterface(model))
+    assert filter.apply(query, []) is query
+
+
+@pytest.mark.parametrize("model", FILTER_MODELS)
+def test_base_tag_filter_by_ids_normalizes_values(
+    session: Session, model: Model
+) -> None:
+    """String and int forms of the same ID count once; non-IDs are ignored."""
+    engine = session.get_bind()
+    query = session.query(model)
+
+    filter = BaseTagIdFilter("tags", SQLAInterface(model))
+    final_query = filter.apply(query, [3, "3", "5", "abc", True])
+    compiled = str(
+        final_query.statement.compile(
+            engine,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert "WHERE tag.id IN (3, 5)" in compiled
+    assert "HAVING count(DISTINCT tag.id) = 2" in compiled
