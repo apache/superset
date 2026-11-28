@@ -33,6 +33,8 @@ def _make_sm(*, is_admin: bool = False, can_access_all: bool = False) -> MagicMo
     sm = MagicMock()
     sm.is_admin = MagicMock(return_value=is_admin)
     sm.can_access_all_datasources = MagicMock(return_value=can_access_all)
+    sm.can_access_all_dashboards = MagicMock(return_value=False)
+    sm.can_access_all_charts = MagicMock(return_value=False)
     sm.is_guest_user = MagicMock(return_value=False)
     sm.user_model = MagicMock()
     sm.user_model.id = 1

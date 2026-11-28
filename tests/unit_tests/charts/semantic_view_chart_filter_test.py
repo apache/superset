@@ -248,6 +248,7 @@ def _apply_chart_filter(
     sm: MagicMock = MagicMock()
     sm.is_admin.return_value = False
     sm.can_access_all_datasources.return_value = all_datasources
+    sm.can_access_all_charts.return_value = False
     sm.get_accessible_databases.return_value = accessible_databases
     sm.user_view_menu_names.side_effect = lambda perm: view_menus[perm]
 
@@ -477,6 +478,7 @@ def test_hard_deleted_dataset_hides_orphaned_chart_for_every_grant(
     with (
         patch.object(security_manager, "is_admin", return_value=False),
         patch.object(security_manager, "is_editor", return_value=False),
+        patch.object(security_manager, "can_access_all_charts", return_value=False),
         patch.object(security_manager, "is_guest_user", return_value=False),
         patch.object(
             security_manager, "get_chart_access_error_object", return_value=MagicMock()

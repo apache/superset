@@ -205,6 +205,7 @@ def test_chart_filter_non_guest_skips_guest_branch(mocker: MockerFixture) -> Non
     mocker.patch.object(
         security_manager, "can_access_all_datasources", return_value=False
     )
+    mocker.patch.object(security_manager, "can_access_all_charts", return_value=False)
     guest_filter: MagicMock = mocker.patch(
         "superset.charts.filters.guest_embedded_dashboard_filter", return_value=None
     )

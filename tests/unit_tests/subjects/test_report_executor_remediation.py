@@ -70,6 +70,7 @@ def _gate(
         patch.object(sm, "is_editor", return_value=is_editor),
         patch.object(sm, "is_viewer", return_value=is_viewer),
         patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access_all_dashboards", return_value=False),
         patch.object(sm, "get_dashboard_access_error_object", return_value=MagicMock()),
     ):
         sm.raise_for_access(dashboard=dashboard)

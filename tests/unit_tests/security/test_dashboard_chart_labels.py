@@ -136,6 +136,7 @@ def test_chart_labels_reuse_denied_datasource_access(
         patch.object(
             Slice, "resolved_datasource", new_callable=PropertyMock
         ) as resolved,
+        patch.object(manager, "can_access_all_charts", return_value=False),
         patch.object(manager, "can_access_datasource") as datasource_check,
     ):
         assert (
@@ -165,6 +166,7 @@ def test_chart_labels_keep_full_check_without_denied_datasource_hint(
         patch.object(
             Slice, "resolved_datasource", new_callable=PropertyMock, return_value=table
         ),
+        patch.object(manager, "can_access_all_charts", return_value=False),
         patch.object(manager, "can_access_datasource", return_value=True) as check,
     ):
         assert manager.can_access_dashboard_chart_labels(
@@ -191,6 +193,7 @@ def test_chart_labels_preserve_configured_access_bypass(
         patch.object(
             Slice, "resolved_datasource", new_callable=PropertyMock, return_value=table
         ),
+        patch.object(manager, "can_access_all_charts", return_value=False),
         patch.object(manager, "can_access_datasource", return_value=False) as check,
     ):
         assert (
