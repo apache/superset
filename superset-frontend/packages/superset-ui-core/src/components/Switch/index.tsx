@@ -16,4 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { Switch, type SwitchProps } from 'antd';
+import { Switch as AntdSwitch } from 'antd';
+import { withNonTextContrast } from '../AntdThemeProvider/NonTextContrastProvider';
+
+export const Switch = withNonTextContrast(AntdSwitch, {
+  keepDisabledColors: true,
+});
+export type { SwitchProps } from 'antd';

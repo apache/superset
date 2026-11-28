@@ -24,6 +24,7 @@
  */
 export * from './Input';
 export { AntdThemeProvider } from './AntdThemeProvider';
+export { useNonTextContrastColor } from './AntdThemeProvider/NonTextContrastProvider';
 export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,

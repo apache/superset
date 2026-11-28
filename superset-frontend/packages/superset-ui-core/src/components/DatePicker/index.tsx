@@ -18,17 +18,23 @@
  */
 import { DatePicker as AntdDatePicker } from 'antd';
 import { css } from '@apache-superset/core/theme';
+import {
+  NonTextContrastProvider,
+  withNonTextContrast,
+} from '../AntdThemeProvider/NonTextContrastProvider';
 import type { DatePickerProps, RangePickerProps } from './types';
 
 export const DatePicker = (props: DatePickerProps) => (
-  <AntdDatePicker
-    css={css`
-      width: 100%;
-    `}
-    {...props}
-  />
+  <NonTextContrastProvider>
+    <AntdDatePicker
+      css={css`
+        width: 100%;
+      `}
+      {...props}
+    />
+  </NonTextContrastProvider>
 );
 
-export const { RangePicker } = AntdDatePicker;
+export const RangePicker = withNonTextContrast(AntdDatePicker.RangePicker);
 
 export type { DatePickerProps, RangePickerProps };
