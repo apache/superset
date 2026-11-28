@@ -52,6 +52,11 @@ const TEMPLATE_ONLY_KEYS = new Set(['valueFormatter']);
 const FUNCTION_ONLY_KEYS = new Set(['labelLayout']);
 // Opened as URLs by ECharts on click.
 const URL_KEYS = new Set(['link', 'sublink']);
+// JavaScript source in a TEMPLATE_KEYS string: ECharts would draw it as text.
+const JAVASCRIPT_FUNCTION =
+  /^\s*(?:async\s+)?(?:function\b\s*[\w$]*\s*\(|(?:\([^)]*\)|[\w$]+)\s*=>)/;
+const FUNCTION_ALTERNATIVES =
+  'use {"$template": "<Handlebars>"} where ECharts takes a formatter, or an ECharts template string such as \'{c} USD\'';
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -157,6 +162,15 @@ function resolveValue(value: unknown, ctx: BindContext): unknown {
         }
         if (TEMPLATE_KEYS.has(key) && isTemplate(item)) {
           return [key, compileTemplate(item.$template)];
+        }
+        if (
+          TEMPLATE_KEYS.has(key) &&
+          typeof item === 'string' &&
+          JAVASCRIPT_FUNCTION.test(item)
+        ) {
+          throw new Error(
+            `"${key}" is a JavaScript function, which a JSON option cannot carry; ${FUNCTION_ALTERNATIVES}`,
+          );
         }
         return [key, resolveValue(item, ctx)];
       }),

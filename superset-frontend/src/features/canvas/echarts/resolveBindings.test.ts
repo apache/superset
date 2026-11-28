@@ -235,3 +235,34 @@ test('a $template compiles to a formatter function, valueFormatter included', ()
   };
   expect(xAxis.axisLabel.formatter(5)).toBe('5 kg');
 });
+
+test.each([
+  'function (p) { return "$" + p.value; }',
+  'async function format(p) { return p.value }',
+  '(p) => p.value',
+  'p => p.value',
+  "value => value + ' USD'",
+  'p => p',
+])('a JavaScript function string is refused, not drawn as text: %s', source => {
+  expect(() => resolveOption({ tooltip: { formatter: source } }, ctx)).toThrow(
+    /"formatter" is a JavaScript function.*\$template/,
+  );
+  expect(() =>
+    resolveOption({ series: [{ label: { formatter: source } }] }, ctx),
+  ).toThrow(/is a JavaScript function/);
+});
+
+test('ECharts template strings and ordinary text are not functions', () => {
+  const option = resolveOption(
+    {
+      tooltip: { formatter: '{b}: {c} USD' },
+      title: { text: '2023 => 2024 (forecast)', subtext: 'function (beta) x' },
+      legend: { data: ['Old => New (2024)'] },
+      series: [{ name: 'f => growth' }],
+    },
+    ctx,
+  );
+  expect((option.tooltip as { formatter: string }).formatter).toBe(
+    '{b}: {c} USD',
+  );
+});

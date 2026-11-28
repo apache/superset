@@ -52,6 +52,7 @@ from superset.mcp_service.canvas.tool.canvas_ops_common import (
 )
 from superset.models.canvas import Canvas
 from superset.utils import json
+from superset.widgets.controls import FUNCTION_ALTERNATIVES, javascript_functions
 
 logger = logging.getLogger(__name__)
 
@@ -276,6 +277,17 @@ def _preview_widget_impl(
             }, None
         widget_type, props = widget.widget_type, widget.props
     result.update(placement_id=placement_id, widget_type=widget_type)
+    if widget_type == "echarts" and (
+        found := javascript_functions(props.get("echartsOptions"))
+    ):
+        return {
+            **result,
+            "error": (
+                f"echartsOptions.{found[0]} is a JavaScript function, which the "
+                f"widget shows as text instead of running; {FUNCTION_ALTERNATIVES}"
+            ),
+            "error_type": "WidgetContentError",
+        }, None
     try:
         rows = _with_rows(result, props, runtime_filters)
     except Exception as ex:  # pylint: disable=broad-except

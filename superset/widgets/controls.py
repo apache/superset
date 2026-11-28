@@ -29,6 +29,7 @@ mandatory leaves, leaving optional/styling fields behind a drill-in.
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Any, ClassVar, Literal
 
 from pydantic import (
@@ -46,6 +47,46 @@ from pydantic import (
 from superset_core.widgets import MetricControl
 
 FilterScalar = str | int | float | bool
+
+# The option keys ECharts calls as functions and otherwise draws as text; only
+# these are checked, so prose elsewhere (`"2023 => 2024"`) is never refused.
+_FUNCTION_KEYS = frozenset({"formatter", "valueFormatter"})
+# JavaScript source rather than a template: `function (p) {...}` or an arrow
+# function. ECharts template strings (`{c} USD`) don't match.
+_JAVASCRIPT_FUNCTION = re.compile(
+    r"^\s*(?:async\s+)?(?:function\b\s*[\w$]*\s*\(|(?:\([^)]*\)|[\w$]+)\s*=>)"
+)
+FUNCTION_ALTERNATIVES = (
+    'use {"$template": "<Handlebars>"} where ECharts takes a formatter, or an '
+    "ECharts template string such as '{c} USD'"
+)
+
+
+def javascript_functions(value: Any, path: str = "", key: str = "") -> list[str]:
+    """Dotted paths of the formatters in ``value`` that are JavaScript functions.
+
+    A JSON option can't carry a function: ECharts draws the source text as the
+    label or tooltip, so such a string is refused rather than stored.
+    """
+    if isinstance(value, str):
+        function = key in _FUNCTION_KEYS and _JAVASCRIPT_FUNCTION.match(value)
+        return [path] if function else []
+    if isinstance(value, dict):
+        return [
+            found
+            for name, item in value.items()
+            for found in javascript_functions(
+                item, f"{path}.{name}" if path else name, name
+            )
+        ]
+    if isinstance(value, list):
+        return [
+            found
+            for index, item in enumerate(value)
+            for found in javascript_functions(item, f"{path}[{index}]")
+        ]
+    return []
+
 
 ColumnOperator = Literal[
     "=",
@@ -523,6 +564,16 @@ class EchartsControls(BaseModel):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("echarts_options")
+    @classmethod
+    def _no_javascript(cls, options: dict[str, Any]) -> dict[str, Any]:
+        if found := javascript_functions(options):
+            raise ValueError(
+                f"{found[0]} is a JavaScript function, which a JSON option "
+                f"cannot carry; {FUNCTION_ALTERNATIVES}"
+            )
+        return options
 
     data_binding: DataBinding = Field(
         alias="dataBinding",
