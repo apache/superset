@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import csv
 import warnings
 from io import BytesIO, StringIO
 from typing import Any
@@ -22,6 +23,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
@@ -42,7 +44,7 @@ from superset.charts.client_processing import (
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils import excel, json
 from superset.utils.core import GenericDataType
-from superset.utils.csv import chart_data_to_dataframe
+from superset.utils.csv import chart_data_to_dataframe, df_to_escaped_csv
 from tests.conftest import with_config
 
 
@@ -6852,17 +6854,10 @@ def test_ag_grid_table_export_is_left_unchanged(
 @with_config({"CSV_EXPORT": {"quotechar": "'"}})
 def test_ag_grid_table_csv_export_survives_a_custom_quotechar() -> None:
     """
-    An AG Grid CSV attachment is not parsed, so a custom quote character cannot
-    break the report.
+    An AG Grid CSV attachment with a custom quote character goes out unchanged.
 
-    ``QueryContextProcessor.get_data`` writes the attachment with every
-    ``CSV_EXPORT`` key, while the reader here is handed only ``sep`` and
-    ``decimal``. Under a configured ``quotechar`` the two disagree: the writer
-    quotes ``Doe, Jane`` with ``'`` and the reader, still on ``"``, sees three
-    fields against a two column header and raises ``ParserError``, failing the
-    whole report where the attachment itself was fine. A comma in the first data
-    row instead makes ``read_csv`` infer an index and mis-parse in silence, so
-    the raise needs a clean first row.
+    The writer quotes ``Doe, Jane`` with ``'``, and the attachment is passed
+    through as it came in rather than parsed and rewritten.
     """
     source_df: pd.DataFrame = pd.DataFrame(
         {"name": ["Smith", "Doe, Jane"], "total_amount": [15, 20]}
@@ -6885,6 +6880,77 @@ def test_ag_grid_table_csv_export_survives_a_custom_quotechar() -> None:
     ][0]
 
     assert query["data"] == attachment
+
+
+@pytest.mark.parametrize(
+    "csv_export, dialect",
+    [
+        ({}, {}),
+        ({"quotechar": "'"}, {"quotechar": "'"}),
+        ({"quoting": csv.QUOTE_NONE}, {"quoting": csv.QUOTE_NONE, "escapechar": "\\"}),
+        (
+            {"quoting": csv.QUOTE_NONE, "quotechar": None},
+            {"quoting": csv.QUOTE_NONE, "escapechar": "\\"},
+        ),
+        (
+            {"sep": ";", "decimal": ",", "quotechar": "'"},
+            {"delimiter": ";", "quotechar": "'"},
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "names",
+    [
+        ["Smith", "Doe, Jane", "it's", '"Q" Corp'],
+        ["Doe, Jane", "Smith", "it's", '"Q" Corp'],
+    ],
+)
+@pytest.mark.parametrize("viz_type", ["table", "pivot_table_v2"])
+def test_csv_export_quoting_survives_post_processing(
+    csv_export: dict[str, Any],
+    dialect: dict[str, Any],
+    names: list[str],
+    viz_type: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    A table or pivot CSV is read back with the quoting it was written with.
+
+    ``QueryContextProcessor.get_data`` writes the CSV with every ``CSV_EXPORT``
+    key. Read with the default ``"`` instead, a cell holding the separator
+    splits: ``read_csv`` raises ``ParserError`` when that row is not the first,
+    and when it is, reads the extra field as an index and shifts the values one
+    column over. A cell quoted only for its own quote character keeps the quotes
+    as text. Under ``QUOTE_NONE`` nothing is quoted, so a cell starting with
+    ``"`` is text too.
+    """
+    monkeypatch.setitem(current_app.config, "CSV_EXPORT", csv_export)
+    source_df = pd.DataFrame({"name": names, "amount": [1, 2, 3, 4]})
+    form_data: dict[str, Any] = (
+        {"viz_type": "table", "columns": ["name", "amount"], "metrics": []}
+        if viz_type == "table"
+        else {
+            "viz_type": "pivot_table_v2",
+            "groupbyRows": ["name"],
+            "groupbyColumns": [],
+            "metrics": ["amount"],
+            "aggregateFunction": "Sum",
+            "metricsLayout": "COLUMNS",
+        }
+    )
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": df_to_escaped_csv(source_df, index=False, **csv_export),
+            }
+        ]
+    }
+
+    query = apply_client_processing(result, form_data)["queries"][0]
+
+    rows = list(csv.reader(StringIO(query["data"]), **dialect))
+    assert dict(rows[1:]) == dict(zip(names, ["1", "2", "3", "4"], strict=True))
 
 
 @pytest.mark.parametrize(

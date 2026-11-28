@@ -27,6 +27,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 import logging
 import re
 from collections.abc import Callable
+from csv import QUOTE_NONE
 from decimal import Decimal
 from functools import partial
 from io import BytesIO, StringIO
@@ -2043,6 +2044,21 @@ def _is_default_index_column(series: pd.Series) -> bool:
     return series.tolist() == list(range(len(series)))
 
 
+def csv_read_options(csv_export_config: dict[str, Any]) -> dict[str, Any]:
+    """
+    The ``read_csv`` quoting options that parse a CSV written under ``CSV_EXPORT``.
+
+    ``QueryContextProcessor.get_data`` writes the CSV with every ``CSV_EXPORT``
+    key. A configured quote character has to be read with the same character, or
+    a quoted cell holding the separator splits. ``QUOTE_NONE`` quotes nothing,
+    and ``df_to_escaped_csv`` escapes the separator with a backslash instead, so
+    the reader quotes nothing either and takes the backslash as an escape.
+    """
+    if csv_export_config.get("quoting") == QUOTE_NONE:
+        return {"quoting": QUOTE_NONE, "escapechar": "\\"}
+    return {"quotechar": csv_export_config.get("quotechar", '"')}
+
+
 def _read_excel_for_client_processing(
     data: bytes,
     form_data: dict[str, Any],
@@ -2150,13 +2166,8 @@ def apply_client_processing(  # noqa: C901
             # fetches its own JSON result rather than reading them off an
             # attachment.
             #
-            # Parsing anyway can only lose. ``read_csv`` below is handed ``sep``
-            # and ``decimal`` but not the ``quotechar``, ``quoting``,
-            # ``escapechar`` or ``lineterminator`` the writer took from
-            # ``CSV_EXPORT``, so under a custom quote a cell holding the
-            # separator splits: it raises ``ParserError`` and fails the report
-            # where the row is not the first, and where it is, the extra field
-            # is read as an index and the value lands in the wrong column. A
+            # Parsing anyway can only lose. A round trip through ``read_csv``
+            # and the writer below is not exact for every ``CSV_EXPORT``, and a
             # large workbook also spends seconds in ``read_excel`` for a frame
             # that is thrown away.
             continue
@@ -2201,6 +2212,7 @@ def apply_client_processing(  # noqa: C901
                 na_values=na_values,
                 sep=sep,
                 decimal=decimal,
+                **csv_read_options(csv_export_config),
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
             df = _read_excel_for_client_processing(
