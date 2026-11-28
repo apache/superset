@@ -100,111 +100,106 @@ fetchMock.get(groupsEndpoint, {
 fetchMock.delete(roleEndpoint, {});
 fetchMock.put(roleEndpoint, {});
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('RolesList', () => {
-  async function renderAndWait() {
-    const mounted = act(async () => {
-      const mockedProps = {};
-      render(
-        <MemoryRouter>
-          <QueryParamProvider adapter={ReactRouter5Adapter}>
-            <RolesList
-              user={mockUser}
-              addDangerToast={() => {}}
-              addSuccessToast={() => {}}
-              {...mockedProps}
-            />
-          </QueryParamProvider>
-        </MemoryRouter>,
-        { useRedux: true, store },
-      );
-    });
-    return mounted;
-  }
-  beforeEach(() => {
-    fetchMock.clearHistory();
+async function renderAndWait() {
+  const mounted = act(async () => {
+    const mockedProps = {};
+    render(
+      <MemoryRouter>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <RolesList
+            user={mockUser}
+            addDangerToast={() => {}}
+            addSuccessToast={() => {}}
+            {...mockedProps}
+          />
+        </QueryParamProvider>
+      </MemoryRouter>,
+      { useRedux: true, store },
+    );
   });
+  return mounted;
+}
+beforeEach(() => {
+  fetchMock.clearHistory();
+});
 
-  test('renders', async () => {
-    await renderAndWait();
-    expect(await screen.findByText('List Roles')).toBeInTheDocument();
+test('renders', async () => {
+  await renderAndWait();
+  expect(await screen.findByText('List Roles')).toBeInTheDocument();
+});
+
+test('fetches roles on load', async () => {
+  await renderAndWait();
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(rolesEndpoint);
+    expect(calls.length).toBeGreaterThan(0);
   });
+});
 
-  test('fetches roles on load', async () => {
-    await renderAndWait();
-    await waitFor(() => {
-      const calls = fetchMock.callHistory.calls(rolesEndpoint);
-      expect(calls.length).toBeGreaterThan(0);
-    });
+test('does not fetch permissions or groups on load', async () => {
+  await renderAndWait();
+  await waitFor(() => {
+    const permissionCalls = fetchMock.callHistory.calls(permissionsEndpoint);
+    const groupCalls = fetchMock.callHistory.calls(groupsEndpoint);
+    expect(permissionCalls.length).toBe(0);
+    expect(groupCalls.length).toBe(0);
   });
+});
 
-  test('does not fetch permissions or groups on load', async () => {
-    await renderAndWait();
-    await waitFor(() => {
-      const permissionCalls = fetchMock.callHistory.calls(permissionsEndpoint);
-      const groupCalls = fetchMock.callHistory.calls(groupsEndpoint);
-      expect(permissionCalls.length).toBe(0);
-      expect(groupCalls.length).toBe(0);
-    });
-  });
+test('renders filters options', async () => {
+  await renderAndWait();
 
-  test('renders filters options', async () => {
-    await renderAndWait();
+  // Compact filter UI: one search input for "Name" and 3 select pills
+  // (Users, Permissions, Groups).
+  expect(screen.getByTestId('filters-search')).toBeInTheDocument();
+  const selectContainers = screen.getAllByTestId('select-filter-container');
+  expect(selectContainers).toHaveLength(3);
+});
 
-    // Compact filter UI: one search input for "Name" and 3 select pills
-    // (Users, Permissions, Groups).
-    expect(screen.getByTestId('filters-search')).toBeInTheDocument();
-    const selectContainers = screen.getAllByTestId('select-filter-container');
-    expect(selectContainers).toHaveLength(3);
-  });
+test('renders correct list columns', async () => {
+  await renderAndWait();
 
-  test('renders correct list columns', async () => {
-    await renderAndWait();
+  const table = screen.getByRole('table');
+  expect(table).toBeInTheDocument();
 
-    const table = screen.getByRole('table');
-    expect(table).toBeInTheDocument();
+  const nameColumn = await within(table).findByTitle('Name');
+  const actionsColumn = await within(table).findByTitle('Actions');
 
-    const nameColumn = await within(table).findByTitle('Name');
-    const actionsColumn = await within(table).findByTitle('Actions');
+  expect(nameColumn).toBeInTheDocument();
+  expect(actionsColumn).toBeInTheDocument();
+});
 
-    expect(nameColumn).toBeInTheDocument();
-    expect(actionsColumn).toBeInTheDocument();
-  });
+test('opens add modal when Add Role button is clicked', async () => {
+  await renderAndWait();
 
-  test('opens add modal when Add Role button is clicked', async () => {
-    await renderAndWait();
+  const addButton = screen.getByTestId('add-role-button');
+  fireEvent.click(addButton);
 
-    const addButton = screen.getByTestId('add-role-button');
-    fireEvent.click(addButton);
+  expect(screen.queryByTestId('Add Role-modal')).toBeInTheDocument();
+});
 
-    expect(screen.queryByTestId('Add Role-modal')).toBeInTheDocument();
-  });
+test('open duplicate modal when duplicate button is clicked', async () => {
+  await renderAndWait();
 
-  test('open duplicate modal when duplicate button is clicked', async () => {
-    await renderAndWait();
+  const table = screen.getByRole('table');
+  expect(table).toBeInTheDocument();
+  const duplicateAction = within(table).queryAllByTestId(
+    'role-list-duplicate-action',
+  )[0];
+  expect(duplicateAction).toBeInTheDocument();
+  fireEvent.click(duplicateAction);
+  expect(
+    screen.queryByTestId('Duplicate role role 0-modal'),
+  ).toBeInTheDocument();
+});
 
-    const table = screen.getByRole('table');
-    expect(table).toBeInTheDocument();
-    const duplicateAction = within(table).queryAllByTestId(
-      'role-list-duplicate-action',
-    )[0];
-    expect(duplicateAction).toBeInTheDocument();
-    fireEvent.click(duplicateAction);
-    expect(
-      screen.queryByTestId('Duplicate role role 0-modal'),
-    ).toBeInTheDocument();
-  });
+test('open edit modal when edit button is clicked', async () => {
+  await renderAndWait();
 
-  test('open edit modal when edit button is clicked', async () => {
-    await renderAndWait();
-
-    const table = screen.getByRole('table');
-    expect(table).toBeInTheDocument();
-    const editAction = within(table).queryAllByTestId(
-      'role-list-edit-action',
-    )[0];
-    expect(editAction).toBeInTheDocument();
-    fireEvent.click(editAction);
-    expect(screen.queryByTestId('Edit Role-modal')).toBeInTheDocument();
-  });
+  const table = screen.getByRole('table');
+  expect(table).toBeInTheDocument();
+  const editAction = within(table).queryAllByTestId('role-list-edit-action')[0];
+  expect(editAction).toBeInTheDocument();
+  fireEvent.click(editAction);
+  expect(screen.queryByTestId('Edit Role-modal')).toBeInTheDocument();
 });

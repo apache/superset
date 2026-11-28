@@ -66,284 +66,287 @@ test('shared chart request producer rebuilds saved semantic Table without saving
   }
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('exploreUtils', () => {
-  const { location } = window;
-  const formData: QueryFormData = {
-    datasource: '1__table',
-    viz_type: 'table',
-  };
-  function compareURI(uri1: URI, uri2: URI): void {
-    expect(uri1.toString()).toBe(uri2.toString());
+const { location } = window;
+const formData: QueryFormData = {
+  datasource: '1__table',
+  viz_type: 'table',
+};
+function compareURI(uri1: URI, uri2: URI): void {
+  expect(uri1.toString()).toBe(uri2.toString());
+}
+
+test('generates proper base url', () => {
+  // This assertion is to show clearly the value of location.href
+  // in the context of unit tests.
+  expect(location.href).toBe('http://localhost/');
+
+  const url = getExploreUrl({
+    formData,
+    endpointType: 'base',
+    force: false,
+    curUrl: 'http://superset.com',
+  });
+  compareURI(URI(url!), URI('/explore/'));
+});
+test('generates proper json url', () => {
+  const url = getExploreUrl({
+    formData,
+    endpointType: 'json',
+    force: false,
+    curUrl: 'http://superset.com',
+  });
+  compareURI(URI(url!), URI('/explore/'));
+});
+test('generates proper json forced url', () => {
+  const url = getExploreUrl({
+    formData,
+    endpointType: 'json',
+    force: true,
+    curUrl: 'superset.com',
+  });
+  compareURI(URI(url!), URI('/explore/').search({ force: 'true' }));
+});
+test('generates proper standalone URL', () => {
+  const url = getExploreUrl({
+    formData,
+    endpointType: 'standalone',
+    force: false,
+    curUrl: 'superset.com',
+  });
+  compareURI(
+    URI(url!),
+    URI('/explore/').search({
+      standalone: DashboardStandaloneMode.HideNav,
+    }),
+  );
+});
+test('preserves main URLs params', () => {
+  const url = getExploreUrl({
+    formData,
+    endpointType: 'json',
+    force: false,
+    curUrl: 'superset.com?foo=bar',
+  });
+  compareURI(URI(url!), URI('/explore/').search({ foo: 'bar' }));
+});
+test('generate proper save slice url', () => {
+  const url = getExploreUrl({
+    formData,
+    endpointType: 'json',
+    force: false,
+    curUrl: 'superset.com?foo=bar',
+  });
+  compareURI(URI(url!), URI('/explore/').search({ foo: 'bar' }));
+});
+
+let stub: jest.ReplaceProperty<typeof hostNamesConfig.availableDomains>;
+const availableDomains = [
+  'http://localhost/',
+  'domain1.com',
+  'domain2.com',
+  'domain3.com',
+];
+function setupDomainSharding() {
+  stub = jest.replaceProperty(
+    hostNamesConfig,
+    'availableDomains',
+    availableDomains,
+  );
+}
+function restoreDomainSharding() {
+  stub.restore();
+}
+
+test('generate url to different domains', () => {
+  setupDomainSharding();
+  try {
+    let url = getExploreUrl({
+      formData,
+      endpointType: 'json',
+      allowDomainSharding: true,
+    });
+    // skip main domain for fetching chart if domain sharding is enabled
+    // to leave main domain free for other calls like fav star, save change, etc.
+    expect(url).toMatch(availableDomains[1]);
+
+    url = getExploreUrl({
+      formData,
+      endpointType: 'json',
+      allowDomainSharding: true,
+    });
+    expect(url).toMatch(availableDomains[2]);
+
+    url = getExploreUrl({
+      formData,
+      endpointType: 'json',
+      allowDomainSharding: true,
+    });
+    expect(url).toMatch(availableDomains[3]);
+
+    // circle back to first available domain
+    url = getExploreUrl({
+      formData,
+      endpointType: 'json',
+      allowDomainSharding: true,
+    });
+    expect(url).toMatch(availableDomains[1]);
+  } finally {
+    restoreDomainSharding();
   }
+});
+test('not generate url to different domains without flag', () => {
+  setupDomainSharding();
+  try {
+    let csvURL = getExploreUrl({
+      formData,
+      endpointType: 'csv',
+    });
+    expect(csvURL).toMatch(availableDomains[0]);
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('getExploreUrl', () => {
-    test('generates proper base url', () => {
-      // This assertion is to show clearly the value of location.href
-      // in the context of unit tests.
-      expect(location.href).toBe('http://localhost/');
+    csvURL = getExploreUrl({
+      formData,
+      endpointType: 'csv',
+    });
+    expect(csvURL).toMatch(availableDomains[0]);
+  } finally {
+    restoreDomainSharding();
+  }
+});
 
-      const url = getExploreUrl({
-        formData,
-        endpointType: 'base',
-        force: false,
-        curUrl: 'http://superset.com',
-      });
-      compareURI(URI(url!), URI('/explore/'));
-    });
-    test('generates proper json url', () => {
-      const url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        force: false,
-        curUrl: 'http://superset.com',
-      });
-      compareURI(URI(url!), URI('/explore/'));
-    });
-    test('generates proper json forced url', () => {
-      const url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        force: true,
-        curUrl: 'superset.com',
-      });
-      compareURI(URI(url!), URI('/explore/').search({ force: 'true' }));
-    });
-    test('generates proper standalone URL', () => {
-      const url = getExploreUrl({
-        formData,
-        endpointType: 'standalone',
-        force: false,
-        curUrl: 'superset.com',
-      });
-      compareURI(
-        URI(url!),
-        URI('/explore/').search({
-          standalone: DashboardStandaloneMode.HideNav,
-        }),
-      );
-    });
-    test('preserves main URLs params', () => {
-      const url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        force: false,
-        curUrl: 'superset.com?foo=bar',
-      });
-      compareURI(URI(url!), URI('/explore/').search({ foo: 'bar' }));
-    });
-    test('generate proper save slice url', () => {
-      const url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        force: false,
-        curUrl: 'superset.com?foo=bar',
-      });
-      compareURI(URI(url!), URI('/explore/').search({ foo: 'bar' }));
-    });
+test('generate valid request payload despite no registered buildQuery', async () => {
+  const v1RequestPayload = await buildV1ChartDataPayload({
+    formData: { ...formData, viz_type: 'my_custom_viz' },
   });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('domain sharding', () => {
-    let stub: jest.ReplaceProperty<typeof hostNamesConfig.availableDomains>;
-    const availableDomains = [
-      'http://localhost/',
-      'domain1.com',
-      'domain2.com',
-      'domain3.com',
-    ];
-    beforeEach(() => {
-      stub = jest.replaceProperty(
-        hostNamesConfig,
-        'availableDomains',
-        availableDomains,
-      );
-    });
-    afterEach(() => {
-      stub.restore();
-    });
-
-    test('generate url to different domains', () => {
-      let url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        allowDomainSharding: true,
-      });
-      // skip main domain for fetching chart if domain sharding is enabled
-      // to leave main domain free for other calls like fav star, save change, etc.
-      expect(url).toMatch(availableDomains[1]);
-
-      url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        allowDomainSharding: true,
-      });
-      expect(url).toMatch(availableDomains[2]);
-
-      url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        allowDomainSharding: true,
-      });
-      expect(url).toMatch(availableDomains[3]);
-
-      // circle back to first available domain
-      url = getExploreUrl({
-        formData,
-        endpointType: 'json',
-        allowDomainSharding: true,
-      });
-      expect(url).toMatch(availableDomains[1]);
-    });
-    test('not generate url to different domains without flag', () => {
-      let csvURL = getExploreUrl({
-        formData,
-        endpointType: 'csv',
-      });
-      expect(csvURL).toMatch(availableDomains[0]);
-
-      csvURL = getExploreUrl({
-        formData,
-        endpointType: 'csv',
-      });
-      expect(csvURL).toMatch(availableDomains[0]);
-    });
+  expect(
+    Object.prototype.hasOwnProperty.call(v1RequestPayload, 'queries'),
+  ).toBeTruthy();
+});
+test('includes client_id in the payload when clientId is provided', async () => {
+  const v1RequestPayload = await buildV1ChartDataPayload({
+    formData: { ...formData, viz_type: 'my_custom_viz' },
+    clientId: 'abc123xyz',
   });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('buildV1ChartDataPayload', () => {
-    test('generate valid request payload despite no registered buildQuery', async () => {
-      const v1RequestPayload = await buildV1ChartDataPayload({
-        formData: { ...formData, viz_type: 'my_custom_viz' },
-      });
-      expect(
-        Object.prototype.hasOwnProperty.call(v1RequestPayload, 'queries'),
-      ).toBeTruthy();
-    });
-    test('includes client_id in the payload when clientId is provided', async () => {
-      const v1RequestPayload = await buildV1ChartDataPayload({
-        formData: { ...formData, viz_type: 'my_custom_viz' },
-        clientId: 'abc123xyz',
-      });
-      expect(v1RequestPayload).toEqual(
-        expect.objectContaining({ client_id: 'abc123xyz' }),
-      );
-    });
-    test('omits client_id from the payload when clientId is not provided', async () => {
-      const v1RequestPayload = await buildV1ChartDataPayload({
-        formData: { ...formData, viz_type: 'my_custom_viz' },
-      });
-      expect(
-        Object.prototype.hasOwnProperty.call(v1RequestPayload, 'client_id'),
-      ).toBeFalsy();
-    });
+  expect(v1RequestPayload).toEqual(
+    expect.objectContaining({ client_id: 'abc123xyz' }),
+  );
+});
+test('omits client_id from the payload when clientId is not provided', async () => {
+  const v1RequestPayload = await buildV1ChartDataPayload({
+    formData: { ...formData, viz_type: 'my_custom_viz' },
   });
+  expect(
+    Object.prototype.hasOwnProperty.call(v1RequestPayload, 'client_id'),
+  ).toBeFalsy();
+});
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('getQuerySettings', () => {
-    beforeAll(() => {
-      getChartMetadataRegistry().registerValue('my_custom_parse_viz', {
-        parseMethod: 'json',
-      } as unknown as ChartMetadata);
-    });
+function registerParseViz() {
+  getChartMetadataRegistry().registerValue('my_custom_parse_viz', {
+    parseMethod: 'json',
+  } as unknown as ChartMetadata);
+}
+function unregisterParseViz() {
+  getChartMetadataRegistry().remove('my_custom_parse_viz');
+}
 
-    afterAll(() => {
-      getChartMetadataRegistry().remove('my_custom_parse_viz');
+test('returns the parse method for a registered viz', () => {
+  registerParseViz();
+  try {
+    const [parseMethod] = getQuerySettings({
+      ...formData,
+      viz_type: 'my_custom_parse_viz',
     });
+    expect(parseMethod).toBe('json');
+  } finally {
+    unregisterParseViz();
+  }
+});
 
-    test('returns the parse method for a registered viz', () => {
-      const [parseMethod] = getQuerySettings({
-        ...formData,
-        viz_type: 'my_custom_parse_viz',
-      });
-      expect(parseMethod).toBe('json');
+test('defaults the parse method for unregistered viz types', () => {
+  registerParseViz();
+  try {
+    const [parseMethod] = getQuerySettings({
+      ...formData,
+      viz_type: 'undefined_viz',
     });
+    expect(parseMethod).toBe('json-bigint');
+  } finally {
+    unregisterParseViz();
+  }
+});
 
-    test('defaults the parse method for unregistered viz types', () => {
-      const [parseMethod] = getQuerySettings({
-        ...formData,
-        viz_type: 'undefined_viz',
-      });
-      expect(parseMethod).toBe('json-bigint');
-    });
+test('defaults the parse method without a viz_type', () => {
+  registerParseViz();
+  try {
+    const [parseMethod] = getQuerySettings(formData);
+    expect(parseMethod).toBe('json-bigint');
+  } finally {
+    unregisterParseViz();
+  }
+});
 
-    test('defaults the parse method without a viz_type', () => {
-      const [parseMethod] = getQuerySettings(formData);
-      expect(parseMethod).toBe('json-bigint');
-    });
-  });
+test('returns empty string when subject is undefined', () => {
+  expect(getSimpleSQLExpression(undefined, '=', 10)).toBe('');
+  expect(getSimpleSQLExpression()).toBe('');
+});
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('getSimpleSQLExpression', () => {
-    test('returns empty string when subject is undefined', () => {
-      expect(getSimpleSQLExpression(undefined, '=', 10)).toBe('');
-      expect(getSimpleSQLExpression()).toBe('');
-    });
-    test("returns subject when it's provided and operator is undefined", () => {
-      expect(getSimpleSQLExpression('col', undefined, 10)).toBe('col');
-      expect(getSimpleSQLExpression('col')).toBe('col');
-    });
-    test("returns subject and operator when they're provided and comparator is undefined", () => {
-      expect(getSimpleSQLExpression('col', '=')).toBe('col =');
-      expect(getSimpleSQLExpression('col', 'IN')).toBe('col IN');
-      expect(getSimpleSQLExpression('col', 'IN', [])).toBe('col IN');
-    });
-    test('returns full expression when subject, operator and comparator are provided', () => {
-      expect(getSimpleSQLExpression('col', '=', 'comp')).toBe("col = 'comp'");
-      expect(getSimpleSQLExpression('col', '=', "it's an apostrophe")).toBe(
-        "col = 'it''s an apostrophe'",
-      );
-      expect(getSimpleSQLExpression('col', '=', 0)).toBe('col = 0');
-      expect(getSimpleSQLExpression('col', '=', '0')).toBe('col = 0');
-      expect(getSimpleSQLExpression('col', 'IN', 'foo')).toBe("col IN ('foo')");
-      expect(getSimpleSQLExpression('col', 'NOT IN', ['foo'])).toBe(
-        "col NOT IN ('foo')",
-      );
-      expect(getSimpleSQLExpression('col', 'IN', ['foo', 'bar'])).toBe(
-        "col IN ('foo', 'bar')",
-      );
-      expect(getSimpleSQLExpression('col', 'IN', ['0', '1', '2'])).toBe(
-        'col IN (0, 1, 2)',
-      );
-      expect(getSimpleSQLExpression('col', 'NOT IN', [0, 1, 2])).toBe(
-        'col NOT IN (0, 1, 2)',
-      );
-    });
-  });
+test("returns subject when it's provided and operator is undefined", () => {
+  expect(getSimpleSQLExpression('col', undefined, 10)).toBe('col');
+  expect(getSimpleSQLExpression('col')).toBe('col');
+});
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('.exploreChart()', () => {
-    test('postForm', () => {
-      const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
-      postFormSpy.mockImplementation(jest.fn());
+test("returns subject and operator when they're provided and comparator is undefined", () => {
+  expect(getSimpleSQLExpression('col', '=')).toBe('col =');
+  expect(getSimpleSQLExpression('col', 'IN')).toBe('col IN');
+  expect(getSimpleSQLExpression('col', 'IN', [])).toBe('col IN');
+});
 
-      exploreChart({ ...formData, viz_type: 'my_custom_viz' });
-      expect(postFormSpy).toHaveBeenCalledTimes(1);
-    });
-  });
+test('returns full expression when subject, operator and comparator are provided', () => {
+  expect(getSimpleSQLExpression('col', '=', 'comp')).toBe("col = 'comp'");
+  expect(getSimpleSQLExpression('col', '=', "it's an apostrophe")).toBe(
+    "col = 'it''s an apostrophe'",
+  );
+  expect(getSimpleSQLExpression('col', '=', 0)).toBe('col = 0');
+  expect(getSimpleSQLExpression('col', '=', '0')).toBe('col = 0');
+  expect(getSimpleSQLExpression('col', 'IN', 'foo')).toBe("col IN ('foo')");
+  expect(getSimpleSQLExpression('col', 'NOT IN', ['foo'])).toBe(
+    "col NOT IN ('foo')",
+  );
+  expect(getSimpleSQLExpression('col', 'IN', ['foo', 'bar'])).toBe(
+    "col IN ('foo', 'bar')",
+  );
+  expect(getSimpleSQLExpression('col', 'IN', ['0', '1', '2'])).toBe(
+    'col IN (0, 1, 2)',
+  );
+  expect(getSimpleSQLExpression('col', 'NOT IN', [0, 1, 2])).toBe(
+    'col NOT IN (0, 1, 2)',
+  );
+});
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('.mountExploreUrl() standalone mode', () => {
-    // Explore calls history.replace with this URL after interactions. Writing
-    // HideNav unconditionally downgraded mode 2 to mode 1 on the first click,
-    // collapsing the editor to a bare chart.
-    test('preserves a caller-supplied mode 2', () => {
-      expect(mountExploreUrl('standalone', { standalone: 2 })).toContain(
-        'standalone=2',
-      );
-    });
+test('postForm', () => {
+  const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
+  postFormSpy.mockImplementation(jest.fn());
 
-    test('keeps mode 1 as mode 1', () => {
-      expect(mountExploreUrl('standalone', { standalone: 1 })).toContain(
-        'standalone=1',
-      );
-    });
+  exploreChart({ ...formData, viz_type: 'my_custom_viz' });
+  expect(postFormSpy).toHaveBeenCalledTimes(1);
+});
 
-    test('falls back to HideNav when the caller supplies nothing', () => {
-      expect(mountExploreUrl('standalone')).toContain(
-        `standalone=${DashboardStandaloneMode.HideNav}`,
-      );
-    });
-  });
+// Explore calls history.replace with this URL after interactions. Writing
+// HideNav unconditionally downgraded mode 2 to mode 1 on the first click,
+// collapsing the editor to a bare chart.
+test('preserves a caller-supplied mode 2', () => {
+  expect(mountExploreUrl('standalone', { standalone: 2 })).toContain(
+    'standalone=2',
+  );
+});
+
+test('keeps mode 1 as mode 1', () => {
+  expect(mountExploreUrl('standalone', { standalone: 1 })).toContain(
+    'standalone=1',
+  );
+});
+
+test('falls back to HideNav when the caller supplies nothing', () => {
+  expect(mountExploreUrl('standalone')).toContain(
+    `standalone=${DashboardStandaloneMode.HideNav}`,
+  );
 });
