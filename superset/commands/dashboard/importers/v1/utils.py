@@ -68,6 +68,29 @@ def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
     }
 
 
+def _resolve_target_dataset_id(
+    target: dict[str, Any],
+    dataset_info: dict[str, dict[str, Any]],
+    target_label: str,
+) -> None:
+    """Resolve a filter or control target's datasetUuid to its destination ID."""
+    dataset_uuid = target.pop("datasetUuid", None)
+    if not dataset_uuid:
+        return
+    if info := dataset_info.get(dataset_uuid):
+        target["datasetId"] = info["datasource_id"]
+    else:
+        # UUID present but unresolvable — remove stale integer ID
+        # so the filter/control fails visibly rather than binding to
+        # whatever dataset happens to own that ID in this environment
+        target.pop("datasetId", None)
+        logger.warning(
+            "%s references unknown dataset UUID %s; datasetId will not be restored",
+            target_label,
+            dataset_uuid,
+        )
+
+
 def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     config: dict[str, Any],
     chart_ids: dict[str, int],
@@ -139,15 +162,11 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
             child["meta"]["chartId"] = chart_ids[child["meta"]["uuid"]]
 
     # fix native filter references
-    native_filter_configuration = fixed.get("metadata", {}).get(
-        "native_filter_configuration", []
-    )
-    for native_filter in native_filter_configuration:
-        targets = native_filter.get("targets", [])
-        for target in targets:
-            dataset_uuid = target.pop("datasetUuid", None)
-            if dataset_uuid:
-                target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+    for native_filter in (
+        fixed.get("metadata", {}).get("native_filter_configuration") or []
+    ):
+        for target in native_filter.get("targets") or []:
+            _resolve_target_dataset_id(target, dataset_info, "Native filter target")
 
         scope_excluded = native_filter.get("scope", {}).get("excluded", [])
         if scope_excluded:
@@ -166,21 +185,7 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
         fixed.get("metadata", {}).get("chart_customization_config") or []
     ):
         for target in customization.get("targets") or []:
-            dataset_uuid = target.pop("datasetUuid", None)
-            if dataset_uuid:
-                info = dataset_info.get(dataset_uuid)
-                if info:
-                    target["datasetId"] = info["datasource_id"]
-                else:
-                    # UUID present but unresolvable — remove stale integer ID
-                    # so the control fails visibly rather than binding to
-                    # whatever dataset happens to own that ID in this environment
-                    target.pop("datasetId", None)
-                    logger.warning(
-                        "Display control target references unknown dataset UUID %s; "
-                        "datasetId will not be restored",
-                        dataset_uuid,
-                    )
+            _resolve_target_dataset_id(target, dataset_info, "Display control target")
 
     fixed = update_cross_filter_scoping(fixed, id_map, uuid_to_new_id)
     return fixed
