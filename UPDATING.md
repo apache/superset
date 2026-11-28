@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The default Superset Docker image now uses Python 3.12.
+
 - MCP `get_table` query failures now populate `error_code`. Untyped dataset
   engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
   specific `SupersetErrorType` code for typed errors, while guests receive
