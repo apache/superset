@@ -22,30 +22,28 @@ jobs:
           if [ -n "${GSHEET_KEY}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
-
         env:
           GSHEET_KEY: ${{ (secrets.GSHEET_KEY != '' ) || '' }}
-  process-and-upload:
-    needs: config
-    if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-slim
-    name: Generate Reports
-    steps:
+
       - name: Checkout Repository
+        if: steps.check.outputs.has-secrets
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
+        if: steps.check.outputs.has-secrets
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
 
       - name: Install Dependencies
+        if: steps.check.outputs.has-secrets
         run: npm ci
         working-directory: ./superset-frontend
 
       - name: Run Script
+        if: steps.check.outputs.has-secrets
         env:
           SPREADSHEET_ID: "1oABNnzxJYzwUrHjr_c9wfYEq9dFL1ScVof9LlaAdxvo"
           SERVICE_ACCOUNT_KEY: ${{ secrets.GSHEET_KEY }}
