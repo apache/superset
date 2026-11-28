@@ -28,6 +28,18 @@ export interface FiltersOutOfScopeCollapsibleProps {
   forceRender?: boolean;
 }
 
+// Keeps the collapse headers and bodies as compact as the other filter bar
+// sections, in place of antd's looser ghost-variant padding.
+export const outOfScopeCollapseStyles = (theme: SupersetTheme) => css`
+  .ant-collapse-item > .ant-collapse-header {
+    padding-top: ${theme.sizeUnit}px;
+    padding-bottom: ${theme.sizeUnit}px;
+  }
+  .ant-collapse-item > .ant-collapse-panel > .ant-collapse-body {
+    padding-bottom: ${theme.sizeUnit}px;
+  }
+`;
+
 export const FiltersOutOfScopeCollapsible = ({
   filtersOutOfScope,
   renderer,
@@ -37,6 +49,7 @@ export const FiltersOutOfScopeCollapsible = ({
     ghost
     bordered
     expandIconPosition="end"
+    css={outOfScopeCollapseStyles}
     items={[
       {
         key: 'out-of-scope-filters',
