@@ -2020,7 +2020,7 @@ def test_convert_query_object_filter(
         operator=expected_operator,
         value="Electronics",
     )
-    assert result == (
+    expected_filters: set[FilterExpression] = (
         {
             OrFilter(
                 frozenset(
@@ -2039,6 +2039,7 @@ def test_convert_query_object_filter(
         if filter_op == "!="
         else {expected}
     )
+    assert result == expected_filters
 
 
 def test_convert_query_object_filter_like() -> None:

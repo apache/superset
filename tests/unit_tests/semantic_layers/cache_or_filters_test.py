@@ -103,7 +103,7 @@ def test_group_identity_is_order_independent_and_not_flattened() -> None:
 )
 def test_user_exclusion_cannot_reuse_old_null_dropping_results(
     operator: str,
-    value: FilterValues | frozenset[FilterValues],
+    value: str | frozenset[str],
 ) -> None:
     """Normalized user exclusion is distinct from its NULL-dropping SDK leaf."""
     query: SemanticQuery = build_semantic_query()
