@@ -15450,6 +15450,9 @@ msgstr ""
 msgid "The query returned no data"
 msgstr ""
 
+msgid "The query used a function (e.g. sequence()) that generated more entries than the engine allows. Reduce the range or step size."
+msgstr ""
+
 #, python-format
 msgid "The query was killed after %(sqllab_timeout)s seconds. It might be too complex, or the database might be under heavy load."
 msgstr ""
