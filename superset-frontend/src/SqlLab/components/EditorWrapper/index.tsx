@@ -52,6 +52,7 @@ type EditorWrapperProps = {
   queryEditorId: string;
   onCursorPositionChange: (position: CursorPosition) => void;
   height: string;
+  fontSize?: number;
   hotkeys: HotKey[];
 };
 
@@ -135,6 +136,7 @@ const EditorWrapper = ({
   queryEditorId,
   onCursorPositionChange,
   height,
+  fontSize,
   hotkeys,
 }: EditorWrapperProps) => {
   const dispatch = useAppDispatch();
@@ -378,6 +380,7 @@ const EditorWrapper = ({
         hotkeys={editorHotkeys}
         height={height}
         width="100%"
+        fontSize={fontSize}
         metadata={metadata}
         keywords={keywords}
       />

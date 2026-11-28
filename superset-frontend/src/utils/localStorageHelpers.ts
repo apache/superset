@@ -52,6 +52,7 @@ export enum LocalStorageKeys {
   SqllabIsAutocompleteEnabled = 'sqllab__is_autocomplete_enabled',
   SqllabIsRenderHtmlEnabled = 'sqllab__is_render_html_enabled',
   SqllabPinnedSchemas = 'sqllab__pinned_schemas',
+  SqllabEditorFontSize = 'sqllab__editor_font_size',
   ExploreDataTableOriginalFormattedTimeColumns = 'explore__data_table_original_formatted_time_columns',
   DashboardCustomFilterBarWidths = 'dashboard__custom_filter_bar_widths',
   DashboardExploreContext = 'dashboard__explore_context',
@@ -76,6 +77,7 @@ export type LocalStorageValues = {
   sqllab__is_autocomplete_enabled: boolean;
   sqllab__is_render_html_enabled: boolean;
   sqllab__pinned_schemas: Record<string, string[]>;
+  sqllab__editor_font_size: number;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
   dashboard__explore_context: Record<string, DashboardContextForExplore>;

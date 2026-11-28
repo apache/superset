@@ -269,6 +269,7 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
       keywords,
       height = '100%',
       width = '100%',
+      fontSize,
       onReady,
     } = props;
 
@@ -387,6 +388,7 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
         onLoad={onEditorLoad}
         height={height}
         width={width}
+        fontSize={fontSize}
         readOnly={readOnly}
         tabSize={tabSize}
         showGutter={lineNumbers !== false}

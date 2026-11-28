@@ -19,6 +19,18 @@
 import { t } from '@apache-superset/core/translation';
 import type { LabelType } from '@superset-ui/core/components';
 
+// SQL editor font size control (the value is persisted in localStorage)
+export const DEFAULT_EDITOR_FONT_SIZE = 12;
+export const EDITOR_FONT_SIZE_STEP = 2;
+export const MIN_EDITOR_FONT_SIZE = 8;
+export const MAX_EDITOR_FONT_SIZE = 32;
+
+export const clampEditorFontSize = (fontSize: number): number =>
+  Math.min(
+    MAX_EDITOR_FONT_SIZE,
+    Math.max(MIN_EDITOR_FONT_SIZE, Math.round(fontSize)),
+  );
+
 export const STATE_TYPE_MAP: Record<string, LabelType> = {
   offline: 'error',
   failed: 'error',
