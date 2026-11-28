@@ -1042,6 +1042,7 @@ rfc3339-validator==0.1.4
 rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   cyclopts
     #   fastmcp-slim
     #   flask-limiter
@@ -1321,7 +1322,7 @@ xlrd==2.0.2
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.3.1
+xlsxwriter==3.3.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
