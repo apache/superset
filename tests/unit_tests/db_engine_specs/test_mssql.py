@@ -1304,3 +1304,21 @@ def test_extract_errors_pymssql_2_4(
     assert error.message == message
     assert error.extra is not None
     assert error.extra["invalid"] == invalid
+
+
+def test_azure_synapse_properties() -> None:
+    from superset.db_engine_specs.mssql import AzureSynapseSpec, MssqlEngineSpec
+
+    assert AzureSynapseSpec.engine == "mssql"
+    assert AzureSynapseSpec.engine_name == "Azure Synapse"
+    assert AzureSynapseSpec.default_driver == "pyodbc"
+    assert issubclass(AzureSynapseSpec, MssqlEngineSpec)
+
+
+def test_azure_synapse_metadata() -> None:
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+
+    metadata = AzureSynapseSpec.metadata
+    assert "Azure Synapse Analytics" in metadata["description"]
+    assert metadata["logo"] == "azure.svg"
+    assert "pymssql" in metadata["pypi_packages"]

@@ -55,7 +55,7 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 def test_get_column_spec(
     native_type: str,
     sqla_type: type[types.TypeEngine],
-    attrs: Optional[dict[str, Any]],
+    attrs: dict[str, Any] | None,
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -287,3 +287,12 @@ def test_monkeypatch_is_a_noop_without_the_driver_installed(
     from superset.db_engine_specs.oceanbase import monkeypatch_dialect
 
     monkeypatch_dialect()  # should not raise
+
+
+def test_oceanbase_properties() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.oceanbase import OceanBaseEngineSpec
+
+    assert OceanBaseEngineSpec.max_column_name_length == 128
+    assert issubclass(OceanBaseEngineSpec, MySQLEngineSpec)
+    assert OceanBaseEngineSpec._extended_aggregations == {}

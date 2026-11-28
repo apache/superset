@@ -450,3 +450,26 @@ def test_live_reflection_and_types_roundtrip() -> None:
             text(f"SELECT COUNT(*) FROM s.t WHERE ts >= {literal}")  # noqa: S608
         ).scalar()
         assert count == 1
+
+
+def test_motherduck_properties() -> None:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec, MotherDuckEngineSpec
+
+    assert MotherDuckEngineSpec.engine == "motherduck"
+    assert MotherDuckEngineSpec.engine_name == "MotherDuck"
+    assert issubclass(MotherDuckEngineSpec, DuckDBEngineSpec)
+    assert MotherDuckEngineSpec.supports_catalog is True
+    assert MotherDuckEngineSpec.supports_dynamic_catalog is True
+    assert MotherDuckEngineSpec._is_motherduck("my_db") is True
+
+
+def test_motherduck_metadata() -> None:
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    metadata = MotherDuckEngineSpec.metadata
+    assert (
+        "MotherDuck is a serverless cloud analytics platform" in metadata["description"]
+    )
+    assert metadata["logo"] == "motherduck.png"
+    assert "duckdb-engine" in metadata["pypi_packages"]
+    assert metadata["homepage_url"] == "https://motherduck.com/"
