@@ -27,20 +27,18 @@
  * Colour carries the kind of change, and every kind has its own:
  *
  * - **New** and **Edited** changed what a widget shows. They take the status
- *   colours, because "the numbers changed" is the news a reader must not
- *   miss, and they outrank a layout change on the same widget.
- * - **Moved** and **Resized** changed only where a widget sits. They take
- *   plain hues rather than status ones -- nothing has gone right or wrong, so
- *   green and red would overstate them -- but they are still told apart at a
- *   glance, and from each other.
+ *   colours, which the widget's card border repeats, and they outrank a
+ *   layout change on the same widget.
+ * - **Moved** and **Resized** changed only where a widget sits, so they stay
+ *   grey: the word tells them apart.
  * - **Removed** is the one that cannot be seen on the canvas at all, since
  *   the widget is gone from it, so the list is the only place it is said.
  */
 import { t } from '@apache-superset/core/translation';
 import type { DraftChange } from './types';
 
-/** antd `Tag` colours: three status ones, two plain hues. */
-type MarkColor = 'success' | 'processing' | 'error' | 'gold' | 'purple';
+/** antd `Tag` colours. */
+type MarkColor = 'success' | 'processing' | 'error' | 'default';
 
 export const MARKS: Record<
   DraftChange['kind'],
@@ -48,8 +46,8 @@ export const MARKS: Record<
 > = {
   new: { label: () => t('New'), color: 'success' },
   edited: { label: () => t('Edited'), color: 'processing' },
-  moved: { label: () => t('Moved'), color: 'gold' },
-  resized: { label: () => t('Resized'), color: 'purple' },
+  moved: { label: () => t('Moved'), color: 'default' },
+  resized: { label: () => t('Resized'), color: 'default' },
   removed: { label: () => t('Removed'), color: 'error' },
 };
 

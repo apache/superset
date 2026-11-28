@@ -32,6 +32,7 @@ import CanvasGrid, {
 } from './CanvasGrid';
 import { CanvasDefinitionResult, CanvasSettings, DraftChange } from './types';
 import type { CanvasLayout } from './useCanvasLayout';
+import { supersetTheme } from '@apache-superset/core/theme';
 
 // The layout hook reports gestures through redux.
 const render: typeof baseRender = (ui, options) =>
@@ -150,7 +151,7 @@ const registrations = [
   registerWidgetRenderer('test.group', Group),
   registerWidgetRenderer('test.odd', CrossSource),
   // The real containers, for the marks that sit in their own chrome.
-  ...['group', 'tabs', 'tab'].map(widgetType =>
+  ...['group', 'tabs', 'tab', 'filter.select'].map(widgetType =>
     registerWidgetRenderer(widgetType, BUILTIN_RENDERERS[widgetType]),
   ),
 ];
@@ -1064,16 +1065,89 @@ test('a widget that was both edited and moved says it was edited', () => {
   expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Edited');
 });
 
-test('a change marks the widget and never frames it', () => {
-  // A frame on every new widget turned a draft the assistant had just filled
-  // into a wall of green; the tag alone carries the change.
+const cardOf = (container: HTMLElement, nodeId: string) =>
+  contentOf(container, nodeId).querySelector(
+    '[data-test="canvas-widget-card"]',
+  ) as HTMLElement;
+
+test.each([
+  ['new', supersetTheme.colorSuccess],
+  ['edited', supersetTheme.colorInfo],
+] as const)('a %s widget is outlined on its card', (kind, colour) => {
   const { container } = renderGrid(
     emptyScopeValues(),
     jest.fn(),
-    marked({ kind: 'new', nodeId: 'c1', by: 'ai' }),
+    marked({ kind, nodeId: 'c1', by: 'ai' }),
   );
 
-  expect(container.querySelector('[data-canvas-mark]')).toBeNull();
+  expect(cardOf(container, 'c1')).toHaveStyle({ borderColor: colour });
+});
+
+test.each(['moved', 'resized'] as const)(
+  'a %s widget is tagged but keeps its plain border',
+  kind => {
+    const { container } = renderGrid(
+      emptyScopeValues(),
+      jest.fn(),
+      marked({ kind, nodeId: 'c1', by: 'user' }),
+    );
+
+    expect(markOf(container, 'c1')).toBeInTheDocument();
+    expect(cardOf(container, 'c1')).toHaveStyle({
+      borderColor: supersetTheme.colorBorder,
+    });
+  },
+);
+
+test('a canvas whose every widget is new marks none of them', () => {
+  // Never saved: everything on it is new, so marking it says nothing.
+  const { container } = renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    marked(
+      ...result.definition.root.children.map(
+        nodeId => ({ kind: 'new', nodeId, by: 'ai' }) as DraftChange,
+      ),
+    ),
+  );
+
+  expect(screen.queryByTestId('canvas-widget-mark')).not.toBeInTheDocument();
+  expect(container.querySelector('[data-change]')).toBeNull();
+});
+
+test('leaf widgets sit on a card, containers do not', () => {
+  const { container } = renderGrid();
+
+  expect(cardOf(container, 'c1')).toBeInTheDocument();
+  expect(cardOf(container, 'f')).toBeInTheDocument();
+  expect(
+    container.querySelector(
+      '[data-node-id="g"] > .canvas-interactive > .canvas-content > [data-test="canvas-widget-card"]',
+    ),
+  ).toBeNull();
+});
+
+test('a card fills its cell and scrolls its own body', () => {
+  const { container } = renderGrid(emptyScopeValues(), jest.fn(), {
+    ...result,
+    titles: { c1: 'Revenue' },
+  });
+
+  const card = cardOf(container, 'c1');
+  expect(card).toHaveStyle({ height: '100%', display: 'flex' });
+  const body = card.lastElementChild as HTMLElement;
+  expect(body).toHaveStyle({ overflow: 'auto', minHeight: '0' });
+});
+
+test('a filter labels itself rather than taking a title row', () => {
+  renderGrid(emptyScopeValues(), jest.fn(), {
+    ...result,
+    widgetTypes: { ...result.widgetTypes, f: 'filter.select' },
+    titles: { f: 'Region' },
+  });
+
+  expect(screen.queryByTestId('canvas-widget-title')).not.toBeInTheDocument();
+  expect(screen.getByTestId('canvas-filter-label')).toHaveTextContent('Region');
 });
 
 test('a mark is shown on a canvas at rest and takes no presses', () => {
@@ -1133,10 +1207,10 @@ test('the tag on a widget carries the same colour as the list', () => {
   const { container } = renderGrid(
     emptyScopeValues(),
     jest.fn(),
-    marked({ kind: 'resized', nodeId: 'c1', by: 'user' }),
+    marked({ kind: 'edited', nodeId: 'c1', by: 'user' }),
   );
 
-  expect(container.querySelector('.ant-tag-purple')).not.toBeNull();
+  expect(container.querySelector('.ant-tag-processing')).not.toBeNull();
 });
 
 test('a group grows to hold a widget dropped past its last row', () => {

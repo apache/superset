@@ -35,3 +35,6 @@ import { createContext } from 'react';
 export const CanvasWidgetChromeContext = createContext<HTMLElement | null>(
   null,
 );
+
+/** A leaf widget card's padding, in size units; matches dashboard tiles. */
+export const CARD_PADDING_UNITS = 4;

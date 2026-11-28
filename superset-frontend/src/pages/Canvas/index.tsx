@@ -104,9 +104,9 @@ const Title = styled.h1`
   ${({ theme }) => css`
     margin: 0;
     color: ${theme.colorTextHeading};
-    font-size: ${theme.fontSizeHeading3}px;
+    font-size: ${theme.fontSizeHeading4}px;
     font-weight: ${theme.fontWeightStrong};
-    line-height: ${theme.lineHeightHeading3};
+    line-height: ${theme.lineHeightHeading4};
   `}
 `;
 

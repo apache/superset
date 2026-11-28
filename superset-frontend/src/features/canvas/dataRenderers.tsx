@@ -18,38 +18,32 @@
  */
 import { useMemo } from 'react';
 import type { CanvasRendererProps } from 'src/core/canvas/types';
-import { t } from '@apache-superset/core/translation';
-import { css, styled } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
 import {
-  Empty,
-  Loading,
+  Statistic,
   Table,
   TableSize,
+  Tooltip,
   Typography,
 } from '@superset-ui/core/components';
 import { useWidgetRows } from './useWidgetRows';
 import WithQuery from './WithQuery';
+import { WidgetError, WidgetNoData, WidgetSkeleton } from './WidgetStates';
 
 type Props = CanvasRendererProps;
 
 const Tile = styled.div`
   ${({ theme }) => css`
-    height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    align-items: flex-start;
     gap: ${theme.sizeUnit}px;
   `}
 `;
 
-const BigNumber = styled.div`
-  ${({ theme }) => css`
-    color: ${theme.colorTextHeading};
-    font-size: ${theme.fontSizeHeading1}px;
-    font-weight: ${theme.fontWeightStrong};
-    line-height: 1.1;
-  `}
-`;
+/** Shown for a metric with no value, which SMART_NUMBER would print as "null". */
+export const NO_VALUE = '--';
 
 const text = (value: unknown): string =>
   typeof value === 'string' ? value : '';
@@ -67,38 +61,63 @@ const metricLabels = (binding: unknown): string[] => {
     .filter((label): label is string => typeof label === 'string');
 };
 
+/** The metric as a compact number, with the full figure in a tooltip. */
+export function formatMetric(
+  value: number | null | undefined,
+  decimals = 0,
+): { short: string; full: string } {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return { short: NO_VALUE, full: NO_VALUE };
+  }
+  return {
+    short: getNumberFormatter(NumberFormats.SMART_NUMBER)(value),
+    full: getNumberFormatter(decimals > 0 ? `,.${decimals}f` : ',')(value),
+  };
+}
+
 /** The first row's value of the tile's metric, as a big number. */
 export function MetricTileRenderer(widget: Props) {
-  const { props, filters, refreshKey } = widget;
-  const { rows, loading, error, query, language, datasource } = useWidgetRows(
-    widget,
-    filters,
-    refreshKey,
-  );
-  if (loading) return <Loading position="inline-centered" />;
-  if (error) return <Typography.Text type="danger">{error}</Typography.Text>;
-  const row = rows[0] ?? {};
+  const { props, filters, refreshKey, title } = widget;
+  const theme = useTheme();
+  const { rows, loading, error, query, language, datasource, retry } =
+    useWidgetRows(widget, filters, refreshKey);
+  if (loading && rows.length === 0) return <WidgetSkeleton shape="metric" />;
+  if (error) return <WidgetError message={error} onRetry={retry} />;
+  if (rows.length === 0) return <WidgetNoData filtered={filters.length > 0} />;
+  const row = rows[0];
   // The binding's own metric first: a dimension can be numeric too.
   const column =
-    metricLabels(props?.dataBinding).find(
-      label => typeof row[label] === 'number',
-    ) ?? Object.keys(row).find(key => typeof row[key] === 'number');
-  const value = column ? (row[column] as number) : undefined;
+    metricLabels(props?.dataBinding).find(label => label in row) ??
+    Object.keys(row).find(key => typeof row[key] === 'number');
+  const raw = column ? row[column] : undefined;
+  const value = typeof raw === 'number' ? raw : null;
   const decimals = typeof props?.decimals === 'number' ? props.decimals : 0;
+  const { short, full } = formatMetric(value, decimals);
+  const prefix = text(props?.prefix);
+  const suffix = text(props?.suffix);
+  // The card's title is the label; only an untitled tile names it here.
+  const label = title ? '' : text(props?.label) || column;
   return (
     <WithQuery query={query} language={language} datasource={datasource}>
       <Tile>
-        <BigNumber>
-          {value === undefined
-            ? '–'
-            : `${text(props?.prefix)}${value.toLocaleString(undefined, {
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals,
-              })}${text(props?.suffix)}`}
-        </BigNumber>
-        <Typography.Text type="secondary">
-          {text(props?.label) || column}
-        </Typography.Text>
+        <Tooltip
+          title={value === null ? undefined : `${prefix}${full}${suffix}`}
+        >
+          <Statistic
+            value={short}
+            formatter={() => short}
+            prefix={prefix || undefined}
+            suffix={suffix || undefined}
+            styles={{
+              content: {
+                fontSize: theme.fontSizeHeading3,
+                fontWeight: theme.fontWeightStrong,
+              },
+            }}
+            data-test="canvas-metric-value"
+          />
+        </Tooltip>
+        {label && <Typography.Text type="secondary">{label}</Typography.Text>}
       </Tile>
     </WithQuery>
   );
@@ -112,11 +131,8 @@ interface ColumnDef {
 /** The query's rows as a table; `columnDefs` picks and names the columns. */
 export function TableRenderer(widget: Props) {
   const { props, filters, refreshKey } = widget;
-  const { rows, loading, error, query, language, datasource } = useWidgetRows(
-    widget,
-    filters,
-    refreshKey,
-  );
+  const { rows, loading, error, query, language, datasource, retry } =
+    useWidgetRows(widget, filters, refreshKey);
   const defs = (props?.columnDefs ?? []) as ColumnDef[];
   const columns = useMemo(() => {
     const fields = defs.length
@@ -132,11 +148,12 @@ export function TableRenderer(widget: Props) {
           : String(value ?? ''),
     }));
   }, [defs, rows]);
-  if (error) return <Typography.Text type="danger">{error}</Typography.Text>;
-  if (!loading && rows.length === 0) {
+  if (loading && rows.length === 0) return <WidgetSkeleton shape="table" />;
+  if (error) return <WidgetError message={error} onRetry={retry} />;
+  if (rows.length === 0) {
     return (
       <WithQuery query={query} language={language} datasource={datasource}>
-        <Empty description={t('No data')} />
+        <WidgetNoData filtered={filters.length > 0} />
       </WithQuery>
     );
   }

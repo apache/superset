@@ -63,6 +63,34 @@ const COMPONENTS: Record<string, (theme: SupersetTheme) => Option> = {
   visualMap: theme => ({ textStyle: { color: theme.colorTextSecondary } }),
 };
 
+const items = (value: unknown): Option[] =>
+  (Array.isArray(value) ? value : [value]).filter(isPlainObject) as Option[];
+
+/**
+ * A cartesian grid as tight as Superset's own ECharts charts, with axis
+ * labels kept inside it; ECharts' defaults leave wide, uneven margins. Room
+ * is left for a legend or a slider zoom where the option has one.
+ */
+const grid = (option: Option, theme: SupersetTheme): Option => {
+  const edge = theme.sizeUnit * 5;
+  const legends = items(option.legend).filter(legend => legend.show !== false);
+  const legendAt = (side: 'top' | 'bottom') =>
+    legends.some(legend =>
+      side === 'top'
+        ? legend.bottom === undefined
+        : legend.bottom !== undefined,
+    );
+  const slider = items(option.dataZoom).some(zoom => zoom.type === 'slider');
+  return {
+    top: legendAt('top') ? edge * 2 : edge,
+    right: edge,
+    bottom: slider || legendAt('bottom') ? edge * 3 : edge,
+    left: edge,
+    outerBoundsMode: 'same',
+    outerBoundsContain: 'axisLabel',
+  };
+};
+
 // Arrays in a later source replace earlier ones; an object merged onto an
 // array applies to each item, as for Superset's own ECharts charts.
 const merge = (...sources: unknown[]): Option => {
@@ -198,6 +226,9 @@ export function themedOption(
   Object.entries(COMPONENTS).forEach(([key, style]) => {
     if (option[key] !== undefined) defaults[key] = style(theme);
   });
+  if (option.xAxis !== undefined || option.yAxis !== undefined) {
+    defaults.grid = grid(option, theme);
+  }
   const themed = merge(defaults, option, theme.echartsOptionsOverrides ?? {});
   const { series } = themed;
   if (Array.isArray(series)) {

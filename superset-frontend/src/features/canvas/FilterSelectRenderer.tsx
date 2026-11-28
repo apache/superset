@@ -36,6 +36,24 @@ const Wrapper = styled.div`
   `}
 `;
 
+const Label = styled.span`
+  ${({ theme }) => css`
+    color: ${theme.colorTextSecondary};
+    font-size: ${theme.fontSizeSM}px;
+    font-weight: ${theme.fontWeightNormal};
+    line-height: ${theme.lineHeightSM};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `}
+`;
+
+/** `order_date` as "Order date", for a filter nobody named. */
+export const humanize = (column: string): string => {
+  const words = column.replace(/[_-]+/g, ' ').trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
 const strings = (value: unknown): string[] =>
   Array.isArray(value) ? value.map(String) : [];
 
@@ -47,6 +65,7 @@ function FilterSelect({
   setFilterValue,
   canvasId,
   nodeId,
+  title,
 }: CanvasRendererProps & { datasetId: number; column: string }) {
   const draftToken = useContext(CanvasDraftContext);
   const versionUuid = useContext(CanvasVersionContext);
@@ -137,10 +156,14 @@ function FilterSelect({
     [fetched, optionsKey],
   );
 
+  const label = title || humanize(column) || t('Filter');
   return (
     <Wrapper>
+      <Label title={label} data-test="canvas-filter-label">
+        {label}
+      </Label>
       <Select
-        ariaLabel={column || t('Filter')}
+        ariaLabel={label}
         mode="multiple"
         allowClear
         placeholder={t('All')}

@@ -22,6 +22,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import {
   Button,
+  ConfirmModal,
   Divider,
   Icons,
   Popover,
@@ -151,6 +152,7 @@ export default function DraftBanner({
 }: DraftBannerProps) {
   // Held here so the count can show it is the thing that is open.
   const [listing, setListing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const busy = actions.busy || history.busy;
   // A step not yet on screen holds back whatever names a revision -- a
   // publish or another step would name the one it started from and be
@@ -171,104 +173,127 @@ export default function DraftBanner({
   // the button stays live, because disabling the one way to keep the work on
   // the strength of a missing field is the worse way to be wrong.
   const nothingToSave = empty === true;
+  const changeCount = changes?.length ?? 0;
+  // Throwing away nothing needs no second thought.
+  const hasChanges = changeCount > 0 || empty === false;
+  const discard = () => {
+    setConfirming(false);
+    actions.discard();
+  };
   return (
-    <Alert
-      type="warning"
-      showIcon
-      // The banner is what says a draft is open, and it carries the only way
-      // to close one. Dismissing it would hide the state and its exits.
-      closable={false}
-      message={
-        <>
-          {t('Draft. Only you can see these changes.')}
-          {changes !== undefined && changes.length > 0 && (
-            <Popover
-              trigger="click"
-              placement="bottomLeft"
-              open={listing}
-              onOpenChange={setListing}
-              content={
-                <Changes data-test="canvas-change-list">
-                  {changes.map((change, index) => (
-                    <Change
-                      // Nothing on a change identifies it: the same widget can
-                      // be moved twice, and both entries are real.
-                      // eslint-disable-next-line react/no-array-index-key
-                      key={index}
-                    >
-                      <Tag color={MARKS[change.kind].color}>
-                        {MARKS[change.kind].label()}
-                      </Tag>
-                      <span>{titles[change.nodeId] ?? change.nodeId}</span>
-                      <span className="change-who">
-                        {change.by === 'ai' ? t('AI') : t('You')}
-                      </span>
-                    </Change>
-                  ))}
-                </Changes>
-              }
-            >
-              <Count
-                type="button"
-                $open={listing}
-                data-test="canvas-draft-changes"
+    <>
+      <Alert
+        type="warning"
+        showIcon
+        // The banner is what says a draft is open, and it carries the only way
+        // to close one. Dismissing it would hide the state and its exits.
+        closable={false}
+        message={
+          <>
+            {t("You're editing. Only you can see changes until you save.")}
+            {changes !== undefined && changes.length > 0 && (
+              <Popover
+                trigger="click"
+                placement="bottomLeft"
+                open={listing}
+                onOpenChange={setListing}
+                content={
+                  <Changes data-test="canvas-change-list">
+                    {changes.map((change, index) => (
+                      <Change
+                        // Nothing on a change identifies it: the same widget can
+                        // be moved twice, and both entries are real.
+                        // eslint-disable-next-line react/no-array-index-key
+                        key={index}
+                      >
+                        <Tag color={MARKS[change.kind].color}>
+                          {MARKS[change.kind].label()}
+                        </Tag>
+                        <span>{titles[change.nodeId] ?? change.nodeId}</span>
+                        <span className="change-who">
+                          {change.by === 'ai' ? t('AI') : t('You')}
+                        </span>
+                      </Change>
+                    ))}
+                  </Changes>
+                }
               >
-                {t('%s change(s)', changes.length)}
-                <Icons.DownOutlined iconSize="xs" />
-              </Count>
-            </Popover>
-          )}
-        </>
-      }
-      action={
-        <Controls size="small">
-          <Button
-            buttonStyle="link"
-            aria-label={t('Undo')}
-            disabled={!steppable || !history.canUndo}
-            onClick={history.undo}
-            data-test="canvas-undo"
-          >
-            <Icons.Undo iconSize="l" />
-          </Button>
-          <Button
-            buttonStyle="link"
-            aria-label={t('Redo')}
-            disabled={!steppable || !history.canRedo}
-            onClick={history.redo}
-            data-test="canvas-redo"
-          >
-            <Icons.Redo iconSize="l" />
-          </Button>
-          {/* The two groups do different things -- one steps the draft, the
+                <Count
+                  type="button"
+                  $open={listing}
+                  data-test="canvas-draft-changes"
+                >
+                  {t('%s change(s)', changes.length)}
+                  <Icons.DownOutlined iconSize="xs" />
+                </Count>
+              </Popover>
+            )}
+          </>
+        }
+        action={
+          <Controls size="small">
+            <Button
+              buttonStyle="link"
+              aria-label={t('Undo')}
+              disabled={!steppable || !history.canUndo}
+              onClick={history.undo}
+              data-test="canvas-undo"
+            >
+              <Icons.Undo iconSize="l" />
+            </Button>
+            <Button
+              buttonStyle="link"
+              aria-label={t('Redo')}
+              disabled={!steppable || !history.canRedo}
+              onClick={history.redo}
+              data-test="canvas-redo"
+            >
+              <Icons.Redo iconSize="l" />
+            </Button>
+            {/* The two groups do different things -- one steps the draft, the
               other decides what happens to it -- so they read as two. */}
-          <Divider type="vertical" />
-          <Button
-            buttonStyle="secondary"
-            disabled={saving || busy}
-            onClick={actions.discard}
-            tooltip={saving ? t('Saving your changes…') : undefined}
-            data-test="canvas-draft-discard"
-          >
-            {t('Discard')}
-          </Button>
-          <Button
-            buttonStyle="primary"
-            loading={actions.busy}
-            disabled={saving || busy || settling || nothingToSave}
-            onClick={actions.publish}
-            tooltip={
-              (saving && t('Saving your changes…')) ||
-              (nothingToSave && t('Nothing to save yet')) ||
-              undefined
-            }
-            data-test="canvas-draft-publish"
-          >
-            {t('Save')}
-          </Button>
-        </Controls>
-      }
-      data-test="canvas-draft-banner"
-    />
+            <Divider type="vertical" />
+            <Button
+              buttonStyle="secondary"
+              disabled={saving || busy}
+              onClick={hasChanges ? () => setConfirming(true) : actions.discard}
+              tooltip={saving ? t('Saving your changes…') : undefined}
+              data-test="canvas-draft-discard"
+            >
+              {t('Discard')}
+            </Button>
+            <Button
+              buttonStyle="primary"
+              loading={actions.busy}
+              disabled={saving || busy || settling || nothingToSave}
+              onClick={actions.publish}
+              tooltip={
+                (saving && t('Saving your changes…')) ||
+                (nothingToSave && t('Nothing to save yet')) ||
+                undefined
+              }
+              data-test="canvas-draft-publish"
+            >
+              {t('Save')}
+            </Button>
+          </Controls>
+        }
+        data-test="canvas-draft-banner"
+      />
+      <ConfirmModal
+        show={confirming}
+        onHide={() => setConfirming(false)}
+        onConfirm={discard}
+        title={
+          changeCount > 0
+            ? t('Discard %s change(s)?', changeCount)
+            : t('Discard changes?')
+        }
+        body={t("Your draft will be deleted. This can't be undone.")}
+        cancelText={t('Keep editing')}
+        confirmText={t('Discard')}
+        confirmButtonStyle="danger"
+      />
+    </>
   );
 }

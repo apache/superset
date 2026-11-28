@@ -19,6 +19,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -46,6 +47,13 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { CanvasObject } from 'src/features/canvas/types';
 
 const PAGE_SIZE = 25;
+
+/** Row actions stay visible, so Delete can be found without hovering. */
+const VisibleActions = styled.div`
+  && .actions {
+    opacity: 1;
+  }
+`;
 
 interface CanvasListProps {
   addDangerToast: (msg: string) => void;
@@ -199,7 +207,11 @@ function CanvasList({
               onClick: () => setCanvasDeleting(original),
             },
           ];
-          return <ListViewActionsBar actions={actions} />;
+          return (
+            <VisibleActions>
+              <ListViewActionsBar actions={actions} />
+            </VisibleActions>
+          );
         },
         Header: t('Actions'),
         id: 'actions',

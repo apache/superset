@@ -134,6 +134,7 @@ test('clears data for an unbound widget', async () => {
     rows: [],
     loading: false,
     datasource: undefined,
+    retry: expect.any(Function),
   });
 });
 

@@ -26,7 +26,13 @@
 import type { ComponentProps } from 'react';
 import fetchMock from 'fetch-mock';
 
-import { canvas, registerWidgetRenderer, setActiveCanvas } from 'src/core';
+import {
+  canvas,
+  chat,
+  registerWidgetRenderer,
+  setActiveCanvas,
+} from 'src/core';
+import ChatProvider from 'src/core/chat/ChatProvider';
 import {
   fireEvent,
   render,
@@ -754,4 +760,31 @@ test('what extensions are told is frozen, the draft and version included', () =>
   });
   expect(Object.isFrozen(previewing)).toBe(true);
   expect(Object.isFrozen(previewing?.previewedVersion)).toBe(true);
+});
+
+test('an empty canvas says what to do, without a button when there is no chat', () => {
+  renderWith(undefined, { isEmpty: true });
+
+  expect(screen.getByText('Your canvas is empty')).toBeInTheDocument();
+  expect(
+    screen.getByText('Tell the AI assistant what you want to see.'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Open AI assistant' }),
+  ).not.toBeInTheDocument();
+});
+
+test('an empty canvas opens the registered chat from its button', () => {
+  ChatProvider.getInstance().reset();
+  chat.registerChat(
+    { id: 'acme.chat', name: 'Acme Chat' },
+    () => null,
+    () => null,
+  );
+  renderWith(undefined, { isEmpty: true });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Open AI assistant' }));
+
+  expect(chat.isOpen()).toBe(true);
+  ChatProvider.getInstance().reset();
 });

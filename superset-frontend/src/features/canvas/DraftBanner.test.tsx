@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from 'spec/helpers/testing-library';
 import DraftBanner from './DraftBanner';
 import type { DraftChange } from './types';
 
@@ -51,7 +56,9 @@ test('the banner says who can see the changes', () => {
   renderBanner();
 
   expect(
-    screen.getByText('Draft. Only you can see these changes.'),
+    screen.getByText(
+      "You're editing. Only you can see changes until you save.",
+    ),
   ).toBeInTheDocument();
 });
 
@@ -190,11 +197,11 @@ test('each kind of change is named and coloured in the list', () => {
   ['New', 'Edited', 'Moved', 'Resized', 'Removed'].forEach(word =>
     expect(listed).toHaveTextContent(word),
   );
-  // Five kinds, five colours, each used once.
-  const coloured = ['success', 'processing', 'gold', 'purple', 'error'].flatMap(
-    colour => [...listed.querySelectorAll(`.ant-tag-${colour}`)],
-  );
-  expect(coloured).toHaveLength(5);
+  // Content changes and removals take a status colour; layout ones stay grey.
+  const coloured = ['success', 'processing', 'error'].flatMap(colour => [
+    ...listed.querySelectorAll(`.ant-tag-${colour}`),
+  ]);
+  expect(coloured).toHaveLength(3);
 });
 
 test('there is nothing to save until the draft holds something', () => {
@@ -252,4 +259,34 @@ test('the change list lines its columns up across rows', () => {
   expect(getComputedStyle(list.firstElementChild as Element).display).toBe(
     'contents',
   );
+});
+
+test('discarding a draft with changes asks first', async () => {
+  renderBanner({ empty: false, changes });
+
+  fireEvent.click(screen.getByTestId('canvas-draft-discard'));
+
+  expect(await screen.findByText('Discard 2 change(s)?')).toBeInTheDocument();
+  expect(actions.discard).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
+  expect(actions.discard).not.toHaveBeenCalled();
+});
+
+test('confirming the discard throws the draft away', async () => {
+  renderBanner({ empty: false, changes });
+
+  fireEvent.click(screen.getByTestId('canvas-draft-discard'));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Discard' }));
+
+  expect(actions.discard).toHaveBeenCalledTimes(1);
+});
+
+test('discarding an empty draft does not ask', () => {
+  renderBanner({ empty: true, changes: [] });
+
+  fireEvent.click(screen.getByTestId('canvas-draft-discard'));
+
+  expect(actions.discard).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
