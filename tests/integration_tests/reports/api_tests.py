@@ -2934,7 +2934,9 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         assert json.loads(report_schedule.extra_json) == extra_json
 
-    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
     def test_create_report_schedule_with_garbage_native_filters(self):
         """
         ReportSchedule API: POST with nativeFilters containing garbage data returns 422
@@ -2958,7 +2960,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert "message" in data
         assert "extra" in data["message"]
 
-    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
     def test_create_report_schedule_with_missing_native_filter_keys(self):
         """
         ReportSchedule API: POST with nativeFilters missing required keys returns 422

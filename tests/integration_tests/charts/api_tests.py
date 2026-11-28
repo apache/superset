@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import re
 import uuid
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -2054,25 +2055,29 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         admin = self.get_user("admin")
         chart = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
 
-        self.login(ADMIN_USERNAME)
+        try:
+            self.login(ADMIN_USERNAME)
 
-        arguments = {
-            "order_column": "changed_on_delta_humanized",
-            "order_direction": "desc",
-        }
-        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+            arguments = {
+                "order_column": "changed_on_delta_humanized",
+                "order_direction": "desc",
+            }
+            uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
 
-        rv = self.get_assert_metric(uri, "get_list")
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data["result"][0]["changed_on_delta_humanized"] in (
-            "now",
-            "a second ago",
-        )
-
-        # rollback changes
-        db.session.delete(chart)
-        db.session.commit()
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            # A loaded CI worker can take a few seconds between the insert and
+            # the request, so accept any seconds-granularity humanized value.
+            assert re.fullmatch(
+                r"now|a second ago|\d+ seconds ago",
+                data["result"][0]["changed_on_delta_humanized"],
+            )
+        finally:
+            # rollback changes, even on failure, so the chart does not leak into
+            # later tests that count charts
+            db.session.delete(chart)
+            db.session.commit()
 
     @pytest.mark.usefixtures(
         "load_world_bank_dashboard_with_slices",
