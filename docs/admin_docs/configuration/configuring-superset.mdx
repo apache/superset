@@ -97,6 +97,52 @@ for more information on how to configure it.
 
 At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
 
+## BigQuery fetch memory budget
+
+`BQ_FETCH_MAX_MB` limits the estimated size of BigQuery results fetched for
+on-screen charts and SQL Lab. The default is `200` MiB. SQL Lab identifies
+results truncated below the query row limit by this budget with the `MEMORY`
+limiting factor. Chart results keep their truncation warning when a time
+comparison fetch fits within the budget. Changing the budget also changes the
+cache identity of rendered BigQuery chart results; download cache entries are
+independent of the budget.
+
+The fetch budget is also included in SQL executor and column-values cache keys.
+
+Chart CSV/XLSX/JSON downloads bypass this memory budget, but retain their query
+row limits. SQL Lab CSV downloads also bypass the budget when the query is safe
+to re-execute. An eligible memory-truncated read-only query is rerun rather than
+using its incomplete stored result.
+SQL Lab uses only stored rows for the following scripts, so their downloads
+may remain memory-capped:
+
+- Scripts with detected data or schema mutations, on any engine (including
+  BigQuery `LOAD DATA INTO` and `LOAD DATA OVERWRITE`).
+- Opaque control-flow blocks on **any engine**, even when read-only. Examples
+  include SQL Server `BEGIN SELECT 1 END; SELECT 2` and
+  `BEGIN TRY SELECT 1 END TRY BEGIN CATCH SELECT 2 END CATCH`.
+  An unparsed body can hide writes that must not run again.
+- BigQuery statements that cannot be fully parsed, including opaque
+  `IF ... ELSE ... END IF` and `BEGIN ... END` blocks, even when read-only.
+
+Streaming downloads fall back to buffered export for these scripts. If the
+results backend is not configured, the query has no result key, or the stored
+results have expired, export returns HTTP 400 explaining that the script cannot
+be safely re-executed. Run a standalone read-only query to export the data.
+
+Eligible read-only queries re-run when stored results are unavailable (or
+memory-capped). On BigQuery, re-execution requires fully parsed statements with
+no detected mutations or opaque control-flow bodies. Other engines also allow
+metadata commands such as MySQL `SHOW TABLES` / `SHOW TABLES FROM some_schema`,
+PostgreSQL `SHOW server_version`, and Kusto KQL reads to re-run: lacking a full
+AST alone does not block them, but a detected mutation or opaque control-flow
+body does. SQL that raises a parse error still fails in the normal
+query-execution path before connecting.
+
+To disable the budget for on-screen results too, set `BQ_FETCH_MAX_MB = None`
+(or `0`) in `superset_config.py`. Downloads and uncapped on-screen results can
+use substantially more server and browser memory, respectively.
+
 ## Localizing D3 date and time labels
 
 `BABEL_DEFAULT_LOCALE` controls Superset's application translations, while

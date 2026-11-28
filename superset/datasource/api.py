@@ -147,6 +147,9 @@ def _column_values_cache_key(
         # caching is enabled; without it every user with the same RLS
         # shares one entry (#45898).
         add_impersonation_cache_key_if_needed(datasource.database, material)
+        engine_spec = datasource.database.db_engine_spec
+        if engine_spec.has_fetch_memory_cap():
+            material["fetch_memory_cap"] = engine_spec.get_fetch_memory_cap()
     material.update(
         uid=datasource.uid,
         rls=security_manager.get_rls_cache_key(datasource),

@@ -112,6 +112,9 @@ class QueryContext:
         self.client_id = client_id
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
+        # Set for downloads (e.g. exported files) whose result is not rendered
+        # in the browser, so engine fetch memory caps do not apply.
+        self.is_download = False
         # Normalize the contribution totals query before any cache key is
         # computed. The return value is unused here; we only need the side
         # effect on the totals query's row_limit.

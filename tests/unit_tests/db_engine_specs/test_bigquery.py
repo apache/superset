@@ -31,6 +31,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
+from superset.app import SupersetApp
 from superset.sql.parse import Table
 from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import json
@@ -804,6 +805,8 @@ def _patch_bq_fetch_deps(
     app = mocker.patch(
         "superset.db_engine_specs.bigquery.current_app", new_callable=mock.MagicMock
     )
+    flask_g.bq_memory_limited = False
+    flask_g.bq_memory_limited_row_count = 0
     # Make current_app truthy and .config.get() return a plain int
     app.__bool__ = mock.Mock(return_value=True)
     app.config = mock.MagicMock()
@@ -901,6 +904,95 @@ def test_fetch_data_eof_probe_preserves_budgeted_rows(
     assert cursor.fetchmany.call_args_list == expected_calls
     assert list(remaining) == []
     cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("sample_rows", [2, 4])
+@pytest.mark.parametrize(
+    ("offset_fetch", "expected_count"),
+    [
+        ("complete", 4),
+        ("empty", 4),
+        ("fallback", 4),
+        ("download", 4),
+        ("disabled", 4),
+        ("smaller_cap", 2),
+        ("larger_cap", 4),
+    ],
+)
+def test_fetch_data_preserves_time_offset_truncation(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    sample_rows: int,
+    offset_fetch: str,
+    expected_count: int,
+) -> None:
+    """An offset fetch cannot erase a main query's cached truncation warning."""
+    from datetime import timedelta
+
+    import pandas as pd
+    from flask import g
+
+    from superset.common.utils.query_cache_manager import QueryCacheManager
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import QueryResult
+    from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
+
+    mocker.patch.dict(app.config, {"BQ_FETCH_MAX_MB": 1})
+    mocker.patch(
+        "superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", sample_rows
+    )
+    # Four rows fill 1 MiB, exercising both sample and second-batch truncation.
+    mocker.patch("superset.db_engine_specs.bigquery.sys.getsizeof", return_value=131072)
+    persist = mocker.patch.object(QueryCacheManager, "set", return_value=True)
+
+    def cursor_for(row_count: int) -> mock.MagicMock:
+        """Build a forward-only cursor for each main or offset query."""
+        rows = [(i,) for i in range(row_count)]
+        remaining = iter(rows)
+        cursor = mock.MagicMock()
+        cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+        cursor.fetchall.return_value = rows
+        return cursor
+
+    with app.test_request_context():
+        main = BigQueryEngineSpec.fetch_data(cursor_for(10))
+        assert len(main) == 4
+        assert g.bq_memory_limited is True
+        offset_cursor = cursor_for(3 if offset_fetch == "complete" else 0)
+        if offset_fetch == "fallback":
+            offset_cursor.fetchmany.side_effect = RuntimeError("initial read failed")
+            offset_cursor.fetchall.return_value = [(1,)]
+        if offset_fetch in {"smaller_cap", "larger_cap"}:
+            mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 2)
+            mocker.patch(
+                "superset.db_engine_specs.bigquery.sys.getsizeof",
+                return_value=262144 if offset_fetch == "smaller_cap" else 65536,
+            )
+            offset_cursor = cursor_for(10)
+        if offset_fetch == "disabled":
+            app.config["BQ_FETCH_MAX_MB"] = None
+        if offset_fetch == "download":
+            with fetch_memory_cap_disabled():
+                BigQueryEngineSpec.fetch_data(offset_cursor)
+        else:
+            BigQueryEngineSpec.fetch_data(offset_cursor)
+
+        cache = QueryCacheManager()
+        cache.set_query_result(
+            key="time-comparison",
+            query_result=QueryResult(
+                df=pd.DataFrame(main), query="", duration=timedelta(0)
+            ),
+        )
+        assert cache.bq_memory_limited is True
+        assert cache.bq_memory_limited_row_count == expected_count
+        assert persist.call_args.kwargs["value"]["bq_memory_limited"] is True
+        assert (
+            persist.call_args.kwargs["value"]["bq_memory_limited_row_count"]
+            == expected_count
+        )
+        assert g.bq_memory_limited is False
+        assert g.bq_memory_limited_row_count == 0
 
 
 def test_fetch_data_empty_result(mocker: MockerFixture) -> None:
@@ -1018,6 +1110,120 @@ def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None
 
     assert result == [(1, "a"), (2, "b")]
     assert flask_g.bq_memory_limited is False
+
+
+def _bq_rows_over_one_mb_budget(
+    mocker: MockerFixture, row_count: int
+) -> tuple[list[tuple[int]], mock.MagicMock]:
+    """A cursor over ``row_count`` rows estimated at 256 KiB each (4 fit 1 MiB)."""
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 4)
+    mocker.patch("superset.db_engine_specs.bigquery.sys.getsizeof", return_value=131072)
+    rows = [(i,) for i in range(row_count)]
+    remaining = iter(rows)
+    cursor = mock.MagicMock()
+    cursor.description = [("n", "INTEGER", None, None, None, None, None)]
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+    cursor.fetchall.side_effect = lambda: list(remaining)
+    return rows, cursor
+
+
+def test_fetch_data_ignores_memory_cap_for_downloads(mocker: MockerFixture) -> None:
+    """
+    Fetches for downloads (CSV/XLSX exports) are not rendered in the browser,
+    so they return every row instead of stopping at ``BQ_FETCH_MAX_MB``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
+
+    flask_g, app = _patch_bq_fetch_deps(mocker, max_mb=1)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    rows, cursor = _bq_rows_over_one_mb_budget(mocker, row_count=10)
+
+    with fetch_memory_cap_disabled():
+        result = BigQueryEngineSpec.fetch_data(cursor)
+
+    assert result == rows
+    assert not getattr(result, "truncated", False)
+    assert flask_g.bq_memory_limited is False
+    assert flask_g.bq_memory_limited_row_count == 10
+
+
+def test_fetch_data_download_scope_still_honors_row_limit(
+    mocker: MockerFixture,
+) -> None:
+    """Skipping the memory cap keeps the caller's row limit."""
+    from superset.db_engine_specs.base import LimitMethod
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
+
+    _, app = _patch_bq_fetch_deps(mocker, max_mb=1)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    mocker.patch.object(BigQueryEngineSpec, "limit_method", LimitMethod.FETCH_MANY)
+    rows, cursor = _bq_rows_over_one_mb_budget(mocker, row_count=10)
+
+    with fetch_memory_cap_disabled():
+        result = BigQueryEngineSpec.fetch_data(cursor, limit=7)
+
+    assert result == rows[:7]
+
+
+def test_fetch_data_keeps_memory_cap_outside_download_scope(
+    mocker: MockerFixture,
+) -> None:
+    """On-screen fetches keep the cap once the download scope has exited."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
+
+    flask_g, app = _patch_bq_fetch_deps(mocker, max_mb=1)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    with fetch_memory_cap_disabled():
+        pass
+    rows, cursor = _bq_rows_over_one_mb_budget(mocker, row_count=10)
+
+    result = BigQueryEngineSpec.fetch_data(cursor)
+
+    assert result == rows[:4]
+    assert isinstance(result, FetchedRows)
+    assert result.truncated is True
+    assert flask_g.bq_memory_limited is True
+
+
+@pytest.mark.parametrize("max_mb", [None, 0])
+def test_fetch_data_memory_cap_can_be_disabled(
+    mocker: MockerFixture, max_mb: int | None
+) -> None:
+    """``BQ_FETCH_MAX_MB = None`` (or ``0``) turns the cap off."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    flask_g, app = _patch_bq_fetch_deps(mocker)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": max_mb}
+    rows, cursor = _bq_rows_over_one_mb_budget(mocker, row_count=10)
+
+    result = BigQueryEngineSpec.fetch_data(cursor)
+
+    assert result == rows
+    assert flask_g.bq_memory_limited is False
+
+
+@pytest.mark.parametrize("max_mb", [200, None, 0])
+def test_has_fetch_memory_cap(mocker: MockerFixture, max_mb: int | None) -> None:
+    """
+    Engines that can truncate fetches report a memory cap whatever its current
+    setting, so cached results stay keyed apart from downloads when it changes.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    _, app = _patch_bq_fetch_deps(mocker)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": max_mb}
+
+    assert BigQueryEngineSpec.has_fetch_memory_cap() is True
+    assert BaseEngineSpec.has_fetch_memory_cap() is False
 
 
 def test_string_literal_with_apostrophe() -> None:

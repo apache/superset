@@ -32,6 +32,7 @@ import sqlglot
 from flask import current_app, has_app_context
 from jinja2 import nodes, Template
 from sqlglot import exp
+from sqlglot.dialects.bigquery import BigQuery
 from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
@@ -71,6 +72,12 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class _BigQueryScriptTokenizer(BigQuery.Tokenizer):
+    """Expose scripting bodies instead of swallowing them as command strings."""
+
+    COMMANDS: set[TokenType] = set()
 
 
 def _check_script_length(script: str, engine: str | None) -> None:
@@ -2175,6 +2182,65 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         except SupersetParseError:
             return True
 
+    # Control-flow commands can carry an unparsed body that hides writes.
+    # Keep this separate from mutation detection: an opaque read-only block
+    # is not a detected mutation, but still cannot safely be rerun for export.
+    _SCRIPTING_COMMAND_NAMES: frozenset[str] = frozenset(
+        {
+            "BEGIN",
+            "IF",
+            "ELSEIF",
+            "ELSE",
+            "WHILE",
+            "LOOP",
+            "REPEAT",
+            "FOR",
+            "EXCEPTION",
+        }
+    )
+
+    def has_opaque_scripting_body(self) -> bool:
+        """Check for control-flow bodies the AST cannot fully represent."""
+        return any(
+            command.name.upper() in self._SCRIPTING_COMMAND_NAMES
+            for command in self._parsed.find_all(exp.Command)
+        )
+
+    def _has_mutating_bigquery_script_body(self) -> bool:
+        """Inspect opaque control-flow bodies without mistaking quoted text for SQL."""
+        if self._dialect != Dialects.BIGQUERY:
+            return False
+        mutating_names = self._MUTATING_COMMAND_NAMES | {
+            "INSERT",
+            "UPDATE",
+            "MERGE",
+            "TRUNCATE",
+            "COMMIT",
+        }
+        for command in self._parsed.find_all(exp.Command):
+            if command.name.upper() not in self._SCRIPTING_COMMAND_NAMES:
+                continue
+            body = command.expression
+            text = body.name if isinstance(body, exp.Literal) else str(body or "")
+            tokens = _BigQueryScriptTokenizer().tokenize(text)
+            if any(
+                token.token_type not in {TokenType.STRING, TokenType.IDENTIFIER}
+                and token.text.upper() in mutating_names
+                and (
+                    index == 0
+                    or tokens[index - 1].token_type == TokenType.SEMICOLON
+                    or (
+                        tokens[index - 1].token_type
+                        not in {TokenType.STRING, TokenType.IDENTIFIER}
+                        and tokens[index - 1].text.upper()
+                        in {"BEGIN", "THEN", "DO", "ELSE", "LOOP", "REPEAT"}
+                    )
+                )
+                for index, token in enumerate(tokens)
+            ):
+                return True
+        return False
+
     def is_mutating(self) -> bool:
         """
         Check if the statement mutates data (DDL/DML).
@@ -2194,6 +2260,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # PostgreSQL and other dialects; without them an opaque exp.Command
             # check would still miss the structured-parse path.
             exp.Copy,  # COPY <table> FROM/TO (server-side file ingest)
+            exp.LoadData,  # LOAD DATA INTO/OVERWRITE ingests external files
             exp.Grant,
             exp.Revoke,
             # COMMENT ON TABLE/COLUMN/etc. writes to system catalog pg_description.
@@ -2229,6 +2296,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         )
 
         if self._parsed.find(*mutating_nodes):
+            return True
+
+        if self._has_mutating_bigquery_script_body():
             return True
 
         # `SELECT ... INTO new_table FROM ...` parses as `exp.Select` with an
@@ -3643,6 +3713,14 @@ class SQLScript:
             ):
                 return True
         return False
+
+    def has_opaque_scripting_body(self) -> bool:
+        """Check for opaque SQL control flow, excluding metadata and KQL reads."""
+        return any(
+            isinstance(statement, SQLStatement)
+            and statement.has_opaque_scripting_body()
+            for statement in self.statements
+        )
 
     def get_settings(self) -> dict[str, str | bool]:
         """

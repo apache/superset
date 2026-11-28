@@ -19,11 +19,15 @@ from __future__ import annotations
 from typing import Any
 
 import pyarrow as pa
+from flask_babel import gettext as __
 
 from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException, SupersetParseError
 from superset.models.sql_lab import TabState
+from superset.sql.parse import SQLScript
 
 DATABASE_KEYS = [
     "allow_file_upload",
@@ -117,3 +121,42 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
         "active_tab": active_tab.to_dict() if active_tab else None,
         "databases": databases,
     }
+
+
+def is_export_sql_read_only(sql: str, engine: str) -> bool:
+    """Reject detected writes and opaque scripting bodies unsafe to rerun."""
+    try:
+        script = SQLScript(sql, engine)
+        # Opaque control flow can hide writes on any SQL engine. BigQuery
+        # parsing can also omit branches and trailing statements, so keep its
+        # stricter policy for every unparseable statement. Metadata and KQL
+        # reads on other engines do not become unsafe just for lacking an AST.
+        return not (
+            (engine == "bigquery" and script.has_unparseable_statement)
+            or script.has_opaque_scripting_body()
+            or script.has_mutation()
+        )
+    except SupersetParseError:
+        # Unsupported BigQuery scripting syntax may hide writes. Other engines
+        # retain their export fallback rather than treating a parse failure as
+        # proof of mutation (e.g. dialect-specific metadata commands).
+        return engine != "bigquery"
+
+
+def validate_export_sql(sql: str, engine: str) -> None:
+    """Reject export re-execution of scripts that can repeat writes."""
+    if not is_export_sql_read_only(sql, engine):
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "Export cannot re-execute scripts that modify data or schema, "
+                    "opaque control-flow blocks on any engine, or BigQuery statements "
+                    "that cannot be fully parsed. Export stored results instead; "
+                    "if unavailable, run a standalone read-only query to export "
+                    "the data."
+                ),
+                error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+            ),
+            status=400,
+        )

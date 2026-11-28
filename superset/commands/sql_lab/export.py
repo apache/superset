@@ -30,8 +30,10 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
-from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.limiting_factor import LimitingFactor, PADDED_LIMIT_FACTORS
+from superset.sqllab.utils import is_export_sql_read_only, validate_export_sql
 from superset.utils import core as utils, csv
+from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
 from superset.views.utils import _deserialize_results_payload
 
 logger = logging.getLogger(__name__)
@@ -91,12 +93,30 @@ class SqlResultExportCommand(BaseCommand):
                 status=400,
             ) from ex
 
+    def _should_rerun_memory_truncated_result(self) -> bool:
+        """
+        Whether to rerun the query instead of exporting its stored rows.
+
+        A result cut short by an engine fetch memory cap is incomplete, so the
+        export reruns it without the cap when safe. Scripts with mutations,
+        opaque control-flow bodies on any engine, and BigQuery statements that
+        cannot be fully parsed export only stored rows.
+        """
+        if self._query.limiting_factor != LimitingFactor.MEMORY:
+            return False
+        sql = self._query.select_sql or self._query.executed_sql
+        return is_export_sql_read_only(sql, self._query.database.db_engine_spec.engine)
+
     def run(
         self,
     ) -> SqlExportResult:
         self.validate()
         blob = None
-        if results_backend and self._query.results_key:
+        if (
+            results_backend
+            and self._query.results_key
+            and not self._should_rerun_memory_truncated_result()
+        ):
             logger.info(
                 "Fetching CSV from results backend [%s]", self._query.results_key
             )
@@ -118,6 +138,8 @@ class SqlResultExportCommand(BaseCommand):
 
             logger.info("Using pandas to convert to CSV")
         else:
+            sql = self._query.select_sql or self._query.executed_sql
+            validate_export_sql(sql, self._query.database.db_engine_spec.engine)
             logger.info("Running a query to turn into CSV")
             if self._query.select_sql:
                 sql = self._query.select_sql
@@ -127,18 +149,19 @@ class SqlResultExportCommand(BaseCommand):
                 script = SQLScript(sql, self._query.database.db_engine_spec.engine)
                 # when a query has multiple statements only the last one returns data
                 limit = script.statements[-1].get_limit_value()
-            if limit is not None and self._query.limiting_factor in {
-                LimitingFactor.QUERY,
-                LimitingFactor.DROPDOWN,
-                LimitingFactor.QUERY_AND_DROPDOWN,
-            }:
+            if (
+                limit is not None
+                and self._query.limiting_factor in PADDED_LIMIT_FACTORS
+            ):
                 # remove extra row from `increased_limit`
                 limit -= 1
-            df = self._query.database.get_df(
-                sql,
-                self._query.catalog,
-                self._query.schema,
-            )[:limit]
+            # A download is not rendered, so skip engine memory caps.
+            with fetch_memory_cap_disabled():
+                df = self._query.database.get_df(
+                    sql,
+                    self._query.catalog,
+                    self._query.schema,
+                )[:limit]
 
         # Manual encoding using the specified encoding (default to utf-8 if not set)
         csv_string = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])

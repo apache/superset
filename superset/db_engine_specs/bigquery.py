@@ -54,6 +54,7 @@ from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import core as utils, json
+from superset.utils.fetch_memory_cap import is_fetch_memory_cap_disabled
 from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
@@ -413,6 +414,59 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return None
 
     @classmethod
+    def get_fetch_memory_cap(cls) -> int | None:
+        """
+        The configured fetch memory budget in MB, or ``None`` when disabled.
+        """
+        # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
+        # access in-context — a missing key should surface as a loud KeyError
+        # rather than be silently masked by a duplicated default here. The
+        # 200 fallback is only used when running outside an app context
+        # (e.g., direct unit-test calls to ``fetch_data``).
+        max_mb: int | None = (
+            current_app.config["BQ_FETCH_MAX_MB"] if has_app_context() else 200
+        )
+        # ``None`` or ``0`` turns the cap off.
+        return max_mb or None
+
+    @classmethod
+    def has_fetch_memory_cap(cls) -> bool:
+        """
+        BigQuery fetches may stop at ``BQ_FETCH_MAX_MB``.
+
+        This holds even while the setting is ``None``/``0``, so results cached
+        before an operator changes it stay keyed apart from downloads.
+        """
+        return True
+
+    @staticmethod
+    def _record_fetch_memory_limit(row_count: int, memory_limited: bool) -> None:
+        """Accumulate truncation across a chart's main and time-offset fetches."""
+        if not has_request_context():
+            return
+        was_limited = getattr(g, "bq_memory_limited", False)
+        g.bq_memory_limited = was_limited or memory_limited
+        if memory_limited:
+            g.bq_memory_limited_row_count = (
+                min(g.bq_memory_limited_row_count, row_count)
+                if was_limited
+                else row_count
+            )
+        elif not was_limited:
+            g.bq_memory_limited_row_count = row_count
+
+    @classmethod
+    def _fetch_all_data(
+        cls, cursor: Any, limit: int | None = None
+    ) -> list[tuple[Any, ...]]:
+        """Fetch without the memory budget, up to ``limit`` rows."""
+        data = super().fetch_data(cursor, limit)
+        if data and type(data[0]).__name__ == "Row":
+            data = [r.values() for r in data]  # type: ignore
+        cls._record_fetch_memory_limit(len(data), False)
+        return data
+
+    @classmethod
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:  # noqa: C901
         """
         Progressive fetch for BigQuery to prevent browser memory overload.
@@ -421,15 +475,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         total number of rows that fit within ``BQ_FETCH_MAX_MB``.
         Falls back to the parent implementation if the initial read fails.
         Errors after consuming rows propagate instead of returning partial data.
+
+        The budget is skipped when ``BQ_FETCH_MAX_MB`` is ``None``/``0`` and
+        for fetches that are not rendered in the browser (file exports), which
+        run inside ``fetch_memory_cap_disabled``.
         """
-        # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
-        # access in-context — a missing key should surface as a loud KeyError
-        # rather than be silently masked by a duplicated default here. The
-        # 200 fallback is only used when running outside an app context
-        # (e.g., direct unit-test calls to ``fetch_data``).
-        max_mb: int = (
-            current_app.config["BQ_FETCH_MAX_MB"] if has_app_context() else 200
-        )
+        max_mb = cls.get_fetch_memory_cap()
+        if max_mb is None or is_fetch_memory_cap_disabled():
+            return cls._fetch_all_data(cursor, limit)
         max_bytes = max_mb * 1024 * 1024
 
         first_batch: list[Any] = []
@@ -442,9 +495,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             first_batch = cursor.fetchmany(initial_batch_size)
 
             if not first_batch:
-                if has_request_context():
-                    g.bq_memory_limited = False
-                    g.bq_memory_limited_row_count = 0
+                cls._record_fetch_memory_limit(0, False)
                 return []
 
             # Support BigQuery Row objects (PR #4071)
@@ -477,9 +528,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                     and rows_fetched == initial_batch_size
                     and bool(cursor.fetchmany(1))
                 )
-                if has_request_context():
-                    g.bq_memory_limited = memory_limited
-                    g.bq_memory_limited_row_count = len(first_batch)
+                cls._record_fetch_memory_limit(len(first_batch), memory_limited)
                 return FetchedRows(first_batch, truncated=memory_limited)
 
             # Fetch one extra row to confirm truncation without false positives
@@ -494,9 +543,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
             data = first_batch + second_batch
 
-            if has_request_context():
-                g.bq_memory_limited = memory_limited
-                g.bq_memory_limited_row_count = len(data)
+            cls._record_fetch_memory_limit(len(data), memory_limited)
             return FetchedRows(data, truncated=memory_limited)
 
         except Exception as ex:  # pylint: disable=broad-except
@@ -506,13 +553,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if first_batch:
                 raise cls.get_dbapi_mapped_exception(ex) from ex
             # An initial read failure leaves no buffered rows to lose.
-            data = super().fetch_data(cursor, limit)
-            if data and type(data[0]).__name__ == "Row":
-                data = [r.values() for r in data]  # type: ignore
-            if has_request_context():
-                g.bq_memory_limited = False
-                g.bq_memory_limited_row_count = len(data) if data else 0
-            return data
+            return cls._fetch_all_data(cursor, limit)
 
     @staticmethod
     def _mutate_label(label: str) -> str:

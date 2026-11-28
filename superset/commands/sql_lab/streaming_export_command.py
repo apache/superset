@@ -18,18 +18,22 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable, Iterator
+from typing import Any, cast
 
+from flask import current_app as app
 from flask_babel import gettext as __
 from jinja2.exceptions import TemplateError
 
 from superset import db
+from superset.commands.sql_lab.export import SqlResultExportCommand
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
-from superset.sqllab.limiting_factor import LimitingFactor
+from superset.sqllab.limiting_factor import PADDED_LIMIT_FACTORS
+from superset.sqllab.utils import is_export_sql_read_only, validate_export_sql
 
 
 class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
@@ -97,6 +101,17 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
                 status=400,
             ) from ex
 
+    def run(self) -> Callable[[], Iterator[str]]:
+        """Stream reads, but buffer stored rows for scripts unsafe to rerun."""
+        assert self._query is not None
+        sql = self._query.select_sql or self._query.executed_sql
+        if not is_export_sql_read_only(sql, self._query.database.db_engine_spec.engine):
+            result = SqlResultExportCommand(self._client_id).run()
+            encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
+            data = cast(bytes, result["data"]).decode(encoding)
+            return lambda: iter([data])
+        return super().run()
+
     def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
         """
         Get the SQL query, database, catalog, and schema for SQL Lab export.
@@ -112,6 +127,7 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
 
         # Get the SQL query
         sql = select_sql or executed_sql
+        validate_export_sql(sql, database.db_engine_spec.engine)
 
         return sql, database, self._query.catalog, self._query.schema
 
@@ -141,11 +157,7 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
             limit = script.statements[-1].get_limit_value()
 
         # Adjust limit based on limiting factor
-        if limit is not None and limiting_factor in {
-            LimitingFactor.QUERY,
-            LimitingFactor.DROPDOWN,
-            LimitingFactor.QUERY_AND_DROPDOWN,
-        }:
+        if limit is not None and limiting_factor in PADDED_LIMIT_FACTORS:
             # remove extra row from `increased_limit`
             limit -= 1
 

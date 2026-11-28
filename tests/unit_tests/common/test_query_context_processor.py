@@ -17,7 +17,7 @@
 
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
@@ -75,6 +75,9 @@ def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
     query: QueryObject
     for query in mock_query_context.queries:
         assert query.datasource is not None
+        query.datasource.database.db_engine_spec.has_fetch_memory_cap.return_value = (
+            False
+        )
         query.datasource.database.extra = "{}"
         query.datasource.database.get_embedded_fallback_credentials.return_value = None
         query.datasource.database.embedded_fallback_applies.return_value = False
@@ -159,6 +162,141 @@ def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
         call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
     ]
     assert contexts[0] != contexts[1]
+
+
+@pytest.mark.parametrize(
+    ("result_format", "is_download", "engine_has_cap", "keyed_apart"),
+    [
+        (ChartDataResultFormat.CSV, False, True, True),
+        (ChartDataResultFormat.XLSX, False, True, True),
+        (ChartDataResultFormat.JSON, True, True, True),
+        (ChartDataResultFormat.JSON, False, True, False),
+        (ChartDataResultFormat.ARROW, False, True, False),
+        (ChartDataResultFormat.CSV, False, False, False),
+    ],
+)
+def test_query_cache_key_separates_uncapped_downloads(
+    processor: QueryContextProcessor,
+    result_format: ChartDataResultFormat,
+    is_download: bool,
+    engine_has_cap: bool,
+    keyed_apart: bool,
+) -> None:
+    """
+    Downloads skip the engine fetch memory cap, so on engines that have one
+    they must not share a cache entry with capped on-screen results.
+    """
+    processor._query_context.result_format = result_format
+    processor._query_context.is_download = is_download
+    datasource = cast(MagicMock, processor._qc_datasource)
+    db_engine_spec = datasource.database.db_engine_spec
+    db_engine_spec.has_fetch_memory_cap.return_value = engine_has_cap
+    query_obj = MagicMock()
+    query_obj.annotation_layers = []
+
+    with patch("superset.common.query_context_processor.security_manager"):
+        processor.query_cache_key(query_obj)
+
+    kwargs = query_obj.cache_key.call_args.kwargs
+    if keyed_apart:
+        assert kwargs["fetch_memory_cap"] is False
+    elif engine_has_cap:
+        assert kwargs["fetch_memory_cap"] == db_engine_spec.get_fetch_memory_cap()
+    else:
+        assert "fetch_memory_cap" not in kwargs
+
+
+@pytest.mark.parametrize(
+    ("result_format", "is_download", "engine_name", "expected_key_count"),
+    [
+        (ChartDataResultFormat.JSON, False, "bigquery", 4),
+        (ChartDataResultFormat.ARROW, False, "bigquery", 4),
+        (ChartDataResultFormat.CSV, False, "bigquery", 1),
+        (ChartDataResultFormat.XLSX, False, "bigquery", 1),
+        (ChartDataResultFormat.JSON, True, "bigquery", 1),
+        (ChartDataResultFormat.JSON, False, "base", 1),
+    ],
+)
+def test_query_cache_key_tracks_fetch_memory_budget(
+    processor: QueryContextProcessor,
+    app: Flask,
+    mocker: MockerFixture,
+    result_format: ChartDataResultFormat,
+    is_download: bool,
+    engine_name: str,
+    expected_key_count: int,
+) -> None:
+    """Changing the budget invalidates rendered results, but not downloads."""
+    from superset.common.query_object import QueryObject
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    processor._query_context.result_format = result_format
+    processor._query_context.is_download = is_download
+    datasource = cast(MagicMock, processor._qc_datasource)
+    datasource.database.db_engine_spec = (
+        BigQueryEngineSpec if engine_name == "bigquery" else BaseEngineSpec
+    )
+    datasource.uid = "table__1"
+    datasource.changed_on = None
+    datasource.get_extra_cache_keys.return_value = []
+    query_obj = QueryObject()
+    keys = []
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security:
+        security.get_rls_cache_key.return_value = []
+        for budget in (200, 100, 1, None, 0):
+            mocker.patch.dict(app.config, {"BQ_FETCH_MAX_MB": budget})
+            keys.append(processor.query_cache_key(query_obj))
+
+    assert len(set(keys)) == expected_key_count
+    assert keys[-2] == keys[-1]  # None and zero both disable the cap.
+
+
+@pytest.mark.parametrize(
+    ("result_format", "is_download", "cap_disabled"),
+    [
+        (ChartDataResultFormat.CSV, False, True),
+        (ChartDataResultFormat.XLSX, False, True),
+        # "Export to .JSON" is a download of a JSON result.
+        (ChartDataResultFormat.JSON, True, True),
+        (ChartDataResultFormat.JSON, False, False),
+        (ChartDataResultFormat.ARROW, False, False),
+    ],
+)
+def test_execute_query_object_skips_fetch_memory_cap_for_downloads(
+    processor: QueryContextProcessor,
+    result_format: ChartDataResultFormat,
+    is_download: bool,
+    cap_disabled: bool,
+) -> None:
+    """
+    Downloads are not rendered in the browser, so the datasource query runs
+    without the engine fetch memory cap; rendered results keep it.
+    """
+    from superset.utils.fetch_memory_cap import is_fetch_memory_cap_disabled
+
+    processor._query_context.result_format = result_format
+    processor._query_context.is_download = is_download
+    seen: list[bool] = []
+
+    def get_query_result(_: Any) -> MagicMock:
+        seen.append(is_fetch_memory_cap_disabled())
+        return MagicMock()
+
+    cast(
+        MagicMock, processor._qc_datasource
+    ).get_query_result.side_effect = get_query_result
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        return_value=False,
+    ):
+        processor._execute_query_object(MagicMock())
+
+    assert seen == [cap_disabled]
+    assert is_fetch_memory_cap_disabled() is False
 
 
 def test_annotation_cache_key_binds_the_source_connection_embedded_identity(
@@ -1761,6 +1899,7 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_datasource.uid = "test_datasource"
     mock_datasource.cache_timeout = None
     mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.database.db_engine_spec.has_fetch_memory_cap.return_value = False
     mock_datasource.database.extra = "{}"
     mock_datasource.database.get_embedded_fallback_credentials.return_value = None
     mock_datasource.database.embedded_fallback_applies.return_value = False

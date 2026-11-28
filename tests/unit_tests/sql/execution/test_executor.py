@@ -4052,3 +4052,27 @@ def test_truncation_survives_cache_round_trip(
     cached = executor._get_from_cache("SELECT 1", QueryOptions())
     assert cached is not None
     assert cached.statements[0].truncated is truncated
+
+
+@pytest.mark.parametrize("budget", [100, None, 0])
+def test_generate_cache_key_tracks_fetch_memory_budget(
+    mocker: MockerFixture, database: Database, app_context: None, budget: int | None
+) -> None:
+    """A changed BigQuery fetch budget must not reuse capped executor results."""
+    from unittest.mock import PropertyMock
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.object(
+        type(database),
+        "db_engine_spec",
+        new_callable=PropertyMock,
+        return_value=BigQueryEngineSpec,
+    )
+    executor = SQLExecutor(database)
+    options = QueryOptions(limit=100000)
+    mocker.patch.dict(current_app.config, {"BQ_FETCH_MAX_MB": 200})
+    capped_key = executor._generate_cache_key("SELECT * FROM t", options)
+    current_app.config["BQ_FETCH_MAX_MB"] = budget
+    assert executor._generate_cache_key("SELECT * FROM t", options) != capped_key

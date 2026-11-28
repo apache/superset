@@ -20,6 +20,7 @@ import copy
 import logging
 import re
 import time
+from contextlib import nullcontext
 from datetime import timedelta
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
@@ -95,6 +96,7 @@ from superset.utils.core import (
     is_adhoc_column,
     is_adhoc_metric,
 )
+from superset.utils.fetch_memory_cap import fetch_memory_cap_disabled
 from superset.utils.pandas_postprocessing.utils import unescape_separator
 from superset.utils.timing_metrics import (
     elapsed_ms,
@@ -610,6 +612,13 @@ class QueryContextProcessor:
                 emit_timing(key, value)
         emit_timing("chart_data.query.total", elapsed_ms(started_ns))
 
+    def _is_download(self) -> bool:
+        """Whether the result is downloaded rather than rendered."""
+        return (
+            self._query_context.result_format in ChartDataResultFormat.table_like()
+            or getattr(self._query_context, "is_download", False) is True
+        )
+
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
         Returns a QueryObject cache key for objects in self.queries
@@ -623,6 +632,18 @@ class QueryContextProcessor:
         # key must also bind the annotation sources' security context.
         if query_obj and query_obj.annotation_layers:
             kwargs["annotation_context"] = self._annotation_cache_context(query_obj)
+
+        # Downloads fetch past an engine's memory cap (see
+        # ``_execute_query_object``), so key them apart: a capped on-screen
+        # result must not be served as an export, and an uncapped export must
+        # not reach the browser. Rendered results also bind the configured
+        # budget so changing it cannot reuse results fetched under another cap.
+        database = getattr(datasource, "database", None)
+        db_engine_spec = getattr(database, "db_engine_spec", None)
+        if db_engine_spec and db_engine_spec.has_fetch_memory_cap():
+            kwargs["fetch_memory_cap"] = (
+                False if self._is_download() else db_engine_spec.get_fetch_memory_cap()
+            )
 
         cache_key = (
             query_obj.cache_key(
@@ -768,7 +789,8 @@ class QueryContextProcessor:
         """
         if chart_query_cancel_requested(self._query_context.client_id):
             return self._stopped_query_result()
-        result = self._qc_datasource.get_query_result(query_object)
+        with fetch_memory_cap_disabled() if self._is_download() else nullcontext():
+            result = self._qc_datasource.get_query_result(query_object)
         # A Stop that kills a statement the datasource ran internally (e.g. a
         # time-offset subquery) leaves a partial frame behind with a SUCCESS
         # status; recheck so that result is never served or cached.

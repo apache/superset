@@ -24,6 +24,33 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The BigQuery fetch memory cap (`BQ_FETCH_MAX_MB`) no longer applies to chart
+  CSV/XLSX/JSON exports or SQL Lab CSV exports of queries safe to re-execute:
+  these return every row up to the row limit, as before the cap was added.
+  On-screen chart and SQL Lab results keep the cap. SQL Lab reports a result cut by the cap with the new
+  `MEMORY` limiting factor instead of `NOT_LIMITED`; before downgrading to a
+  version without it, run
+  `UPDATE query SET limiting_factor = 'NOT_LIMITED' WHERE limiting_factor = 'MEMORY'`
+  so older code can load those queries. Set `BQ_FETCH_MAX_MB = None` (or `0`) to
+  turn the cap off. The fetch budget is part of BigQuery chart, SQL executor,
+  and column-values cache keys, so existing entries miss once after upgrading
+  and exports re-run queries rather than reuse pre-upgrade cached results.
+  SQL Lab CSV exports use only stored rows for scripts with detected data/schema
+  mutations or opaque control-flow bodies on **any engine**, even when the block
+  is read-only (for example, SQL Server `BEGIN SELECT 1 END; SELECT 2` or
+  `BEGIN TRY ... END TRY BEGIN CATCH ... END CATCH`). An unparsed body can hide
+  writes. BigQuery additionally requires stored rows for **every** statement
+  that cannot be fully parsed, including `IF ... ELSE ... END IF` and
+  `BEGIN ... END` blocks. These stored rows may remain memory-capped. Streaming
+  downloads fall back to buffered export for these scripts; if no results
+  backend, result key, or unexpired stored result is available, export returns
+  HTTP 400 with an explanation and asks for a standalone read-only query.
+  Eligible read-only queries re-run when stored results are unavailable (or
+  memory-capped). On non-BigQuery engines this includes metadata commands such
+  as MySQL `SHOW TABLES`, PostgreSQL `SHOW server_version`, and Kusto KQL reads:
+  lacking a full AST alone does not prevent their export re-execution, but
+  detected mutations and opaque control-flow bodies do. SQL that raises a parse
+  error still fails in the normal query-execution path before connecting.
 - MCP `get_table` query failures now populate `error_code`. Untyped dataset
   engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
   specific `SupersetErrorType` code for typed errors, while guests receive

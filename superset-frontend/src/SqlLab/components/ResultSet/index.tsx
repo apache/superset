@@ -100,6 +100,7 @@ enum LimitingFactor {
   QueryAndDropdown = 'QUERY_AND_DROPDOWN',
   Dropdown = 'DROPDOWN',
   NotLimited = 'NOT_LIMITED',
+  Memory = 'MEMORY',
 }
 
 export interface ResultSetProps {
@@ -435,7 +436,12 @@ const ResultSet = ({
                     payload: { client_id: query.id },
                     exportType: 'csv',
                     exportSource: 'sqllab',
-                    expectedRows: rows,
+                    // A memory-capped result shows fewer rows than the
+                    // uncapped export streams, so its count is no estimate.
+                    expectedRows:
+                      query.limitingFactor === LimitingFactor.Memory
+                        ? undefined
+                        : rows,
                   });
                 } else {
                   handleDownloadCsv(e);
@@ -526,6 +532,17 @@ const ResultSet = ({
         'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
         { rows },
       );
+    } else if (limitingFactor === LimitingFactor.Memory) {
+      limitMessage =
+        csv && canExportData
+          ? t(
+              'The number of rows displayed is limited to %(rows)d due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts with writes, opaque control-flow blocks on any engine, and BigQuery statements that cannot be fully parsed export only stored rows, which may remain memory-capped. Without stored results, their downloads fail.',
+              { rows },
+            )
+          : t(
+              'The number of rows displayed is limited to %(rows)d due to memory constraints.',
+              { rows },
+            );
     } else if (shouldUseDefaultDropdownAlert) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the dropdown.',

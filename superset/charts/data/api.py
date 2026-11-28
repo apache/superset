@@ -377,10 +377,12 @@ class ChartDataRestApi(ChartRestApi):
               $ref: '#/components/responses/500'
         """
         json_body = None
+        is_download = False
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
-            # CSV export submits regular form data
+            # File exports (CSV, XLSX, JSON) submit regular form data
+            is_download = True
             with contextlib.suppress(TypeError, json.JSONDecodeError):
                 json_body = json.loads(request.form["form_data"])
         if json_body is None:
@@ -392,6 +394,7 @@ class ChartDataRestApi(ChartRestApi):
                 query_context = self._create_query_context_from_form(
                     json_body, expected_rows=expected_rows
                 )
+            query_context.is_download = is_download
             command = ChartDataCommand(query_context)
             with timed("chart_data.query_context.validate"):
                 command.validate()

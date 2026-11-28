@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 
 from superset.common.chart_data import ChartDataResultFormat
 
@@ -291,3 +292,44 @@ def test_rejects_unsupported_time_grain(app) -> None:
         with pytest.raises(AssertionError):
             api._execute_and_respond(resolved, payload)
     assert "Unsupported time_grain" in m.call_args.kwargs["message"]
+
+
+@pytest.mark.parametrize("budget", [100, None, 0])
+@pytest.mark.parametrize("datasource_type", ["table", "query"])
+def test_column_values_cache_key_tracks_fetch_memory_budget(
+    mocker: MockerFixture,
+    app_context: None,
+    budget: int | None,
+    datasource_type: str,
+) -> None:
+    """Column-value suggestions must not reuse rows capped by another budget."""
+    from unittest.mock import PropertyMock
+
+    from flask import current_app
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasource.api import _column_values_cache_key
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    database = Database(id=1, database_name="test_db", sqlalchemy_uri="sqlite://")
+    datasource = (
+        SqlaTable(id=1, table_name="t", database=database)
+        if datasource_type == "table"
+        else Query(id=1, database=database, sql="SELECT * FROM t")
+    )
+    mocker.patch.object(
+        type(database),
+        "db_engine_spec",
+        new_callable=PropertyMock,
+        return_value=BigQueryEngineSpec,
+    )
+    mocker.patch(
+        "superset.datasource.api.security_manager.get_rls_cache_key", return_value=[]
+    )
+    mocker.patch.dict(current_app.config, {"BQ_FETCH_MAX_MB": 200})
+    query = {"col": "n", "limit": 100000}
+    capped_key = _column_values_cache_key(datasource, query)
+    current_app.config["BQ_FETCH_MAX_MB"] = budget
+    assert _column_values_cache_key(datasource, query) != capped_key

@@ -22,6 +22,7 @@ import {
   screen,
   waitFor,
   fireEvent,
+  userEvent,
   within,
 } from 'spec/helpers/testing-library';
 import createMockStore from 'redux-mock-store';
@@ -598,6 +599,128 @@ describe('ResultSet', () => {
       ).toBeInTheDocument();
     });
   });
+
+  test.each([
+    {
+      csv: true,
+      canExport: true,
+      message:
+        'The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts with writes, opaque control-flow blocks on any engine, and BigQuery statements that cannot be fully parsed export only stored rows, which may remain memory-capped. Without stored results, their downloads fail.',
+    },
+    {
+      csv: true,
+      canExport: false,
+      message:
+        'The number of rows displayed is limited to 42 due to memory constraints.',
+    },
+    {
+      csv: false,
+      canExport: true,
+      message:
+        'The number of rows displayed is limited to 42 due to memory constraints.',
+    },
+  ])(
+    'should warn when rows were dropped by a memory cap (csv: $csv, canExport: $canExport)',
+    async ({ csv, canExport, message }) => {
+      setup(
+        { ...mockedProps, csv },
+        mockStore({
+          ...initialState,
+          user: canExport
+            ? { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } }
+            : user,
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [queries[0].id]: { ...queries[0], limitingFactor: 'MEMORY' },
+            },
+          },
+        }),
+      );
+
+      await userEvent.hover(await screen.findByText('42 rows'));
+
+      expect(
+        await screen.findByText(`42 rows returned. ${message}`),
+      ).toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    'INSERT INTO log VALUES (1); SELECT n FROM t',
+    'IF TRUE THEN SELECT 1; ELSE SELECT 2; END IF',
+    'BEGIN SELECT 1; END',
+  ])(
+    'memory-capped scripts warn about stored-row CSV downloads: %s',
+    async sql => {
+      setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } },
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [queries[0].id]: {
+                ...queries[0],
+                executedSql: sql,
+                limitingFactor: 'MEMORY',
+              },
+            },
+          },
+        }),
+      );
+
+      await userEvent.hover(await screen.findByText('42 rows'));
+
+      expect(
+        await screen.findByText(
+          '42 rows returned. The number of rows displayed is limited to 42 due to memory constraints. CSV downloads rerun eligible read-only queries up to the query limit. Scripts with writes, opaque control-flow blocks on any engine, and BigQuery statements that cannot be fully parsed export only stored rows, which may remain memory-capped. Without stored results, their downloads fail.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          /CSV downloads include all rows up to the query limit/,
+        ),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    { limitingFactor: 'MEMORY', expectedRows: undefined },
+    { limitingFactor: 'NOT_LIMITED', expectedRows: 5000 },
+  ])(
+    'streaming export expects $expectedRows rows for a $limitingFactor result',
+    async ({ limitingFactor, expectedRows }) => {
+      // A memory-capped result shows fewer rows than the export streams.
+      const largeQuery = {
+        ...queries[0],
+        rows: 5000,
+        queryLimit: 100000,
+        limitingFactor,
+      };
+      const { getByTestId } = setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: { ...user, roles: { sql_lab: [['can_export_csv', 'SQLLab']] } },
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: { [largeQuery.id]: largeQuery },
+          },
+          common: { conf: { CSV_STREAMING_ROW_THRESHOLD: 1000 } },
+        }),
+      );
+
+      await waitFor(() => {
+        expect(getByTestId('export-csv-button')).toBeInTheDocument();
+      });
+      fireEvent.click(getByTestId('export-csv-button'));
+
+      expect(mockStartExport).toHaveBeenCalledTimes(1);
+      expect(mockStartExport.mock.calls[0][0].expectedRows).toBe(expectedRows);
+    },
+  );
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {
     const { queryByTestId } = setup(

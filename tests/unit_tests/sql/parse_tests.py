@@ -9695,3 +9695,75 @@ def test_extract_tables_cte_folds_only_ascii(
         expected.add(Table(reference))
     assert SQLStatement(sql, "oracle").tables == expected
     assert extract_tables_from_sql(sql, "oracle") == expected
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "BEGIN INSERT INTO t VALUES (1); END;",
+        "BEGIN UPDATE t SET n=1; END;",
+        "BEGIN DELETE FROM t WHERE TRUE; END;",
+        "BEGIN MERGE t USING s ON FALSE WHEN NOT MATCHED THEN INSERT ROW; END;",
+        "BEGIN CREATE TABLE t(n INT64); END;",
+        "BEGIN ALTER TABLE t ADD COLUMN n INT64; END;",
+        "BEGIN DROP TABLE t; END;",
+        "IF TRUE THEN INSERT INTO t VALUES (1); END IF;",
+        "WHILE TRUE DO UPDATE t SET n=1; END WHILE;",
+        "LOOP DELETE FROM t WHERE TRUE; END LOOP;",
+        "BEGIN SELECT 1; EXCEPTION WHEN ERROR THEN INSERT INTO t VALUES (1); END;",
+    ],
+)
+def test_has_mutation_in_bigquery_script_blocks(sql: str) -> None:
+    """Writes inside opaque BigQuery scripting commands must not look read-only."""
+    assert SQLScript(sql, "bigquery").has_mutation()
+    assert not SQLScript(
+        "BEGIN SELECT REPLACE('INSERT', 'UPDATE', 'DELETE'), t.update, `MERGE` "
+        "FROM t; -- DELETE FROM t\nEND;",
+        "bigquery",
+    ).has_mutation()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SHOW CREATE TABLE t;",
+        "SHOW TABLES;",
+    ],
+)
+def test_bigquery_non_scripting_command_body_is_not_scanned(sql: str) -> None:
+    """Only control-flow bodies are scanned; ``SHOW CREATE TABLE`` stays read-only."""
+    assert not SQLScript(sql, "bigquery").has_mutation()
+
+
+@pytest.mark.parametrize("operation", ["INTO", "OVERWRITE"])
+def test_has_mutation_in_bigquery_load_data(operation: str) -> None:
+    """Loading external files writes data, even without an INSERT AST node."""
+    sql = (
+        f"LOAD DATA {operation} t "
+        "FROM FILES(format='CSV', uris=['gs://bucket/data.csv']); SELECT 1;"
+    )
+    assert SQLStatement(sql.split(";")[0], "bigquery").is_mutating()
+    assert SQLScript(sql, "bigquery").has_mutation()
+
+
+@pytest.mark.parametrize(
+    "engine, sql, expected",
+    [
+        ("mssql", "BEGIN INSERT INTO log VALUES (1) END; SELECT n FROM t", True),
+        ("mssql", "BEGIN SELECT 1 END; SELECT 2", True),
+        (
+            "mysql",
+            "IF TRUE THEN SELECT 1; ELSE INSERT INTO t VALUES (1); END IF;",
+            True,
+        ),
+        ("bigquery", "BEGIN SELECT 1; END;", True),
+        ("mssql", "IF 1=1 SELECT 1 ELSE SELECT 2", False),
+        ("postgresql", "SELECT 'BEGIN INSERT' AS n; SELECT 2", False),
+        ("postgresql", "SHOW server_version", False),
+        ("mysql", "SHOW TABLES FROM some_schema", False),
+        ("kustokql", "print 1", False),
+    ],
+)
+def test_has_opaque_scripting_body(engine: str, sql: str, expected: bool) -> None:
+    """Only SQL control flow with unmodeled bodies is unsafe to inspect for reruns."""
+    assert SQLScript(sql, engine).has_opaque_scripting_body() is expected
