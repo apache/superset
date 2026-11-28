@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  config:
+  generate-foss-report:
     runs-on: ubuntu-slim
     steps:
       - name: "Check for secrets"
@@ -22,10 +22,6 @@ jobs:
           fi
         env:
           FOSSA_API_KEY: ${{ (secrets.FOSSA_API_KEY != '' ) || '' }}
-  generate-foss-report:
-    name: Generate Report
-    runs-on: ubuntu-slim
-    steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         if: steps.check.outputs.has-secrets
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
