@@ -15,10 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+from unittest.mock import MagicMock
+
 import pytest
 
 from superset.exceptions import QueryObjectValidationError
-from superset.semantic_layers.chart_types import validate_semantic_chart_type
+from superset.semantic_layers.chart_types import (
+    pin_saved_chart_type,
+    semantic_chart_refusal,
+    validate_query_context_chart_type,
+    validate_semantic_chart_type,
+)
 
 
 @pytest.mark.parametrize(
@@ -64,3 +72,61 @@ def test_supported_or_unspecified_semantic_chart_type_is_allowed(
 def test_ordinary_datasets_are_outside_the_policy(viz_type: object) -> None:
     """The semantic policy does not validate ordinary dataset visualization input."""
     validate_semantic_chart_type("table", viz_type)
+
+
+@pytest.mark.parametrize(
+    ("datasource_type", "viz_type", "refused"),
+    [
+        ("semantic_view", "rose", True),
+        ("semantic_view", "table", False),
+        ("semantic_view", None, False),
+        ("semantic_view", ["rose"], False),
+        ("table", "rose", False),
+        (None, "rose", False),
+    ],
+)
+def test_semantic_chart_refusal(
+    datasource_type: str | None, viz_type: object, refused: bool
+) -> None:
+    """Only a known refused type on a semantic view returns a reason."""
+    reason: str | None = semantic_chart_refusal(datasource_type, viz_type)
+    assert (reason is not None) is refused
+    if refused:
+        assert "Nightingale Rose" in str(reason)
+
+
+def test_pin_saved_chart_type_overrides_a_stale_request_type() -> None:
+    """A replayed context can't claim a supported type the chart no longer has."""
+    payload: dict[str, Any] = {"form_data": {"viz_type": "table", "x": 1}}
+    pin_saved_chart_type(payload, "semantic_view", "histogram_v2")
+    assert payload["form_data"] == {"viz_type": "histogram_v2", "x": 1}
+
+
+@pytest.mark.parametrize(
+    ("datasource_type", "viz_type"),
+    [("semantic_view", "pivot_table_v2"), ("table", "histogram_v2")],
+)
+def test_pin_saved_chart_type_leaves_other_charts_alone(
+    datasource_type: str, viz_type: str
+) -> None:
+    """Supported and non-semantic charts keep their saved context verbatim."""
+    payload: dict[str, Any] = {"queries": [{}]}
+    pin_saved_chart_type(payload, datasource_type, viz_type)
+    assert payload == {"queries": [{}]}
+
+
+def test_pin_saved_chart_type_replaces_a_stale_refused_request_type() -> None:
+    """A chart switched to a supported type isn't replayed under its old type."""
+    payload: dict[str, Any] = {"form_data": {"viz_type": "rose", "x": 1}}
+    pin_saved_chart_type(payload, "semantic_view", "table")
+    assert payload["form_data"] == {"viz_type": "table", "x": 1}
+
+
+def test_query_context_chart_type_falls_back_to_the_saved_chart() -> None:
+    """Without a request type, the saved chart's type is validated."""
+    query_context: MagicMock = MagicMock()
+    query_context.datasource.type = "semantic_view"
+    query_context.form_data = {}
+    query_context.slice_.viz_type = "rose"
+    with pytest.raises(QueryObjectValidationError, match="Nightingale Rose"):
+        validate_query_context_chart_type(query_context)

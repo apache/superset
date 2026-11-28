@@ -27,6 +27,7 @@ from marshmallow import fields, Schema, validate
 
 from superset.versioning.changes import ACTION_KINDS
 from superset.versioning.creation_kinds import CREATION_KINDS, CREATION_RECORD_KIND
+from superset.versioning.lifecycle import CHART_ARCHIVE_KIND
 
 
 class VersionChangedBySchema(Schema):
@@ -206,6 +207,7 @@ ACTIVITY_CHANGE_KINDS: tuple[str, ...] = (
     # ``version_uuid`` / ``version_number``.
     "__meta__",
     CREATION_RECORD_KIND,
+    CHART_ARCHIVE_KIND,
 )
 
 #: Allowed values for ``ActivityRecordSchema.operation`` — the per-record
@@ -349,8 +351,9 @@ class ActivityRecordSchema(Schema):
         metadata={
             "description": (
                 "Name of the source entity *at the time of the change* — "
-                "denormalized from the validity-strategy shadow row. "
-                "Survives entity rename / delete."
+                "denormalized from the validity-strategy shadow row, or from "
+                "the capture-time payload for ``__archive__`` records. "
+                "Preserved across renames; redacted for deleted related entities."
             )
         },
     )
@@ -405,7 +408,8 @@ class ActivityRecordSchema(Schema):
             "description": (
                 "Content category — what kind of thing changed. "
                 "``field`` is the fallback for scalar changes without a "
-                "more specific category. Per-record."
+                "more specific category. Per-record. ``__archive__`` announces a "
+                "chart archive in related dashboard activity only."
             )
         },
     )
@@ -454,13 +458,20 @@ class ActivityRecordSchema(Schema):
     )
     to_value = fields.Raw(
         allow_none=True,
-        metadata={"description": "New value; ``null`` = removed."},
+        metadata={
+            "description": (
+                "New value; ``null`` = removed. For ``__archive__``, an object "
+                "with the archived chart's ``entity_uuid`` and capture-time "
+                "``entity_name``; null when related detail is redacted."
+            )
+        },
     )
     summary = fields.String(
         metadata={
             "description": (
                 'Synthesized headline for ``source: "related"`` records — '
-                'e.g., ``"Dataset updated: Sales Transactions"``. '
+                'e.g., ``"Dataset updated: Sales Transactions"`` or '
+                '``"Chart archived: Sales"``. '
                 'Empty string for ``source: "self"`` records, except '
                 "``__meta__`` self records (e.g. restore announcements), "
                 "which carry their own headline."

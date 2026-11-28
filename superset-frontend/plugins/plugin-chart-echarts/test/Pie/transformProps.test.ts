@@ -22,6 +22,7 @@ import {
   SqlaFormData,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import type { PieSeriesOption } from 'echarts/charts';
 import type { LegendComponentOption } from 'echarts/components';
 import type {
@@ -987,4 +988,177 @@ test('getPieLayout has no total anchor when the chart size is unknown', () => {
   expect(layout.center).toEqual(['50%', '50%']);
   expect(layout.radius).toEqual(['30%', '70%']);
   expect(layout.totalAnchor).toBeNull();
+});
+
+const getDynamicTotalChartProps = ({
+  showTotal = true,
+  donut = true,
+  legendState,
+  filterState,
+  formData = {},
+  queriesData,
+}: {
+  showTotal?: boolean;
+  donut?: boolean;
+  legendState?: Record<string, boolean>;
+  filterState?: { selectedValues?: string[] };
+  formData?: Partial<SqlaFormData>;
+  queriesData?: Array<{ data: Array<Record<string, string | number>> }>;
+} = {}): EchartsPieChartProps =>
+  new ChartProps({
+    formData: {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      groupby: ['category'],
+      viz_type: 'pie',
+      show_total: showTotal,
+      donut,
+      ...formData,
+    } as SqlaFormData,
+    width: 800,
+    height: 600,
+    queriesData: queriesData || [
+      {
+        data: [
+          { category: 'A', sum__num: 10, sum__num__contribution: 0.1 },
+          { category: 'B', sum__num: 20, sum__num__contribution: 0.2 },
+          { category: 'C', sum__num: 30, sum__num__contribution: 0.3 },
+          { category: 'D', sum__num: 40, sum__num__contribution: 0.4 },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+    legendState,
+    filterState,
+  }) as EchartsPieChartProps;
+
+test('dynamic total sums all slices when legendState is undefined or all visible', () => {
+  const propsUndefined = getDynamicTotalChartProps();
+  expect(getGraphic(transformProps(propsUndefined)).style.text).toBe(
+    'Total: 100',
+  );
+
+  const propsAllTrue = getDynamicTotalChartProps({
+    legendState: { A: true, B: true, C: true, D: true },
+  });
+  expect(getGraphic(transformProps(propsAllTrue)).style.text).toBe(
+    'Total: 100',
+  );
+});
+
+test('dynamic total updates when one category is hidden', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { B: false },
+  });
+  const graphic = getGraphic(transformProps(props));
+  expect(graphic.style.text).toBe('Total: 80');
+});
+
+test('dynamic total works on both donut and standard pie', () => {
+  const donutProps = getDynamicTotalChartProps({
+    donut: true,
+    legendState: { A: false },
+  });
+  const donutGraphic = getGraphic(transformProps(donutProps));
+  expect(donutGraphic.style.text).toBe('Total: 90');
+
+  const pieProps = getDynamicTotalChartProps({
+    donut: false,
+    legendState: { A: false },
+  });
+  const pieGraphic = getGraphic(transformProps(pieProps));
+  expect(pieGraphic.style.text).toBe('Total: 90');
+});
+
+test('dynamic total treats slices omitted from partial legendState as visible', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { A: true, C: false },
+  });
+  const graphic = getGraphic(transformProps(props));
+  // A(10) + B(20) + D(40) = 70
+  expect(graphic.style.text).toBe('Total: 70');
+});
+
+test('dynamic total displays Total: 0 when all slices are hidden in legendState', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { A: false, B: false, C: false, D: false },
+  });
+  const graphic = getGraphic(transformProps(props));
+  expect(graphic.style.text).toBe('Total: 0');
+});
+
+test('dynamic total reflects legend isolation (single visible slice)', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { A: true, B: false, C: false, D: false },
+  });
+  expect(getGraphic(transformProps(props)).style.text).toBe('Total: 10');
+});
+
+test('dynamic total excludes or includes Other category value based on legendState when threshold_for_other is used', () => {
+  const otherQueriesData = [
+    {
+      data: [
+        { category: 'A', sum__num: 40, sum__num__contribution: 0.4 },
+        { category: 'B', sum__num: 35, sum__num__contribution: 0.35 },
+        { category: 'C', sum__num: 15, sum__num__contribution: 0.15 },
+        { category: 'D', sum__num: 10, sum__num__contribution: 0.1 },
+      ],
+    },
+  ];
+
+  // Keeping Other visible (no legendState or Other: true) includes otherSum (25)
+  const propsOtherVisible = getDynamicTotalChartProps({
+    formData: { threshold_for_other: 20 },
+    queriesData: otherQueriesData,
+    legendState: { [t('Other')]: true },
+  });
+  expect(getGraphic(transformProps(propsOtherVisible)).style.text).toBe(
+    'Total: 100',
+  );
+
+  // Hiding regular category 'A' while Other is visible
+  const propsHideA = getDynamicTotalChartProps({
+    formData: { threshold_for_other: 20 },
+    queriesData: otherQueriesData,
+    legendState: { A: false },
+  });
+  expect(getGraphic(transformProps(propsHideA)).style.text).toBe('Total: 60');
+
+  // Hiding Other in legendState excludes otherSum (25)
+  const propsOtherHidden = getDynamicTotalChartProps({
+    formData: { threshold_for_other: 20 },
+    queriesData: otherQueriesData,
+    legendState: { [t('Other')]: false },
+  });
+  expect(getGraphic(transformProps(propsOtherHidden)).style.text).toBe(
+    'Total: 75',
+  );
+});
+
+test('dynamic total does not affect total value when filterState.selectedValues is set', () => {
+  const propsWithFilter = getDynamicTotalChartProps({
+    filterState: { selectedValues: ['A'] },
+  });
+  expect(getGraphic(transformProps(propsWithFilter)).style.text).toBe(
+    'Total: 100',
+  );
+
+  const propsWithFilterAndLegend = getDynamicTotalChartProps({
+    filterState: { selectedValues: ['A'] },
+    legendState: { B: false },
+  });
+  expect(getGraphic(transformProps(propsWithFilterAndLegend)).style.text).toBe(
+    'Total: 80',
+  );
+});
+
+test('dynamic total keeps graphic as null when showTotal is false regardless of legendState', () => {
+  const props = getDynamicTotalChartProps({
+    showTotal: false,
+    legendState: { A: false },
+  });
+  const transformed = transformProps(props);
+  expect(transformed.echartOptions.graphic).toBeNull();
 });

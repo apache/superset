@@ -209,14 +209,24 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             bound_args.apply_defaults()
             cache_key = key.format(**bound_args.arguments)
 
-            obj = cache.get(cache_key)
+            try:
+                obj = cache.get(cache_key)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Could not get cache key %s", cache_key, exc_info=True)
+                obj = None
             if not force and obj is not None:
                 return obj
             obj = f(*args, **kwargs)
 
             # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
             if cache_timeout != CACHE_DISABLED_TIMEOUT:
-                cache.set(cache_key, obj, timeout=cache_timeout)
+                try:
+                    cache.set(cache_key, obj, timeout=cache_timeout)
+                except Exception:  # pylint: disable=broad-except
+                    # cache.set can fail if the backend is unreachable or times out;
+                    # the decorated function's result is still returned uncached
+                    # rather than failing the request, mirroring set_and_log_cache.
+                    logger.warning("Could not cache key %s", cache_key, exc_info=True)
             return obj
 
         return wrapped_f

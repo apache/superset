@@ -132,6 +132,7 @@ def test_get_dataset_include_rendered_sql_passes_table_to_template_processor(
     mock_get_processor.assert_called_once_with(database=database, table=dataset)
 
 
+@pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 def test_get_dataset_serializes_the_partition_mapping_summary(
     session: Session,
     client: Any,
