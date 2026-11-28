@@ -26,7 +26,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-23 15:13+0530\n"
+"POT-Creation-Date: 2026-11-24 01:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -165,6 +165,14 @@ msgid "% of total"
 msgstr ""
 
 #, python-format
+msgid "%(children)s of %(parent)s %(id)s"
+msgstr ""
+
+#, python-format
+msgid "%(children)s shown per %(parent)s"
+msgstr ""
+
+#, python-format
 msgid "%(column)s is an array column, which cannot be compared against the single value a transform returns. Mirrored filters on this mapping would fail at the database. Map a scalar partition column instead."
 msgstr ""
 
@@ -202,6 +210,10 @@ msgstr ""
 
 #, python-format
 msgid "%(label)s file"
+msgstr ""
+
+#, python-format
+msgid "%(loaded)s of %(total)s %(children)s"
 msgstr ""
 
 #, python-format
@@ -251,6 +263,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%(number)s %(name)s"
+msgstr ""
+
+#, python-format
 msgid "%(object)s does not exist in this database."
 msgstr ""
 
@@ -274,9 +290,17 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr ""
 
+#, python-format
+msgid "%(start)s to %(end)s of %(total)s"
+msgstr ""
+
 #. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr ""
+
+#, python-format
+msgid "%(total)s %(children)s"
 msgstr ""
 
 #, python-format
@@ -437,6 +461,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s details"
+msgstr ""
+
+#, python-format
 msgid "%s field"
 msgid_plural "%s fields"
 msgstr[0] ""
@@ -450,6 +478,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s imported"
+msgstr ""
+
+#, python-format
+msgid "%s is required"
 msgstr ""
 
 #, python-format
@@ -570,6 +602,14 @@ msgstr ""
 
 #, python-format
 msgid "%s updated"
+msgstr ""
+
+#, python-format
+msgid "%s · ascending"
+msgstr ""
+
+#, python-format
+msgid "%s · descending"
 msgstr ""
 
 #, python-format
@@ -1357,6 +1397,9 @@ msgstr ""
 msgid "Add another notification method"
 msgstr ""
 
+msgid "Add at least one level."
+msgstr ""
+
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
 msgstr ""
 
@@ -1420,6 +1463,9 @@ msgid "Add interval bounds above to configure colors here."
 msgstr ""
 
 msgid "Add item"
+msgstr ""
+
+msgid "Add level"
 msgstr ""
 
 msgid "Add metric"
@@ -1777,6 +1823,9 @@ msgid "All filters"
 msgstr ""
 
 msgid "All groupable columns"
+msgstr ""
+
+msgid "All levels come from this dataset. Each child row is linked to its parent. Parent columns must be the same on every row. Child level columns must be the same on every dataset row for one child ID; otherwise the count and Load more can disagree."
 msgstr ""
 
 msgid "All panels"
@@ -2363,10 +2412,16 @@ msgstr ""
 msgid "Apply custom CSS to the dashboard. Use class names or element selectors to target specific components."
 msgstr ""
 
+msgid "Apply date filter to children"
+msgstr ""
+
 msgid "Apply filters"
 msgstr ""
 
 msgid "Apply metrics on"
+msgstr ""
+
+msgid "Apply the level 1 date range to this level's time column."
 msgstr ""
 
 msgid "April"
@@ -3547,6 +3602,9 @@ msgstr ""
 msgid "Choose how many X-Axis labels to show"
 msgstr ""
 
+msgid "Choose how many children to load at a time for each parent."
+msgstr ""
+
 msgid "Choose index column"
 msgstr ""
 
@@ -3572,7 +3630,28 @@ msgstr ""
 msgid "Choose the annotation layer type"
 msgstr ""
 
+msgid "Choose the column at this level that matches the parent level's ID."
+msgstr ""
+
+msgid "Choose the column that identifies an item at this level."
+msgstr ""
+
+msgid "Choose the columns shown in this level's table."
+msgstr ""
+
+msgid "Choose the date or time column that \"Apply date filter to children\" uses for this level."
+msgstr ""
+
+msgid "Choose the date or time column used to filter this level."
+msgstr ""
+
+msgid "Choose the fields shown when an item is expanded."
+msgstr ""
+
 msgid "Choose the format for legend values"
+msgstr ""
+
+msgid "Choose the initial row order for this level."
 msgstr ""
 
 msgid "Choose the position of the legend"
@@ -4454,6 +4533,10 @@ msgstr ""
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
 msgstr ""
 
+#, python-format
+msgid "Couldn't load %s —"
+msgstr ""
+
 msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
 msgstr ""
 
@@ -5282,6 +5365,9 @@ msgstr ""
 msgid "Default schema (database) to connect to"
 msgstr ""
 
+msgid "Default sort"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 
@@ -5649,6 +5735,9 @@ msgid "Design with"
 msgstr ""
 
 msgid "Detach or delete them first."
+msgstr ""
+
+msgid "Detail fields"
 msgstr ""
 
 msgid "Details"
@@ -6090,6 +6179,9 @@ msgstr ""
 
 #, python-format
 msgid "ERROR: %s"
+msgstr ""
+
+msgid "Each level needs an id_column"
 msgstr ""
 
 msgid "Each metric's own"
@@ -6783,6 +6875,9 @@ msgstr ""
 msgid "Expand all"
 msgstr ""
 
+msgid "Expand all to level"
+msgstr ""
+
 msgid "Expand data panel"
 msgstr ""
 
@@ -6793,6 +6888,10 @@ msgid "Expand row to edit"
 msgstr ""
 
 msgid "Expand settings"
+msgstr ""
+
+#, python-format
+msgid "Expand to %s"
 msgstr ""
 
 msgid "Expected geographic query data to be a list of records"
@@ -7969,6 +8068,9 @@ msgstr ""
 msgid "Huge"
 msgstr ""
 
+msgid "ID column"
+msgstr ""
+
 msgid "ISO 3166-2"
 msgstr ""
 
@@ -8252,6 +8354,9 @@ msgstr ""
 msgid "Interval bounds"
 msgstr ""
 
+msgid "Interval bounds as percentages"
+msgstr ""
+
 msgid "Interval colors"
 msgstr ""
 
@@ -8280,6 +8385,9 @@ msgstr ""
 msgid "Invalid SQL: %(error)s"
 msgstr ""
 
+msgid "Invalid Tree export parent ID column"
+msgstr ""
+
 #, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
 msgstr ""
@@ -8292,6 +8400,10 @@ msgid "Invalid certificate"
 msgstr ""
 
 msgid "Invalid color"
+msgstr ""
+
+#, python-format
+msgid "Invalid column or metric name: %(column)s"
 msgstr ""
 
 msgid "Invalid connection string, a valid string usually follows: backend+driver://user:password@database-host/database-name"
@@ -8859,6 +8971,25 @@ msgstr ""
 msgid "Less than (<)"
 msgstr ""
 
+#, python-format
+msgid "Level %(number)s"
+msgstr ""
+
+#, python-format
+msgid "Level %(number)s is missing: %(fields)s."
+msgstr ""
+
+#, python-format
+msgid "Level %(number)s: %(field)s can't be the level's own ID column."
+msgstr ""
+
+#, python-format
+msgid "Level %(number)s: with \"Apply date filter to children\" on, its time column must be one of its Columns or Detail fields."
+msgstr ""
+
+msgid "Levels"
+msgstr ""
+
 msgid "Liberty (OpenFreeMap)"
 msgstr ""
 
@@ -8955,6 +9086,13 @@ msgstr ""
 msgid "Link Copied!"
 msgstr ""
 
+#, python-format
+msgid "Linked to %(parent)s by"
+msgstr ""
+
+msgid "Linked to parent by"
+msgstr ""
+
 msgid "List"
 msgstr ""
 
@@ -9013,6 +9151,10 @@ msgid "Loaded from semantic cache"
 msgstr ""
 
 msgid "Loading"
+msgstr ""
+
+#, python-format
+msgid "Loading %s"
 msgstr ""
 
 msgid "Loading dependent semantic views"
@@ -9307,6 +9449,9 @@ msgstr ""
 msgid "Max bound should be greater than target value"
 msgstr ""
 
+msgid "Max from metric"
+msgstr ""
+
 msgid "Max value"
 msgstr ""
 
@@ -9346,7 +9491,7 @@ msgstr ""
 msgid "Maximum value"
 msgstr ""
 
-msgid "Maximum value on the gauge axis"
+msgid "Maximum value on the gauge axis. Ignored when Max from metric returns a value."
 msgstr ""
 
 msgid "Maximum width (in pixels) of each line of a slice label. Set to 0 for no limit."
@@ -9548,6 +9693,9 @@ msgstr ""
 msgid "Min bound should be smaller than target value"
 msgstr ""
 
+msgid "Min from metric"
+msgstr ""
+
 msgid "Min periods"
 msgstr ""
 
@@ -9605,7 +9753,7 @@ msgstr ""
 msgid "Minimum value for label to be displayed on graph."
 msgstr ""
 
-msgid "Minimum value on the gauge axis"
+msgid "Minimum value on the gauge axis. Ignored when Min from metric returns a value."
 msgstr ""
 
 msgid "Minimum width size of the path, in pixels or meters."
@@ -9803,6 +9951,9 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
+msgid "Name a group of items at this level."
+msgstr ""
+
 msgid "Name is required"
 msgstr ""
 
@@ -9828,6 +9979,9 @@ msgid "Name of the target nodes"
 msgstr ""
 
 msgid "Name of your tag"
+msgstr ""
+
+msgid "Name one item at this level."
 msgstr ""
 
 msgid "Name used for the candlestick series in the legend and tooltip when no series dimension is set."
@@ -9915,6 +10069,14 @@ msgid "Nightingale Rose is not yet supported on semantic views. Use a Line or Ba
 msgstr ""
 
 msgid "No"
+msgstr ""
+
+#, python-format
+msgid "No %s"
+msgstr ""
+
+#, python-format
+msgid "No %s in the selected range"
 msgstr ""
 
 #, python-format
@@ -10275,6 +10437,10 @@ msgstr ""
 msgid "Not in this dataset, so viewers will not see: %s"
 msgstr ""
 
+#, python-format
+msgid "Not in this dataset: %s."
+msgstr ""
+
 msgid "Not null"
 msgstr ""
 
@@ -10622,6 +10788,10 @@ msgstr ""
 msgid "Operator undefined for aggregator: %(name)s"
 msgstr ""
 
+#, python-format
+msgid "Opteryx rejected the client credentials: %(detail)s. Check the client ID and secret."
+msgstr ""
+
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
 msgstr ""
 
@@ -10640,7 +10810,16 @@ msgstr ""
 msgid "Optional if your workgroup sets a result location."
 msgstr ""
 
+msgid "Optional metric drawn as a target tick on each row, using that row's own value, e.g. a per-region quota."
+msgstr ""
+
 msgid "Optional metric used to scale the size of each dot. Dot areas are scaled linearly between the minimum and maximum dot size."
+msgstr ""
+
+msgid "Optional metric whose value sets the end of the gauge axis, e.g. a target or capacity. Overrides Max when it returns a number. With Group by, all gauges share one axis, so the largest value across groups is used."
+msgstr ""
+
+msgid "Optional metric whose value sets the start of the gauge axis. Overrides Min when it returns a number. With Group by, the smallest value across groups is used."
 msgstr ""
 
 msgid "Optional name of the data column."
@@ -11192,6 +11371,9 @@ msgstr ""
 msgid "Plugins"
 msgstr ""
 
+msgid "Plural name"
+msgstr ""
+
 msgid "Point Cluster Map"
 msgstr ""
 
@@ -11547,6 +11729,10 @@ msgstr ""
 msgid "Ranges"
 msgstr ""
 
+#, no-python-format
+msgid "Ranges as % of target"
+msgstr ""
+
 msgid "Ranking"
 msgstr ""
 
@@ -11572,6 +11758,12 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Read from the token's exp claim."
+msgstr ""
+
+msgid "Read interval bounds as percentages of the axis range, e.g. 50,80,100, so the colored intervals follow a min or max that comes from a metric."
+msgstr ""
+
+msgid "Read ranges as percentages of each row's target, e.g. 50,90,120, so the bands scale with each row. Requires Target from metric."
 msgstr ""
 
 msgid "Rearranged layout"
@@ -11754,6 +11946,13 @@ msgid "Remove group"
 msgstr ""
 
 msgid "Remove item"
+msgstr ""
+
+msgid "Remove level"
+msgstr ""
+
+#, python-format
+msgid "Remove level %s"
 msgstr ""
 
 msgid "Remove mapping"
@@ -12299,6 +12498,12 @@ msgstr ""
 msgid "Rows per page, 0 means no pagination"
 msgstr ""
 
+msgid "Rows per page. Viewers can change it under the table."
+msgstr ""
+
+msgid "Rows shown per parent"
+msgstr ""
+
 msgid "Rows subtotal position"
 msgstr ""
 
@@ -12603,6 +12808,9 @@ msgid "Saved query not found."
 msgstr ""
 
 msgid "Saved query parameters are invalid."
+msgstr ""
+
+msgid "Saved semantic selections use a different identity format. Reset the chart selections, explicitly reselect its metrics and dimensions, and save the chart. Display titles cannot be automatically mapped to member IDs."
 msgstr ""
 
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
@@ -14514,6 +14722,9 @@ msgstr ""
 msgid "Target category"
 msgstr ""
 
+msgid "Target from metric"
+msgstr ""
+
 msgid "Target value"
 msgstr ""
 
@@ -14764,6 +14975,10 @@ msgid ""
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
 
+#, python-format
+msgid "The column \"%(column)s\" does not exist."
+msgstr ""
+
 msgid "The column header label"
 msgstr ""
 
@@ -14856,6 +15071,10 @@ msgid "The database was deleted."
 msgstr ""
 
 msgid "The database was not found."
+msgstr ""
+
+#, python-format
+msgid "The dataset \"%(table)s\" does not exist or is not visible to this client. Datasets are named workspace.collection.dataset."
 msgstr ""
 
 msgid "The dataset associated with this chart no longer exists"
@@ -15982,6 +16201,9 @@ msgstr ""
 msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
 msgstr ""
 
+msgid "This chart uses the Tree query mode, which is not enabled on this Superset instance."
+msgstr ""
+
 msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
 msgstr ""
 
@@ -16685,10 +16907,19 @@ msgstr ""
 msgid "Treat values as categorical."
 msgstr ""
 
+msgid "Tree"
+msgstr ""
+
 msgid "Tree Chart"
 msgstr ""
 
+msgid "Tree export parent query failed"
+msgstr ""
+
 msgid "Tree layout"
+msgstr ""
+
+msgid "Tree mode is turned off"
 msgstr ""
 
 msgid "Tree orientation"
@@ -19055,6 +19286,9 @@ msgstr ""
 msgid "greeting"
 msgstr ""
 
+msgid "groupby must contain at least one column"
+msgstr ""
+
 msgid "header"
 msgstr ""
 
@@ -19191,6 +19425,9 @@ msgstr ""
 msgid "must have a value"
 msgstr ""
 
+msgid "n must be a positive integer"
+msgstr ""
+
 msgid "name"
 msgstr ""
 
@@ -19314,6 +19551,10 @@ msgid "queries"
 msgstr ""
 
 msgid "query"
+msgstr ""
+
+#, python-format
+msgid "query_context is invalid: %(details)s"
 msgstr ""
 
 msgid "query_context must be a JSON object"
