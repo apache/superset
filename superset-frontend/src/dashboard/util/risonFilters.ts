@@ -118,6 +118,104 @@ function parseFilterCondition(key: string, value: unknown): RisonFilter {
 }
 
 /**
+ * The operator that keeps exactly the rows the given operator drops. BETWEEN
+ * has no entry: its negation is a disjunction, which the AND-ed filter list
+ * cannot express.
+ */
+const NEGATED_OPERATORS: Record<string, string> = {
+  '==': '!=',
+  IN: 'NOT IN',
+  '>': '<=',
+  '>=': '<',
+  '<': '>=',
+  '<=': '>',
+  LIKE: 'NOT LIKE',
+};
+
+/**
+ * Whether a parsed comparator is a plain value or a list of plain values. An
+ * unknown operator such as `(ilike:x)` parses as equality with the whole
+ * object, which no filter can apply.
+ */
+function hasPlainComparator(filter: RisonFilter): boolean {
+  const values: unknown[] = Array.isArray(filter.comparator)
+    ? filter.comparator
+    : [filter.comparator];
+  return values.every(value => value === null || typeof value !== 'object');
+}
+
+/**
+ * Parse the conditions under NOT, negating each one.
+ */
+function parseNotConditions(notValue: Record<string, unknown>): RisonFilter[] {
+  const filters: RisonFilter[] = [];
+  Object.entries(notValue).forEach(([key, value]) => {
+    const filter =
+      key === 'OR' || key === 'NOT' ? null : parseFilterCondition(key, value);
+    const negated =
+      filter &&
+      hasPlainComparator(filter) &&
+      NEGATED_OPERATORS[filter.operator];
+    if (filter && negated) {
+      filters.push({ ...filter, operator: negated });
+    } else {
+      console.warn('Ignoring unsupported Rison NOT condition:', key);
+    }
+  });
+  return filters;
+}
+
+/**
+ * Parse the branches of an OR into a single filter.
+ *
+ * Filters are AND-ed when applied, so an OR can only be kept when it reduces
+ * to one clause: equality or IN branches on the same column, which become one
+ * IN. Any other OR is dropped rather than applied as an AND.
+ */
+function parseOrConditions(branches: unknown[]): RisonFilter | null {
+  const parsed = branches.map(branch => {
+    if (
+      typeof branch !== 'object' ||
+      branch === null ||
+      Array.isArray(branch)
+    ) {
+      return null;
+    }
+    const entries = Object.entries(branch);
+    if (
+      entries.length !== 1 ||
+      entries[0][0] === 'OR' ||
+      entries[0][0] === 'NOT'
+    ) {
+      return null;
+    }
+    const filter = parseFilterCondition(entries[0][0], entries[0][1]);
+    return (filter.operator === '==' || filter.operator === 'IN') &&
+      hasPlainComparator(filter)
+      ? filter
+      : null;
+  });
+
+  if (parsed.length === 0) {
+    return null;
+  }
+  const subject = parsed[0]?.subject;
+  if (parsed.some(filter => !filter || filter.subject !== subject)) {
+    console.warn('Ignoring unsupported Rison OR condition');
+    return null;
+  }
+
+  const values = (parsed as RisonFilter[]).flatMap(filter =>
+    Array.isArray(filter.comparator) ? filter.comparator : [filter.comparator],
+  );
+  return {
+    subject: subject as string,
+    operator: 'IN',
+    comparator: [...new Set(values)] as (string | number)[],
+  };
+}
+
+/**
  * Parse Rison filter syntax from URL parameter.
  * Supports formats like: (country:USA,year:2024)
  */
@@ -132,32 +230,21 @@ export function parseRisonFilters(risonString: string): RisonFilter[] {
 
     const parsedObj = parsed as Record<string, unknown>;
 
-    // Handle OR operator: OR:!(condition1,condition2)
+    // Handle OR operator: OR:!(condition1,condition2). Like NOT, it falls
+    // through so regular keys at the same level are still picked up below.
     if (parsedObj.OR && Array.isArray(parsedObj.OR)) {
-      (parsedObj.OR as Record<string, unknown>[]).forEach(condition => {
-        if (typeof condition === 'object') {
-          Object.entries(condition).forEach(([key, value]) => {
-            filters.push(parseFilterCondition(key, value));
-          });
-        }
-      });
-      return filters;
+      const orFilter = parseOrConditions(parsedObj.OR);
+      if (orFilter) {
+        filters.push(orFilter);
+      }
     }
 
     // Handle NOT operator: NOT:(condition). Falls through so regular keys at the
     // same level are still picked up below (supports mixed payloads like
     // `(country:USA,NOT:(status:archived))`).
     if (parsedObj.NOT && typeof parsedObj.NOT === 'object') {
-      Object.entries(parsedObj.NOT as Record<string, unknown>).forEach(
-        ([key, value]) => {
-          const filter = parseFilterCondition(key, value);
-          if (filter.operator === '==') {
-            filter.operator = '!=';
-          } else if (filter.operator === 'IN') {
-            filter.operator = 'NOT IN';
-          }
-          filters.push(filter);
-        },
+      filters.push(
+        ...parseNotConditions(parsedObj.NOT as Record<string, unknown>),
       );
     }
 
@@ -305,12 +392,18 @@ export function risonFiltersToString(filters: RisonFilter[]): string {
     }
   };
 
+  // Operators that parseRisonFilters only produces under NOT, mapped to the
+  // operator written inside NOT:(...) so the filter reads back the same.
+  const notOperators: Record<string, string> = {
+    '!=': '==',
+    'NOT IN': 'IN',
+    'NOT LIKE': 'LIKE',
+  };
+
   filters.forEach(filter => {
-    if (filter.operator === '!=') {
-      // Re-emit as NOT:(col:value) so parseRisonFilters can read it back.
-      encodePositive(notObject, filter, '==');
-    } else if (filter.operator === 'NOT IN') {
-      encodePositive(notObject, filter, 'IN');
+    const positive = notOperators[filter.operator];
+    if (positive) {
+      encodePositive(notObject, filter, positive);
     } else {
       encodePositive(risonObject, filter, filter.operator);
     }
