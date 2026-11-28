@@ -230,4 +230,5 @@ export const navigation: typeof navigationApi = {
   onDidChangeLocation,
   navigateTo,
   getApplicationRoot,
+  appRoot: ensureAppRoot,
 };
