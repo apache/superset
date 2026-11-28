@@ -243,6 +243,32 @@ def test_append_columns_with_empty_mapping_returns_a_copy():
     assert series_to_list(post_df["y"]) == [1.0, 2.0]
 
 
+def test_append_columns_preserves_integer_dtype() -> None:
+    base_df = DataFrame({("y", "UK"): [1, 2]})
+    result = _append_columns(base_df, DataFrame({("y", "UK"): [5.0, 6.0]}), {"y": "y"})
+    assert result.equals(DataFrame({("y", "UK"): [5, 6]}))
+    assert base_df.equals(DataFrame({("y", "UK"): [1, 2]}))
+
+
+def test_append_columns_preserves_pivoted_fractions_and_nulls() -> None:
+    base_df = DataFrame({("y", "UK"): [1, 2, 3]})
+    append_df = DataFrame({("y", "UK"): [1.5, float("nan"), 3.5]})
+    result = _append_columns(base_df, append_df, {"y": "y"})
+    assert result.equals(append_df)
+    assert base_df.equals(DataFrame({("y", "UK"): [1, 2, 3]}))
+
+
+def test_append_columns_preserves_replacement_dtype_and_index() -> None:
+    """Replacing integer data must preserve fractions, nulls and index alignment."""
+    base_df = DataFrame({"y": [1, 2, 3]}, index=["a", "b", "c"])
+    append_df = DataFrame({"y": [3.5, float("nan"), 1.5]}, index=["c", "b", "a"])
+
+    post_df = _append_columns(base_df, append_df, {"y": "y"})
+
+    assert post_df.equals(append_df.reindex(base_df.index))
+    assert series_to_list(base_df["y"]) == [1, 2, 3]
+
+
 @pytest.mark.parametrize(
     "columns",
     [

@@ -119,11 +119,6 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         get:
           summary: Get recent activity data for a user
           parameters:
-          - in: path
-            schema:
-              type: integer
-            name: user_id
-            description: The id of the user
           - in: query
             name: q
             content:

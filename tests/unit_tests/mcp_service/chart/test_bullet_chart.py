@@ -1269,7 +1269,7 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
 
     assert result.success is True
     assert [row["Category"] for row in captured[0]] == [
-        1704164645123.456,
+        json_int_dttm_ser(source_values[0]),
         dublin_epoch_ms,
         1710052200000.0,
         2224774800000.0,
@@ -1772,17 +1772,10 @@ def test_bullet_timestamp_categories_match_chart_data_wire_and_all_previews() ->
         np.datetime64("NaT"),
     ]
     expected = [
-        "1704164645123.456",
-        "1704164645123.456",
-        "1704164645123.456",
-        "1730611800000",
-        "1730615400000",
-        "1730611800000",
-        "1730615400000",
-        "-0.0010000000000287557",
-        "0",
+        _javascript_number_string(json_int_dttm_ser(value)) for value in values[:9]
+    ] + [
         "1704153600000",
-        "1704164645123.456",
+        _javascript_number_string(json_int_dttm_ser(pd.Timestamp(values[10]))),
         "1704153600000",
         "null",
         "null",

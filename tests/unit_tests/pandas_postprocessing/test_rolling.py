@@ -107,6 +107,21 @@ def test_rolling():
         )
 
 
+def test_rolling_quantile_error_preserves_public_options() -> None:
+    options = {"quantile": 0.25, "invalid": True}
+    with pytest.raises(InvalidPostProcessingError) as error:
+        pp.rolling(
+            df=timeseries_df,
+            columns={"y": "y"},
+            rolling_type="quantile",
+            rolling_type_options=options,
+            window=2,
+        )
+    assert "'quantile': 0.25" in str(error.value)
+    assert "'q':" not in str(error.value)
+    assert options == {"quantile": 0.25, "invalid": True}
+
+
 def test_rolling_rejects_window_over_max():
     """
     ``window`` comes from the unvalidated post-processing options dict; the

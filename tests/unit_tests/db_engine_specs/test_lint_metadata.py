@@ -10,21 +10,83 @@
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-# either express or implied.  See the License for the
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
+import ast
 import io
+import runpy
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
 
 import pytest
 
-from superset.db_engine_specs.lint_metadata import (
-    get_all_engine_specs_ast,
-    main,
+
+@pytest.fixture(scope="module")
+def metadata_linter() -> dict[str, Any]:
+    """Load the standalone linter without initializing the Superset application."""
+    return runpy.run_path(
+        str(
+            Path(__file__).resolve().parents[3]
+            / "superset"
+            / "db_engine_specs"
+            / "lint_metadata.py"
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected"),
+    [
+        ("'driver'", "driver"),
+        ("42", 42),
+        ("True", True),
+        ("None", None),
+        ("['driver', 42]", ["driver", 42]),
+        (
+            "{'drivers': ['driver'], 'nested': {'enabled': True}}",
+            {"drivers": ["driver"], "nested": {"enabled": True}},
+        ),
+        ("('driver', 42)", ("driver", 42)),
+        ("DatabaseCategory", "DatabaseCategory"),
+        ("DatabaseCategory.TRADITIONAL_RDBMS", "DatabaseCategory.TRADITIONAL_RDBMS"),
+        ("'driver' + 'name'", "drivername"),
+        ("1 + 2", None),
+        ("f'{driver}'", "<f-string>"),
+        ("unknown()", None),
+    ],
 )
+def test_eval_ast_value_without_legacy_nodes(
+    metadata_linter: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    expression: str,
+    expected: Any,
+) -> None:
+    """Evaluate metadata without the AST aliases removed in Python 3.14."""
+    node = ast.parse(expression, mode="eval").body
+    monkeypatch.delattr(ast, "Str", raising=False)
+    monkeypatch.delattr(ast, "Num", raising=False)
+    assert metadata_linter["_eval_ast_value"](node) == expected
+
+
+def test_discover_engine_metadata_without_legacy_nodes(
+    metadata_linter: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Discover real engine metadata without silently marking it unparseable."""
+    monkeypatch.delattr(ast, "Str", raising=False)
+    monkeypatch.delattr(ast, "Num", raising=False)
+    specs = metadata_linter["get_all_engine_specs_ast"]()
+    postgres = next(
+        spec for spec in specs if spec["class_name"] == "PostgresEngineSpec"
+    )
+    assert "_unparseable" not in postgres["metadata"]
+    assert postgres["metadata"]["categories"]
+    assert postgres["metadata"]["pypi_packages"]
 
 
 def _write_spec(directory: Path, filename: str, code: str) -> Path:
@@ -35,6 +97,7 @@ def _write_spec(directory: Path, filename: str, code: str) -> Path:
 
 
 def test_get_all_engine_specs_ast_annotated_attributes(
+    metadata_linter: dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -59,12 +122,13 @@ def test_get_all_engine_specs_ast_annotated_attributes(
         """,
     )
 
-    monkeypatch.setattr(
-        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+    monkeypatch.setitem(
+        metadata_linter["get_all_engine_specs_ast"].__globals__,
+        "SPECS_DIR",
         str(tmp_path),
     )
 
-    specs = get_all_engine_specs_ast()
+    specs = metadata_linter["get_all_engine_specs_ast"]()
     matching = [s for s in specs if s["class_name"] == "TypedInlineBaseEngineSpec"]
     assert len(matching) == 1
     spec = matching[0]
@@ -73,6 +137,7 @@ def test_get_all_engine_specs_ast_annotated_attributes(
 
 
 def test_get_all_engine_specs_ast_declaration_then_assignment(
+    metadata_linter: dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -101,12 +166,13 @@ def test_get_all_engine_specs_ast_declaration_then_assignment(
         """,
     )
 
-    monkeypatch.setattr(
-        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+    monkeypatch.setitem(
+        metadata_linter["get_all_engine_specs_ast"].__globals__,
+        "SPECS_DIR",
         str(tmp_path),
     )
 
-    specs = get_all_engine_specs_ast()
+    specs = metadata_linter["get_all_engine_specs_ast"]()
     matching = [s for s in specs if s["class_name"] == "DeclThenAssignBaseEngineSpec"]
     found_names = [s["class_name"] for s in specs]
     assert len(matching) == 1, (
@@ -120,6 +186,7 @@ def test_get_all_engine_specs_ast_declaration_then_assignment(
 
 
 def test_get_all_engine_specs_ast_set_and_unary_minus(
+    metadata_linter: dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -146,12 +213,13 @@ def test_get_all_engine_specs_ast_set_and_unary_minus(
         """,
     )
 
-    monkeypatch.setattr(
-        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+    monkeypatch.setitem(
+        metadata_linter["get_all_engine_specs_ast"].__globals__,
+        "SPECS_DIR",
         str(tmp_path),
     )
 
-    specs = get_all_engine_specs_ast()
+    specs = metadata_linter["get_all_engine_specs_ast"]()
     matching = [s for s in specs if s["class_name"] == "ComplexValuesBaseEngineSpec"]
     assert len(matching) == 1
     spec = matching[0]
@@ -165,6 +233,7 @@ def test_get_all_engine_specs_ast_set_and_unary_minus(
 
 
 def test_main_ascii_stdout_utf8_reconfigure(
+    metadata_linter: dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -188,8 +257,9 @@ def test_main_ascii_stdout_utf8_reconfigure(
         """,
     )
 
-    monkeypatch.setattr(
-        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+    monkeypatch.setitem(
+        metadata_linter["get_all_engine_specs_ast"].__globals__,
+        "SPECS_DIR",
         str(tmp_path),
     )
     monkeypatch.setattr("sys.argv", ["lint_metadata"])
@@ -198,7 +268,7 @@ def test_main_ascii_stdout_utf8_reconfigure(
     ascii_stdout = io.TextIOWrapper(buffer, encoding="ascii", write_through=True)
     monkeypatch.setattr("sys.stdout", ascii_stdout)
 
-    ret = main()
+    ret = metadata_linter["main"]()
     assert ret == 0
 
     decoded = buffer.getvalue().decode("utf-8")
@@ -206,6 +276,7 @@ def test_main_ascii_stdout_utf8_reconfigure(
 
 
 def test_main_ascii_stdout_markdown_report(
+    metadata_linter: dict[str, Any],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -232,8 +303,9 @@ def test_main_ascii_stdout_markdown_report(
         """,
     )
 
-    monkeypatch.setattr(
-        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+    monkeypatch.setitem(
+        metadata_linter["get_all_engine_specs_ast"].__globals__,
+        "SPECS_DIR",
         str(tmp_path),
     )
     monkeypatch.setattr("sys.argv", ["lint_metadata", "--markdown"])
@@ -242,7 +314,7 @@ def test_main_ascii_stdout_markdown_report(
     ascii_stdout = io.TextIOWrapper(buffer, encoding="ascii", write_through=True)
     monkeypatch.setattr("sys.stdout", ascii_stdout)
 
-    ret = main()
+    ret = metadata_linter["main"]()
     assert ret == 0
 
     decoded = buffer.getvalue().decode("utf-8")

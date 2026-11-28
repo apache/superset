@@ -174,12 +174,30 @@ class SupersetAPSWDialect(APSWDialect):
                 raw_cursor = original_cursor(*args, **kwargs)
                 original_execute = raw_cursor.execute
 
+                def iterate(
+                    results: Iterator[tuple[Any, ...]], multi_table_query: bool
+                ) -> Iterator[tuple[Any, ...]]:
+                    """Keep lazy row retrieval in the executing statement's context."""
+                    while True:
+                        token = _executing_multi_table_query.set(multi_table_query)
+                        try:
+                            row = next(results)
+                        except StopIteration:
+                            return
+                        finally:
+                            _executing_multi_table_query.reset(token)
+                        yield row
+
                 def execute(operation: str, parameters: Any = None) -> Any:
-                    token = _executing_multi_table_query.set(
-                        _count_referenced_tables(operation) > 1
-                    )
+                    multi_table_query = _count_referenced_tables(operation) > 1
+                    token = _executing_multi_table_query.set(multi_table_query)
                     try:
-                        return original_execute(operation, parameters)
+                        result = original_execute(operation, parameters)
+                        if raw_cursor._results is not None:
+                            raw_cursor._results = iterate(
+                                raw_cursor._results, multi_table_query
+                            )
+                        return result
                     finally:
                         _executing_multi_table_query.reset(token)
 

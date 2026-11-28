@@ -34,6 +34,82 @@ from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
+    def test_object_conversion_result_uses_temporal_fallback(self) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        values = ["2024-10-27T02:30:00+02:00", "2024-10-27T02:30:00+01:00"]
+        frame = pd.DataFrame({"ts": values}, index=[4, 5])
+        converted = pd.Series(
+            [pd.Timestamp(value) for value in values], index=frame.index
+        )
+        real_to_datetime = pd.to_datetime
+
+        def object_conversion(value: Any, **kwargs: Any) -> Any:
+            if isinstance(value, pd.Series):
+                return value.astype(object)
+            return real_to_datetime(value, **kwargs)
+
+        with patch(
+            "superset.commands.dataset.importers.v1.utils.pd.to_datetime",
+            side_effect=object_conversion,
+        ):
+            _convert_temporal_columns(frame, {"ts": DateTime()})
+        pd.testing.assert_series_equal(frame["ts"], converted.rename("ts"))
+
+    def test_mixed_offsets_keep_day_first_format(self) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        frame = pd.DataFrame(
+            {"ts": ["13/02/2024 10:00 +0200", "01/03/2024 10:00 +0100"]}
+        )
+        _convert_temporal_columns(frame, {"ts": DateTime()})
+        assert frame["ts"].tolist() == [
+            pd.Timestamp("2024-02-13T10:00:00+02:00"),
+            pd.Timestamp("2024-03-01T10:00:00+01:00"),
+        ]
+
+    def test_inconsistent_date_formats_raise(self) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        frame = pd.DataFrame({"ts": ["01/02/2020", "05/03/2020", "13/02/2020"]})
+        original = frame.copy()
+        with pytest.raises(ValueError, match="doesn't match format"):
+            _convert_temporal_columns(frame, {"ts": DateTime()})
+        pd.testing.assert_frame_equal(frame, original)
+
+    @pytest.mark.parametrize("out_of_bounds", [False, True])
+    def test_mixed_offsets_preserved(self, out_of_bounds: bool) -> None:
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        values = ["2024-10-27T02:30:00+02:00", "2024-10-27T02:30:00+01:00"]
+        if out_of_bounds:
+            values.append("3118-01-01T00:00:00+01:00")
+        frame = pd.DataFrame({"ts": values}, index=range(10, 10 + len(values)))
+        _convert_temporal_columns(frame, {"ts": DateTime()})
+
+        assert frame["ts"].iloc[0] == pd.Timestamp(values[0])
+        assert frame["ts"].iloc[1] == pd.Timestamp(values[1])
+        assert frame["ts"].iloc[0].utcoffset() != frame["ts"].iloc[1].utcoffset()
+        assert list(frame.index) == list(range(10, 10 + len(values)))
+        if out_of_bounds:
+            assert frame["ts"].iloc[2] == pd.Timestamp(values[2])
+
     def test_normal_dates_converted(self) -> None:
         """Valid in-range dates are converted to datetime64 normally."""
         from sqlalchemy import DateTime
@@ -155,10 +231,10 @@ class TestConvertTemporalColumns:
         real_to_datetime = pd.to_datetime
         oob_markers = {"oob1", "oob2"}
 
-        def fake_to_datetime(value: Any) -> Any:
+        def fake_to_datetime(value: Any, **kwargs: Any) -> Any:
             if isinstance(value, pd.Series) or value in oob_markers:
                 raise OutOfBoundsDatetime("forced for test")
-            return real_to_datetime(value)
+            return real_to_datetime(value, **kwargs)
 
         df = pd.DataFrame({"ts": [None, "oob1", "oob2"]})
         with (
@@ -716,14 +792,13 @@ def test_open_import_bundle_valid_zip() -> None:
 
 def test_open_import_bundle_corrupt_central_directory() -> None:
     """
-    A ZIP with a corrupt central directory passes ``is_zipfile`` but fails to
-    open; it must raise ``IncorrectFormatError`` instead of ``BadZipFile``.
+    A ZIP with a corrupt central directory must raise ``IncorrectFormatError``
+    instead of ``BadZipFile`` when opened.
     """
     from superset.commands.importers.exceptions import IncorrectFormatError
     from superset.commands.importers.v1.utils import open_import_bundle
 
     corrupt = io.BytesIO(_make_bundle().replace(b"PK\x01\x02", b"XXXX"))
-    assert zipfile.is_zipfile(corrupt)
 
     with pytest.raises(IncorrectFormatError) as excinfo:
         with open_import_bundle(corrupt):

@@ -286,14 +286,6 @@ def _append_columns(
     if overwritten:
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
-        # One column at a time, keyed by target rather than by source, because
-        # the source name may differ from the target and it is the target that
-        # says which column to write. The label is list-wrapped so that a
-        # pivoted MultiIndex label's sub-columns resolve correctly, and the
-        # write is guarded because pandas 3 raises instead of widening the base
-        # column's dtype when the new values do not fit it, NaN into an int64
-        # column being the common case -- that falls back to plain column
-        # replacement, which allows the dtype to change.
         for source, target in overwritten.items():
             try:
                 _base_df.loc[:, [target]] = append_df[[source]].rename(

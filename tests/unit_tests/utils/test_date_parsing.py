@@ -18,6 +18,7 @@
 
 import warnings
 from datetime import datetime
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -26,6 +27,121 @@ import pytz
 from superset.utils.core import DateColumn, normalize_dttm_col
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.pandas import detect_datetime_format
+
+
+@pytest.mark.parametrize("timestamp_format", [None, "%Y-%m-%d"])
+def test_normalize_propagates_unexpected_datetime_errors(
+    monkeypatch: pytest.MonkeyPatch, timestamp_format: str | None
+) -> None:
+    frame = pd.DataFrame({"date": ["not-a-date"]})
+    original = frame.copy()
+    error = ValueError("unexpected datetime conversion failure")
+    real_to_datetime = pd.to_datetime
+
+    def fail_conversion(arg: object, *args: object, **kwargs: object) -> object:
+        if isinstance(arg, pd.Series):
+            raise error
+        return real_to_datetime(arg, *args, **kwargs)
+
+    monkeypatch.setattr(pd, "to_datetime", fail_conversion)
+    with pytest.raises(
+        ValueError, match="unexpected datetime conversion failure"
+    ) as raised:
+        normalize_dttm_col(
+            frame, (DateColumn("date", timestamp_format=timestamp_format),)
+        )
+    assert raised.value is error
+    pd.testing.assert_frame_equal(frame, original)
+
+
+def test_normalize_preserves_values_when_format_coerces_everything() -> None:
+    frame = pd.DataFrame({"date": ["not-a-date", None]})
+    original = frame.copy()
+    with patch("superset.utils.core.logger.warning") as warning:
+        normalize_dttm_col(frame, (DateColumn("date", timestamp_format="%Y-%m-%d"),))
+    pd.testing.assert_frame_equal(frame, original)
+    warning.assert_called_once()
+    assert "coerced every value" in warning.call_args.args[0]
+
+
+def test_mixed_timezone_fallback_preserves_timestamp_objects() -> None:
+    from superset.utils.core import _parse_mixed_timezone_column
+
+    values = pd.Series(
+        [
+            pd.Timestamp("2024-10-27T02:30:00+02:00"),
+            pd.Timestamp("2024-10-27T02:30:00+01:00"),
+            pd.NaT,
+        ],
+        index=[4, 5, 6],
+    )
+    result = _parse_mixed_timezone_column(values, DateColumn("date"), None)
+    pd.testing.assert_series_equal(result, values)
+
+
+@pytest.mark.parametrize("timestamp_format", [None, "%Y-%m-%dT%H:%M:%S%z"])
+@pytest.mark.parametrize("timezone", [None, "Europe/Berlin"])
+def test_normalize_mixed_offsets(
+    timestamp_format: str | None, timezone: str | None
+) -> None:
+    frame = pd.DataFrame(
+        {
+            "date": [
+                "2024-10-27T02:30:00+02:00",
+                "2024-10-27T02:30:00+01:00",
+                None,
+                "invalid",
+            ]
+        }
+    )
+    normalize_dttm_col(
+        frame,
+        (DateColumn("date", timestamp_format=timestamp_format, timezone=timezone),),
+    )
+    expected = (
+        [pd.Timestamp("2024-10-27T02:30:00")] * 2
+        if timezone
+        else [
+            pd.Timestamp("2024-10-27T00:30:00Z"),
+            pd.Timestamp("2024-10-27T01:30:00Z"),
+        ]
+    ) + [pd.NaT, pd.NaT]
+    assert frame["date"].tolist() == expected
+
+
+@pytest.mark.parametrize("timestamp_format", [None, "%Y-%m-%dT%H:%M:%S%z"])
+def test_normalize_mixed_offsets_preserves_chart_instants(
+    timestamp_format: str | None,
+) -> None:
+    values = ["2024-10-27T02:30:00+02:00", "2024-10-27T02:30:00+01:00"]
+    normalized = []
+    for selected in ([values[0]], values):
+        frame = pd.DataFrame({"date": selected})
+        normalize_dttm_col(
+            frame, (DateColumn("date", timestamp_format=timestamp_format),)
+        )
+        normalized.append([datetime_to_epoch(value) for value in frame["date"]])
+
+    expected = [
+        datetime_to_epoch(pd.Timestamp("2024-10-27T00:30:00Z")),
+        datetime_to_epoch(pd.Timestamp("2024-10-27T01:30:00Z")),
+    ]
+    assert normalized == [expected[:1], expected]
+
+
+@pytest.mark.parametrize("timezone", [None, "Europe/Berlin"])
+def test_normalize_mixed_offsets_keeps_day_first_format(timezone: str | None) -> None:
+    frame = pd.DataFrame({"date": ["13/02/2024 10:00 +0200", "01/03/2024 10:00 +0100"]})
+    normalize_dttm_col(frame, (DateColumn("date", timezone=timezone),))
+    expected = (
+        [pd.Timestamp("2024-02-13T09:00:00"), pd.Timestamp("2024-03-01T10:00:00")]
+        if timezone
+        else [
+            pd.Timestamp("2024-02-13T10:00:00+02:00"),
+            pd.Timestamp("2024-03-01T10:00:00+01:00"),
+        ]
+    )
+    assert frame["date"].tolist() == expected
 
 
 def capture_warnings(func, *args, **kwargs):
@@ -138,7 +254,9 @@ def test_epoch_format_invalid_values(caplog):
 
     # The column should remain unchanged when conversion fails
     assert df["epoch"].dtype == "str"
-    assert df["epoch"].iloc[0] == "not_a_number"
+    pd.testing.assert_series_equal(
+        df["epoch"], pd.Series(["not_a_number", "invalid", "abc"], name="epoch")
+    )
 
 
 @pytest.mark.parametrize(
