@@ -190,8 +190,20 @@ for (const width of [1920, 1280]) {
       await content.evaluate((element, minHeight) => {
         element.style.minHeight = minHeight;
       }, originalMinHeight);
-      await page.getByRole('button', { name: 'Close version history' }).click();
+      const close = panel.getByRole('button', {
+        name: 'Close version history',
+      });
+      const scope = panel.getByRole('combobox', {
+        name: /Filter version history/,
+      });
+      await scope.click();
+      await expect(scope).toHaveAttribute('aria-expanded', 'true');
+      await page.keyboard.press('Escape');
+      await expect(scope).toHaveAttribute('aria-expanded', 'false');
+      await expect(close).toBeVisible();
+      await page.keyboard.press('Escape');
       await expect(panel).toHaveCount(0);
+      await expect(page.getByTestId('actions-trigger')).toBeFocused();
       await expect(column).toHaveCount(1);
       await expect(column).toBeEmpty();
       await expect(column).toHaveCSS('display', 'none');

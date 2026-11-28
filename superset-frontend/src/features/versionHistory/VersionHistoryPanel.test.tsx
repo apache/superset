@@ -18,6 +18,7 @@
  */
 import { getExtensionsRegistry } from '@superset-ui/core';
 import {
+  fireEvent,
   render,
   screen,
   selectOption,
@@ -31,6 +32,7 @@ import type {
   VersionedEntityType,
 } from './types';
 import { buildTimeline } from './grouping';
+import { VERSION_HISTORY_TRIGGER_IDS } from './constants';
 import type { UseVersionActivityResult } from './useVersionActivity';
 import VersionHistoryPanel, {
   VersionHistoryPanelProps,
@@ -132,6 +134,29 @@ const dashboardPair = () => {
   });
   return { newest, older };
 };
+
+test.each(['chart', 'dashboard'] as const)(
+  'Escape closes %s version history and returns focus to the actions button',
+  entityType => {
+    const props = defaultProps([], entityType);
+    render(
+      <>
+        <button type="button" id={VERSION_HISTORY_TRIGGER_IDS[entityType]}>
+          Page actions
+        </button>
+        <VersionHistoryPanel {...props} />
+      </>,
+    );
+
+    const close = screen.getByRole('button', { name: 'Close version history' });
+    expect(close).toHaveFocus();
+
+    fireEvent.keyDown(close, { key: 'Escape' });
+
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Page actions' })).toHaveFocus();
+  },
+);
 
 test('chart groups expand to show granular action rows', async () => {
   const props = defaultProps([group()]);

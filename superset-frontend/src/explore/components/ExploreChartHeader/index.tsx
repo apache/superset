@@ -59,6 +59,7 @@ import { ReportObject } from 'src/features/reports/types';
 import { User, isUserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import { VERSION_HISTORY_TRIGGER_IDS } from 'src/features/versionHistory/constants';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -424,6 +425,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         titlePanelAdditionalItems={titlePanelAdditionalItems}
         rightPanelAdditionalItems={rightPanelAdditionalItems}
         additionalActionsMenu={menu}
+        actionsTriggerId={VERSION_HISTORY_TRIGGER_IDS.chart}
         menuDropdownProps={menuDropdownProps}
       />
       {isPropertiesModalOpen && (

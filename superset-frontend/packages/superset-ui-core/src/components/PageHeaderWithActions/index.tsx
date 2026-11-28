@@ -132,6 +132,7 @@ export type PageHeaderWithActionsProps = {
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
+  actionsTriggerId?: string;
   menuDropdownProps: Omit<DropdownProps, 'overlay'>;
   tooltipProps?: {
     text?: string;
@@ -150,6 +151,7 @@ export const PageHeaderWithActions = memo(
     titlePanelAdditionalItems,
     rightPanelAdditionalItems,
     additionalActionsMenu,
+    actionsTriggerId,
     menuDropdownProps,
     showMenuDropdown = true,
     tooltipProps,
@@ -181,6 +183,7 @@ export const PageHeaderWithActions = memo(
               >
                 <span>
                   <Button
+                    id={actionsTriggerId}
                     css={menuTriggerStyles}
                     buttonStyle="tertiary"
                     aria-label={t('Menu actions trigger')}

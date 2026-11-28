@@ -574,23 +574,29 @@ testWithAssets(
     await expectControlInViewport(
       panel.getByTestId('version-history-controls'),
     );
-    await clickWithoutScroll(
-      page,
-      group.getByRole('button', { name: 'More actions' }),
-    );
+    const moreActions = group.getByRole('button', { name: 'More actions' });
+    await clickWithoutScroll(page, moreActions);
+    await expect(moreActions).toHaveAttribute('aria-expanded', 'true');
     await expectControlInViewport(
       page.getByRole('menuitem', { name: 'Open as new chart' }),
     );
+    await page.keyboard.press('Escape');
+    await expect(moreActions).toHaveAttribute('aria-expanded', 'false');
+    await expect(panel).toBeVisible();
+    await clickWithoutScroll(page, moreActions);
     await clickWithoutScroll(
       page,
       page.getByRole('menuitem', { name: 'Restore this version' }),
     );
     const dialog = page.getByRole('dialog', { name: 'Restore this version?' });
-    await clickWithoutScroll(
-      page,
-      dialog.getByRole('button', { name: 'Cancel', exact: true }),
-    );
+    await expect
+      .poll(() =>
+        dialog.evaluate(node => node.contains(document.activeElement)),
+      )
+      .toBe(true);
+    await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
+    await expect(panel).toBeVisible();
     await searchHistory(page, 'vh1');
     await expect(
       panel.getByTestId('version-history-save-group').first(),
@@ -733,12 +739,10 @@ testWithAssets(
     await expect(panel).toBeVisible();
     await enterPreview();
     await searchHistory(page, 'vh1');
-    await clickWithoutScroll(
-      page,
-      panel.getByRole('button', { name: 'Close version history' }),
-    );
+    await page.keyboard.press('Escape');
     await expect(panel).toHaveCount(0);
     await expect(page.getByTestId('chart-version-preview')).toHaveCount(0);
+    await expect(page.getByTestId('actions-trigger')).toBeFocused();
     await openVersionHistory(page);
     await expect(page.getByTestId('chart-version-preview')).toHaveCount(0);
   },

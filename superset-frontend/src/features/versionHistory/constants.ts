@@ -17,3 +17,7 @@
  * under the License.
  */
 export const VERSION_HISTORY_PANEL_WIDTH = 320;
+export const VERSION_HISTORY_TRIGGER_IDS = {
+  chart: 'explore-header-actions-trigger',
+  dashboard: 'dashboard-header-actions-trigger',
+};

@@ -67,6 +67,7 @@ import {
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import { VERSION_HISTORY_TRIGGER_IDS } from 'src/features/versionHistory/constants';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -908,6 +909,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
           disabled: isVersionPreviewActive,
         }}
         additionalActionsMenu={menu}
+        actionsTriggerId={VERSION_HISTORY_TRIGGER_IDS.dashboard}
         showFaveStar={!!(user?.userId && dashboardInfo?.id && !isMobile)}
         showTitlePanelItems
       />
