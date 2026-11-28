@@ -1042,6 +1042,7 @@ rfc3339-validator==0.1.4
 rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   cyclopts
     #   fastmcp-slim
     #   flask-limiter
