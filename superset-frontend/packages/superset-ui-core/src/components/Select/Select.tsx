@@ -54,7 +54,6 @@ import {
   isObject,
   makeQuoteAwareTokenizer,
   mapOptions,
-  mapValues,
   sortComparatorWithSearchHelper,
   sortSelectedFirstHelper,
   splitWithQuoteEscaping,
@@ -369,18 +368,6 @@ const Select = forwardRef(
         stableSelectAll,
         fullSelectAllOptions.length,
       ],
-    );
-
-    const selectAllMode = useMemo(
-      () =>
-        // stableSelectAll adds real values across the full column with no legacy
-        // "Select all" sentinel occupying a slot in selectValue, so the
-        // eligible+1 phantom detection does not apply. Force it off so a search
-        // that narrows selectAllEligible cannot make a normal selection read as
-        // the sentinel (which drives the collapsed-tag off-by-one).
-        !stableSelectAll &&
-        ensureIsArray(selectValue).length === selectAllEligible.length + 1,
-      [selectValue, selectAllEligible, stableSelectAll],
     );
 
     const bulkSelectCounts = useMemo(() => {
@@ -808,33 +795,9 @@ const Select = forwardRef(
 
     const handleOnChange = useCallback(
       (values: any, options: any) => {
-        // intercept onChange call to handle the select all case
-        // if the "select all" option is selected, we want to send all options to the onChange,
-        // otherwise we want to remove
-        let newValues = values;
-        let newOptions = options;
-        if (!isSingleMode) {
-          if (
-            ensureIsArray(values).length === selectAllEligible.length &&
-            selectAllMode
-          ) {
-            const array = selectAllEligible.filter(
-              option => hasOption(option.value, selectValue) && option.disabled,
-            );
-            newValues = mapValues(array, labelInValue);
-            newOptions = mapOptions(array);
-          }
-        }
-        onChange?.(newValues, newOptions);
+        onChange?.(values, options);
       },
-      [
-        isSingleMode,
-        labelInValue,
-        onChange,
-        selectAllEligible,
-        selectAllMode,
-        selectValue,
-      ],
+      [onChange],
     );
 
     useEffect(() => {
@@ -871,22 +834,15 @@ const Select = forwardRef(
     const omittedCount = useMemo(() => {
       const num_selected = ensureIsArray(selectValue).length;
       const num_shown = stableMaxTagCount as number;
-      return num_selected - num_shown - (selectAllMode ? 1 : 0);
-    }, [stableMaxTagCount, selectAllMode, selectValue]);
+      return num_selected - num_shown;
+    }, [stableMaxTagCount, selectValue]);
 
     const customMaxTagPlaceholder = () =>
       `+ ${omittedCount > 0 ? omittedCount : 1} ...`;
 
-    // We can't remove the + tag so when Select All
-    // is the only item omitted, we subtract one from maxTagCount
-    let actualMaxTagCount = stableMaxTagCount;
-    if (
-      actualMaxTagCount !== 'responsive' &&
-      omittedCount === 0 &&
-      selectAllMode
-    ) {
-      actualMaxTagCount -= 1;
-    }
+    // The legacy "Select all" sentinel no longer occupies a slot in
+    // selectValue, so the collapsed-tag count needs no adjustment.
+    const actualMaxTagCount = stableMaxTagCount;
 
     const getPastedTextValue = useCallback(
       (text: string) => {
