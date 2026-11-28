@@ -91,10 +91,12 @@ def validate_python_date_format(dt_format: str) -> bool:
 def validate_d3format(value: str | None) -> None:
     if not is_valid_d3_format(value):
         raise ValidationError(
-            _(
-                "Invalid number format: must be a d3-format specifier or a "
-                "supported named format"
-            )
+            [
+                _(
+                    "Invalid number format: must be a d3-format specifier or a "
+                    "supported named format"
+                )
+            ]
         )
 
 
