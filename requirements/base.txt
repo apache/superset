@@ -353,7 +353,9 @@ requests-cache==1.2.1
 rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rich==13.9.4
-    # via flask-limiter
+    # via
+    #   apache-superset (pyproject.toml)
+    #   flask-limiter
 rison==2.0.1
     # via apache-superset (pyproject.toml)
 rpds-py==0.25.0
@@ -457,7 +459,7 @@ wtforms-json==0.3.5
     # via apache-superset (pyproject.toml)
 xlrd==2.0.2
     # via pandas
-xlsxwriter==3.3.1
+xlsxwriter==3.3.4
     # via
     #   apache-superset (pyproject.toml)
     #   pandas
