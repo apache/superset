@@ -23,6 +23,7 @@ import re
 import warnings
 from collections.abc import Collection, Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -59,6 +60,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import (
     BinaryExpression,
+    ClauseElement,
     ColumnClause,
     ColumnElement,
     Select,
@@ -148,6 +150,26 @@ _TRAILING_LIMIT_OFFSET = re.compile(
 
 logger = logging.getLogger()
 
+_reuse_discovered_schema: ContextVar[bool] = ContextVar(
+    "reuse_discovered_schema", default=False
+)
+
+
+@contextmanager
+def reuse_discovered_default_schema() -> Iterator[None]:
+    """Reuse engine schema discovery only while collecting chart cache keys.
+
+    Execution and metadata inspection retain their engine-specific inspector
+    behavior. Context-local state keeps nested collectors and concurrent requests
+    from changing each other's schema policy.
+    """
+    token = _reuse_discovered_schema.set(True)
+    try:
+        yield
+    finally:
+        _reuse_discovered_schema.reset(token)
+
+
 # When connecting to a database it's hard to catch specific exceptions, since we support
 # more than 50 different database drivers. Usually the try/except block will catch the
 # generic `Exception` class, which requires a pylint disablee comment. To make it clear
@@ -171,7 +193,11 @@ TIME_LIMIT_EXCEPTIONS = (
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
     for col in cols:
-        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
+        values = {
+            key: str(value) if isinstance(value, ClauseElement) else value
+            for key, value in col.items()
+        }
+        result_set_columns.append({"column_name": col.get("name"), **values})  # type: ignore
     return result_set_columns
 
 
@@ -866,6 +892,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # editor offers no pre-fill and the owner writes the transform themselves.
     partition_value_transform_default: str | None = None
 
+    # Whether the dataset editor should offer partition filter mapping at all.
+    # This is a structural property of the engine, not a pre-fill: mapping a
+    # filter onto a physical partition column only prunes work on engines whose
+    # tables are laid out as partition directories (Hive-family). Elsewhere the
+    # concept either does not exist (Postgres) or is handled invisibly by the
+    # engine (Snowflake micro-partitions, BigQuery/Redshift internals), so the
+    # dropdown would be clutter that maps to nothing. Default `False` so an
+    # engine only advertises the feature by opting in, rather than inheriting it
+    # and having to remember to opt out.
+    supports_partition_filter_mapping: bool = False
+
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
     # the connection is created.
@@ -879,6 +916,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # ready (e.g. Trino's) expose the id only then, which lets an execution
     # owner cancel a query whose caller has given up.
     has_query_id_during_execute = False
+
+    # Execution owners may call cursor.cancel() from another thread when the
+    # driver exposes it. This does not enable SQL Lab's cross-process stop path.
+    supports_cancel_on_live_cursor = False
+
+    @classmethod
+    def can_cancel_live_cursor(  # pylint: disable=unused-argument
+        cls, driver: str, cursor: Any
+    ) -> bool:
+        """Whether ``cursor.cancel()`` is safe to call from another thread."""
+        return cls.supports_cancel_on_live_cursor is True and callable(
+            getattr(cursor, "cancel", None)
+        )
 
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
@@ -1284,6 +1334,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.limit_method
 
     @classmethod
+    def get_max_column_name_length(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> int | None:
+        """
+        Method for dynamic `max_column_name_length`.
+
+        In Oracle the identifier length limit is version-dependent, so Superset needs
+        to inspect the database configuration in order to determine it. This method
+        allows engine-specs to define dynamic values for the attribute.
+        """
+        return cls.max_column_name_length
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
@@ -1349,7 +1413,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_default_schema(cls, database: Database, catalog: str | None) -> str | None:
         """
         Return the default schema for a catalog in a given database.
+
+        Cache-key collection can reuse an initialized engine's discovery without
+        changing the inspector policy of execution and metadata callers.
         """
+        if _reuse_discovered_schema.get():
+            return database.get_default_schema_from_engine(catalog)
         with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
 
@@ -2808,6 +2877,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return validated_embedded_credentials(credentials)
 
     @classmethod
+    def get_embedded_credentials_error(
+        cls,
+        credentials: dict[str, str],  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        Explain why a complete embedded fallback credential cannot be used, or
+        return ``None``.
+
+        ``validate_embedded_credentials`` only checks that the fields are filled in;
+        this checks that what they hold is usable, e.g. that a private key decodes
+        with its passphrase. Called when a credential is saved, never at query time,
+        and with unmasked secrets. The message is shown to the administrator saving
+        the connection, so it must never quote the credential's values.
+        """
+        return None
+
+    @classmethod
     def apply_embedded_credentials(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -2952,7 +3038,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return not security_manager.is_guest_user(g.user)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls,
+        label: str,
+        database: Database | None = None,
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -2962,14 +3052,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         generate a truncated label by calling truncate_label().
 
         :param label: expected expression label/alias
+        :param database: database the label is for, to read a version-dependent
+            maximum column name length
         :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls._mutate_label(label)
-        if (
+        max_length = (
             cls.max_column_name_length
-            and len(label_mutated) > cls.max_column_name_length
-        ):
-            label_mutated = cls._truncate_label(label)
+            if database is None
+            else cls.get_max_column_name_length(database)
+        )
+        if max_length and cls._label_length(label_mutated) > max_length:
+            label_mutated = cls._truncate_label(label)[:max_length]
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated
@@ -3001,6 +3095,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return sqla_type(match), generic_type
             return sqla_type, generic_type
         return None
+
+    @staticmethod
+    def _label_length(label: str) -> int:
+        """
+        Return the length of a label in the unit `max_column_name_length` counts.
+
+        Most engines count characters. Engines that limit identifiers in bytes can
+        override this method.
+        """
+        return len(label)
 
     @staticmethod
     def _mutate_label(label: str) -> str:
@@ -3430,9 +3534,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param user: logged-in user
 
-        :returns: username if given user is not null
+        :returns: username if available, otherwise None
         """
-        return user.username if user else None
+        return getattr(user, "username", None) if user else None
 
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
@@ -3523,8 +3627,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         Each hint has the field `path`, a human `label` and the last `length`
         characters of the stored value as `suffix` (``None`` when the value is too
-        short to reveal any). Returns an empty list when `encrypted_extra` is
-        missing or malformed, or when `length` is not positive.
+        short to reveal any). A JWT also gets `expires_at` and `expired` from its
+        `exp` claim, ``None`` otherwise. Returns an empty list when `encrypted_extra`
+        is missing or malformed, or when `length` is not positive.
         """
         if encrypted_extra is None or length <= 0:
             return []
@@ -3588,6 +3693,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            # Read by the dataset editor to re-derive whether partition filter
+            # mapping applies when the owner points a dataset at another
+            # database, without a round trip through the dataset endpoint.
+            "supports_partition_filter_mapping": (
+                cls.supports_partition_filter_mapping
+            ),
+            "partition_value_transform_default": (
+                cls.partition_value_transform_default
+            ),
             "encrypted_extra_sensitive_fields": (
                 cls.encrypted_extra_sensitive_field_labels()
             ),
@@ -3625,15 +3739,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return name
 
     @classmethod
-    def prepare_identifier(
-        cls,
-        name: str,
-        normalize_columns: bool = False,
-    ) -> str:
+    def prepare_identifier(cls, name: str, exact_case: bool = False) -> str:
         """
-        Prepare a physical identifier for SQLAlchemy column construction.
+        Prepare a column name for SQLAlchemy ``column()`` construction.
 
-        The default preserves SQLAlchemy's automatic identifier-quoting behavior.
+        ``exact_case`` is True when the stored name is known to be the exact
+        identifier returned by the database cursor (virtual datasets and SQL Lab
+        queries). The default keeps SQLAlchemy's automatic identifier quoting.
         """
         return name
 

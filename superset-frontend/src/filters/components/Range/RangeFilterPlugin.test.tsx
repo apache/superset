@@ -20,7 +20,12 @@ import { AppSection, type ChartProps } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme } from '@apache-superset/core/theme';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { AntdThemeProvider } from '@superset-ui/core/components';
 import RangeFilterPlugin, { calculateStep } from './RangeFilterPlugin';
 import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
@@ -86,436 +91,473 @@ const rangeProps = {
   appSection: AppSection.Dashboard,
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('RangeFilterPlugin', () => {
-  const setDataMask = jest.fn();
-  const getWrapper = (props: any = {}) =>
-    render(
+const setDataMask = jest.fn();
+const getWrapper = (props: any = {}) =>
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        ...props,
+        formData: { ...rangeProps.formData, ...props.formData },
+      }) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />,
+  );
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+test('should render two numerical inputs and a slider by default', () => {
+  getWrapper();
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(2);
+
+  expect(inputs[0]).toHaveValue('10');
+  expect(inputs[1]).toHaveValue('70');
+
+  // For a range slider, there are two slider handles
+  const sliders = screen.getAllByRole('slider');
+  expect(sliders.length).toBeGreaterThan(0);
+});
+
+test('should draw the min/max separator with 3:1 non-text contrast', () => {
+  getWrapper();
+
+  expect(screen.getByText('-')).toHaveStyle({
+    color: supersetTheme.colorTextTertiary,
+  });
+});
+
+test("should keep a theme's own colorSplit on the min/max separator", () => {
+  render(
+    <AntdThemeProvider theme={{ token: { colorSplit: '#ff0000' } }}>
       <RangeFilterPlugin
-        {...(transformProps({
-          ...rangeProps,
-          ...props,
-          formData: { ...rangeProps.formData, ...props.formData },
-        }) as PluginFilterRangeProps)}
-        setDataMask={setDataMask}
-      />,
-    );
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('should render two numerical inputs and a slider by default', () => {
-    getWrapper();
-
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(2);
-
-    expect(inputs[0]).toHaveValue('10');
-    expect(inputs[1]).toHaveValue('70');
-
-    // For a range slider, there are two slider handles
-    const sliders = screen.getAllByRole('slider');
-    expect(sliders.length).toBeGreaterThan(0);
-  });
-
-  test('should draw the min/max separator with 3:1 non-text contrast', () => {
-    getWrapper();
-
-    expect(screen.getByText('-')).toHaveStyle({
-      color: supersetTheme.colorTextTertiary,
-    });
-  });
-
-  test("should keep a theme's own colorSplit on the min/max separator", () => {
-    render(
-      <AntdThemeProvider theme={{ token: { colorSplit: '#ff0000' } }}>
-        <RangeFilterPlugin
-          {...(transformProps(
-            rangeProps as unknown as ChartProps,
-          ) as PluginFilterRangeProps)}
-          setDataMask={setDataMask}
-        />
-      </AntdThemeProvider>,
-    );
-
-    expect(screen.getByText('-')).toHaveStyle({ color: '#ff0000' });
-  });
-
-  test('should set the data mask to error when the range is incorrect', async () => {
-    getWrapper({ filterState: { value: [null, null] } });
-
-    const inputs = screen.getAllByRole('spinbutton');
-    const fromInput = inputs[0];
-    const toInput = inputs[1];
-
-    await userEvent.clear(fromInput);
-    await userEvent.type(fromInput, '20');
-
-    await userEvent.clear(toInput);
-    await userEvent.type(toInput, '10');
-
-    await userEvent.tab();
-
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {},
-      filterState: {
-        label: '',
-        validateMessage: 'Numbers must be within 10 and 100',
-        validateStatus: 'error',
-        value: null,
-      },
-    });
-  });
-
-  test('should call setDataMask with correct filter', () => {
-    getWrapper();
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '>=',
-            val: 10,
-          },
-          {
-            col: 'SP_POP_TOTL',
-            op: '<=',
-            val: 70,
-          },
-        ],
-      },
-      filterState: {
-        label: '10 ≤ x ≤ 70',
-        value: [10, 70],
-        validateMessage: '',
-        validateStatus: undefined,
-      },
-    });
-  });
-
-  test('should call setDataMask with correct greater than filter', () => {
-    getWrapper({
-      filterState: { value: [20, null] },
-      formData: {
-        enableSingleValue: SingleValueType.Minimum,
-        defaultValue: undefined,
-      },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '>=',
-            val: 20,
-          },
-        ],
-      },
-      filterState: {
-        validateStatus: undefined,
-        validateMessage: '',
-        label: 'x ≥ 20',
-        value: [20, null],
-      },
-    });
-
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0]).toHaveValue('20');
-  });
-
-  test('should call setDataMask with correct less than filter', () => {
-    getWrapper({
-      filterState: { value: [null, 60] },
-      formData: {
-        enableSingleValue: SingleValueType.Maximum,
-      },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '<=',
-            val: 60,
-          },
-        ],
-      },
-      filterState: {
-        label: 'x ≤ 60',
-        value: [null, 60],
-        validateMessage: '',
-        validateStatus: undefined,
-      },
-    });
-
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0]).toHaveValue('60');
-  });
-
-  test('should call setDataMask with correct exact filter', () => {
-    getWrapper({
-      formData: {
-        enableSingleValue: SingleValueType.Exact,
-      },
-      filterState: { value: [10, 10] },
-    });
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        filters: [
-          {
-            col: 'SP_POP_TOTL',
-            op: '==',
-            val: 10,
-          },
-        ],
-      },
-      filterState: {
-        label: 'x = 10',
-        value: [10, 10],
-        validateStatus: undefined,
-        validateMessage: '',
-      },
-    });
-
-    const inputs = screen.getAllByRole('spinbutton');
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0]).toHaveValue('10');
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('Range Display Modes', () => {
-    test('should render only the slider in slider mode', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.Slider,
-        },
-      });
-
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-
-      expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
-    });
-
-    test('should render only inputs in input mode', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.Input,
-        },
-      });
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-
-      expect(screen.queryAllByRole('slider')).toHaveLength(0);
-    });
-
-    test('dataset input mode emits an exact filter for a typed exact value', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.Input,
-          enableSingleValue: SingleValueType.Exact,
-        },
-        filterState: { value: [10, 10] },
-      });
-      fireEvent.change(screen.getByRole('spinbutton'), {
-        target: { value: '42' },
-      });
-      expect(setDataMask).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          extraFormData: {
-            filters: [{ col: 'SP_POP_TOTL', op: '==', val: 42 }],
-          },
-        }),
-      );
-    });
-
-    test('should render both slider and inputs in slider-and-input mode', () => {
-      getWrapper({
-        formData: {
-          rangeDisplayMode: RangeDisplayMode.SliderAndInput,
-        },
-      });
-
-      // Should show inputs
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-
-      // Should show slider
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-    });
-
-    test('should default to slider-and-input mode when not specified', () => {
-      getWrapper({
-        formData: {
-          // No rangeDisplayMode specified
-        },
-      });
-
-      // Should show inputs
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-
-      // Should show slider
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Decimal value handling', () => {
-    test('should handle decimal ranges correctly (0.03 to 1.08)', () => {
-      const decimalProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0.03, max: 1.08 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [0.5, 0.8] },
-      };
-      getWrapper(decimalProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs).toHaveLength(2);
-      expect(inputs[0]).toHaveValue('0.5');
-      expect(inputs[1]).toHaveValue('0.8');
-
-      // Verify the slider exists and can handle decimal values
-      const sliders = screen.getAllByRole('slider');
-      expect(sliders.length).toBeGreaterThan(0);
-    });
-
-    test('should calculate appropriate step size for small decimal ranges', () => {
-      const smallRangeProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0.001, max: 0.01 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [0.005, 0.008] },
-      };
-      getWrapper(smallRangeProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs[0]).toHaveValue('0.005');
-      expect(inputs[1]).toHaveValue('0.008');
-    });
-
-    test('should handle very large ranges with appropriate step size', () => {
-      const largeRangeProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0, max: 1000000 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [100000, 500000] },
-      };
-      getWrapper(largeRangeProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs[0]).toHaveValue('100000');
-      expect(inputs[1]).toHaveValue('500000');
-    });
-
-    test('should handle negative decimal ranges', () => {
-      const negativeDecimalProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: -1.5, max: 2.5 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [-0.5, 1.5] },
-      };
-      getWrapper(negativeDecimalProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      expect(inputs[0]).toHaveValue('-0.5');
-      expect(inputs[1]).toHaveValue('1.5');
-    });
-
-    test('should allow decimal input via keyboard', async () => {
-      const decimalProps = {
-        queriesData: [
-          {
-            rowcount: 1,
-            colnames: ['min', 'max'],
-            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-            data: [{ min: 0, max: 10 }],
-            applied_filters: [],
-            rejected_filters: [],
-          },
-        ],
-        filterState: { value: [null, null] },
-      };
-      getWrapper(decimalProps);
-
-      const inputs = screen.getAllByRole('spinbutton');
-      const fromInput = inputs[0];
-
-      await userEvent.clear(fromInput);
-      await userEvent.type(fromInput, '2.5');
-      await userEvent.tab();
-
-      expect(setDataMask).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterState: expect.objectContaining({
-            value: [2.5, null],
-          }),
-        }),
-      );
-    });
-  });
-
-  test('clears a filter still sitting at its default value', () => {
-    const renderWith = (value: [number | null, number | null]) => (
-      <RangeFilterPlugin
-        {...(transformProps({
-          ...rangeProps,
-          filterState: { value },
-        } as unknown as ChartProps) as PluginFilterRangeProps)}
+        {...(transformProps(
+          rangeProps as unknown as ChartProps,
+        ) as PluginFilterRangeProps)}
         setDataMask={setDataMask}
       />
-    );
+    </AntdThemeProvider>,
+  );
 
-    // The filter loads at its default and the user never touches it.
-    const { rerender } = render(renderWith([10, 70]));
-    setDataMask.mockClear();
+  expect(screen.getByText('-')).toHaveStyle({ color: '#ff0000' });
+});
 
-    // Clear All stages [null, null] for range filters.
-    rerender(renderWith([null, null]));
+test('should set the data mask to error when the range is incorrect', async () => {
+  getWrapper({ filterState: { value: [null, null] } });
 
-    expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {},
-      filterState: {
-        value: [null, null],
-        label: '',
-        validateStatus: undefined,
-        validateMessage: '',
+  const inputs = screen.getAllByRole('spinbutton');
+  const fromInput = inputs[0];
+  const toInput = inputs[1];
+
+  await userEvent.clear(fromInput);
+  await userEvent.type(fromInput, '20');
+
+  await userEvent.clear(toInput);
+  await userEvent.type(toInput, '10');
+
+  await userEvent.tab();
+
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {},
+    filterState: {
+      label: '',
+      validateMessage: 'Numbers must be within 10 and 100',
+      validateStatus: 'error',
+      value: null,
+    },
+  });
+});
+
+test('should call setDataMask with correct filter', () => {
+  getWrapper();
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: 'SP_POP_TOTL',
+          op: '>=',
+          val: 10,
+        },
+        {
+          col: 'SP_POP_TOTL',
+          op: '<=',
+          val: 70,
+        },
+      ],
+    },
+    filterState: {
+      label: '10 ≤ x ≤ 70',
+      value: [10, 70],
+      validateMessage: '',
+      validateStatus: undefined,
+    },
+  });
+});
+
+test('should call setDataMask with correct greater than filter', () => {
+  getWrapper({
+    filterState: { value: [20, null] },
+    formData: {
+      enableSingleValue: SingleValueType.Minimum,
+      defaultValue: undefined,
+    },
+  });
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: 'SP_POP_TOTL',
+          op: '>=',
+          val: 20,
+        },
+      ],
+    },
+    filterState: {
+      validateStatus: undefined,
+      validateMessage: '',
+      label: 'x ≥ 20',
+      value: [20, null],
+    },
+  });
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(1);
+  expect(inputs[0]).toHaveValue('20');
+});
+
+test('should call setDataMask with correct less than filter', () => {
+  getWrapper({
+    filterState: { value: [null, 60] },
+    formData: {
+      enableSingleValue: SingleValueType.Maximum,
+    },
+  });
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: 'SP_POP_TOTL',
+          op: '<=',
+          val: 60,
+        },
+      ],
+    },
+    filterState: {
+      label: 'x ≤ 60',
+      value: [null, 60],
+      validateMessage: '',
+      validateStatus: undefined,
+    },
+  });
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(1);
+  expect(inputs[0]).toHaveValue('60');
+});
+
+test('should call setDataMask with correct exact filter', () => {
+  getWrapper({
+    formData: {
+      enableSingleValue: SingleValueType.Exact,
+    },
+    filterState: { value: [10, 10] },
+  });
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        {
+          col: 'SP_POP_TOTL',
+          op: '==',
+          val: 10,
+        },
+      ],
+    },
+    filterState: {
+      label: 'x = 10',
+      value: [10, 10],
+      validateStatus: undefined,
+      validateMessage: '',
+    },
+  });
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(1);
+  expect(inputs[0]).toHaveValue('10');
+});
+
+test('should render only the slider in slider mode', () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.Slider,
+    },
+  });
+
+  const sliders = screen.getAllByRole('slider');
+  expect(sliders.length).toBeGreaterThan(0);
+
+  expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
+});
+
+test('should render only inputs in input mode', () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.Input,
+    },
+  });
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(2);
+
+  expect(screen.queryAllByRole('slider')).toHaveLength(0);
+});
+
+test('dataset input mode emits an exact filter for a typed exact value', () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.Input,
+      enableSingleValue: SingleValueType.Exact,
+    },
+    filterState: { value: [10, 10] },
+  });
+  fireEvent.change(screen.getByRole('spinbutton'), {
+    target: { value: '42' },
+  });
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [{ col: 'SP_POP_TOTL', op: '==', val: 42 }],
       },
-    });
+    }),
+  );
+});
+
+test('should render both slider and inputs in slider-and-input mode', () => {
+  getWrapper({
+    formData: {
+      rangeDisplayMode: RangeDisplayMode.SliderAndInput,
+    },
+  });
+
+  // Should show inputs
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(2);
+
+  // Should show slider
+  const sliders = screen.getAllByRole('slider');
+  expect(sliders.length).toBeGreaterThan(0);
+});
+
+test('should default to slider-and-input mode when not specified', () => {
+  getWrapper({
+    formData: {
+      // No rangeDisplayMode specified
+    },
+  });
+
+  // Should show inputs
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(2);
+
+  // Should show slider
+  const sliders = screen.getAllByRole('slider');
+  expect(sliders.length).toBeGreaterThan(0);
+});
+
+test('should handle decimal ranges correctly (0.03 to 1.08)', () => {
+  const decimalProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ['min', 'max'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0.03, max: 1.08 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [0.5, 0.8] },
+  };
+  getWrapper(decimalProps);
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs).toHaveLength(2);
+  expect(inputs[0]).toHaveValue('0.5');
+  expect(inputs[1]).toHaveValue('0.8');
+
+  // Verify the slider exists and can handle decimal values
+  const sliders = screen.getAllByRole('slider');
+  expect(sliders.length).toBeGreaterThan(0);
+});
+
+test('should calculate appropriate step size for small decimal ranges', () => {
+  const smallRangeProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ['min', 'max'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0.001, max: 0.01 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [0.005, 0.008] },
+  };
+  getWrapper(smallRangeProps);
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs[0]).toHaveValue('0.005');
+  expect(inputs[1]).toHaveValue('0.008');
+});
+
+test('should handle very large ranges with appropriate step size', () => {
+  const largeRangeProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ['min', 'max'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0, max: 1000000 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [100000, 500000] },
+  };
+  getWrapper(largeRangeProps);
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs[0]).toHaveValue('100000');
+  expect(inputs[1]).toHaveValue('500000');
+});
+
+test('should handle negative decimal ranges', () => {
+  const negativeDecimalProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ['min', 'max'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: -1.5, max: 2.5 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [-0.5, 1.5] },
+  };
+  getWrapper(negativeDecimalProps);
+
+  const inputs = screen.getAllByRole('spinbutton');
+  expect(inputs[0]).toHaveValue('-0.5');
+  expect(inputs[1]).toHaveValue('1.5');
+});
+
+test('should allow decimal input via keyboard', async () => {
+  const decimalProps = {
+    queriesData: [
+      {
+        rowcount: 1,
+        colnames: ['min', 'max'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        data: [{ min: 0, max: 10 }],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+    filterState: { value: [null, null] },
+  };
+  getWrapper(decimalProps);
+
+  const inputs = screen.getAllByRole('spinbutton');
+  const fromInput = inputs[0];
+
+  await userEvent.clear(fromInput);
+  await userEvent.type(fromInput, '2.5');
+  await userEvent.tab();
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({
+        value: [2.5, null],
+      }),
+    }),
+  );
+});
+
+test('clears a filter still sitting at its default value', () => {
+  const renderWith = (value: [number | null, number | null]) => (
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        filterState: { value },
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />
+  );
+
+  // The filter loads at its default and the user never touches it.
+  const { rerender } = render(renderWith([10, 70]));
+  setDataMask.mockClear();
+
+  // Clear All stages [null, null] for range filters.
+  rerender(renderWith([null, null]));
+
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {},
+    filterState: {
+      value: [null, null],
+      label: '',
+      validateStatus: undefined,
+      validateMessage: '',
+    },
+  });
+});
+
+test('required range cascade clear keeps the validation error instead of re-applying the stale value', async () => {
+  const setDataMaskMock = jest.fn();
+  const renderWith = (filterState: PluginFilterRangeProps['filterState']) => (
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        formData: { ...rangeProps.formData, enableEmptyFilter: true },
+        filterState,
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={setDataMaskMock}
+    />
+  );
+
+  // Required range sitting at its selected value.
+  const { rerender } = render(renderWith({ value: [10, 70] }));
+  setDataMaskMock.mockClear();
+
+  // A parent filter change stages the canonical [null, null] clear with an
+  // 'error' status for required filters.
+  rerender(renderWith({ value: [null, null], validateStatus: 'error' }));
+
+  // The stale [10, 70] value must never be re-applied.
+  await waitFor(() => {
+    expect(setDataMaskMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({ value: [10, 70] }),
+      }),
+    );
+  });
+
+  // The required error mask is emitted with no clauses.
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {},
+        filterState: expect.objectContaining({
+          value: null,
+          validateStatus: 'error',
+          validateMessage: 'Please provide a valid min or max value',
+        }),
+      }),
+    );
   });
 });
 

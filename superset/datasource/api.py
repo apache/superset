@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from typing import Any, cast
 
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
+from sqlalchemy.exc import OperationalError
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.datasource.list import GetCombinedDatasourceListCommand
@@ -46,14 +48,16 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, feature_flag_manager
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
 )
+from superset.semantic_layers.execution import current_host_execution_context
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
@@ -66,11 +70,42 @@ from superset.utils.core import (
     parse_boolean_string,
     SqlExpressionType,
 )
-from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.error_sanitization import (
+    sanitize_error_message,
+    sanitize_superset_errors,
+)
 from superset.utils.hashing import hash_from_dict
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
+
+# MySQL client/server error codes that mean the connection itself could not be
+# established or was dropped (1040 too many connections, 2002/2003 can't
+# connect, 2006 server gone away, 2013 lost connection during query).
+_CONNECTION_FAILURE_DB_CODES = {1040, 2002, 2003, 2006, 2013}
+_CONNECTION_FAILURE_PATTERN = re.compile(
+    r"too many connections|too many clients|could not connect|can't connect|"
+    r"connection refused|connection timed out|server closed the connection|"
+    r"lost connection|server has gone away|remaining connection slots",
+    re.IGNORECASE,
+)
+
+
+def _is_connection_failure(ex: OperationalError) -> bool:
+    """
+    Whether an ``OperationalError`` is a genuine connection failure.
+
+    ``OperationalError`` also wraps query-level failures (SQLite ``no such
+    column``, MySQL 1054, Postgres statement timeouts) that indicate a broken
+    dataset rather than an unavailable database; those must keep propagating.
+    """
+    if ex.connection_invalidated:
+        return True
+    args = getattr(ex.orig, "args", ())
+    if args and isinstance(args[0], int) and args[0] in _CONNECTION_FAILURE_DB_CODES:
+        return True
+    return bool(_CONNECTION_FAILURE_PATTERN.search(str(ex.orig or ex)))
+
 
 # Cache lifetime for search-filtered column values, in seconds.
 SEARCH_CACHE_TIMEOUT = 60
@@ -99,6 +134,19 @@ def _column_values_cache_key(
         discriminator: tuple[str, str] | None = datasource.result_cache_discriminator
         if discriminator is not None:
             material["semantic_result_version"] = discriminator
+        # Semantic views have no database, so the per-user key below never
+        # applies to them; partition by the server principal instead, the
+        # same way the chart result cache does.
+        if feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER"):
+            context = current_host_execution_context()
+            if not context.is_guest:
+                material["semantic_user"] = context.principal_id
+    elif isinstance(datasource, (SqlaTable, Query)) and datasource.database:
+        # An engine that filters rows per user returns different values per
+        # user, so the entry must be partitioned per user when per-user
+        # caching is enabled; without it every user with the same RLS
+        # shares one entry (#45898).
+        add_impersonation_cache_key_if_needed(datasource.database, material)
     material.update(
         uid=datasource.uid,
         rls=security_manager.get_rls_cache_key(datasource),
@@ -143,9 +191,12 @@ def get_cached_column_values(
 
     Callers must have authorized the datasource (``raise_for_access``) first:
     the key partitions entries by effective RLS (the datasource's own rules and
-    those of the tables its SQL reads), not by user, so the cache itself is not
-    an access check. ``search`` must already be stripped, with
-    ``None`` for "no search", so equal queries produce equal keys.
+    those of the tables its SQL reads) and, when per-user caching is enabled
+    (``CACHE_QUERY_BY_USER``, ``CACHE_IMPERSONATION`` with impersonation, or the
+    database's ``per_user_caching``), by user. Neither partition is an access
+    check; authorization still happens before any lookup. ``search`` must
+    already be stripped, with ``None`` for "no search", so equal queries
+    produce equal keys.
 
     Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
     the entry.
@@ -313,7 +364,22 @@ class DatasourceRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
             500:
-              $ref: '#/components/responses/500'
+              description: >-
+                Unexpected error, or the analytics database refused or dropped
+                the connection (the response then carries a typed `errors`
+                list). Deliberately not 502/503/504, which SupersetClient
+                retries.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      errors:
+                        type: array
+                        items:
+                          type: object
         """
         try:
             datasource = DatasourceDAO.get_datasource(
@@ -417,6 +483,37 @@ class DatasourceRestApi(BaseSupersetApi):
                     "Unable to get column values for "
                     f"datasource type: {datasource_type}"
                 ),
+            )
+        except OperationalError as ex:
+            # The analytics database refused or dropped the connection (e.g.
+            # MySQL 1040 "Too many connections"). That is the customer
+            # database's condition, not a Superset bug: answer with a typed
+            # error and a warning instead of an unhandled 500 + ERROR. Query
+            # level failures (bad virtual dataset SQL, statement timeouts) are
+            # not connection failures and keep propagating.
+            #
+            # This deliberately stays a 500 rather than 502/503/504:
+            # SupersetClient retries those three times by default, which would
+            # hit an already saturated database repeatedly.
+            database = getattr(datasource, "database", None)
+            if database is None or not _is_connection_failure(ex):
+                raise
+            logger.warning(
+                "column-values: database unavailable: uid=%s col=%s",
+                datasource.uid,
+                column_name,
+                exc_info=True,
+            )
+            errors = database.db_engine_spec.extract_errors(
+                ex, database_name=database.database_name
+            )
+            # The engine error can quote the compiled query (virtual dataset
+            # SQL / WHERE), so serialize the guest-sanitized list.
+            errors = sanitize_superset_errors(errors)
+            return self.response(
+                500,
+                message=errors[0].message,
+                errors=[error.to_dict() for error in errors],
             )
 
         response: Response = self.response(200, result=payload, limit=row_limit)
@@ -1063,10 +1160,12 @@ class DatasourceRestApi(BaseSupersetApi):
                 if is_semantic_view
                 else {op.value for op in FilterOperator}
             )
-            features = sorted(
+            features: list[str] = sorted(
                 feature.value
-                for feature in getattr(
-                    getattr(datasource, "implementation", None), "features", set()
+                for feature in supported_view_features(
+                    getattr(
+                        getattr(datasource, "implementation", None), "features", None
+                    )
                 )
             )
             result = dict(datasource.data)

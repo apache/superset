@@ -64,6 +64,7 @@ from superset.dashboards.excel_export.storage import is_background_export_availa
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
+from superset.integrations.teams.destinations import configured_teams
 from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
 from superset.security import password_recovery
@@ -103,7 +104,6 @@ FRONTEND_CONF_KEYS = (
     "GLOBAL_ASYNC_QUERIES_DEFAULT",
     "WEBSOCKET_ENABLE",
     "WEBSOCKET_URL",
-    "WEBSOCKET_JWT_EXPIRATION_SECONDS",
     "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
@@ -581,6 +581,21 @@ def _soft_delete_conf() -> dict[str, Any]:
         return {}
 
 
+def _notification_methods() -> list[ReportRecipientType]:
+    """Expose configured delivery methods without deployment credentials."""
+    methods = [ReportRecipientType.EMAIL, ReportRecipientType.WEBHOOK]
+    if app.config.get("SLACK_API_TOKEN"):
+        methods = [
+            ReportRecipientType.EMAIL,
+            ReportRecipientType.SLACK,
+            ReportRecipientType.SLACKV2,
+            ReportRecipientType.WEBHOOK,
+        ]
+    if configured_teams() is not None:
+        methods.append(ReportRecipientType.TEAMS)
+    return methods
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: str | None
@@ -599,18 +614,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     frontend_config.update(_soft_delete_conf())
 
-    if app.config.get("SLACK_API_TOKEN"):
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.SLACK,
-            ReportRecipientType.SLACKV2,
-            ReportRecipientType.WEBHOOK,
-        ]
-    else:
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.WEBHOOK,
-        ]
+    frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = _notification_methods()
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
@@ -696,13 +700,26 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     return bootstrap_data
 
 
-def common_bootstrap_payload() -> dict[str, Any]:
+def common_bootstrap_payload(gate_realtime: bool = True) -> dict[str, Any]:
+    """
+    Common bootstrap data for the current user and locale.
+
+    :param gate_realtime: report ``WEBSOCKET_ENABLE`` only when the current user
+        holds the realtime permission. Pages rendered before their principal is
+        known (the embedded shell, whose guest authenticates afterwards) pass
+        ``False`` to carry the configured value; the ticket endpoint then decides
+        whether that principal gets a socket.
+    """
     locale = get_locale()
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
     frontend_config = payload.get("conf")
-    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLE"):
+    if (
+        gate_realtime
+        and isinstance(frontend_config, dict)
+        and frontend_config.get("WEBSOCKET_ENABLE")
+    ):
         payload["conf"] = {
             **frontend_config,
             "WEBSOCKET_ENABLE": can_access_realtime_notifications(),

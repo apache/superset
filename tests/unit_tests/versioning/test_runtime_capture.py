@@ -44,25 +44,14 @@ pytestmark: pytest.MarkDecorator = pytest.mark.parametrize(
 )
 
 
-@pytest.fixture
-def capture_session(app: SupersetApp) -> Iterator[Session]:
-    """Create only disposable in-memory tables; retain native listener wiring."""
-    assert db.engine.url.get_backend_name() == "sqlite"
-    assert not db.engine.url.database
-    Model.metadata.create_all(db.engine)
-    session: Session = db.session()
-    yield session
-    db.session.remove()
-    Model.metadata.drop_all(db.engine)
-
-
 def history_counts(session: Session) -> dict[str, int]:
     """Count every shadow, association, transaction and semantic-change table."""
     return {
         table.name: session.scalar(sa.select(sa.func.count()).select_from(table))
         for table in Model.metadata.tables.values()
         if table.name.endswith("_version")
-        or table.name in {"version_transaction", "version_changes"}
+        or table.name
+        in {"version_transaction", "version_changes", "version_chart_archive_scope"}
     }
 
 

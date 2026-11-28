@@ -139,6 +139,18 @@ test('calls the getEdited batch call when edited tab is clicked', async () => {
     expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
   });
 });
+test('refetches the Edited tab when refreshKey changes', async () => {
+  const editedCalls = () =>
+    fetchMock.callHistory.calls(dashboardsEndpoint).length;
+  const { rerender } = renderActivityTable({
+    ...activityEditedTabProps,
+    refreshKey: 0,
+  });
+  await waitFor(() => expect(editedCalls()).toBeGreaterThan(0));
+  const before = editedCalls();
+  rerender(<ActivityTable {...activityEditedTabProps} refreshKey={1} />);
+  await waitFor(() => expect(editedCalls()).toBeGreaterThan(before));
+});
 test('show empty state if there is no data', () => {
   renderActivityTable(emptyActivityProps);
   expect(screen.getByText(/nothing here yet/i)).toBeInTheDocument();

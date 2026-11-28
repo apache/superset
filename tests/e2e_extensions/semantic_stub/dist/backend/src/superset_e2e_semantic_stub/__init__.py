@@ -30,6 +30,7 @@ rather than rendering plausible but unfiltered data.
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from collections.abc import Iterable
 from operator import itemgetter
@@ -97,7 +98,16 @@ ROWS: tuple[dict[str, Any], ...] = (
 )
 
 SUPPORTED_OPERATORS: frozenset[Operator] = frozenset(
-    {Operator.EQUALS, Operator.NOT_EQUALS, Operator.IN, Operator.NOT_IN}
+    {
+        Operator.EQUALS,
+        Operator.NOT_EQUALS,
+        Operator.IN,
+        Operator.NOT_IN,
+        Operator.IS_NULL,
+        Operator.IS_NOT_NULL,
+        Operator.NOT_LIKE,
+        Operator.NOT_ILIKE,
+    }
 )
 
 
@@ -112,29 +122,56 @@ def _validate_filter(filter_: Filter) -> None:
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
     if filter_.operator not in SUPPORTED_OPERATORS:
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
+    if filter_.operator in {Operator.NOT_LIKE, Operator.NOT_ILIKE} and not isinstance(
+        filter_.value, str
+    ):
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
 
 
 def _matches(row: dict[str, Any], filter_: Filter) -> bool:
     assert isinstance(filter_.column, Dimension)
     actual: Any = row[filter_.column.id]
+    if filter_.operator == Operator.IS_NULL:
+        return actual is None
+    if filter_.operator == Operator.IS_NOT_NULL:
+        return actual is not None
     values: frozenset[FilterValues] = (
         frozenset(filter_.value)
         if isinstance(filter_.value, (frozenset, tuple))
         else frozenset({filter_.value})
     )
+    if filter_.operator in {Operator.IN, Operator.NOT_IN} and not values:
+        return filter_.operator == Operator.NOT_IN
+    # SQL leaves exclude NULL; a normalized OR group's IS_NULL leaf restores it.
+    if actual is None:
+        return False
+    if filter_.operator in {Operator.NOT_LIKE, Operator.NOT_ILIKE}:
+        assert isinstance(filter_.value, str)
+        pattern: str = re.escape(filter_.value).replace("%", ".*").replace("_", ".")
+        flags: re.RegexFlag = re.DOTALL
+        if filter_.operator == Operator.NOT_ILIKE:
+            flags |= re.IGNORECASE
+        return re.fullmatch(pattern, actual, flags) is None
     if filter_.operator in {Operator.EQUALS, Operator.IN}:
         return actual in values
     return actual not in values
 
 
 def _filtered_rows(filters: Iterable[Filter | OrFilter] | None) -> list[dict[str, Any]]:
-    predicates: list[Filter] = []
+    groups: list[tuple[Filter, ...]] = []
     for filter_ in filters or ():
-        if isinstance(filter_, OrFilter):
-            raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
-        _validate_filter(filter_)
-        predicates.append(filter_)
-    return [row for row in ROWS if all(_matches(row, f) for f in predicates)]
+        leaves: tuple[Filter, ...] = (
+            tuple(filter_.filters) if isinstance(filter_, OrFilter) else (filter_,)
+        )
+        leaf: Filter
+        for leaf in leaves:
+            _validate_filter(leaf)
+        groups.append(leaves)
+    return [
+        row
+        for row in ROWS
+        if all(any(_matches(row, leaf) for leaf in group) for group in groups)
+    ]
 
 
 def _aggregate(metric: Metric, rows: list[dict[str, Any]]) -> int:

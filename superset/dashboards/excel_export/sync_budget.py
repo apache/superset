@@ -31,6 +31,7 @@ from superset.dashboards.excel_export.workbook import (
     resolve_query_context,
     ResolvedQueryContexts,
 )
+from superset.semantic_layers.chart_types import semantic_chart_refusal
 from superset.sql.parse import has_aggregate
 from superset.utils.core import AdhocMetricExpressionType
 
@@ -241,6 +242,9 @@ def plan_inline_export(dashboard: Any) -> InlineExportPlan:
     skipped: dict[int, str] = {}
     requested_rows = 0
     for chart in get_charts_in_layout_order(dashboard):
+        if semantic_chart_refusal(chart.datasource_type, chart.viz_type):
+            skipped[chart.id] = email.ERROR_UNSUPPORTED_CHART_TYPE
+            continue
         try:
             query_context = resolve_query_context(chart)
         except SoftTimeLimitExceeded:
