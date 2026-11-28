@@ -2662,7 +2662,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
         logger_mock.warning.assert_called_once_with(
-            "Database not found.", exc_info=True
+            "Database not found.", exc_info=False
         )
 
     def test_database_tables_unknown_schema(self):
@@ -2747,7 +2747,7 @@ class TestDatabaseApi(SupersetTestCase):
             f"api/v1/database/{database.id}/tables/?q={rison.dumps({'schema_name': schema_name})}"  # noqa: E501
         )
         assert rv.status_code == 422
-        logger_mock.warning.assert_called_once_with("Test Error", exc_info=True)
+        logger_mock.warning.assert_called_once_with("Test Error", exc_info=False)
 
     @with_config({"PREVENT_UNSAFE_DB_CONNECTIONS": False})
     def test_test_connection(self):
