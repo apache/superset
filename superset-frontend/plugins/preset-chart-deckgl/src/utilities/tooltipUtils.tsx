@@ -411,7 +411,7 @@ export function useTooltipContent(
 
 export function createTooltipContent(
   formData: QueryFormData,
-  defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
+  defaultTooltipGenerator: (o: JsonObject) => JSX.Element | null,
 ) {
   return (o: JsonObject) => {
     if (

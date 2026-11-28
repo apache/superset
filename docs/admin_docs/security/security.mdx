@@ -952,6 +952,16 @@ this warning using the `CONTENT_SECURITY_POLICY_WARNING` key in `config.py`.
 - Cartodiagram charts request map data (image and json) from external resources that can be edited by users,
   and therefore either require a list of allowed domains to request from or a wildcard (`'*'`) for `img-src` and `connect-src`.
 
+- deck.gl Vector Tiles charts load vector tiles and TileJSON directly from the tile server URLs
+  entered in each chart, which users can edit. Add the allowed tile servers to `connect-src`
+  (or use a wildcard, with the same trade-off as for Cartodiagram charts):
+
+  ```
+  connect-src 'self' https://tiles.example.com
+  ```
+
+  See [Map tiles](/admin-docs/configuration/map-tiles#vector-tiles) for the full setup.
+
 - Other CSP directives default to `'self'` to limit content to the same origin as the Superset server.
 
 In order to adjust provided CSP configuration to your needs, follow the instructions and examples provided in
