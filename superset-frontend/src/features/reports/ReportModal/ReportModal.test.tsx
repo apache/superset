@@ -1143,7 +1143,8 @@ test('retry fields are included in the POST body when Enable Retries is enabled'
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('post-retry');
-    const lastCall = calls[calls.length - 1];
+    expect(calls).toHaveLength(1);
+    const [lastCall] = calls;
     const body = JSON.parse(lastCall.options.body as string);
     expect(body.retry_on_failure).toBe(true);
     expect(typeof body.retry_max_attempts).toBe('number');
