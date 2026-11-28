@@ -5423,3 +5423,148 @@ test.each([0, 30])(
     ]);
   },
 );
+
+test('x-axis label interval "All" shows every label instead of being ignored (#36325)', () => {
+  // The control stores "All" as the string '0', which ECharts' axisLabel
+  // interval does not accept, so the setting silently did nothing.
+  const chartProps = createTestChartProps({
+    formData: { ...formData, xAxisLabelInterval: '0' },
+    queriesData,
+  });
+
+  const xAxis = transformProps(chartProps).echartOptions.xAxis as {
+    axisLabel: { interval: number | string; hideOverlap: boolean };
+  };
+
+  expect(xAxis.axisLabel.interval).toBe(0);
+  // asking for every label has to beat hideOverlap
+  expect(xAxis.axisLabel.hideOverlap).toBe(false);
+});
+
+test('x-axis label interval defaults to auto (#36325)', () => {
+  const chartProps = createTestChartProps({ formData, queriesData });
+
+  const xAxis = transformProps(chartProps).echartOptions.xAxis as {
+    axisLabel: { interval: number | string; hideOverlap: boolean };
+  };
+
+  expect(xAxis.axisLabel.interval).toBe('auto');
+  expect(xAxis.axisLabel.hideOverlap).toBe(true);
+});
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const temporalAllLabelsXAxis = (
+  timestamps: number[],
+  formDataOverrides: Partial<EchartsTimeseriesFormData>,
+) =>
+  transformProps(
+    createTestChartProps({
+      formData: { granularity_sqla: 'ds', ...formDataOverrides },
+      queriesData: [
+        createTestQueryData(
+          timestamps.map((__timestamp, i) => ({ __timestamp, sales: i })),
+          {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          },
+        ),
+      ],
+    }),
+  ).echartOptions.xAxis as {
+    type: string;
+    minInterval: number;
+    maxInterval?: number;
+    axisLabel: { customValues?: number[]; hideOverlap: boolean };
+    axisTick: { customValues?: number[] };
+  };
+
+test.each([
+  [TimeGranularity.SECOND, 1000],
+  [TimeGranularity.MINUTE, 60 * 1000],
+  [TimeGranularity.HOUR, 60 * 60 * 1000],
+  [TimeGranularity.DAY, DAY_MS],
+  [TimeGranularity.WEEK, 7 * DAY_MS],
+  [TimeGranularity.WEEK_ENDING_SATURDAY, 7 * DAY_MS],
+])(
+  'x-axis label interval "All" ticks on every data point of a temporal axis at %s grain (#36325)',
+  (timeGrainSqla, stepMs) => {
+    // ECharts ignores axisLabel.interval on a time axis, so "All" has to pin
+    // the ticks to the data itself, for every grain (not only the ones in
+    // TIMEGRAIN_TO_TIMESTAMP or WEEKLY_TIME_GRAINS).
+    const timestamps = Array.from(
+      { length: 12 },
+      (_, i) => Date.UTC(2021, 0, 4) + i * stepMs,
+    );
+    const xAxis = temporalAllLabelsXAxis(timestamps, {
+      timeGrainSqla,
+      xAxisLabelInterval: '0',
+    });
+
+    expect(xAxis.type).toBe(AxisType.Time);
+    expect(xAxis.axisLabel.customValues).toEqual(timestamps);
+    expect(xAxis.axisTick.customValues).toEqual(timestamps);
+    expect(xAxis.axisLabel.hideOverlap).toBe(false);
+  },
+);
+
+test('x-axis label interval "All" labels each of 52 weekly (P1W) points rather than month-aligned ticks (#36325)', () => {
+  // The scenario reported in #36325: a year of weekly data. Without pinned
+  // ticks ECharts picks ~13 month-aligned ticks instead of one per week.
+  const weeks = Array.from(
+    { length: 52 },
+    (_, i) => Date.UTC(2021, 0, 4) + i * 7 * DAY_MS,
+  );
+  const xAxis = temporalAllLabelsXAxis(weeks, {
+    timeGrainSqla: TimeGranularity.WEEK,
+    xAxisLabelInterval: '0',
+  });
+
+  expect(xAxis.axisLabel.customValues).toHaveLength(52);
+  expect(xAxis.axisLabel.customValues).toEqual(weeks);
+});
+
+test('x-axis label interval "All" does not tick the empty buckets of a sparse temporal range (#36325)', () => {
+  // Two daily points ten years apart: pinning the scale's interval to one day
+  // would generate thousands of ticks across the gap. Pinning the ticks to the
+  // data keeps it to the two points, and leaves the scale's own interval
+  // bounds alone.
+  const sparse = [Date.UTC(2010, 0, 1), Date.UTC(2020, 0, 1)];
+  const xAxis = temporalAllLabelsXAxis(sparse, {
+    timeGrainSqla: TimeGranularity.DAY,
+    xAxisLabelInterval: '0',
+  });
+
+  expect(xAxis.axisLabel.customValues).toEqual(sparse);
+  expect(xAxis.axisTick.customValues).toEqual(sparse);
+  expect(xAxis.minInterval).toBe(DAY_MS);
+  expect(xAxis.maxInterval).toBeUndefined();
+});
+
+test('x-axis label interval "All" ticks on the data of a temporal axis without a time grain (#36325)', () => {
+  const timestamps = [
+    Date.UTC(2021, 0, 7),
+    Date.UTC(2021, 0, 9),
+    Date.UTC(2021, 1, 1),
+  ];
+  const xAxis = temporalAllLabelsXAxis(timestamps, {
+    xAxisLabelInterval: '0',
+  });
+
+  expect(xAxis.axisLabel.customValues).toEqual(timestamps);
+  expect(xAxis.maxInterval).toBeUndefined();
+});
+
+test('x-axis label interval "Auto" leaves non-weekly temporal ticks to ECharts', () => {
+  const timestamps = Array.from(
+    { length: 12 },
+    (_, i) => Date.UTC(2021, 0, 4) + i * DAY_MS,
+  );
+  const xAxis = temporalAllLabelsXAxis(timestamps, {
+    timeGrainSqla: TimeGranularity.DAY,
+    xAxisLabelInterval: 'auto',
+  });
+
+  expect(xAxis.axisLabel.customValues).toBeUndefined();
+  expect(xAxis.axisTick.customValues).toBeUndefined();
+});

@@ -1813,6 +1813,40 @@ describe('weekly x-axis tick alignment', () => {
     expect(xAxis.axisLabel.customValues).toEqual(manyMondays);
     expect(xAxis.axisTick.customValues).toEqual(manyMondays);
   });
+
+  test('"All" pins ticks to both queries\' points on a non-weekly grain, without ticking empty buckets (#36325)', () => {
+    // ECharts ignores axisLabel.interval on a time axis, so "All" pins the
+    // ticks to the data for every grain, not only the weekly ones. A sparse
+    // daily range must not tick the empty days between the points.
+    const queryA = [Date.UTC(2010, 0, 1), Date.UTC(2015, 5, 1)];
+    const queryB = [Date.UTC(2015, 5, 1), Date.UTC(2020, 0, 1)];
+    const { xAxis } = transformProps(
+      weeklyChartProps(queryA, queryB, {
+        timeGrainSqla: TimeGranularity.DAY,
+        xAxisLabelInterval: '0',
+      }),
+    ).echartOptions as any;
+
+    const expected = [
+      Date.UTC(2010, 0, 1),
+      Date.UTC(2015, 5, 1),
+      Date.UTC(2020, 0, 1),
+    ];
+    expect(xAxis.axisLabel.customValues).toEqual(expected);
+    expect(xAxis.axisTick.customValues).toEqual(expected);
+    expect(xAxis.axisLabel.hideOverlap).toBe(false);
+    expect(xAxis.maxInterval).toBeUndefined();
+  });
+
+  test('"Auto" leaves non-weekly ticks to ECharts', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps(MONDAYS, MONDAYS, {
+        timeGrainSqla: TimeGranularity.DAY,
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+  });
 });
 
 function transformWithChrome(
