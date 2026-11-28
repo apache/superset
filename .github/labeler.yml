@@ -41,6 +41,9 @@
 "dependencies:python":
 - changed-files:
   - any-glob-to-any-file:
+    - 'pyproject.toml'
+    - 'superset-core/pyproject.toml'
+    - 'superset-extensions-cli/pyproject.toml'
     - 'requirements/**'
     - 'superset/translations/requirements.txt'
     - 'RELEASING/requirements.txt'
@@ -152,6 +155,11 @@
   - any-glob-to-any-file:
     - 'superset/translations/fa/**'
 
+"i18n:polish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/pl/**'
+
 "i18n:portuguese":
 - changed-files:
   - any-glob-to-any-file:
@@ -241,3 +249,10 @@
   - any-glob-to-any-file:
     - '.github/actions/**'
     - '.github/workflows/**'
+
+"docker":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'docker/**'
+    - '**/Dockerfile*'
+    - 'docker-compose*.yml'

@@ -18,12 +18,14 @@
 
 from __future__ import annotations
 
+import logging
 import re
-from datetime import date, datetime
+from contextlib import nullcontext
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from importlib import import_module
 from typing import Any, cast
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import call, MagicMock, patch, PropertyMock
 
 import pandas as pd
 import pytest
@@ -35,6 +37,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
+    _LOCAL_PROBE_CACHE,
     _mirror_verdict_cache_key,
     _placeholder_is_bindable,
     _probe_cache_key,
@@ -76,6 +79,7 @@ from superset.connectors.sqla.partition_mapping import (
     probe_sql_is_evaluable,
     probed_value_type_error,
     RawProbeValue,
+    record_mirror_verdict,
     resolve_partition_mapping,
     stored_expression_error,
     validate_partition_mapping,
@@ -90,6 +94,8 @@ from superset.exceptions import SupersetParseError
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement
 from superset.utils.core import FilterOperator, GenericDataType, override_user
+
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 
 
 @pytest.fixture(autouse=True)
@@ -549,6 +555,67 @@ def test_resolve_returns_the_mapping_when_everything_lines_up(app: Flask) -> Non
     assert mapping.is_monotonic is True
 
 
+def test_resolve_declines_an_engine_without_partition_mapping_support(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    The editor hides partition mapping on an engine that does not advertise
+    support, so a mapping stored there -- configured before the gate, imported,
+    or left behind by a database change -- must not mirror anything either.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+
+    with app.app_context():
+        assert resolve_partition_mapping(_mapped_table()) is None
+
+
+def test_a_mapping_suppressed_by_the_engine_gate_is_logged_once(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    A stored mapping the engine gate ignores is invisible in the UI, so it is
+    logged -- once, not on every query that resolves it.
+    """
+    from superset.connectors.sqla import partition_mapping
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    partition_mapping._warn_mapping_suppressed.cache_clear()
+    table = _mapped_table()
+
+    with app.app_context(), caplog.at_level(logging.WARNING):
+        resolve_partition_mapping(table)
+        resolve_partition_mapping(table)
+
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if "Ignoring partition filter mapping" in record.getMessage()
+    ]
+    assert len(messages) == 1
+    assert "dt_epoch" in messages[0]
+    assert "sqlite" in messages[0]
+
+
+def test_the_engine_gate_does_not_log_without_a_stored_mapping(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    from superset.connectors.sqla import partition_mapping
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    partition_mapping._warn_mapping_suppressed.cache_clear()
+    table = _mapped_table()
+    table.partition_column = None
+
+    with app.app_context(), caplog.at_level(logging.WARNING):
+        assert partition_mapping.partition_mapping_supported(table) is False
+
+    assert "Ignoring partition filter mapping" not in caplog.text
+
+
 def test_effective_mapped_column_follows_main_dttm_col(app: Flask) -> None:
     """No explicit override: the mapping follows the default datetime column."""
     with app.app_context():
@@ -638,6 +705,31 @@ def test_resolve_returns_none_when_the_mapped_column_no_longer_exists(
     table = _mapped_table(main_dttm_col="vanished")
     with app.app_context():
         assert resolve_partition_mapping(table) is None
+
+
+def test_resolve_returns_none_for_a_templated_partition_column(app: Flask) -> None:
+    """
+    The mirror is built outside the template processor, so a Jinja-bearing
+    partition key would be emitted as raw ``{{ ... }}``. Save-time validation
+    refuses it; this is the bail-out for an imported or older row.
+    """
+    table = _mapped_table()
+    _column_named(table, "dt_epoch").expression = "{{ 'dt_' ~ 'epoch' }}"
+    with app.app_context():
+        assert resolve_partition_mapping(table) is None
+
+
+def test_resolve_keeps_an_untemplated_calculated_partition_column(
+    app: Flask,
+) -> None:
+    table = _mapped_table()
+    _column_named(table, "dt_epoch").expression = "CAST(dt AS BIGINT)"
+    with app.app_context():
+        assert resolve_partition_mapping(table) is not None
+
+
+def _column_named(table: SqlaTable, name: str) -> TableColumn:
+    return next(column for column in table.columns if column.column_name == name)
 
 
 def test_resolve_returns_none_on_self_mapping(app: Flask) -> None:
@@ -1960,6 +2052,22 @@ def test_an_unknown_mapped_column_override_blocks_the_save() -> None:
     assert issues[0].field == "partition_mapped_column"
 
 
+@pytest.mark.parametrize(
+    "expression",
+    ["{{ 'dt_' ~ 'epoch' }}", "{% if 1 %}dt_epoch{% endif %}", "dt {# note #}"],
+    ids=["expression", "statement", "comment"],
+)
+def test_a_templated_partition_column_blocks_the_save(expression: str) -> None:
+    issues = _blocking(_issues(partition_expression=expression))
+    assert len(issues) == 1
+    assert issues[0].field == "partition_column"
+    assert "Jinja" in str(issues[0].message)
+
+
+def test_an_untemplated_calculated_partition_column_is_accepted() -> None:
+    assert _blocking(_issues(partition_expression="CAST(dt AS BIGINT)")) == []
+
+
 def test_an_explicit_self_mapping_blocks_the_save() -> None:
     issues = _blocking(_issues(partition_mapped_column="dt_epoch"))
     assert len(issues) == 1
@@ -2148,8 +2256,75 @@ def test_the_cache_key_includes_the_catalog_and_schema(app: Flask) -> None:
     assert _probe(database).call_count == 2
 
 
-def test_a_failed_probe_is_not_cached(app: Flask) -> None:
-    """Caching a failure would keep a transient engine blip pruning-free for a day."""
+def test_a_failed_probe_is_remembered_briefly(app: Flask) -> None:
+    """
+    A transform the engine always rejects must not cost a warehouse round trip
+    on every chart load -- and the preview must still be able to say why.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("function no_such_fn does not exist")
+    )
+    errors: list[str] = []
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+        assert (
+            evaluate_transform(
+                database, None, None, "lower(:value)", ["x"], errors=errors
+            )
+            is None
+        )
+
+    _probe(database).assert_called_once()
+    assert errors == ["function no_such_fn does not exist"]
+
+
+def test_a_failed_probe_is_retried_once_its_failure_expires(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    Remembering a failure for the full cache timeout would keep a transient
+    engine blip pruning-free for a day. The failure is held for its own, much
+    shorter, timeout: still remembered just before it, retried just after.
+    """
+    mocker.patch.dict(
+        app.config,
+        {
+            "PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT": 300,
+            "PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT": 24 * 60 * 60,
+        },
+    )
+    now = 1_800_000_000.0
+    clock = mocker.patch("cachelib.simple.time", return_value=now)
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=[
+            RuntimeError("connection reset"),
+            pd.DataFrame([[42]], columns=["v0"]),
+        ]
+    )
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+
+        clock.return_value = now + 299
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+        _probe(database).assert_called_once()
+
+        clock.return_value = now + 301
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) == [42]
+
+    assert _probe(database).call_count == 2
+
+
+def test_a_zero_failure_timeout_retries_every_failure(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """Zero turns the failure cache off rather than meaning "forever"."""
+    mocker.patch.dict(
+        app.config, {"PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT": 0}
+    )
     database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
     database.get_df = MagicMock(  # type: ignore[method-assign]
         side_effect=[
@@ -2161,6 +2336,308 @@ def test_a_failed_probe_is_not_cached(app: Flask) -> None:
     with app.app_context():
         assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
         assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) == [42]
+
+
+def test_a_fresh_probe_ignores_and_leaves_the_failure_memory(app: Flask) -> None:
+    """
+    Data validation asks for what the engine answers now. A remembered failure
+    must not stand in for that answer, and a failure it sees must not stop the
+    next chart from probing.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=[
+            RuntimeError("connection reset"),
+            pd.DataFrame([[42]], columns=["v0"]),
+            RuntimeError("connection reset"),
+            pd.DataFrame([[43]], columns=["v0"]),
+        ]
+    )
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+        assert evaluate_transform(
+            database, None, None, "lower(:value)", ["x"], fresh=True
+        ) == [42]
+        assert (
+            evaluate_transform(database, None, None, "lower(:value)", ["y"], fresh=True)
+            is None
+        )
+        assert evaluate_transform(database, None, None, "lower(:value)", ["y"]) == [43]
+
+
+def test_text_forms_crossing_the_probe_cap_decline_rather_than_read_as_refused(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    The typed values fit under the cap and their text forms take the probe over
+    it. That is not the engine refusing the text, so the weaker check
+    `TEXT_REFUSED` selects must not replace the comparison that was never run.
+    """
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_MAX_VALUES": 3})
+    database = _database_returning([1, 2])
+    errors: list[str] = []
+    text_answers: list[tuple[int, Any]] = []
+
+    with app.app_context():
+        assert (
+            evaluate_transform(
+                database,
+                None,
+                None,
+                "lower(:value)",
+                [datetime(2026, 1, 12, 6, 30), datetime(2026, 1, 13, 6, 30)],
+                errors=errors,
+                text_answers=text_answers,
+            )
+            is None
+        )
+
+    assert _probe(database).call_count == 0
+    assert text_answers == []
+    assert errors == [
+        "4 distinct values exceed PARTITION_TRANSFORM_PROBE_MAX_VALUES (3)"
+    ]
+
+
+def test_the_probe_cap_counts_every_filter_of_the_query(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    `build_mirrored_predicates` hands one probe every request of the query, so
+    the cap is on that probe's distinct inputs, not on each filter's values.
+    """
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_MAX_VALUES": 3})
+    table = _mapped_table()
+    database = _database_returning([1, 2, 3, 4])
+    table.database = database
+    errors: list[str] = []
+
+    with app.app_context():
+        mapping = resolve_partition_mapping(table)
+        assert mapping is not None
+        assert (
+            build_mirrored_predicates(
+                table,
+                mapping,
+                [
+                    (FilterOperator.IN, ["a", "b"]),
+                    (FilterOperator.IN, ["c", "d"]),
+                ],
+                errors=errors,
+            )
+            == []
+        )
+
+    assert _probe(database).call_count == 0
+    assert errors == [
+        "4 distinct values exceed PARTITION_TRANSFORM_PROBE_MAX_VALUES (3)"
+    ]
+
+
+def test_a_filter_wider_than_the_probe_cap_is_not_probed(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    Every value is one select column, and PostgreSQL refuses a 1,665th: a wide
+    `IN` list would otherwise fail on the engine on every chart load.
+    """
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_MAX_VALUES": 3})
+    database = _database_returning([1, 2, 3])
+    errors: list[str] = []
+
+    with app.app_context():
+        assert (
+            evaluate_transform(
+                database,
+                None,
+                None,
+                "lower(:value)",
+                ["a", "b", "c", "d"],
+                errors=errors,
+            )
+            is None
+        )
+        # The cap counts distinct values, so duplicates do not trip it.
+        assert evaluate_transform(
+            database, None, None, "lower(:value)", ["a", "b", "c", "a"]
+        ) == [1, 2, 3, 1]
+
+    _probe(database).assert_called_once()
+    assert errors == [
+        "4 distinct values exceed PARTITION_TRANSFORM_PROBE_MAX_VALUES (3)"
+    ]
+
+
+def test_a_probe_runs_under_its_own_timeout(app: Flask, mocker: MockerFixture) -> None:
+    """Chart requests carry no deadline, so nothing else bounds the probe."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_TIMEOUT": 7})
+    timeout = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.utils.timeout",
+        return_value=nullcontext(),
+    )
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Partition transform probe exceeded 7s",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    errors: list[str] = []
+
+    with app.app_context():
+        assert (
+            evaluate_transform(
+                database, None, None, "lower(:value)", ["x"], errors=errors
+            )
+            is None
+        )
+
+    assert timeout.call_args.kwargs["seconds"] == 7
+    assert errors == ["Partition transform probe exceeded 7s"]
+
+
+def test_a_null_primary_cache_falls_back_to_the_data_cache(app: Flask) -> None:
+    """
+    A deployment that configures only `DATA_CACHE_CONFIG` keeps its probe results
+    there, shared between workers, rather than in each process's fallback.
+    """
+    from flask_caching import Cache
+
+    from superset.extensions import cache_manager
+
+    null = Cache(config={"CACHE_TYPE": "NullCache"})
+    null.init_app(app)
+    data = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    data.init_app(app)
+    database = _database_returning([1767225600])
+
+    with patch.object(cache_manager, "_cache", null):
+        with patch.object(cache_manager, "_data_cache", data):
+            with app.app_context():
+                for _ in range(2):
+                    assert evaluate_transform(
+                        database, None, None, "unix_timestamp(:value)", ["x"]
+                    ) == [1767225600]
+                    _LOCAL_PROBE_CACHE.clear()
+
+    _probe(database).assert_called_once()
+
+
+def test_a_usable_primary_cache_is_preferred_over_the_data_cache(app: Flask) -> None:
+    from flask_caching import Cache
+
+    from superset.extensions import cache_manager
+
+    primary = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    primary.init_app(app)
+    data = MagicMock(wraps=Cache(config={"CACHE_TYPE": "NullCache"}))
+    data.cache = MagicMock()
+    database = _database_returning([1767225600])
+
+    with patch.object(cache_manager, "_cache", primary):
+        with patch.object(cache_manager, "_data_cache", data):
+            with app.app_context():
+                for _ in range(2):
+                    assert evaluate_transform(
+                        database, None, None, "unix_timestamp(:value)", ["x"]
+                    ) == [1767225600]
+
+    _probe(database).assert_called_once()
+    data.get.assert_not_called()
+    data.set.assert_not_called()
+
+
+def test_a_null_cache_falls_back_to_a_local_one(app: Flask) -> None:
+    """
+    `CACHE_CONFIG` and `DATA_CACHE_CONFIG` both default to `NullCache`, under
+    which every chart query on a mapped dataset probed again.
+    """
+    from flask_caching import Cache
+
+    from superset.extensions import cache_manager
+
+    null = Cache(config={"CACHE_TYPE": "NullCache"})
+    null.init_app(app)
+    database = _database_returning([1767225600])
+
+    with patch.object(cache_manager, "_cache", null):
+        with patch.object(cache_manager, "_data_cache", null):
+            with app.app_context():
+                for _ in range(2):
+                    assert evaluate_transform(
+                        database, None, None, "unix_timestamp(:value)", ["x"]
+                    ) == [1767225600]
+                scope = MirrorVerdictScope(
+                    _verdict_table(database, "unix_timestamp(:value)"),
+                    "event_time",
+                    "dt_epoch",
+                )
+                record_mirror_verdict(scope, "unix_timestamp(:value)", mirrors=True)
+                assert known_mirror_verdict(scope, "unix_timestamp(:value)") is True
+
+    _probe(database).assert_called_once()
+
+
+def test_the_probe_reports_its_outcome_and_latency(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    stats = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.stats_logger_manager"
+    ).instance
+    database = _database_returning([1])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, "lower(:value)", ["x"])
+        evaluate_transform(database, None, None, "lower(:value)", ["x"])
+
+    assert [call.args[0] for call in stats.incr.call_args_list] == [
+        "partition_mapping.probe.cache_miss",
+        "partition_mapping.probe.success",
+        "partition_mapping.probe.cache_hit",
+    ]
+    stats.timing.assert_called_once()
+    assert stats.timing.call_args.args[0] == "partition_mapping.probe.latency_ms"
+
+
+def test_a_transform_unreadable_without_comments_is_counted_as_declined(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    stats = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.stats_logger_manager"
+    ).instance
+    mocker.patch(
+        "superset.connectors.sqla.partition_mapping.strip_comments",
+        return_value=None,
+    )
+    database = _database_returning([1])
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+
+    assert (
+        call("partition_mapping.probe.declined.unreadable_transform")
+        in stats.incr.call_args_list
+    )
+    assert _probe(database).call_count == 0
+
+
+def test_a_broken_stats_logger_does_not_cost_the_probe(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    stats = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.stats_logger_manager"
+    ).instance
+    stats.incr.side_effect = RuntimeError("statsd down")
+    stats.timing.side_effect = RuntimeError("statsd down")
+    database = _database_returning([1])
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) == [1]
 
 
 def test_a_null_monotonic_flag_reads_as_not_declared(app: Flask) -> None:
@@ -2611,6 +3088,7 @@ def _mirror_temporal(
         )
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 @pytest.mark.parametrize(
     "uri, partition_type, probed, literal",
     [
@@ -2691,6 +3169,7 @@ def test_a_temporal_probe_result_is_written_as_the_engines_own_literal(
     assert not re.search(r"(?:[<>=]|IN \() ?'", rendered)
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_trino_date_mirror_is_the_predicate_the_engine_accepts(app: Flask) -> None:
     """The whole predicate, as View query shows it on Trino."""
     table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
@@ -2743,6 +3222,7 @@ def test_a_timestamp_the_engine_writes_in_full_still_mirrors(app: Flask) -> None
     assert "'2026-01-01 12:30:15'" in _render_predicate(table, predicates[0])
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 @pytest.mark.parametrize(
     "probed", [datetime.min, date.min], ids=["datetime.min", "date.min"]
 )
@@ -2768,6 +3248,7 @@ def test_the_earliest_instant_declines_rather_than_failing_the_chart(
     assert type_errors
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None:
     """
     Flooring to the day is the column's own resolution, so a `DATE` key takes a
@@ -2784,6 +3265,7 @@ def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None
     assert "part <= DATE '2026-01-01'" in _render_predicate(table, predicates[0])
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
     """
     An Oracle ``DATE`` keeps the time of day -- its SQLAlchemy dialect makes
@@ -2808,6 +3290,7 @@ def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
     assert type_errors
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
     """Not a refusal of Oracle: an answer at midnight loses nothing to the
     day-only literal, so it still mirrors."""
@@ -2824,6 +3307,7 @@ def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
     )
 
 
+@pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
 def test_a_dialect_whose_type_names_are_a_list_does_not_break_the_chart(
     app: Flask,
 ) -> None:
@@ -2926,13 +3410,22 @@ def test_a_chart_bound_is_not_mirrored_when_its_text_form_reads_differently(
     assert cast(MagicMock, table.database.get_df).call_count == 1
 
 
-def _refusing_text(typed_answer: Any) -> Any:
+def _refusing_text(
+    typed_answer: Any, hour_answers: tuple[Any, Any] | None = None
+) -> Any:
     """Raise ORA-01830 on the text ``'2026-01-12 06:30:00'``; answer the typed
-    literal with ``typed_answer``."""
+    literal with ``typed_answer``.
+
+    ``hour_answers`` is what the day at 06:00 answers typed and written as
+    ``'2026-01-12 06'``, which is refused too where it is `None`."""
 
     def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
         if "'2026-01-12 06:30:00'" in sql:
             raise RuntimeError("ORA-01830: date format picture ends before ...")
+        if "'2026-01-12 06'" in sql:
+            if hour_answers is None:
+                raise RuntimeError("ORA-01830: date format picture ends before ...")
+            return pd.DataFrame([list(hour_answers)], columns=["v0", "v1"])
         return pd.DataFrame([[typed_answer]], columns=["v0"])
 
     return answer
@@ -2963,8 +3456,9 @@ def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
     under its default ``NLS_DATE_FORMAT``, broken or not. Declining on the
     refusal alone kept ``TO_DATE(:value, 'YYYY-MM-DD')`` from emptying every
     time range, and cost ``CAST(:value AS DATE)`` its pruning with it. The
-    typed answer is asked alone instead -- a second round trip, only on this
-    path -- and kept where it can be a bucket of the instant.
+    typed answer is asked alone instead -- only on this path -- and kept where
+    it can be a bucket of the instant. Under the default format the text to
+    the hour, asked on a third round trip, is refused too.
     """
     table = _temporal_partition_table("sqlite://", "TIMESTAMP")
     mapping = resolve_partition_mapping(table)
@@ -2982,7 +3476,215 @@ def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
 
     assert bool(predicates) is mirrored
     assert bool(shape_errors) is not mirrored
-    assert cast(MagicMock, table.database.get_df).call_count == 2
+    assert cast(MagicMock, table.database.get_df).call_count == 3
+
+
+@pytest.mark.parametrize(
+    "typed_answer, hour_answers, mirrored",
+    [
+        # TO_DATE(:value, 'YYYY-MM-DD HH24') under an ISO date-only
+        # NLS_DATE_FORMAT: the typed value reaches the mask as '2026-01-12',
+        # so 06:30 answers midnight -- a bucket of the instant, and a whole
+        # hourly key short. The same day written to the hour says so.
+        (
+            datetime(2026, 1, 12),
+            (datetime(2026, 1, 12), datetime(2026, 1, 12, 6)),
+            False,
+        ),
+        # TRUNC(:value, 'HH') under a format that reads the hour: both forms
+        # agree.
+        (
+            datetime(2026, 1, 12, 6),
+            (datetime(2026, 1, 12, 6), datetime(2026, 1, 12, 6)),
+            True,
+        ),
+        # A text form answering NULL says nothing, as on the first round trip.
+        (datetime(2026, 1, 12, 6), (datetime(2026, 1, 12, 6), None), True),
+        # The year 0012 misreading still declines when the hour text answers.
+        (
+            datetime(12, 1, 26),
+            (datetime(12, 1, 26), datetime(12, 1, 26)),
+            False,
+        ),
+    ],
+    ids=["lost-time-of-day", "agree", "null-text", "year-0012"],
+)
+def test_a_refused_text_form_is_checked_again_at_the_hour(
+    app: Flask, typed_answer: Any, hour_answers: tuple[Any, Any], mirrored: bool
+) -> None:
+    """
+    Being near the instant does not make a typed answer right. Oracle refuses
+    ``'2026-01-12 06:30:00'`` under a ``'YYYY-MM-DD HH24'`` mask but reads
+    ``'2026-01-12 06'``, so the instant at the top of an hour is asked in both
+    forms -- a third round trip, only on this path -- and the two answers have
+    to agree. A 06:30-18:30 range on an hourly key otherwise
+    returned 0 rows (48 with the flag off) while the preview said valid.
+
+    A decline also overwrites a `True` verdict an earlier chart left, so the
+    editor and Explore stop promising pruning this query does not carry.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(typed_answer, hour_answers)
+    )
+    shape_errors: list[str] = []
+    scope = MirrorVerdictScope(table, mapping.mapped_column, mapping.partition_column)
+
+    with app.app_context():
+        record_mirror_verdict(scope, mapping.value_transform, mirrors=True)
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            shape_errors=shape_errors,
+        )
+        verdict = known_mirror_verdict(scope, mapping.value_transform)
+
+    assert bool(predicates) is mirrored
+    assert bool(shape_errors) is not mirrored
+    assert verdict is mirrored
+    assert cast(MagicMock, table.database.get_df).call_count == 3
+
+
+def test_a_long_list_still_has_its_refused_text_form_checked_at_the_hour(
+    app: Flask,
+) -> None:
+    """
+    The hour check cannot depend on the size of the filter. Asked alongside the
+    values, 334 days made 1,002 columns, past Oracle's 1,000: the engine refused
+    the statement for its width, which read as refusing the hour text, and
+    midnight answers then passed on being near their instants alone.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    instants = [
+        datetime(2026, 1, 1, 6, 30) + timedelta(days=offset) for offset in range(334)
+    ]
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        columns = re.findall(r"\bAS (v\d+)", sql)
+        if len(columns) > 1000:
+            raise RuntimeError("ORA-01792: maximum number of columns is 1000")
+        if ":30:00'" in sql:
+            raise RuntimeError("ORA-01830: date format picture ends before ...")
+        if "'2026-01-01 06'" in sql:
+            return pd.DataFrame(
+                [[datetime(2026, 1, 1), datetime(2026, 1, 1, 6)]],
+                columns=["v0", "v1"],
+            )
+        return pd.DataFrame(
+            [[instant.replace(hour=0, minute=0) for instant in instants]],
+            columns=columns,
+        )
+
+    table.database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.IN, instants)],
+            shape_errors=shape_errors,
+        )
+
+    assert predicates == []
+    assert "written as text (2026-01-01 06:00:00)" in shape_errors[0]
+
+
+@pytest.mark.parametrize(
+    "hour_answers",
+    [None, (datetime(2026, 1, 12, 6), datetime(2026, 1, 12, 6))],
+    ids=["hour-text-refused", "hour-text-read"],
+)
+def test_a_refused_text_form_leaves_the_verdict_to_the_typed_answer(
+    app: Flask, hour_answers: tuple[Any, Any] | None
+) -> None:
+    """
+    Oracle refusing the text says nothing about the transform, so neither text
+    probe records a refusal against the mapping. Recording it made every chart
+    after the first on the same range report a working mapping as not
+    mirroring, in the editor's banner and Explore's glyph, while the query went
+    on pruning. What the typed answer means is `build_mirrored_predicates`' to
+    record, so nothing here records a verdict at all.
+    """
+    transform = "CAST(:value AS DATE)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(datetime(2026, 1, 12, 6, 30), hour_answers)
+    )
+    scope = MirrorVerdictScope(
+        _verdict_table(database, transform), "event_time", "dt_epoch"
+    )
+
+    with app.app_context():
+        for _chart in range(2):
+            evaluate_transform(
+                database,
+                None,
+                None,
+                transform,
+                [datetime(2026, 1, 12, 6, 30)],
+                text_answers=[],
+                verdict_scope=scope,
+            )
+
+        assert known_mirror_verdict(scope, transform) is None
+
+
+def test_a_transform_refusing_every_form_still_records_its_verdict(app: Flask) -> None:
+    """The typed answer has the last word, so a broken transform is still one."""
+    transform = "no_such_fn(:value)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("ORA-00904: invalid identifier")
+    )
+
+    scope = MirrorVerdictScope(
+        _verdict_table(database, transform), "event_time", "dt_epoch"
+    )
+
+    with app.app_context():
+        evaluate_transform(
+            database,
+            None,
+            None,
+            transform,
+            [datetime(2026, 1, 12, 6, 30)],
+            text_answers=[],
+            verdict_scope=scope,
+        )
+
+        assert known_mirror_verdict(scope, transform) is False
+
+
+def test_the_preview_says_the_hour_text_reads_differently(app: Flask) -> None:
+    """The preview names both answers for the day at the hour."""
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(
+            datetime(2026, 1, 12),
+            (datetime(2026, 1, 12), datetime(2026, 1, 12, 6)),
+        )
+    )
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            errors=[],
+            shape_errors=shape_errors,
+        )
+
+    assert "timestamp (2026-01-12 00:00:00)" in shape_errors[0]
+    assert "written as text (2026-01-12 06:00:00)" in shape_errors[0]
 
 
 def test_the_preview_says_the_text_form_was_refused(app: Flask) -> None:
@@ -3260,6 +3962,33 @@ def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
         assert _mirror(table, "2026-01-01") == []
 
         assert _verdict(table, "no_such_fn(:value)") is False
+
+
+def test_a_remembered_failure_still_records_that_it_does_not_mirror(
+    app: Flask,
+) -> None:
+    """
+    A refusal served from the failure cache reaches `build_mirrored_predicates`
+    as `None`, the same as a decline, so the record has to happen where the
+    failure is read. Otherwise a verdict another input earned would go on
+    promising a mirror the engine is refusing.
+    """
+    transform = "no_such_fn(:value)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("function no_such_fn(unknown) does not exist")
+    )
+    table = _verdict_table(database, transform)
+    scope = MirrorVerdictScope(table, "event_time", "dt_epoch")
+
+    with app.app_context():
+        assert _mirror(table, "2026-01-01") == []
+        record_mirror_verdict(scope, transform, mirrors=True)
+
+        assert _mirror(table, "2026-01-01") == []
+
+        assert _verdict(table, transform) is False
+    _probe(database).assert_called_once()
 
 
 def test_a_null_does_not_withdraw_a_verdict_another_input_earned(
@@ -4286,6 +5015,41 @@ def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:
         new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
     ):
         assert probed_value_type_error(column, [1767225600]) is None
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "hive", "sqlite"])
+def test_nested_unclosed_parenthesis_is_unfinished(engine: str) -> None:
+    """A parser-recovered nested expression must not reach the warehouse."""
+    from superset.connectors.sqla.partition_mapping import is_unfinished
+
+    transform = "extract(epoch from cast(:value as timestamp)"
+    assert not is_parseable(transform, engine)
+    assert is_unfinished(transform, engine)
+    assert "parenthesis" in (parse_error_detail(transform, engine) or "")
+    assert is_parseable(transform + ")", engine)
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "concat(:value, '(')",
+        'concat(:value, ")")',
+        "abs(:value) /* ( */",
+        "abs(:value) -- )",
+    ],
+)
+def test_parentheses_in_literals_and_comments_are_not_delimiters(
+    transform: str,
+) -> None:
+    """Only executable delimiters participate in the balance check."""
+    assert is_parseable(transform, "postgresql")
+
+
+def test_multiple_expressions_do_not_claim_the_mapping_is_saved() -> None:
+    """Preview copy must not contradict the write path's rejection."""
+    issues = _issues(transform="lower(:value), 'x'")
+    assert "multiple expressions" in str(issues[0].message)
+    assert "saved" not in str(issues[0].message)
 
 
 # ---------------------------------------------------------------------------

@@ -60,10 +60,18 @@ import {
   validateMaxValue,
   validateServerPagination,
   withLabel,
+  FeatureFlag,
+  isFeatureEnabled,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
+import { TREE_QUERY_MODE } from './queryMode';
+import {
+  treeLevelsSection,
+  treeModeOnInit,
+  treeServerPageLength,
+} from './TreeTable/controlPanel';
 
 /**
  * Generate comparison column names for a given column.
@@ -77,8 +85,11 @@ const generateComparisonColumns = (colname: string) =>
 const generateComparisonColumnTypes = (count: number) =>
   Array(count).fill(GenericDataType.Numeric);
 
-function getQueryMode(controls: ControlStateMapping): QueryMode {
+function getQueryMode(
+  controls: ControlStateMapping,
+): QueryMode | typeof TREE_QUERY_MODE {
   const mode = controls?.query_mode?.value;
+  if (mode === TREE_QUERY_MODE) return TREE_QUERY_MODE;
   if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
     return mode as QueryMode;
   }
@@ -117,13 +128,16 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
 /**
  * Visibility check
  */
-function isQueryMode(mode: QueryMode) {
+function isQueryMode(mode: QueryMode | typeof TREE_QUERY_MODE) {
   return ({ controls }: Pick<ControlPanelsContainerProps, 'controls'>) =>
     getQueryMode(controls) === mode;
 }
 
 const isAggMode = isQueryMode(QueryMode.Aggregate);
 const isRawMode = isQueryMode(QueryMode.Raw);
+const isTreeMode = isQueryMode(TREE_QUERY_MODE);
+const isNotTreeMode = (state: Pick<ControlPanelsContainerProps, 'controls'>) =>
+  !isTreeMode(state);
 
 const validateAggControlValues = (
   controls: ControlStateMapping,
@@ -143,8 +157,26 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.Aggregate, QueryModeLabel[QueryMode.Aggregate]],
     [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
-  mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
+  mapStateToProps: ({ controls }) => ({
+    value: getQueryMode(controls),
+    options: [
+      [QueryMode.Aggregate, QueryModeLabel[QueryMode.Aggregate]],
+      [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
+      ...(isFeatureEnabled(FeatureFlag.TableV2TreeModeEnabled) ||
+      isTreeMode({ controls })
+        ? [[TREE_QUERY_MODE, t('Tree')]]
+        : []),
+    ],
+  }),
+  rerender: [
+    'all_columns',
+    'groupby',
+    'metrics',
+    'percent_metrics',
+    'levels',
+    'tree_server_page_length',
+    'row_limit',
+  ],
 };
 
 const allColumnsControl: typeof sharedControls.groupby = {
@@ -224,6 +256,7 @@ export const ROW_LIMIT_OPTIONS_TABLE = [
 ];
 
 const config: ControlPanelConfig = {
+  onInit: treeModeOnInit,
   controlPanelSections: [
     {
       label: t('Query'),
@@ -294,7 +327,26 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          {
+            name: 'temporal_columns_lookup',
+            config: {
+              ...sharedControls.temporal_columns_lookup,
+              // A missing entry is unknown, not evidence of a non-temporal
+              // column when classifying a dormant semantic grain.
+              initialValue: (
+                control: ControlState,
+                state: ControlPanelState | null,
+              ) =>
+                Object.fromEntries(
+                  (state?.datasource?.columns ?? [])
+                    .filter(column => typeof column.is_dttm === 'boolean')
+                    .map(column => [
+                      column.column_name ?? column.name,
+                      column.is_dttm,
+                    ]),
+                ),
+            },
+          },
         ],
         [
           {
@@ -386,6 +438,8 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Server pagination'),
+              visibility: isNotTreeMode,
+              resetOnHide: false,
               description: t(
                 'Enable server side pagination of results (experimental feature)',
               ),
@@ -415,12 +469,20 @@ const config: ControlPanelConfig = {
               shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
                 disabled: isServerPaginationUnsupported(state),
+                resetOnHide: !state.controls?.server_pagination?.value,
               }),
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
+                isNotTreeMode({ controls }) &&
                 Boolean(controls?.server_pagination?.value),
               validators: [withLabel(validateInteger, t('Server Page Length'))],
             },
+          },
+        ],
+        [
+          {
+            name: 'tree_server_page_length',
+            config: treeServerPageLength,
           },
         ],
         [
@@ -433,17 +495,20 @@ const config: ControlPanelConfig = {
               clearable: false,
               shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
-                paginationUnsupported: isServerPaginationUnsupported(state),
+                paginationUnsupported:
+                  isTreeMode(state) || isServerPaginationUnsupported(state),
                 choices: formatSelectOptions(
                   ROW_LIMIT_OPTIONS_TABLE.filter(
                     value =>
-                      !isServerPaginationUnsupported(state) ||
+                      (!isTreeMode(state) &&
+                        !isServerPaginationUnsupported(state)) ||
                       value <=
                         (state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
                   ),
                 ),
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
-                server_pagination: state?.form_data?.server_pagination,
+                server_pagination:
+                  !isTreeMode(state) && state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
                   state?.common?.conf?.SQL_MAX_ROW,
               }),
@@ -496,7 +561,12 @@ const config: ControlPanelConfig = {
       ],
     },
     {
+      ...treeLevelsSection,
+      visibility: isTreeMode,
+    },
+    {
       label: t('Options'),
+      visibility: isNotTreeMode,
       expanded: true,
       controlSetRows: [
         [
@@ -591,6 +661,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Multi-level header'),
+      visibility: isNotTreeMode,
       expanded: true,
       controlSetRows: [
         [
@@ -614,6 +685,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Visual formatting'),
+      visibility: isNotTreeMode,
       expanded: true,
       controlSetRows: [
         [

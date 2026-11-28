@@ -73,6 +73,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
         force_nonce: str | None = None,
+        client_id: str | None = None,
         custom_cache_timeout: int | None = None,
         preserve_null_row_limit: bool = False,
     ) -> QueryContext:
@@ -153,6 +154,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             result_format=result_format,
             force=force,
             force_nonce=force_nonce,
+            client_id=client_id,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )
@@ -296,25 +298,41 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
         x_axis = form_data and form_data.get("x_axis")
-        temporal_range_filters = [
+        main_dttm_col = getattr(datasource, "main_dttm_col", None)
+        # Filters that would be clobbered by inferring main_dttm_col below: a
+        # TEMPORAL_RANGE filter already on main_dttm_col itself isn't
+        # "independent", it's the same time subject inference would also
+        # pick, and gets deduped once inference runs.
+        other_temporal_filters = [
             filter_
             for filter_ in query_object.filter
-            if filter_["op"] == "TEMPORAL_RANGE"
+            if filter_["op"] == "TEMPORAL_RANGE" and filter_["col"] != main_dttm_col
         ]
 
         should_infer_filter_granularity: bool = (
             is_adhoc_column(x_axis)  # type: ignore
             and query_object.granularity is None
             and bool(query_object.from_dttm or query_object.to_dttm)
-            and (bool(query_object.time_range) or not temporal_range_filters)
-            and (main_dttm_col := getattr(datasource, "main_dttm_col", None))
-            in temporal_columns
+            and (bool(query_object.time_range) or not other_temporal_filters)
+            and main_dttm_col in temporal_columns
         )
         if should_infer_filter_granularity:
             # The inferred column supplies the time-filter subject. It must not be
             # treated as an explicitly selected granularity, which would rewrite
             # the x-axis or remove an independent temporal filter below.
             query_object.granularity = main_dttm_col
+            # Drop any TEMPORAL_RANGE filter already targeting the same column
+            # (e.g. left over from when it was the physical x-axis) so helpers.py
+            # doesn't emit the same WHERE condition twice: once from this
+            # inferred granularity's from_dttm/to_dttm, once from the filter.
+            query_object.filter = [
+                filter_
+                for filter_ in query_object.filter
+                if not (
+                    filter_["op"] == "TEMPORAL_RANGE"
+                    and filter_["col"] == main_dttm_col
+                )
+            ]
             return
 
         if (
@@ -437,6 +455,17 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and filter.get("grain")
+                        and any(
+                            isinstance(column, dict)
+                            and column.get("columnType") == "BASE_AXIS"
+                            and column.get("label") == filter["col"]
+                            and column.get("timeGrain") == filter["grain"]
+                            for column in query_object.columns
+                        )
+                    )
                     or (
                         filter["op"] != "TEMPORAL_RANGE"
                         and (

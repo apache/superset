@@ -23,6 +23,7 @@ import {
   userEvent,
 } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import Login from './index';
 
@@ -37,9 +38,11 @@ const defaultBootstrapData = {
   },
 };
 
+const mockStaticAssetsPrefix = jest.fn(() => '');
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: jest.fn(() => defaultBootstrapData),
+  staticAssetsPrefix: () => mockStaticAssetsPrefix(),
 }));
 
 const mockAddDangerToast = jest.fn((text: string) => ({
@@ -77,6 +80,7 @@ beforeEach(() => {
   mockGetBootstrapData.mockReturnValue(defaultBootstrapData);
   mockEnsureAppRoot.mockClear();
   mockEnsureAppRoot.mockImplementation((path: string) => path);
+  mockStaticAssetsPrefix.mockReturnValue('');
 });
 
 // --- DB / LDAP Auth tests ---
@@ -507,4 +511,149 @@ test('should map danger and error categories to danger toasts', () => {
   expect(mockAddDangerToast).toHaveBeenCalledWith('Login failed.');
   expect(mockAddDangerToast).toHaveBeenCalledWith('Something went wrong.');
   expect(mockAddWarningToast).not.toHaveBeenCalled();
+});
+
+// --- Login page theming tests ---
+
+const renderWithTokens = (tokens: Record<string, string>) =>
+  render(
+    <ThemeProvider theme={{ ...supersetTheme, ...tokens }}>
+      <Login />
+    </ThemeProvider>,
+    { useRedux: true },
+  );
+
+// The background layer is rendered immediately before the login form.
+const getBackground = () =>
+  screen.getByTestId('login-form').previousElementSibling as HTMLElement;
+
+test('should render the Sign in heading and no brand logo with the default theme', () => {
+  render(<Login />, { useRedux: true });
+  expect(
+    screen.getByRole('heading', { level: 4, name: 'Sign in' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByAltText('Apache Superset')).not.toBeInTheDocument();
+});
+
+test('should render the brand logo with the Apache Superset alt text fallback', () => {
+  renderWithTokens({ loginFormBrandLogoUrl: '/static/logo.png' });
+  const logo = screen.getByRole('img', { name: 'Apache Superset' });
+  expect(logo).toHaveAttribute('src', '/static/logo.png');
+});
+
+test('should use brandLogoAlt as the brand logo alt text', () => {
+  renderWithTokens({
+    loginFormBrandLogoUrl: '/static/logo.png',
+    brandLogoAlt: 'Acme Analytics',
+  });
+  expect(screen.getByRole('img', { name: 'Acme Analytics' })).toHaveAttribute(
+    'src',
+    '/static/logo.png',
+  );
+});
+
+test('should apply the static assets prefix to the brand logo URL', () => {
+  mockStaticAssetsPrefix.mockReturnValue('/analytics');
+  renderWithTokens({ loginFormBrandLogoUrl: '/static/logo.png' });
+  expect(screen.getByRole('img', { name: 'Apache Superset' })).toHaveAttribute(
+    'src',
+    '/analytics/static/logo.png',
+  );
+});
+
+test('should not style a background layer without a background image token', () => {
+  render(<Login />, { useRedux: true });
+  expect(getBackground()).not.toHaveStyleRule('position', 'fixed');
+});
+
+test('should render the escaped, quoted background image URL with the theme mask overlay by default', () => {
+  expect(() =>
+    renderWithTokens({
+      loginPageBackgroundImageUrl: '/static/assets/images/x.jpg',
+    }),
+  ).not.toThrow();
+  const background = getBackground();
+  expect(background).toHaveStyleRule(
+    'background-image',
+    `url('\\/static\\/assets\\/images\\/x\\.jpg')`,
+    { target: '::before' },
+  );
+  expect(background).toHaveStyleRule(
+    'background-color',
+    supersetTheme.colorBgMask,
+    { target: '::after' },
+  );
+});
+
+test('should apply the static assets prefix, blur and overlay color to the background', () => {
+  mockStaticAssetsPrefix.mockReturnValue('/analytics');
+  renderWithTokens({
+    loginPageBackgroundImageUrl: '/static/bg.jpg',
+    loginPageBackgroundOverlayColor: 'rgb(1, 2, 3)',
+    loginPageBackgroundBlur: '4px',
+  });
+  const background = getBackground();
+  expect(background).toHaveStyleRule(
+    'background-image',
+    `url('\\/analytics\\/static\\/bg\\.jpg')`,
+    { target: '::before' },
+  );
+  expect(background).toHaveStyleRule('filter', 'blur(4px)', {
+    target: '::before',
+  });
+  expect(background).toHaveStyleRule('background-color', 'rgb(1, 2, 3)', {
+    target: '::after',
+  });
+});
+
+interface ReactFiberNode {
+  key: string | null;
+  return: ReactFiberNode | null;
+}
+
+// React warns about missing keys only once per owner component, so a console
+// spy cannot detect a missing key reliably across tests. Read the keys React
+// assigned to the element's ancestors instead.
+const getAncestorKeys = (element: HTMLElement): string[] => {
+  const fiberProp = Object.keys(element).find(prop =>
+    prop.startsWith('__reactFiber$'),
+  );
+  const keys: string[] = [];
+  let fiber = fiberProp
+    ? ((element as unknown as Record<string, ReactFiberNode>)[fiberProp] ??
+      null)
+    : null;
+  while (fiber) {
+    if (fiber.key !== null) {
+      keys.push(fiber.key);
+    }
+    fiber = fiber.return;
+  }
+  return keys;
+};
+
+test.each([
+  ['OID', 0],
+  ['OAuth', 4],
+  ['SAML', 5],
+])('should key each %s provider item by provider name', (_name, authType) => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: authType,
+        AUTH_PROVIDERS: [
+          { name: 'okta', icon: 'okta', url: 'https://okta.example' },
+          { name: 'google', icon: 'google', url: 'https://google.example' },
+        ],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(getAncestorKeys(screen.getByText('Sign in with Okta'))).toContain(
+    'okta',
+  );
+  expect(getAncestorKeys(screen.getByText('Sign in with Google'))).toContain(
+    'google',
+  );
 });

@@ -183,10 +183,12 @@ import logging
 import numbers
 import re
 from collections.abc import Mapping, Sequence
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import lru_cache
+from time import monotonic
 from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
 import numpy as np
@@ -195,6 +197,7 @@ import sqlalchemy as sa
 from dateutil.relativedelta import relativedelta
 from flask import current_app as app
 from flask_babel import lazy_gettext as _
+from flask_caching.backends import NullCache, SimpleCache
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -203,9 +206,19 @@ from superset.exceptions import (
     QueryClauseValidationException,
     SupersetParseError,
     SupersetSecurityException,
+    SupersetTimeoutException,
 )
-from superset.extensions import cache_manager, feature_flag_manager
-from superset.sql.parse import SQLScript, SQLStatement, strip_comments
+from superset.extensions import (
+    cache_manager,
+    feature_flag_manager,
+    stats_logger_manager,
+)
+from superset.sql.parse import (
+    find_unmatched_parenthesis,
+    SQLScript,
+    SQLStatement,
+    strip_comments,
+)
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
 from superset.utils.core import FilterOperator, get_username
@@ -232,6 +245,17 @@ FEATURE_FLAG = "PARTITION_FILTER_MAPPING"
 #: `POST /datasource/save/` is one, and it writes straight through
 #: `update_from_object`.
 MAX_TRANSFORM_LENGTH = 1024
+
+#: Prefix of every statsd key the probe emits: ``.cache_hit``, ``.cache_miss``,
+#: ``.failure_cache_hit``, ``.success``, ``.error``, ``.timeout``,
+#: ``.declined.<reason>`` and the ``.latency_ms`` timing.
+PROBE_METRIC_PREFIX = "partition_mapping.probe"
+
+#: Where probe results and verdicts go when neither configured cache keeps
+#: anything -- see `_probe_cache`. Per process, so each worker probes an entry
+#: once rather than once per chart: worse than a shared backend, far better
+#: than none. Bounded so a stream of distinct filter values cannot grow it.
+_LOCAL_PROBE_CACHE = SimpleCache(threshold=1024)
 
 #: Placeholder the owner writes in the transform, e.g. ``unix_timestamp(:value)``.
 #: Matched with word boundaries so ``:values`` is not mistaken for it.
@@ -900,6 +924,8 @@ def _parse_skeleton(
 
     Returns ``None`` when the transform does not parse.
     """
+    if find_unmatched_parenthesis(transform, engine) is not None:
+        return None
     try:
         return SQLStatement(
             f"{_SELECT_PREFIX}{parse_skeleton(transform, standin)}", engine
@@ -920,6 +946,18 @@ def parse_error_detail(transform: str, engine: str) -> str | None:
     The parser's own ``highlight`` is deliberately dropped: it would name the
     ``NULL`` we substituted for ``:value``, which is not a token the owner typed.
     """
+    if position := find_unmatched_parenthesis(transform, engine):
+        return str(
+            _("unmatched parenthesis at position %(position)d.", position=position)
+        )
+    statement = _parse_skeleton(transform, engine)
+    if statement is not None and statement.count_select_expressions() > 1:
+        return str(
+            _(
+                "use a single SQL expression; this transform contains "
+                "multiple expressions."
+            )
+        )
     try:
         SQLStatement(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
     except SupersetParseError as ex:
@@ -1072,6 +1110,8 @@ def is_unfinished(transform: str | None, engine: str) -> bool:
     """
     if not transform or not transform.strip():
         return False
+    if find_unmatched_parenthesis(transform, engine) is not None:
+        return True
     try:
         SQLScript(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
     except SupersetParseError:
@@ -1417,6 +1457,62 @@ def _pair_is_raw_instants(pair: list[Any]) -> bool:
     return high - low in _RAW_INSTANT_STEPS
 
 
+def partition_mapping_supported(datasource: SqlaTable) -> bool:
+    """
+    Whether partition filter mapping applies to this dataset at all.
+
+    Both halves of the gate the dataset editor applies before it shows any
+    partition mapping control: the feature flag, and an engine that advertises
+    `supports_partition_filter_mapping`. The query path and the Explore
+    indicator read this too, so a mapping stored on an engine the editor hides
+    it for -- configured before the gate existed, carried in by import, or left
+    behind when the dataset moved to another database -- stays inert rather
+    than mirroring filters nobody can see, inspect or remove.
+    """
+    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+        return False
+    database = getattr(datasource, "database", None)
+    if database is None:
+        return False
+    db_engine_spec = database.db_engine_spec
+    if db_engine_spec.supports_partition_filter_mapping:
+        return True
+    if partition_column := getattr(datasource, "partition_column", None):
+        _warn_mapping_suppressed(
+            getattr(datasource, "id", None),
+            str(getattr(datasource, "table_name", "")),
+            str(partition_column),
+            db_engine_spec.engine,
+        )
+    return False
+
+
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+def _warn_mapping_suppressed(
+    dataset_id: int | None,
+    table_name: str,
+    partition_column: str,
+    engine: str,
+) -> None:
+    """
+    Log that a stored mapping is ignored because the engine lacks support.
+
+    Nothing on screen says so -- the editor hides the section and the Explore
+    indicator reports no mapping -- so without this an owner whose queries stop
+    pruning partitions has nothing to trace it to. Memoized so it is one line
+    per dataset, mapping and engine in each process rather than one per query.
+    """
+    logger.warning(
+        "Ignoring partition filter mapping on dataset %s (%s): partition column "
+        "%r is configured, but engine %r does not support partition filter "
+        "mapping, so no partition filter is mirrored",
+        dataset_id,
+        table_name,
+        partition_column,
+        engine,
+    )
+
+
 def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     """
     Resolve the dataset's mapping, or ``None`` when nothing may be mirrored.
@@ -1435,7 +1531,7 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     function, freezing a snapshot of probe time into the predicate with nothing
     on screen to say so.
     """
-    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+    if not partition_mapping_supported(datasource):
         return None
 
     partition_column = getattr(datasource, "partition_column", None)
@@ -1443,10 +1539,15 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
         return None
 
     columns_by_name = {column.column_name: column for column in datasource.columns}
-    if partition_column not in columns_by_name:
-        # Dropped by a column sync. A column dropped at the source is not
-        # visible here, since this only reads the cached metadata; the warehouse
-        # rejecting the mirror is recovered from when the query is executed.
+    # Dropped by a column sync, or templated: save-time validation refuses the
+    # latter, but an import or an older row can still carry it; see
+    # `templated_partition_key_issue`. A column dropped at the source is not
+    # visible here, since this only reads the cached metadata; the warehouse
+    # rejecting the mirror is recovered from when the query is executed.
+    partition_column_model = columns_by_name.get(partition_column)
+    if partition_column_model is None or contains_jinja(
+        partition_column_model.expression
+    ):
         return None
 
     mapped_column_name = (
@@ -2198,14 +2299,23 @@ def _evaluate_with_text_forms(
         if isinstance(value, date) and not is_unmirrorable(value)
     ]
     if indexes:
+        with_text = values + [_as_filter_text(values[index]) for index in indexes]
+        # Declined here because the fallback below is for an engine that refused
+        # the text. These forms were never sent, and reading that as a refusal
+        # swaps the comparison between them for `_is_bucket_of`, which a
+        # transform answering the day for a timestamp and the hour for its text
+        # passes, mirroring a range that excludes matching rows.
+        if _exceeds_probe_cap(_distinct_values(with_text), errors):
+            return True, None
         combined = evaluate_transform(
             database,
             catalog,
             schema,
             transform,
-            values + [_as_filter_text(values[index]) for index in indexes],
+            with_text,
             errors=errors,
             fresh=fresh,
+            record_refusal=False,
             verdict_scope=verdict_scope,
         )
         if combined is not None:
@@ -2217,7 +2327,10 @@ def _evaluate_with_text_forms(
         # ``NLS_DATE_FORMAT`` -- so declining here cost Oracle every time
         # range. The typed values are asked alone, a second round trip only
         # on this path, and `_declined_for_reading_by_type` checks what they
-        # answer against the instants they were asked about instead.
+        # answer against the instants they were asked about instead. Their
+        # answer is the one that says whether the transform works, so neither
+        # text-form probe records a refusal as a verdict: the typed lookup only
+        # writes on a cache miss, and nothing would restore it on a hit.
         typed = evaluate_transform(
             database,
             catalog,
@@ -2227,8 +2340,38 @@ def _evaluate_with_text_forms(
             fresh=fresh,
             verdict_scope=verdict_scope,
         )
-        if typed is not None:
-            text_answers.extend((index, TEXT_REFUSED) for index in indexes)
+        if typed is None:
+            return True, None
+        # Being near the instant is not enough on its own: under an ISO
+        # date-only ``NLS_DATE_FORMAT``, ``TO_DATE(:value, 'YYYY-MM-DD HH24')``
+        # answers midnight for 06:30, which is near it and a whole hourly key
+        # out. So one instant is asked once more at the top of an hour, typed
+        # and as the shorter text `_as_hour_text` writes, which a mask too
+        # short for the full text still reads, and those two answers have to
+        # agree. One, and on its own, because losing the time of day does not
+        # depend on the day, and alongside the values a long list would pass
+        # the engine's column limit and read as the text being refused. Every
+        # ISO spelling is refused under Oracle's default ``NLS_DATE_FORMAT``,
+        # and then only the distance from the instant is checked.
+        hour = _at_probe_hour(values[indexes[0]])
+        hour_answers = evaluate_transform(
+            database,
+            catalog,
+            schema,
+            transform,
+            [hour, _as_hour_text(hour)],
+            fresh=fresh,
+            record_refusal=False,
+        )
+        text_answers.append(
+            (
+                indexes[0],
+                TEXT_REFUSED
+                if hour_answers is None
+                else TextRefused(hour, *hour_answers),
+            )
+        )
+        text_answers.extend((index, TEXT_REFUSED) for index in indexes[1:])
         return True, typed
     return False, None
 
@@ -2243,6 +2386,7 @@ def evaluate_transform(
     errors: list[str] | None = None,
     text_answers: list[tuple[int, Any]] | None = None,
     fresh: bool = False,
+    record_refusal: bool = True,
     verdict_scope: MirrorVerdictScope | None = None,
 ) -> list[Any] | None:
     """
@@ -2265,8 +2409,11 @@ def evaluate_transform(
         ``values`` is also asked as the text a simple filter would bind, in the
         same round trip, and ``(index, answer)`` is appended for each -- see
         `_declined_for_reading_by_type` for why. Where the text is refused the
-        typed values are asked alone, and ``(index, TEXT_REFUSED)`` is appended
-        for each if they answer.
+        typed values are asked alone, and a `TextRefused` is appended for each
+        if they answer.
+    :param record_refusal: whether the engine refusing these values is recorded
+        as the transform's verdict. Off for a question about how text reads,
+        which a working transform can refuse.
     :param verdict_scope: the mapping an engine refusal is recorded against. What
         the answers mean for that mapping is `build_mirrored_predicates`' to
         decide, because only it knows the partition column.
@@ -2290,13 +2437,10 @@ def evaluate_transform(
             return result
 
     # Dedupe so a 200-value `IN` list costs one column, not 200.
-    distinct: list[Any] = []
-    seen: set[Any] = set()
-    for value in values:
-        key = _hashable(value)
-        if key not in seen:
-            seen.add(key)
-            distinct.append(value)
+    distinct = _distinct_values(values)
+
+    if _exceeds_probe_cap(distinct, errors):
+        return None
 
     # The value side of the premise `probe_sql_is_evaluable` checks on the
     # finished statement: a value the driver and the engine would spell
@@ -2317,6 +2461,7 @@ def evaluate_transform(
     if not all(
         literal_round_trips(value, dialect, database.backend) for value in distinct
     ):
+        _count("declined.value_does_not_round_trip")
         logger.warning(
             "A filter value is not written the same way by the driver and the "
             "database, so the partition transform is not probed at it; this "
@@ -2329,28 +2474,62 @@ def evaluate_transform(
             database, catalog, schema, transform, distinct, values, errors
         )
 
-    cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
-    cached = _cache_get(cache_key)
+    cached = _cached_probe(
+        database,
+        catalog,
+        schema,
+        transform,
+        distinct,
+        errors,
+        verdict_scope,
+        record_refusal=record_refusal,
+    )
     if cached is None:
-        cached = _run_probe(
-            database,
-            catalog,
-            schema,
-            transform,
-            distinct,
-            errors=errors,
-            verdict_scope=verdict_scope,
-        )
-        if cached is None:
-            # Deliberately not cached: a transient engine blip would otherwise
-            # keep the dataset pruning-free for the whole cache timeout.
-            return None
-        _cache_set(cache_key, cached)
+        return None
 
     evaluated = dict(
         zip((_hashable(value) for value in distinct), cached, strict=False)
     )
     return [evaluated[_hashable(value)] for value in values]
+
+
+def _distinct_values(values: list[Any]) -> list[Any]:
+    distinct: list[Any] = []
+    seen: set[Any] = set()
+    for value in values:
+        key = _hashable(value)
+        if key not in seen:
+            seen.add(key)
+            distinct.append(value)
+    return distinct
+
+
+def _exceeds_probe_cap(distinct: list[Any], errors: list[str] | None) -> bool:
+    """
+    Whether a probe has more distinct inputs than it may evaluate.
+
+    Every input is one column of a single SELECT, and engines cap the select
+    list: PostgreSQL refuses a 1,665th entry outright. A query has one probe,
+    holding every filter's values and each timestamp's text form too. Declining
+    one that wide costs little pruning -- it spans that many partitions anyway
+    -- and spares the warehouse a statement it would refuse on every chart load.
+    """
+    max_values = app.config.get("PARTITION_TRANSFORM_PROBE_MAX_VALUES", 1000)
+    if not max_values or len(distinct) <= max_values:
+        return False
+    _count("declined.too_many_values")
+    logger.warning(
+        "A partition transform probe has %d distinct inputs, more than the %d "
+        "it may evaluate; this query will not prune",
+        len(distinct),
+        max_values,
+    )
+    if errors is not None:
+        errors.append(
+            f"{len(distinct)} distinct values exceed "
+            f"PARTITION_TRANSFORM_PROBE_MAX_VALUES ({max_values})"
+        )
+    return True
 
 
 def _fresh_probe_values(
@@ -2370,6 +2549,61 @@ def _fresh_probe_values(
     return [answers[_hashable(value)] for value in values]
 
 
+def _cached_probe(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+    distinct: list[Any],
+    errors: list[str] | None,
+    verdict_scope: MirrorVerdictScope | None = None,
+    *,
+    record_refusal: bool = True,
+) -> list[Any] | None:
+    """
+    `_run_probe` behind the probe cache, remembering failures as well.
+
+    A failure is remembered only briefly. Not at all, and a transform the
+    engine always rejects costs a warehouse round trip on every chart load for
+    as long as it is configured; for the full cache timeout, and one transient
+    engine blip keeps the dataset pruning-free for a day. The engine's own
+    messages are kept with it so the preview can still say why.
+    """
+    cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        _count("cache_hit")
+        return cached
+
+    if (failure := _cache_get(_failure_cache_key(cache_key))) is not None:
+        _count("failure_cache_hit")
+        if errors is not None:
+            errors.extend(failure)
+        if record_refusal and verdict_scope is not None:
+            record_mirror_verdict(verdict_scope, transform, mirrors=False)
+        return None
+
+    _count("cache_miss")
+    probe_errors: list[str] = []
+    cached = _run_probe(
+        database,
+        catalog,
+        schema,
+        transform,
+        distinct,
+        errors=probe_errors,
+        record_refusal=record_refusal,
+        verdict_scope=verdict_scope,
+    )
+    if errors is not None:
+        errors.extend(probe_errors)
+    if cached is None:
+        _cache_failure(cache_key, probe_errors)
+        return None
+    _cache_set(cache_key, cached)
+    return cached
+
+
 def _run_probe(
     database: Database,
     catalog: str | None,
@@ -2378,19 +2612,21 @@ def _run_probe(
     distinct: list[Any],
     *,
     errors: list[str] | None = None,
+    record_refusal: bool = True,
     verdict_scope: MirrorVerdictScope | None = None,
 ) -> list[Any] | None:
     """
     `_probe`, recording a refusal against the mapping that asked.
 
-    A refusal is the one outcome that has to be recorded here. It is not cached,
-    so `build_mirrored_predicates` sees `None` either way, and cannot tell it from
-    `evaluate_transform` declining one input without asking the engine, which is
-    no verdict at all. Every outcome where the engine answered is recorded there,
-    probe cache hit or not.
+    A refusal is the one outcome that has to be recorded here. A refusal is
+    remembered only briefly, and both it and a remembered one reach
+    `build_mirrored_predicates` as `None`, which it cannot tell from
+    `evaluate_transform` declining one input without asking the engine -- no
+    verdict at all. So `_cached_probe` records a remembered refusal too. Every
+    outcome where the engine answered is recorded there, probe cache hit or not.
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
-    if values is None and verdict_scope is not None:
+    if values is None and record_refusal and verdict_scope is not None:
         record_mirror_verdict(verdict_scope, transform, mirrors=False)
     return values
 
@@ -2412,6 +2648,7 @@ def _probe(
     #
     # Declining costs pruning, never correctness -- see `evaluate_transform`.
     if reason := stored_expression_error(database, catalog, schema, transform):
+        _count("declined.unstorable_transform")
         logger.warning(
             "Refusing to probe a partition transform that is not a storable "
             "expression; queries will not prune: %s",
@@ -2427,6 +2664,7 @@ def _probe(
     # still finds can only have come from a value.
     stripped = strip_comments(transform, database.backend)
     if stripped is None:
+        _count("declined.unreadable_transform")
         logger.warning(
             "Partition transform could not be read with its comments removed; "
             "queries will not prune"
@@ -2447,14 +2685,33 @@ def _probe(
             # Declining rather than raising, for the same reason every other
             # failure here declines: the chart query is already correct without
             # the mirror, and it is the only thing the caller is waiting on.
+            _count("declined.unsafe_probe_sql")
             logger.warning(
                 "Refusing to run a partition transform probe whose compiled SQL "
                 "is not a plain projection per input value; queries will not "
                 "prune"
             )
             return None
-        frame = database.get_df(sql=sql, catalog=catalog, schema=schema)
+        # The chart query waits on this, and nothing else bounds it: chart
+        # requests carry no query deadline of their own. Best effort, like
+        # every other `utils.timeout` -- the alarm only fires on the main
+        # thread -- and the engine may go on running what it was abandoned on.
+        timeout = app.config.get("PARTITION_TRANSFORM_PROBE_TIMEOUT", 10)
+        started = monotonic()
+        try:
+            with (
+                utils.timeout(
+                    seconds=timeout,
+                    error_message=f"Partition transform probe exceeded {timeout}s",
+                )
+                if timeout and timeout > 0
+                else nullcontext()
+            ):
+                frame = database.get_df(sql=sql, catalog=catalog, schema=schema)
+        finally:
+            _timing("latency_ms", (monotonic() - started) * 1000)
         if frame is None or frame.empty:
+            _count("error")
             logger.warning(
                 "Partition transform probe returned no rows; skipping mirroring"
             )
@@ -2471,6 +2728,7 @@ def _probe(
             # than one that is merely short. `is_parseable` rejects that
             # transform before it is ever stored; this is the backstop for one
             # that predates the check.
+            _count("error")
             logger.warning(
                 "Partition transform probe returned %d values for %d inputs",
                 column_count,
@@ -2483,10 +2741,19 @@ def _probe(
         # above 2^53 comes back rounded. `_to_python_scalar` converts
         # faithfully but runs after the loss, so the mirror asks for a key the
         # warehouse does not hold and drops the row the filter matched.
-        return [
+        values = [
             _to_python_scalar(frame.iat[0, index]) for index in range(len(distinct))
         ]
+        _count("success")
+        return values
+    except SupersetTimeoutException as ex:
+        _count("timeout")
+        logger.warning("%s; queries will not prune", ex.message)
+        if errors is not None:
+            errors.append(ex.message)
+        return None
     except Exception as ex:  # pylint: disable=broad-except
+        _count("error")
         logger.warning(
             "Partition transform probe failed; queries will not prune",
             exc_info=True,
@@ -2618,9 +2885,30 @@ def _probe_cache_key(
     return f"partition_transform_probe:{PROBE_CACHE_VERSION}:{digest}"
 
 
+def _failure_cache_key(cache_key: str) -> str:
+    """Where a failed probe for ``cache_key`` is remembered; see `_cache_failure`."""
+    return f"{cache_key}:failed"
+
+
+def _probe_cache() -> Any:
+    """
+    The first cache that keeps what it is given: ``CACHE_CONFIG``, then
+    ``DATA_CACHE_CONFIG``, then `_LOCAL_PROBE_CACHE`.
+
+    Both configured caches default to `NullCache`, under which every chart
+    query on a mapped dataset probed the warehouse again -- a successful probe
+    as much as a failed one -- and the verdict the pruning indicator reads was
+    never there to read.
+    """
+    for cache in (cache_manager.cache, cache_manager.data_cache):
+        if not isinstance(getattr(cache, "cache", cache), NullCache):
+            return cache
+    return _LOCAL_PROBE_CACHE
+
+
 def _cache_get(key: str) -> list[Any] | None:
     try:
-        return cache_manager.cache.get(key)
+        return _probe_cache().get(key)
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         return None
 
@@ -2628,9 +2916,41 @@ def _cache_get(key: str) -> list[Any] | None:
 def _cache_set(key: str, value: list[Any]) -> None:
     timeout = app.config.get("PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT", 24 * 60 * 60)
     try:
-        cache_manager.cache.set(key, value, timeout=timeout)
+        _probe_cache().set(key, value, timeout=timeout)
     except Exception:  # pylint: disable=broad-except
         logger.warning("Could not cache partition transform probe", exc_info=True)
+
+
+def _cache_failure(cache_key: str, errors: list[str]) -> None:
+    """
+    Remember that the probe behind ``cache_key`` failed, with the engine's
+    messages, for ``PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT``.
+
+    Zero turns it off rather than meaning "forever", which is what a zero
+    timeout means to the cache backends.
+    """
+    timeout = app.config.get("PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT", 300)
+    if not timeout or timeout <= 0:
+        return
+    try:
+        _probe_cache().set(_failure_cache_key(cache_key), errors, timeout=timeout)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Could not cache partition transform failure", exc_info=True)
+
+
+def _count(outcome: str) -> None:
+    # Metrics are advisory; a broken statsd client must not cost the chart.
+    try:
+        stats_logger_manager.instance.incr(f"{PROBE_METRIC_PREFIX}.{outcome}")
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        logger.debug("Could not emit partition probe metric", exc_info=True)
+
+
+def _timing(name: str, value: float) -> None:
+    try:
+        stats_logger_manager.instance.timing(f"{PROBE_METRIC_PREFIX}.{name}", value)
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        logger.debug("Could not emit partition probe metric", exc_info=True)
 
 
 class MirrorVerdictScope(NamedTuple):
@@ -2702,11 +3022,11 @@ def record_mirror_verdict(
     """
     Remember whether this mapping produced a mirror, for the UI to read.
 
-    Advisory only. Nothing in the query path consults it: a probe that failed
-    once is retried on the next chart exactly as it is today, because declining
-    to prune for a whole cache timeout over one transient engine blip is the
-    trade `evaluate_transform` deliberately refuses -- see the comment where it
-    declines to cache a failure.
+    Advisory only. Nothing in the query path consults it: a failed probe is
+    remembered for ``PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT`` and then
+    retried, because declining to prune for a whole cache timeout over one
+    transient engine blip is the trade `evaluate_transform` deliberately
+    refuses -- see the comment where it caches a failure.
 
     What this is for is the *claim*. `is_transform_active` parses the transform
     and no more, so a transform the database rejects -- a misspelled function
@@ -2721,7 +3041,7 @@ def record_mirror_verdict(
     """
     timeout = app.config.get("PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT", 24 * 60 * 60)
     try:
-        cache_manager.cache.set(
+        _probe_cache().set(
             _mirror_verdict_cache_key(scope, transform),
             mirrors,
             timeout=timeout,
@@ -2738,11 +3058,11 @@ def known_mirror_verdict(scope: MirrorVerdictScope, transform: str) -> bool | No
     reporting a working mapping as broken until something probes it would
     trade one wrong claim for another. The alternative -- probing from the
     read side -- would put a warehouse round trip on every Explore and
-    dashboard load, and a failing transform is not cached at all, so it would
-    be a round trip every single time.
+    dashboard load, and a failing transform is only cached briefly, so it
+    would be a round trip nearly every time.
     """
     try:
-        verdict = cache_manager.cache.get(_mirror_verdict_cache_key(scope, transform))
+        verdict = _probe_cache().get(_mirror_verdict_cache_key(scope, transform))
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         return None
     return verdict if isinstance(verdict, bool) else None
@@ -2824,6 +3144,7 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     main_dttm_col: str | None,
     transform: str | None,
     engine: str,
+    partition_expression: str | None = None,
 ) -> list[MappingValidationIssue]:
     """
     Validate a dataset's partition mapping, in two tiers.
@@ -2839,11 +3160,17 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     an unparseable transform falls through to Tier 2. That leaves them
     unreachable in exactly the case where it doesn't matter: an unparseable
     transform is never executed.
+
+    :param partition_expression: the partition column's calculated-column
+        expression, when it has one; see `templated_partition_key_issue`.
     """
     if not partition_column:
         return []
 
     issues: list[MappingValidationIssue] = []
+
+    if issue := templated_partition_key_issue(partition_column, partition_expression):
+        issues.append(issue)
 
     if partition_column not in column_names:
         issues.append(
@@ -2907,6 +3234,87 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
 
     issues.extend(validate_transform(transform, engine))
     return issues
+
+
+def follow_partition_column_renames(
+    model: SqlaTable, attributes: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Point the partition mapping at the new name of a column renamed in place.
+
+    `partition_column` and `partition_mapped_column` store column *names*,
+    while `DatasetDAO._upsert_columns` identifies a column by its primary key
+    and lets the same request rename it. Without this, renaming either end of
+    the mapping reads as deleting it: `DatasetDAO.clear_dangling_partition_mapping`
+    drops the whole mapping for the partition column, and for the mapped column
+    it drops the override, which re-points the mapping at `main_dttm_col` and
+    takes the renamed column's transform with it.
+
+    A reference is followed when the request leaves it alone -- either by
+    omitting it or by echoing the stored name back, which is what the
+    dataset editor does on every save. A request that names a different
+    column has said what it wants, and is left to say it.
+
+    Not for `override_columns=true`, which matches columns by name: there a
+    rename is a different column, and the mapping going with the old one is
+    correct.
+
+    Returns a new dict rather than mutating the caller's, and is idempotent:
+    once followed, the reference no longer matches the stored name.
+    """
+    columns = attributes.get("columns")
+    if not columns or attributes.get("override_columns"):
+        return attributes
+
+    names_by_id = {column.id: column.column_name for column in model.columns}
+    renames = {
+        names_by_id[column["id"]]: column["column_name"]
+        for column in columns
+        if column.get("id") in names_by_id
+        and column.get("column_name")
+        and column["column_name"] != names_by_id[column["id"]]
+    }
+    if not renames:
+        return attributes
+
+    followed = dict(attributes)
+    for field in ("partition_column", "partition_mapped_column"):
+        stored = getattr(model, field)
+        if stored in renames and followed.get(field, stored) == stored:
+            followed[field] = renames[stored]
+    return followed
+
+
+def templated_partition_key_issue(
+    partition_column: str, expression: str | None
+) -> MappingValidationIssue | None:
+    """
+    Refuse a partition column whose calculated expression carries Jinja.
+
+    The mirrored predicate is built outside the chart query's template
+    processor -- the preview endpoint has no chart context to render one with --
+    so a templated key reached the SQL as raw ``{{ ... }}``: preview reported
+    it valid, and every chart filtered on the mapped column failed at the
+    engine. Rendering it instead would not help: preview could not show what a
+    chart renders, and a key computed per request is no partition the engine
+    can prune on.
+
+    Blocking, unlike the implicit self-mapping, because the field to change is
+    the one reported: pointing ``partition_column`` elsewhere, or clearing it,
+    saves.
+    """
+    if not contains_jinja(expression):
+        return None
+    return MappingValidationIssue(
+        field="partition_column",
+        message=_(
+            "The partition column cannot be a calculated column whose "
+            "expression uses Jinja templating. %(name)s is templated, so the "
+            "predicate mirrored onto it could not be rendered.",
+            name=partition_column,
+        ),
+        blocking=True,
+    )
 
 
 def drop_unmapped_value_transforms(
@@ -3095,13 +3503,15 @@ def validate_transform(
                 message=(
                     _(
                         "The value transform could not be parsed: %(detail)s "
-                        "The mapping is saved but stays inactive until it does.",
+                        "Fix the expression to preview it. Filters will not be "
+                        "mirrored while it is invalid.",
                         detail=detail,
                     )
                     if detail
                     else _(
-                        "The value transform could not be parsed. The mapping "
-                        "is saved but stays inactive until it does."
+                        "The value transform could not be parsed. Fix the expression "
+                        "to preview it. Filters will not be mirrored while it "
+                        "is invalid."
                     )
                 ),
                 blocking=False,
@@ -3200,6 +3610,44 @@ def is_transform_active(transform: str | None, engine: str) -> bool:
     return not validate_transform(transform, engine)
 
 
+def _preview_declined_before_validation(
+    datasource: SqlaTable, mapped_column: TableColumn
+) -> dict[str, Any] | None:
+    """
+    A preview answer for a mapping the query path declines however it is written.
+
+    Without these, preview reports a valid emitted predicate for a mapping no
+    chart will ever mirror -- the one answer a preview panel must not give.
+    """
+    # The query path resolves no mapping on an engine that doesn't advertise
+    # `supports_partition_filter_mapping`.
+    db_engine_spec = datasource.database.db_engine_spec
+    if not db_engine_spec.supports_partition_filter_mapping:
+        return {
+            "valid": False,
+            "reason": "engine",
+            "error": _(
+                "%(engine)s doesn't support partition filter mapping, so charts "
+                "won't mirror filters onto the partition column.",
+                engine=db_engine_spec.engine_name,
+            ),
+        }
+    # The bail-out `resolve_partition_mapping` makes at query time, and that
+    # `partition_filter_mapping_summary` repeats for the Explore indicator.
+    if has_active_advanced_data_type(mapped_column):
+        return {
+            "valid": False,
+            "reason": "validation",
+            "error": _(
+                "%(name)s has an advanced data type, so its filters are "
+                "translated into their own predicate shape and cannot be "
+                "mirrored onto the partition column.",
+                name=mapped_column.column_name,
+            ),
+        }
+    return None
+
+
 def preview_partition_mapping(  # pylint: disable=too-many-return-statements
     datasource: SqlaTable,
     *,
@@ -3244,23 +3692,13 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             "error": _("%(name)s is not a column on this dataset.", name=mapped_column),
         }
 
-    # The bail-out `resolve_partition_mapping` makes at query time, and that
-    # `partition_filter_mapping_summary` repeats for the Explore indicator.
-    # Without it here, preview reports a valid emitted predicate for a mapping
-    # no chart will ever mirror -- the one answer a preview panel must not give.
-    if has_active_advanced_data_type(columns_by_name[mapped_column]):
-        return {
-            "valid": False,
-            "reason": "validation",
-            "error": _(
-                "%(name)s has an advanced data type, so its filters are "
-                "translated into their own predicate shape and cannot be "
-                "mirrored onto the partition column.",
-                name=mapped_column,
-            ),
-        }
+    if declined := _preview_declined_before_validation(
+        datasource, columns_by_name[mapped_column]
+    ):
+        return declined
 
     engine = datasource.database.backend
+    partition_column_model = columns_by_name.get(str(partition_column))
     for issue in validate_partition_mapping(
         column_names=set(columns_by_name),
         partition_column=str(partition_column),
@@ -3268,6 +3706,9 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
         main_dttm_col=datasource.main_dttm_col,
         transform=value_transform,
         engine=engine,
+        partition_expression=(
+            partition_column_model.expression if partition_column_model else None
+        ),
     ):
         return {
             "valid": False,
@@ -3440,7 +3881,7 @@ def _as_range_bound(
     return instant
 
 
-def _preview_probe_value(
+def _preview_probe_value(  # noqa: C901
     datasource: SqlaTable,
     mapping: PartitionMapping,
     mapped_col: "TableColumn",
@@ -3511,6 +3952,7 @@ def _preview_probe_value(
     escaping_errors: list[str] = []
     shape_errors: list[str] = []
     epoch_errors: list[str] = []
+    null_results: list[bool] = []
     try:
         predicates = build_mirrored_predicates(
             datasource,
@@ -3521,6 +3963,7 @@ def _preview_probe_value(
             escaping_errors=escaping_errors,
             shape_errors=shape_errors,
             epoch_errors=epoch_errors,
+            null_results=null_results,
         )
     except Exception:  # pylint: disable=broad-except
         # The chart path fails open on the same call; the preview reports it
@@ -3568,6 +4011,16 @@ def _preview_probe_value(
             "reason": "transform_escaping",
             "sample_input": sample_input,
             "error": escaping_errors[0],
+        }
+    if not predicates and null_results:
+        return {
+            "valid": False,
+            "reason": "null_result",
+            "sample_input": sample_input,
+            "error": _(
+                "The transform returned NULL for one or more preview values, "
+                "so no partition filter was generated."
+            ),
         }
     if not predicates:
         return {
@@ -3720,9 +4173,49 @@ def _render_literal(database: Database, value: Any) -> str:
     return _compile_literal(sa.literal(value), _dialect_for(database))
 
 
-#: `evaluate_transform`'s ``text_answers`` entry for a temporal value whose
-#: text form the transform refused while the value itself evaluated.
-TEXT_REFUSED = object()
+class TextRefused(NamedTuple):
+    """
+    `evaluate_transform`'s ``text_answers`` entry for a temporal value whose
+    text form the transform refused while the value itself evaluated.
+
+    Carries the second question `_evaluate_with_text_forms` asks on that path:
+    what the transform answers for ``hour``, the value's day at
+    `_PROBE_HOUR`, typed and written by `_as_hour_text`. ``hour`` is `None`
+    where that text was refused as well.
+    """
+
+    hour: datetime | None = None
+    typed_hour: Any = None
+    text_hour: Any = None
+
+
+#: A `TextRefused` where the shorter text was refused too, so nothing but the
+#: typed answer's distance from its instant can be checked.
+TEXT_REFUSED = TextRefused()
+
+#: The hour `_evaluate_with_text_forms` asks a refused value's day at. Not
+#: midnight: a transform that loses the time of day answers midnight
+#: correctly, so a probe there cannot catch it.
+_PROBE_HOUR = time(hour=6)
+
+
+def _at_probe_hour(value: date) -> datetime:
+    """``value``'s day at `_PROBE_HOUR`."""
+    return datetime.combine(
+        value.date() if isinstance(value, datetime) else value, _PROBE_HOUR
+    )
+
+
+def _as_hour_text(value: datetime) -> str:
+    """
+    ``value`` as text that stops at the hour: ``'2026-01-12 06'``.
+
+    Oracle's ``TO_DATE`` reads text shorter than its mask and refuses text
+    longer than it, so this reads under any mask that has an hour in it --
+    ``'YYYY-MM-DD HH24'`` refuses `_as_filter_text`'s ``'2026-01-12 06:00:00'``
+    but reads this.
+    """
+    return value.isoformat(sep=" ", timespec="hours")
 
 
 def _as_filter_text(value: date) -> str:
@@ -3788,43 +4281,17 @@ def _declined_for_reading_by_type(
     -- which is how the preview at a time of day said valid for exactly this
     transform. Reported to ``shape_errors`` and the log when it declines.
 
-    Where the engine refused the text (`TEXT_REFUSED`), there is no second
+    Where the engine refused the text (a `TextRefused`), there is no second
     answer to compare, and Oracle refuses it for correct transforms as often
     as for broken ones. The typed answer is then held to `_is_bucket_of` the
-    instant instead, which is the year 0012 misreading's tell.
+    instant instead, which is the year 0012 misreading's tell -- and, where the
+    engine read the same day at `_PROBE_HOUR` written to the hour, the two
+    answers there have to agree as above. A typed answer that lost its time of
+    day is still a bucket of the instant; only the hour can tell it apart.
     """
-    disagreement = next(
-        (
-            (index, text_answer)
-            for index, text_answer in text_answers
-            if text_answer is not None
-            and (
-                not _is_bucket_of(values[index], evaluated[index])
-                if text_answer is TEXT_REFUSED
-                else text_answer != evaluated[index]
-            )
-        ),
-        None,
-    )
-    if disagreement is None:
-        return False
-    index, text_answer = disagreement
-    typed_answer = evaluated[index]
-    if text_answer is TEXT_REFUSED:
-        reason = str(
-            _(
-                "The transform could not read %(value)s written as text, which "
-                "a filter typed as text sends, so its answer for the timestamp "
-                "can only be checked by being a date or timestamp within a year "
-                "of it. It answered %(typed)s, so filters on this mapping will "
-                "not be mirrored. Write the transform so it reads :value both "
-                "as a timestamp and as text.",
-                value=_as_filter_text(values[index]),
-                typed=typed_answer,
-            )
-        )
-    else:
-        reason = str(
+
+    def read_differently(typed_answer: Any, text_answer: Any) -> str:
+        return str(
             _(
                 "The transform gives a different partition value for a "
                 "timestamp (%(typed)s) than for the same instant written as "
@@ -3836,10 +4303,59 @@ def _declined_for_reading_by_type(
                 text=text_answer,
             )
         )
+
+    reason: str | None = None
+    for index, text_answer in text_answers:
+        typed_answer = evaluated[index]
+        if isinstance(text_answer, TextRefused):
+            if not _is_bucket_of(values[index], typed_answer):
+                reason = str(
+                    _(
+                        "The transform could not read %(value)s written as "
+                        "text, which a filter typed as text sends, so its "
+                        "answer for the timestamp can only be checked by being "
+                        "a date or timestamp within a year of it. It answered "
+                        "%(typed)s, so filters on this mapping will not be "
+                        "mirrored. Write the transform so it reads :value both "
+                        "as a timestamp and as text.",
+                        value=_as_filter_text(values[index]),
+                        typed=typed_answer,
+                    )
+                )
+            elif (
+                text_answer.hour is not None
+                and text_answer.text_hour is not None
+                and text_answer.text_hour != text_answer.typed_hour
+            ):
+                reason = read_differently(text_answer.typed_hour, text_answer.text_hour)
+        elif text_answer is not None and text_answer != typed_answer:
+            reason = read_differently(typed_answer, text_answer)
+        if reason is not None:
+            break
+    if reason is None:
+        return False
     logger.warning("Partition transform reads :value by type: %s", reason)
     if shape_errors is not None:
         shape_errors.append(reason)
     return True
+
+
+def _flatten_mirror_requests(
+    requests: list[tuple[FilterOperator, Any]],
+) -> tuple[list[Any], list[tuple[FilterOperator, int, int]]]:
+    """
+    Flatten every value that needs probing into one list.
+
+    Also returns how many values each request consumed, as ``(operator, start,
+    count)`` spans, so the probe's results can be handed back out.
+    """
+    flat: list[Any] = []
+    spans: list[tuple[FilterOperator, int, int]] = []
+    for operator, value in requests:
+        values = list(value) if operator == FilterOperator.IN else [value]
+        spans.append((operator, len(flat), len(values)))
+        flat.extend(values)
+    return flat, spans
 
 
 def build_mirrored_predicates(
@@ -3852,6 +4368,7 @@ def build_mirrored_predicates(
     escaping_errors: list[str] | None = None,
     shape_errors: list[str] | None = None,
     epoch_errors: list[str] | None = None,
+    null_results: list[bool] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -3896,14 +4413,7 @@ def build_mirrored_predicates(
     if partition_column is None:
         return []
 
-    # Flatten every value that needs probing into one list, remembering how many
-    # each request consumed so the results can be handed back out.
-    flat: list[Any] = []
-    spans: list[tuple[FilterOperator, int, int]] = []
-    for operator, value in requests:
-        values = list(value) if operator == FilterOperator.IN else [value]
-        spans.append((operator, len(flat), len(values)))
-        flat.extend(values)
+    flat, spans = _flatten_mirror_requests(requests)
 
     verdict_scope = MirrorVerdictScope(
         datasource, mapping.mapped_column, mapping.partition_column
@@ -3927,9 +4437,13 @@ def build_mirrored_predicates(
     if not _bounds_are_ordered(evaluated, spans):
         return []
 
-    if _declined_for_reading_by_type(
-        flat, evaluated, text_answers, shape_errors
-    ) or _declined_as_raw_instants(datasource, mapping, partition_column, epoch_errors):
+    if _declined_for_reading_by_type(flat, evaluated, text_answers, shape_errors):
+        # The verdict is re-recorded on every decline, as the raw-instant one
+        # does: a `True` an earlier chart left would otherwise keep the editor
+        # and Explore promising pruning this query does not carry.
+        record_mirror_verdict(verdict_scope, mapping.value_transform, mirrors=False)
+        return []
+    if _declined_as_raw_instants(datasource, mapping, partition_column, epoch_errors):
         return []
 
     # Declining here is the last chance to decline at all: once these
@@ -3959,6 +4473,7 @@ def build_mirrored_predicates(
         evaluated,
         spans,
         escaping_errors=escaping_errors,
+        null_results=null_results,
     )
     if not predicates:
         return []
@@ -4011,6 +4526,7 @@ def _predicates_from_probe(
     spans: list[tuple[FilterOperator, int, int]],
     *,
     escaping_errors: list[str] | None = None,
+    null_results: list[bool] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     One predicate on the partition column per surviving mirror request.
@@ -4046,6 +4562,8 @@ def _predicates_from_probe(
     for operator, start, length in spans:
         chunk = evaluated[start : start + length]
         if any(value is None for value in chunk):
+            if null_results is not None:
+                null_results.append(True)
             continue
         if not all(
             literal_round_trips(value, dialect, database.backend) for value in chunk
@@ -4420,10 +4938,12 @@ def probed_value_type_error(
                 _(
                     "The transform returned %(returned)s for %(column)s, which "
                     "is %(kind)s. Mirrored filters on this mapping would fail "
-                    "at the database.",
+                    "at the database. Return a value compatible with %(type)s; "
+                    "use an explicit CAST in the transform if appropriate.",
                     returned=repr(value),
                     column=partition_column.column_name,
                     kind=generic_type.name.lower(),
+                    type=partition_column.type,
                 )
             )
     return None

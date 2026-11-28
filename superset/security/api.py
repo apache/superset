@@ -60,6 +60,7 @@ from superset.extensions import db, event_logger
 from superset.security import password_recovery
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
+    GuestTokenIdentityError,
     GuestTokenResourceType,
 )
 from superset.utils.core import get_user_id
@@ -238,7 +239,15 @@ class SecurityRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         try:
-            body = guest_token_create_schema.load(request.json)
+            request_json = request.get_json(silent=True)
+            if request_json is None:
+                return self.response_400(
+                    message=(
+                        "Request is not JSON. Ensure the Content-Type header "
+                        "is set to 'application/json'."
+                    )
+                )
+            body = guest_token_create_schema.load(request_json)
             self.appbuilder.sm.validate_guest_token_resources(
                 body["resources"], datasets=body.get("datasets")
             )
@@ -293,6 +302,8 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response(403, message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        except GuestTokenIdentityError as error:
+            return self.response_400(message=str(error))
 
 
 class RoleRestAPI(BaseSupersetApi):

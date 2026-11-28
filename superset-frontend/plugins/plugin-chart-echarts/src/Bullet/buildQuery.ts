@@ -24,15 +24,20 @@ import {
 
 /**
  * A single ungrouped aggregate of the selected metric, mirroring the query
- * the legacy nvd3 bullet chart issued.
+ * the legacy nvd3 bullet chart issued. The per-row target metric rides along
+ * in the same query.
  */
 export default function buildQuery(formData: QueryFormData) {
-  const { metric, groupby } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      columns: ensureIsArray(groupby),
-      metrics: metric ? [metric] : [],
-    },
-  ]);
+  const { groupby } = formData;
+  return buildQueryContext(formData, {
+    // aliasing the target to `metrics` lets the base query object collect it
+    // next to the measure and drop duplicates by label
+    queryFields: { target_metric: 'metrics' },
+    buildQuery: baseQueryObject => [
+      {
+        ...baseQueryObject,
+        columns: ensureIsArray(groupby),
+      },
+    ],
+  });
 }

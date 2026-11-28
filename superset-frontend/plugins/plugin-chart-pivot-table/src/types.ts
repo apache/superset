@@ -105,6 +105,7 @@ interface PivotTableCustomizeProps {
    * Viewers can still expand each group with its arrow.
    */
   collapseRows?: boolean;
+  hideEmptyColumns?: boolean;
   valueFormat: string;
   currencyFormat: Currency;
   currencyCodeColumn?: string;
@@ -131,6 +132,8 @@ interface PivotTableCustomizeProps {
   time_grain_sqla?: TimeGranularity;
   granularity_sqla?: string;
   allowRenderHtml?: boolean;
+  defaultRowExpansionDepth?: number;
+  defaultColExpansionDepth?: number;
 }
 
 export type PivotTableQueryFormData = QueryFormData &

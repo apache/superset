@@ -18,6 +18,7 @@ import logging
 import urllib.request
 from contextlib import closing
 from decimal import Decimal
+from numbers import Real
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -95,25 +96,116 @@ def format_decimal(value: Any) -> Any:
     )
 
 
+def _escape_csv_cell(value: Any, decimal_separator: str) -> Any:
+    if isinstance(value, str):
+        return escape_value(value)
+    if isinstance(value, Decimal) and value.is_finite():
+        # Preserve precision without applying formula escaping to numeric text.
+        return format_decimal(value).replace(".", decimal_separator)
+    if (
+        decimal_separator != "."
+        and isinstance(value, Real)
+        and not isinstance(value, (bool, int))
+        and pd.notna(value)
+    ):
+        return str(value).replace(".", decimal_separator)
+    return value
+
+
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     def escape_values(v: Any) -> Union[str, Any]:
         return escape_value(v) if isinstance(v, str) else v
 
+    def needs_escaping(level: pd.Index) -> bool:
+        return any(
+            isinstance(value, str) and escape_value(value) != value for value in level
+        )
+
+    def escape_axis_level(level: pd.Index) -> pd.Index:
+        # Rebuilding a level can cost it its dtype, and the dtype is what
+        # ``to_csv`` writes through: a ``float32`` row dimension widens to
+        # ``float64`` and prints its binary expansion (``1.1`` as
+        # ``1.100000023841858``), and a ``datetime64`` one turns into object,
+        # which leaves the ``date_format`` from ``CSV_EXPORT`` inert. A level
+        # holding nothing to escape is handed back as it is, so only a level
+        # that really carries a formula label is rebuilt. A flat index may hold
+        # the same label twice, so two labels escaping to one need no
+        # factorizing here, unlike the levels of a MultiIndex.
+        return level.map(escape_values) if needs_escaping(level) else level
+
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values. Iterate by index label (via ``items``) rather than by
-    # positional offset so the escaped value is written back to the correct row
-    # even when the DataFrame has a non-default index (e.g. the flattened
-    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
-    # indices with the label-based ``.at`` accessor would otherwise create
-    # phantom rows and corrupt the output. Only string cells are reassigned, so
-    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
-    for name, column in df.items():
+    # Escape by physical position: row labels and verbose column names can
+    # repeat after pivot/flatten. Label-based assignment would overwrite every
+    # matching cell. Keep numeric dtypes for pandas; explicitly format numbers
+    # only in object columns, matching streaming CSV exports.
+    decimal_separator = kwargs.get("decimal", ".")
+    for column_position, (_, column) in enumerate(df.items()):
         if pd.api.types.is_string_dtype(column.dtype):
-            for label, value in column.items():
-                if isinstance(value, str):
-                    df.at[label, name] = escape_value(value)
+            escaped = [_escape_csv_cell(value, decimal_separator) for value in column]
+            df.isetitem(
+                column_position,
+                pd.Series(escaped, index=column.index, dtype=column.dtype),
+            )
+
+    # Row labels and axis names are written out whenever the caller asks for the
+    # index, which both export paths do once post-processing has replaced the
+    # range index: pivot_table_v2 promotes the row dimension's warehouse values
+    # into index labels and the dimension name into ``index.name``. Escaping
+    # happens after the cell loop so the labels ``.at`` addresses stay the ones
+    # the frame was handed over with. Every level of a MultiIndex is covered;
+    # the axis names are a separate attribute, hence the ``set_names``. This
+    # mirrors the four places ``superset.utils.excel.quote_formulas`` covers
+    # for the xlsx writer.
+    index = df.index
+    if isinstance(index, pd.MultiIndex):
+        # Every row label is one of its level's distinct values, so a frame with
+        # nothing to escape is recognised from ``levels`` without a pass over
+        # the rows. The reverse does not hold: ``levels`` keeps values no row
+        # uses any more, which a filter or a slice leaves behind.
+        if any(needs_escaping(level) for level in index.levels):
+            # Only a level carrying a formula label among its row labels is
+            # rebuilt, and that is decided from the row labels rather than from
+            # ``levels``, because the rebuild costs a level its dtype:
+            # ``Index.map`` re-infers it, so a level of integers and nulls comes
+            # back ``float64``, which writes an integer id as ``5.0`` and rounds
+            # one past 2**53 to a different number. A stale ``levels`` entry
+            # would pay that for a label the export does not contain, while a
+            # level that does need rebuilding holds a string among its rows,
+            # which keeps the re-inferred dtype ``object``.
+            #
+            # A sibling keeps its own values and codes, and with them its dtype.
+            # ``escape_value`` prepends a quote, so two distinct labels can
+            # escape to the same text. Mapping ``levels`` in place would keep
+            # every label on its own row, since the mapping runs position for
+            # position and the original codes go on pointing at the right
+            # entries, but it can leave a level holding the same value twice,
+            # and the levels of a ``MultiIndex`` have to be unique. Reading the
+            # row values and factorizing folds a collision onto one code.
+            rebuilt = [
+                pd.factorize(row_values.map(escape_values))
+                if needs_escaping(row_values := index.get_level_values(position))
+                else (index.codes[position], level)
+                for position, level in enumerate(index.levels)
+            ]
+            index = pd.MultiIndex(
+                levels=[level for _, level in rebuilt],
+                codes=[level_codes for level_codes, _ in rebuilt],
+                names=index.names,
+            )
+    else:
+        index = escape_axis_level(index)
+    # Assigned onto the frame rather than through ``set_axis`` and
+    # ``rename_axis``, which each return a copy of the data while
+    # copy-on-write is off, for a change that only touches the axes. ``df`` is
+    # already private, the ``rename`` above having copied it, so there is
+    # nothing of the caller's to protect. ``set_names`` takes a list for a flat
+    # index and a MultiIndex alike, so both branches converge on one assignment.
+    df.index = index.set_names([escape_values(name) for name in index.names])
+    df.columns = df.columns.set_names(
+        [escape_values(name) for name in df.columns.names]
+    )
 
     return df.to_csv(escapechar="\\", **kwargs)
 

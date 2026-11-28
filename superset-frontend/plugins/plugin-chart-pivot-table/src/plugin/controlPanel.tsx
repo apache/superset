@@ -18,6 +18,7 @@
  */
 import {
   ControlPanelConfig,
+  ControlStateMapping,
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
   getStandardizedControls,
@@ -41,6 +42,20 @@ import {
   RESULT_AGGREGATION_LABELS,
 } from './resultAggregation';
 
+const expansionDepthControls = [
+  'defaultRowExpansionDepth',
+  'defaultColExpansionDepth',
+];
+
+/** Counts the group-by fields on each displayed axis. */
+function getDisplayedGroupCounts(controls?: ControlStateMapping) {
+  const rows = ensureIsArray(controls?.groupbyRows?.value).length;
+  const columns = ensureIsArray(controls?.groupbyColumns?.value).length;
+  return controls?.transposePivot?.value
+    ? { rows: columns, columns: rows }
+    : { rows, columns };
+}
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -52,6 +67,7 @@ const config: ControlPanelConfig = {
             name: 'groupbyColumns',
             config: {
               ...sharedControls.groupby,
+              rerender: expansionDepthControls,
               label: t('Columns'),
               description: t('Columns to group by on the columns'),
             },
@@ -62,6 +78,7 @@ const config: ControlPanelConfig = {
             name: 'groupbyRows',
             config: {
               ...sharedControls.groupby,
+              rerender: expansionDepthControls,
               label: t('Rows'),
               description: t('Columns to group by on the rows'),
             },
@@ -188,6 +205,20 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'hideEmptyColumns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Hide empty columns'),
+              default: true,
+              renderTrigger: true,
+              description: t(
+                'Hide columns with only null metric values. Keep columns with zeros or non-empty summaries. This does not change totals or percentages.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'rowTotals',
             config: {
               type: 'CheckboxControl',
@@ -234,6 +265,35 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'defaultRowExpansionDepth',
+            config: {
+              type: 'SelectControl',
+              label: t('Default row expansion depth'),
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'How many row group levels to show expanded on initial load. ' +
+                  'Select "Fully expanded" (0) to show all levels. ' +
+                  'Select "1" to show only top-level rows (children collapsed).',
+              ),
+              mapStateToProps: explore => {
+                const { rows } = getDisplayedGroupCounts(explore?.controls);
+                // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
+                const choices: [number, string][] = [[0, t('Fully expanded')]];
+                for (let i = 1; i < rows; i += 1) {
+                  choices.push([i, t('Expand %s level(s)', i)]);
+                }
+                return { choices };
+              },
+              visibility: ({ controls }) =>
+                !!controls?.rowSubTotals?.value &&
+                !controls?.collapseRows?.value &&
+                getDisplayedGroupCounts(controls).rows > 1,
+            },
+          },
+        ],
+        [
+          {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
@@ -256,6 +316,34 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'defaultColExpansionDepth',
+            config: {
+              type: 'SelectControl',
+              label: t('Default column expansion depth'),
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'How many column group levels to show expanded on initial load. ' +
+                  'Select "Fully expanded" (0) to show all levels. ' +
+                  'Select "1" to show only top-level columns (children collapsed).',
+              ),
+              mapStateToProps: explore => {
+                const { columns } = getDisplayedGroupCounts(explore?.controls);
+                // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
+                const choices: [number, string][] = [[0, t('Fully expanded')]];
+                for (let i = 1; i < columns; i += 1) {
+                  choices.push([i, t('Expand %s level(s)', i)]);
+                }
+                return { choices };
+              },
+              visibility: ({ controls }) =>
+                !!controls?.colSubTotals?.value &&
+                getDisplayedGroupCounts(controls).columns > 1,
+            },
+          },
+        ],
+        [
+          {
             name: 'transposePivot',
             config: {
               type: 'CheckboxControl',
@@ -265,6 +353,7 @@ const config: ControlPanelConfig = {
               // dimensions form the rollup levels the totals/subtotals options
               // need (see `buildGroupbyCombinations`), so it needs a real
               // requery rather than a client-side-only re-render.
+              rerender: expansionDepthControls,
               description: t('Swap rows and columns'),
             },
           },

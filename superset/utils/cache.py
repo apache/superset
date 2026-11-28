@@ -19,6 +19,7 @@ from __future__ import annotations
 import inspect
 import logging
 import pickle
+from contextlib import nullcontext
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Callable
@@ -36,6 +37,7 @@ from superset.utils.cache_manager import configurable_hash_method
 from superset.utils.dates import naive_utcnow
 from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
+from superset.utils.timing_metrics import timed
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +63,13 @@ def set_and_log_cache(
     cache_value: dict[str, Any],
     cache_timeout: int | None = None,
     datasource_uid: str | None = None,
+    timer_key: str | None = None,
 ) -> bool:
     """Write a value to the cache, logging outcomes.
+
+    :param timer_key: when given, the backend ``set`` call (including the
+        backend's own serialization) is emitted as this StatsD timer. Skipped
+        writes (null cache, disabled timeout, value too large) are not timed.
 
     :returns: ``True`` only when the value was actually persisted to the backend;
         ``False`` when caching was skipped (null cache, disabled timeout, value
@@ -111,7 +118,9 @@ def set_and_log_cache(
         # return None (no status). Treat an explicit False as failure so callers
         # that gate on persistence (the forced-refresh marker) don't claim a write
         # that never landed; treat None as success.
-        if cache_instance.set(cache_key, value, timeout=timeout) is False:
+        with timed(timer_key) if timer_key else nullcontext():
+            persisted = cache_instance.set(cache_key, value, timeout=timeout)
+        if persisted is False:
             logger.warning("Cache backend reported a failed set for key %s", cache_key)
             return False
         stats_logger = app.config["STATS_LOGGER"]
@@ -200,14 +209,24 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             bound_args.apply_defaults()
             cache_key = key.format(**bound_args.arguments)
 
-            obj = cache.get(cache_key)
+            try:
+                obj = cache.get(cache_key)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Could not get cache key %s", cache_key, exc_info=True)
+                obj = None
             if not force and obj is not None:
                 return obj
             obj = f(*args, **kwargs)
 
             # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
             if cache_timeout != CACHE_DISABLED_TIMEOUT:
-                cache.set(cache_key, obj, timeout=cache_timeout)
+                try:
+                    cache.set(cache_key, obj, timeout=cache_timeout)
+                except Exception:  # pylint: disable=broad-except
+                    # cache.set can fail if the backend is unreachable or times out;
+                    # the decorated function's result is still returned uncached
+                    # rather than failing the request, mirroring set_and_log_cache.
+                    logger.warning("Could not cache key %s", cache_key, exc_info=True)
             return obj
 
         return wrapped_f

@@ -24,6 +24,172 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `get_table` query failures now populate `error_code`. Untyped dataset
+  engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
+  specific `SupersetErrorType` code for typed errors, while guests receive
+  `GENERIC_BACKEND_ERROR` for unsafe typed errors. Semantic provider faults
+  and transport outages use `GENERIC_BACKEND_ERROR`. Rejected semantic
+  queries use one of
+  `UNSUPPORTED_QUERY`, `UNSUPPORTED_OFFSET`,
+  `UNSUPPORTED_GROUP_OTHERS_METRIC`, `INVALID_FILTER`, or `INVALID_QUERY`.
+  Malformed query results use `INVALID_QUERY_RESULT`; host-authored access and
+  OAuth errors retain their Superset error codes, except a provider-raised
+  OAuth error on a semantic view, which uses `GENERIC_BACKEND_ERROR`. These
+  codes are intended to remain stable for MCP clients. Semantic rejections
+  previously reported `error_type="QueryError"` and now report
+  `"QueryValidationError"`; host query validation reports `"ValidationError"`.
+  Transport outages remain `"QueryError"`. Raw `SQLAlchemyError` failures
+  previously reported `"DatabaseError"` and now report `"QueryError"`.
+  The old `"Query execution failed:"` and `"Database error:"` message prefixes
+  are removed. Clients matching error types or message prefixes should handle
+  these changes.
+
+- Provider tests inheriting `SemanticProviderConformance` must supply four
+  additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,
+  and `or_not_ilike`. These check the existing normalized exclusion-filter
+  contract, including NULL retention and outer AND predicates. Update any
+  explicit conformance-case allowlist when adopting the kit; see the
+  [provider testing guide](docs/developer_docs/semantic-layer-provider-testing.md).
+
+- Dashboard history records related chart archives using the new
+  `version_chart_archive_scope` table. Run `superset db upgrade` before deploying
+  new archive writes with versioning capture enabled. During a rollout, activity
+  reads tolerate a missing scope table and continue returning content history;
+  archive capture skipped before the migration cannot be reconstructed or
+  backfilled. Archive activity adds no content version and does not change
+  recovery or content-restore behavior. Downgrade removes archive scopes and
+  archive records but leaves content history intact; empty activity transactions
+  may remain until normal history retention removes them.
+
+- Version-history commit-time finalization rejects the whole save when a database
+  error occurs outside a recoverable savepoint, including final field or child
+  diff generation and version-transaction lookup. This applies to ordinary
+  content saves as well as chart archives. A lost transaction or savepoint also
+  rejects the save. Optional capture failures isolated by a successful savepoint
+  rollback may still omit history without rejecting the save.
+
+- **OAuth login with a single provider:** when `OAUTH_PROVIDERS` contains exactly
+  one provider, the login page now skips the provider choice and redirects
+  straight to that provider's sign-in. After logout, users land on the login page
+  and are redirected to the provider again, which may sign them straight back in
+  while their provider session is active. Set `LOGOUT_REDIRECT_URL` (or override
+  `logout` in a custom OAuth view) to send users elsewhere or end the provider
+  session.
+
+- `list` and `pages` are now reserved extension publisher names. An
+  extension already published under either will fail manifest validation
+  and the `superset-extensions` CLI will refuse to build it; the host owns
+  `/extensions/list/` and `/extensions/pages/<id>`, so a publisher of those
+  names could not be addressed. Rename the publisher and reinstall.
+
+- `navigation.getPage()` can now return `'extension'`, for a page contributed
+  by an extension. Code that switches exhaustively on the `Page` union will
+  not compile until that member is handled, and code that switches without a
+  default may fall through on an extension page at runtime.
+
+- `navigation.getLocation().pathname` is relative to the application root, so
+  on a deployment served under a prefix it does not carry that prefix.
+  `navigation.getApplicationRoot()` reports the prefix for callers that need
+  it, such as a `fetch` built by hand.
+
+- Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
+
+- Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
+  Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
+  returning misleading or empty data. This includes saved charts and their cached
+  chart images. Fresh dashboard images/PDFs include the refusal tile; old cached
+  dashboard images may show the old tile until expiry or regeneration. Use Line/Bar
+  for time series or Table with an explicit time dimension;
+  use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
+  are unaffected.
+
+- Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
+  the caller cannot view it, rather than treating an access-filtered dashboard
+  as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
+  dashboards withheld by an `EXTRA_ACCESS_QUERY_EXCLUSIONS` hook and dashboards
+  outside an embedded guest token's scope. The legacy dashboard HTML entry also
+  returns 403 for authenticated callers denied access. Clients should handle
+  these responses separately; list endpoints continue to omit dashboards the
+  caller cannot access.
+
+- **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
+  authenticates the socket with a short-lived ticket from
+  `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
+  `WEBSOCKET_JWT_COOKIE_NAME`, `WEBSOCKET_JWT_COOKIE_SECURE`,
+  `WEBSOCKET_JWT_COOKIE_SAMESITE` and `WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings
+  are removed, as is the websocket server's `jwtCookieName` option
+  (`JWT_COOKIE_NAME` environment variable); delete them from `superset_config.py`,
+  the websocket `config.json`, and container environments (they are ignored
+  otherwise). Upgrade the web application and the `superset-websocket` server
+  together: the new server refuses the previous cookie-based client, and the
+  previous server refuses the new ticket-based client, so while the versions are
+  mixed realtime updates stop and async charts waiting on the socket fail with
+  "Realtime connection unavailable". Reload open browser tabs after the upgrade.
+  Unauthenticated sockets are unlimited by default; setting
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) is recommended, see the
+  [websocket server README](superset-websocket/README.md).
+
+- Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
+
+- Semantic-layer connection updates that reuse masked credentials require a
+  usable provider configuration schema. Non-secret settings must stay unchanged
+  at every nesting depth, including dictionary keys. While any mask is retained,
+  every declared secret must also be masked or explicitly null; non-null explicit
+  secrets are refused even if they match the stored value. To rotate a credential
+  or change other settings, re-enter all credentials, including top-level ones.
+  Unavailable, ambiguous, or unsupported schemas require explicit credentials.
+  Provider `x-` UI annotations remain supported. Other unmodelled keywords,
+  including `contentMediaType`, `contentSchema`, `$schema`, `$id`, and `$comment`,
+  require explicit credentials on updates. The schema depth bound also counts
+  reference-sibling expansion. GET masking is unchanged and does not interpret
+  conditional-only secret declarations.
+  Name-only updates can omit configuration entirely.
+
+- MCP `list_metrics` returns a partial catalog for unscoped semantic-view discovery
+  refusals, with `incomplete: true` and `refused_views` containing safe view IDs.
+  No metrics from a refused view are included; counts and pages cover only usable
+  metrics. Clients must check `incomplete` before treating the catalog as complete.
+  Scoped `view_id` requests whose view refuses while loading metrics, columns or
+  compatible dimensions now return `AccessDenied` instead of success with a warning.
+  Ordinary provider failures also mark the catalog incomplete, retaining safe
+  warnings without refusal markers.
+
+- Semantic cache rollups serve limited queries only when the post-filter,
+  rolled-up result fits within the limit. Queries with nonzero row offsets bypass
+  containment reuse. Larger rolled-up results fall back to
+  the provider, preserving page membership when NULL placement, tie order or
+  collation differs from the cache's local sort. NULL placement and tie order
+  remain provider-defined; no provider update or cache reset is required.
+
+- Snowflake default catalogs from unquoted connection-URI identifiers resolve to
+  uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Resolved defaults and catalogs selected from listings are quoted when opening
+  connections, preserving their physical database identity.
+  Catalog permissions and dataset catalog fields must use the physical database
+  name. For an uppercase database, update any lowercase catalog aliases stored
+  on datasets and grant the corresponding uppercase catalog/schema permissions.
+  Lowercase and mixed-case physical databases remain distinct; their permissions
+  are not automatically aliased or migrated. A saved catalog equal to the raw
+  URI identifier remains a legacy alias only when that exact physical catalog
+  is absent from the database's catalog listing. If both `sales` and `SALES`
+  exist, `sales` selects the lowercase physical catalog; update legacy rows to
+  `SALES` to select the uppercase database explicitly. This ambiguous-alias
+  check uses a fresh listing under the connecting identity (including user
+  impersonation or embedded guest credentials), independently of the catalog
+  dropdown cache settings. Resolved defaults and other unambiguous selections
+  do not require this additional listing.
+
+- New config `ENCRYPTED_EXTRA_HINT_CHARS` (default `0`, off): when set above
+  zero, users who can edit a database can reveal the last characters of each
+  stored secret in its Secure extra, at most 25% of a value, through
+  `GET /api/v1/database/<pk>/encrypted_extra_hints/`. See
+  [Configuring Superset](docs/admin_docs/configuration/configuring-superset.mdx).
+  Whatever the setting, `engine_information` on the database endpoints gains
+  `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
+  and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
+  stored in that database instead, plus `encrypted_extra_expirations`, when
+  each stored JWT expires.
+
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
   published dashboard read its charts and datasets without dataset permissions,
@@ -63,10 +229,20 @@ assists people when migrating to a new version.
   DATA-cache entry (or, under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
   per-user result; existing cached entries for such charts are effectively invalidated
   for guests. A malformed or incomplete `embedded_credentials` is rejected by
-  `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
-  ignored while both embedding flags are enabled; this check does not apply to asset import. Validation
+  `POST`/`PUT /api/v1/database/`, by `validate_parameters`, and by database and asset
+  import (HTTP 400, naming the missing fields) rather than stored and ignored while
+  both embedding flags are enabled. Import also refuses a credential on a
+  connection whose file turns **Impersonate logged in user** off and, with either
+  flag off, a new or changed credential, as the API does. Import also refuses a key
+  pair that doesn't decode with its passphrase, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
-  values, and rejects whitespace-only usernames. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
+  values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
+  ID or secret counts as no client, and an update that would turn impersonation off
+  while a credential is stored is refused. A connection already stored with a credential
+  and a blank client ID or secret therefore refuses embedded viewers (as having no OAuth2
+  client information) and refuses saves until the client is completed or the credential
+  is cleared. Disabling either flag preserves stored credentials without blocking unrelated edits,
+  and refuses new or changed credentials until both flags are on again. Restored async guest
   queries use the same credential as synchronous queries. Connection-mutator hooks
   receive the selected fallback username. Snowflake OAuth2 scope is
   configured explicitly; a role scope selects that role, and omitting it uses the
@@ -149,6 +325,32 @@ assists people when migrating to a new version.
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
   non-empty viewers list restricts access regardless of the flag), and removing
   viewers remains possible so stale assignments can be cleared.
+
+- The `Week` time grain for Oracle (`TRUNC(..., 'IW')`) and Impala
+  (`TRUNC(..., 'D')`) now always truncates to Monday. Previously `'WW'`
+  aligned weeks to the weekday of January 1, so the week start changed every
+  year and each year ended with a 1–2 day stub week. Existing Week-grain charts
+  on these engines will regroup, and cached results may show the old buckets
+  until they expire.
+
+- [45929](https://github.com/apache/superset/pull/45929): Partition filter
+  mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
+  `supports_partition_filter_mapping = True`: Hive and Impala, plus the specs
+  that inherit from them -- Apache Spark SQL, Databricks Interactive Cluster
+  (`databricks+pyhive://`) and Ascend. On every other engine -- Trino, Presto,
+  PostgreSQL, the other Databricks connectors (Databricks SQL Python, legacy
+  `databricks+connector://`, SQL Endpoint `databricks+pyodbc://`) and the
+  rest -- an existing mapping **silently stops applying** after upgrade: no
+  filter is mirrored onto the partition column, so queries that used to prune
+  partitions scan the whole table. The dataset editor hides the mapping
+  settings and Explore shows no pruning indicator. The stored mapping is kept,
+  not deleted, and applies again if the dataset is pointed at a database on a
+  supported engine.
+  Superset logs a warning (`Ignoring partition filter mapping on dataset ...`)
+  the first time each worker resolves such a mapping; search for it after
+  upgrading to find affected datasets. A deployment that depends on mirroring
+  on another engine has to add a predicate on the partition column to the
+  affected charts, or opt that engine spec in.
 
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
@@ -259,6 +461,19 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
+- **Guest token identities are validated (warn-first).** The `username`,
+  `first_name` and `last_name` in a guest token's `user` claim are expected to be
+  strings of at most 255 characters with no control characters (including tab,
+  newline and carriage return) or Unicode line/paragraph separators. In this
+  release a value outside those bounds is logged (`Guest token identity
+  violation`) but still accepted, both when a token is minted and when it is
+  consumed, so existing integrations are not broken. Violations are also counted
+  under the `security.GuestTokenIdentityViolation` metric. Setting
+  `GUEST_TOKEN_IDENTITY_ENFORCE = True` in `superset_config.py` enforces it, and a
+  later release will make that the default: minting such a value then returns
+  HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
+  Host applications that pass long display names or names containing those
+  characters should truncate or normalize them before then.
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
@@ -359,8 +574,11 @@ assists people when migrating to a new version.
   semantic view. Interactive dashboards retain unavailable semantic charts and
   continue rendering ordinary datasets. Dual-source MCP tools retain dataset
   access; unscoped metric listings omit semantic views. Legacy batch warm-up
-  reports a per-chart error for a disabled semantic chart and continues. Existing
-  permissions remain required when enabled. Run `superset init` during upgrade
+  reports a per-chart error for a disabled semantic chart and continues. Endpoint
+  permissions are checked before the flag: callers without access receive 401 or
+  403 in either state, and permitted callers receive 404 while the feature is
+  disabled. Automatic OPTIONS responses report allowed methods in either state
+  without executing a semantic handler. Run `superset init` during upgrade
   to register the existing semantic permissions even when the feature is off.
   Runtime flag hooks can enable the feature without another restart or permission
   sync; provider extensions must already be loaded. Do not target runtime
@@ -422,7 +640,12 @@ assists people when migrating to a new version.
 - Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
-  Saved chart selections are preserved.
+  Explicit saved time bindings are preserved. Saved charts with omitted bindings
+  may adopt a newly declared default and change results without saving. An
+  explicit temporal filter does not prevent an omitted granularity from adopting
+  the default for independently supplied time-range bounds. No chart migration
+  or compatibility shim is applied. The provider conformance kit validates the
+  optional declaration and its stability across equivalent catalog reloads.
 
 ### Dashboard layout chart access
 
@@ -469,7 +692,7 @@ reattached to a reachable container by layout repair.
   enforcing completeness should raise the public
   `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
   results are incomplete or cannot be verified (an additive `apache-superset-core`
-  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  API added after 0.2.0; import it from `superset_core.semantic_layers.errors`,
   not the same-named host class in `superset.exceptions`); the host converts it to
   its client error, and these
   failures do not publish a successful async result cache key. A provider raising
@@ -1160,6 +1383,16 @@ members may have `password_must_change` set on their account.
 `ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
 check on; `password_must_change` is the per-user flag it acts on.
 
+- **Administrator-set passwords now force a change at next login.** With
+  `ENABLE_FORCE_PASSWORD_CHANGE` on, creating a user with a password
+  (`POST /api/v1/security/users/`) or setting another user's password from the
+  Users list edit modal (`PUT /api/v1/security/users/<pk>`) sets
+  `password_must_change` on that account, so its owner is redirected to choose
+  their own password at next login. Previously nothing set the flag, so the
+  setting had no effect. An administrator changing their own password is not
+  flagged (and a pending change of theirs is cleared). The flag is only raised
+  under `AUTH_DB`, and not at all with the setting off.
+
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 
 Screenshots use only Playwright with Chromium, so the `INCLUDE_FIREFOX` Docker build
@@ -1390,7 +1623,9 @@ completion transport for async chart-data — see the note on the interval poll)
 > When it is **enabled**, completion is delivered over the socket and the
 > recurring interval poll does not run; a one-shot `status_changes` catch-up on
 > waiter registration and on socket reconnect reconciles anything missed while
-> disconnected. The socket accelerates delivery over the authoritative
+> disconnected. A principal the ticket endpoint refuses (for example an embedded
+> guest whose role lacks `can_read Realtime`) gets no socket and falls back to the
+> interval poll. The socket accelerates delivery over the authoritative
 > `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
 > (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
 > reconnect/registration. In the rare case a `task.status` is missed while the
@@ -1408,14 +1643,26 @@ WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 The built-in Gamma role receives `can_read Realtime`; grant that permission to
 custom roles that should receive websocket notifications.
 
-Run the `superset-websocket` Node server on the **same browser-visible host**
-(so its JWT channel cookie is shared) and point its `redis` config at the same
-instance as `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` /
-`jwtCookieName` matching the Flask config (`WEBSOCKET_JWT_SECRET` /
-`WEBSOCKET_JWT_COOKIE_NAME`, default `superset-ws-token`). During websocket JWT
+Run the `superset-websocket` Node server where browsers can reach it and point
+its `redis` config at the same instance as `DISTRIBUTED_COORDINATION_CONFIG`,
+plus a `jwtSecret` matching the Flask config (`WEBSOCKET_JWT_SECRET`). The
+browser authenticates with a short-lived connection ticket fetched from
+`GET /api/v1/realtime/token/` and sent as the first frame of the socket, then
+refreshes it on the open socket before it expires, so the server no longer needs
+to share a host with the web application and no credential rides the handshake or
+the URL. Upgrade the web servers and the websocket servers together, and reload
+open browser tabs: a tab still running the previous cookie-based client is
+refused by the new server (it closes the socket after the 10 second auth
+timeout, repeatedly) until it is reloaded, and the same applies to replicas rolled
+at different times. The `WEBSOCKET_JWT_COOKIE_NAME`,
+`WEBSOCKET_JWT_COOKIE_SECURE`, `WEBSOCKET_JWT_COOKIE_SAMESITE` and
+`WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings and the websocket server's
+`jwtCookieName` / `JWT_COOKIE_NAME` option are removed. During websocket JWT
 secret rotation, set the websocket server's `previousJwtSecret` /
-`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting cookies with
-`WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
+`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting tickets with
+`WEBSOCKET_JWT_SECRET`. After a logout or session revocation, an open socket stays
+authenticated until its current ticket expires, because the next refresh fails.
+The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
 opt-in `websocket` profile in `docker compose`). It **subscribes** to a single
@@ -1678,6 +1925,12 @@ unversioned external member overrides cannot borrow a chart's version. Recreate
 old dashboard permalink/filter state after reselection. Cross-view overlays are
 rejected unless their source identity matches the receiving semantic view;
 matching display titles are not proof of matching members.
+
+Time comparison is unsupported on semantic views, including relative shifts,
+inherited ranges and custom start dates. Remove the time shift from affected
+charts to query them. The host refuses these queries before reading cached
+results because comparisons could return incorrect values. Ordinary semantic
+queries and SQL-dataset time comparisons are unchanged.
 
 Dynamic group-by display controls are unsupported on versioned semantic views,
 including Cube. Remove those charts from the control's scope; resetting or
@@ -1944,7 +2197,9 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Large tiled reports also retry Chromium screenshot
+  if charts never mount. A dashboard whose layout never renders keeps the
+  whole report budget; once the layout has rendered with zero chart holders
+  mounted, the wait is bounded by `SCREENSHOT_LOAD_WAIT`. Large tiled reports also retry Chromium screenshot
   stalls and suspicious uniform tiles, while persistent screenshot timeouts
   fail loudly. Large tiled thumbnails use the same bounded retries, but retain
   their previous failure contract after a persistent timeout.
@@ -2836,6 +3091,8 @@ Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or 
 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
+- [43712](https://github.com/apache/superset/pull/43712): As the `ascend.io` platform shut down, its DB integration has been removed. Any existing `ascend://` DB connections and related resources (charts, datasets, etc.) will stop working after upgrading and must be either repointed or removed.
+
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
 
 - `NOT IN` filters on SQLAlchemy-backed datasets now also return rows where the
@@ -2845,6 +3102,13 @@ Charts and dashboards using these anchors will compute a different (correct) tim
   reports that use `NOT IN` may therefore show additional NULL rows. A `NOT IN`
   list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
   and `NOT ILIKE` are unchanged.
+
+- **Saved query names must be unique per user and database.** Creating or
+  renaming a saved query through `POST` or `PUT /api/v1/saved_query/` to a name
+  already used by another saved query of the same user on the same database now
+  returns HTTP 422 (`A saved query with this name already exists`) instead of
+  succeeding. Existing duplicate rows are not modified. Updates that leave both
+  the name and database unchanged remain allowed.
 
 ## 6.1.0
 

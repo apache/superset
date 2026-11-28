@@ -25,6 +25,12 @@ import {
   VizType,
 } from '@superset-ui/core';
 import * as redux from 'redux';
+import { configureStore } from '@reduxjs/toolkit';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import { updateDataMask } from 'src/dataMask/actions';
+import { convertAgGridStateToOwnState } from '../../../../../plugins/plugin-chart-ag-grid-table/src/stateConversion';
+import buildTreeQuery from '../../../../../plugins/plugin-chart-ag-grid-table/src/TreeTable/buildQuery';
+import { TreeTableOwnState } from '../../../../../plugins/plugin-chart-ag-grid-table/src/TreeTable/types';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as chartStateConverter from '../../../util/chartStateConverter';
@@ -43,6 +49,7 @@ import {
   type DashboardDatasetsContextValue,
 } from 'src/dashboard/contexts/DashboardDatasetsContext';
 import { buildQuery as buildTableQuery } from '../../../../../plugins/plugin-chart-table/src/buildQuery';
+import { buildQueryUncached as buildInteractiveQuery } from '../../../../../plugins/plugin-chart-ag-grid-table/src/buildQuery';
 import type { TableChartFormData } from '../../../../../plugins/plugin-chart-table/src/types';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
@@ -219,6 +226,46 @@ test('should render a SliceHeader', () => {
   const { getByTestId, container } = setup();
   expect(getByTestId('slice-header')).toBeInTheDocument();
   expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+});
+
+test('shows the localized name when the panel is not overridden', () => {
+  const { getByText } = setup(
+    { sliceName: sliceEntities.slices[queryId].slice_name },
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            localized_name: 'Ventes',
+          },
+        },
+      },
+    },
+  );
+  expect(getByText('Ventes')).toBeInTheDocument();
+});
+
+test('keeps a panel title override instead of the localized name', () => {
+  // The override is authored on this dashboard and has no translation, so the
+  // localized value -- which is resolved from the canonical name, and equals it
+  // when translation is off -- must not replace it.
+  const { getByText, queryByText } = setup(
+    { sliceName: 'Q2 Sales' },
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            localized_name: 'Ventes',
+          },
+        },
+      },
+    },
+  );
+  expect(getByText('Q2 Sales')).toBeInTheDocument();
+  expect(queryByText('Ventes')).not.toBeInTheDocument();
 });
 
 test('should render a ChartContainer', () => {
@@ -405,57 +452,62 @@ test('ignores prior metadata when a completed response omits the semantic source
   );
 });
 
-test('omits a dormant semantic grain when current metadata proves the axis non-temporal', () => {
-  const savedFormData = {
-    ...chartQueries[queryId].form_data,
-    datasource: '2__semantic_view',
-    viz_type: VizType.Table,
-    metrics: ['orders'],
-    groupby: ['country'],
-    granularity: undefined,
-    time_grain_sqla: TimeGranularity.DAY,
-    temporal_columns_lookup: { country: true },
-  };
-  setup(
-    {},
-    {
-      charts: {
-        ...defaultState.charts,
-        [queryId]: {
-          ...defaultState.charts[queryId],
-          form_data: savedFormData,
+test.each([VizType.Table, VizType.TableAgGrid])(
+  'omits a dormant semantic grain for %s when current metadata proves the axis non-temporal',
+  vizType => {
+    const savedFormData = {
+      ...chartQueries[queryId].form_data,
+      datasource: '2__semantic_view',
+      viz_type: vizType,
+      metrics: ['orders'],
+      groupby: ['country'],
+      granularity: undefined,
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { country: true },
+    };
+    setup(
+      {},
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            form_data: savedFormData,
+          },
+        },
+        datasources: {
+          '2__semantic_view': {
+            ...mockDatasource['7__table'],
+            type: DatasourceType.SemanticView,
+            columns: [{ column_name: 'country', is_dttm: false }],
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          datasetsStatus: 'complete',
         },
       },
-      datasources: {
-        '2__semantic_view': {
-          ...mockDatasource['7__table'],
-          type: DatasourceType.SemanticView,
-          columns: [{ column_name: 'country', is_dttm: false }],
-        },
+      {
+        dashboardId: props.dashboardId,
+        datasets: [
+          {
+            uid: '2__semantic_view',
+            type: DatasourceType.SemanticView,
+            columns: [{ column_name: 'country', is_dttm: false }],
+          },
+        ],
       },
-      dashboardState: {
-        ...defaultState.dashboardState,
-        datasetsStatus: 'complete',
-      },
-    },
-    {
-      dashboardId: props.dashboardId,
-      datasets: [
-        {
-          uid: '2__semantic_view',
-          type: DatasourceType.SemanticView,
-          columns: [{ column_name: 'country', is_dttm: false }],
-        },
-      ],
-    },
-  );
+    );
 
-  const formData = capturedChartContainerProps.formData as TableChartFormData;
-  expect(formData.temporal_columns_lookup).toEqual({ country: false });
-  expect(buildTableQuery(formData).queries[0].extras).not.toHaveProperty(
-    'time_grain_sqla',
-  );
-});
+    const formData = capturedChartContainerProps.formData as TableChartFormData;
+    expect(formData.temporal_columns_lookup).toEqual({ country: false });
+    expect(
+      (vizType === VizType.Table ? buildTableQuery : buildInteractiveQuery)(
+        formData,
+      ).queries[0].extras,
+    ).not.toHaveProperty('time_grain_sqla');
+  },
+);
 
 test('leaves saved SQL dataset lookup unchanged on dashboards', () => {
   const savedFormData = {
@@ -641,6 +693,52 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   stubbedExportCSV.mockRestore();
 });
 
+test.each([
+  [VizType.Table, 150000, true, undefined],
+  [VizType.TableAgGrid, 150000, true, 'tree'],
+  [VizType.TableAgGrid, 120, false, 'tree'],
+])(
+  'a %s CSV export reads the total from the count query (total %s, streams: %s)',
+  async (vizType, total, streams, queryMode) => {
+    const stubbedExportCSV = jest
+      .spyOn(exploreUtils, 'exportChart')
+      .mockResolvedValue(undefined);
+    const formData = {
+      ...chartQueries[queryId].form_data,
+      viz_type: vizType,
+      query_mode: queryMode,
+    };
+    const { findByText, getByRole } = setup(
+      { formData },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            form_data: formData,
+            queriesResponse: [
+              { sql_rowcount: 50, data: [] },
+              { data: [{ rowcount: total }] },
+            ],
+          },
+        },
+        dashboardInfo: {
+          ...defaultState.dashboardInfo,
+          superset_can_download: true,
+        },
+      },
+    );
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    fireEvent.click(await findByText('Export to .CSV', {}, { timeout: 5000 }));
+    expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+    expect(
+      typeof stubbedExportCSV.mock.calls[0][0].onStartStreamingExport,
+    ).toBe(streams ? 'function' : 'object');
+    stubbedExportCSV.mockRestore();
+  },
+);
+
 test('should call exportChart when exportXLSX is clicked', async () => {
   const stubbedExportXLSX = jest
     .spyOn(exploreUtils, 'exportChart')
@@ -740,6 +838,109 @@ test('should re-render when cacheBusterProp changes', () => {
   rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
+
+const treeFormData = {
+  viz_type: VizType.TableAgGrid,
+  query_mode: 'tree',
+  datasource: '1__table',
+  row_limit: 1000,
+  levels: [
+    {
+      key: 'parent',
+      name: 'Parent',
+      id_column: 'parent',
+      columns: ['value'],
+      detail_fields: [],
+    },
+  ],
+};
+
+test.each(['permalink', 'table_state'])(
+  'the dashboard clears stale %s before Tree paging and sorting',
+  source => {
+    chartStateConverter.registerChartStateConverter(
+      VizType.TableAgGrid,
+      convertAgGridStateToOwnState,
+    );
+    const stale = {
+      serverPagination: true,
+      pageSize: 100,
+      currentPage: 2,
+      sortModel: [{ colId: 'parent', sort: 'desc' }],
+    };
+    const formData = {
+      ...treeFormData,
+      datasource: props.formData.datasource,
+      ...(source === 'table_state' ? { table_state: stale } : {}),
+    };
+    const initial = {
+      ...defaultState,
+      charts: {
+        ...chartQueries,
+        [queryId]: {
+          ...chartQueries[queryId],
+          form_data: formData,
+          latestQueryFormData: formData,
+        },
+      },
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            viz_type: VizType.TableAgGrid,
+            form_data: formData,
+          },
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        ...(source === 'permalink'
+          ? { chartStates: { [queryId]: { state: stale } } }
+          : {}),
+      },
+    };
+    const store = configureStore({
+      reducer: reducerIndex,
+      preloadedState: initial as never,
+      middleware: getDefaultMiddleware =>
+        getDefaultMiddleware({
+          serializableCheck: false,
+          immutableCheck: false,
+        }),
+    });
+    render(<Chart {...props} isComponentVisible />, { store, useRouter: true });
+    expect(
+      (capturedChartContainerProps.ownState as { pageSize: number }).pageSize,
+    ).toBe(100);
+    act(() => {
+      (
+        capturedChartContainerProps.onChartStateChange as (
+          state: Record<string, unknown>,
+        ) => void
+      )({});
+    });
+    expect(
+      store.getState().dashboardState.chartStates?.[queryId].state,
+    ).toEqual({});
+    act(() => {
+      store.dispatch(
+        updateDataMask(queryId, {
+          ownState: {
+            pageSize: 20,
+            currentPage: 0,
+            sortBy: [{ id: 'value', key: 'value', desc: true }],
+          },
+        }),
+      );
+    });
+    const query = buildTreeQuery(formData, {
+      ownState: capturedChartContainerProps.ownState as TreeTableOwnState,
+    }).queries[0];
+    expect(query.row_limit).toBe(20);
+    expect(query.orderby?.[0]).toEqual(['value', false]);
+  },
+);
 
 test('should handle chart state conversion when converter exists', () => {
   const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
@@ -1280,4 +1481,85 @@ test('passes the form data of the last request to ChartContainer next to the cur
   expect(capturedChartContainerProps.formData).toEqual(
     expect.objectContaining({ groupby: ['region'] }),
   );
+});
+
+const stateWithCrossFilterScope = (chartsInScope?: number[]) => ({
+  ...defaultState,
+  dashboardInfo: {
+    ...defaultState.dashboardInfo,
+    crossFiltersEnabled: true,
+    metadata: chartsInScope
+      ? {
+          chart_configuration: {
+            [queryId]: {
+              id: queryId,
+              crossFilters: { scope: 'global', chartsInScope },
+            },
+          },
+        }
+      : {},
+  },
+});
+
+test('keeps cross-filter rendering on but reports no targets when the chart cross-filter scope targets no other chart', () => {
+  // emitCrossFilters drives plugin rendering (e.g. Table V2's numbered column
+  // and cell truncation), so it must keep following the dashboard setting.
+  setup({}, stateWithCrossFilterScope([]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+
+  setup({}, stateWithCrossFilterScope([queryId]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
+});
+
+test('reports cross-filter targets when the chart cross-filter scope targets another chart', () => {
+  setup({}, stateWithCrossFilterScope([queryId + 1]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('reports cross-filter targets when the chart has no cross-filter configuration', () => {
+  setup({}, stateWithCrossFilterScope());
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
+});
+
+test('does not emit cross-filters when cross-filtering is disabled on the dashboard', () => {
+  setup({}, defaultState);
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+});
+
+test('dashboard Chart omits SQL cross-filter using the emitter datasource in Redux', () => {
+  setup(
+    {},
+    {
+      charts: {
+        ...chartQueries,
+        999: { form_data: { datasource: '12__table' } },
+        [queryId]: {
+          ...chartQueries[queryId],
+          form_data: {
+            ...chartQueries[queryId].form_data,
+            datasource: '3__semantic_view',
+            semantic_selection_version: 'cube-member-id-v1',
+          },
+        },
+      },
+      dataMask: {
+        999: {
+          id: '999',
+          filterState: { value: ['US'] },
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: ['US'] }],
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dashboardState: { sliceIds: [queryId, 999] },
+    },
+  );
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.extra_form_data?.filters ?? []).toEqual([]);
+  expect(formData.semantic_selection_version).toBe('cube-member-id-v1');
 });

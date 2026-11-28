@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
+import {
+  Fragment,
+  ReactNode,
+  useState,
+  useEffect,
+  FunctionComponent,
+} from 'react';
 
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
@@ -54,7 +60,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     text-align: left;
     font-size: 18px;
     display: inline-block;
-    line-height: ${({ theme }) => theme.sizeUnit * 9}px;
+    line-height: 1.5;
   }
   .nav-right {
     display: flex;
@@ -91,7 +97,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
 
   .menu > .ant-menu {
     padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
-    line-height: ${({ theme }) => theme.sizeUnit * 5}px;
+    line-height: 1.5;
 
     .ant-menu-item {
       border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -362,7 +368,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
             />
             {props.buttons?.map((btn, i) =>
               btn.component ? (
-                <span key={i}>{btn.component}</span>
+                <Fragment key={i}>{btn.component}</Fragment>
               ) : (
                 <Button
                   key={i}

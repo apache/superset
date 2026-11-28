@@ -101,6 +101,20 @@ function DashboardCard({
       : '';
 
   const menuItems: MenuItem[] = [];
+  const editPermissionHint = allowEdit
+    ? null
+    : t(
+        'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
+      );
+  const deletePermissionHint = allowEdit
+    ? null
+    : softDelete
+      ? t(
+          'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+        )
+      : t(
+          'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+        );
 
   if (canEdit && openDashboardEditModal) {
     menuItems.push({
@@ -108,26 +122,24 @@ function DashboardCard({
       label: (
         <Tooltip
           placement="right"
-          title={
-            allowEdit
-              ? null
-              : t(
-                  'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
-                )
-          }
+          trigger={['hover', 'focus']}
+          title={editPermissionHint}
         >
-          <MenuItemButton
-            type="button"
-            className="action-button"
-            onClick={
-              allowEdit ? () => openDashboardEditModal(dashboard) : undefined
-            }
-            data-test="dashboard-card-option-edit-button"
-            disabled={!allowEdit}
-            aria-disabled={!allowEdit}
-          >
-            <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
-          </MenuItemButton>
+          <span>
+            <MenuItemButton
+              type="button"
+              className="action-button"
+              onClick={
+                allowEdit ? () => openDashboardEditModal(dashboard) : undefined
+              }
+              data-test="dashboard-card-option-edit-button"
+              disabled={!allowEdit}
+              aria-disabled={!allowEdit}
+            >
+              <Icons.EditOutlined iconSize="l" data-test="edit-alt" />{' '}
+              {t('Edit')}
+            </MenuItemButton>
+          </span>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -156,17 +168,8 @@ function DashboardCard({
       label: (
         <Tooltip
           placement="right"
-          title={
-            allowEdit
-              ? null
-              : softDelete
-                ? t(
-                    'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
-                  )
-                : t(
-                    'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                  )
-          }
+          trigger={['hover', 'focus']}
+          title={deletePermissionHint}
         >
           <span>
             <MenuItemButton
@@ -196,7 +199,7 @@ function DashboardCard({
     >
       <ListViewCard
         loading={dashboard.loading || false}
-        title={dashboard.dashboard_title}
+        title={dashboard.localized_title ?? dashboard.dashboard_title}
         certifiedBy={dashboard.certified_by}
         certificationDetails={dashboard.certification_details}
         titleRight={<PublishedLabel isPublished={dashboard.published} />}
@@ -231,6 +234,17 @@ function DashboardCard({
               <KebabMenuButton
                 menuItems={menuItems}
                 dataTest="dashboard-card-menu"
+                tooltipTitle={
+                  !allowEdit &&
+                  ((canEdit && openDashboardEditModal) || canDelete) ? (
+                    <>
+                      {canEdit && openDashboardEditModal && (
+                        <div>{editPermissionHint}</div>
+                      )}
+                      {canDelete && <div>{deletePermissionHint}</div>}
+                    </>
+                  ) : undefined
+                }
               />
             )}
           </ListViewCard.Actions>

@@ -49,6 +49,7 @@ from superset_core.queries.types import (
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, SQLScript
+from tests.unit_tests.conftest import with_feature_flags
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
@@ -567,6 +568,125 @@ def test_check_disallowed_tables_no_config(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "entry, sql, search_path, blocked",
+    [
+        # a qualified entry matches an unqualified table in the default schema
+        ("public.secrets", "SELECT * FROM secrets", "public", True),
+        ("archive.secrets", "SELECT * FROM secrets", "public", False),
+        # or in the schema the search path reads it from
+        ("public.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, True),
+        ("analyst.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, False),
+        # without a known default schema only a bare entry can match
+        ("public.secrets", "SELECT * FROM secrets", "", False),
+        ("secrets", "SELECT * FROM secrets", "", True),
+        # a qualified table matches as before
+        ("public.secrets", "SELECT * FROM public.secrets", "", True),
+    ],
+)
+def test_check_disallowed_tables_without_schema(
+    mocker: MockerFixture,
+    app_context: None,
+    entry: str,
+    sql: str,
+    search_path: str | dict[str, list[str]],
+    blocked: bool,
+) -> None:
+    """
+    A query without a schema reads unqualified tables through the connection's
+    search path, the ``table_schemas`` ``_prepare_sql`` resolves, so a
+    schema-qualified entry is matched against the schema each is read from.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config, {"DISALLOWED_SQL_TABLES": {"postgresql": {entry}}}
+    )
+    table_schemas: str | SearchPath = search_path  # type: ignore[assignment]
+    if isinstance(search_path, dict):
+        mocker.patch.object(
+            database,
+            "get_search_path",
+            return_value=(["analyst", "public"], search_path),
+        )
+        table_schemas = SearchPath(database, None, ["analyst", "public"])
+
+    result = SQLExecutor(database)._check_disallowed_tables(
+        SQLScript(sql, "postgresql"), None, table_schemas
+    )
+
+    assert result == ({entry} if blocked else None)
+
+
+def test_prepare_sql_resolves_table_schemas_once(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` looks the unqualified tables of a query without a schema up on
+    the connection's search path once, and hands it to both RLS and the denylist
+    check.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    get_search_path = mocker.patch.object(
+        database, "get_search_path", return_value=(["analyst", "public"], {})
+    )
+    apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
+
+    *_, schema, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM secrets", QueryOptions()
+    )
+
+    assert schema is None
+    assert isinstance(table_schemas, SearchPath)
+    get_search_path.assert_called_once_with("analytics", ["secrets"])
+    assert apply_rls.call_args.args[2] is table_schemas
+
+
+def test_prepare_sql_skips_search_path_when_no_control_could_match(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` doesn't connect for the search path of a query reading no table
+    an RLS rule or a schema-qualified denylist entry could be about, a dry run
+    included.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    mocker.patch("superset.utils.rls.get_predicates_for_table", return_value=[])
+    get_search_path = mocker.patch.object(database, "get_search_path")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+
+    *_, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM unrelated", QueryOptions(dry_run=True)
+    )
+
+    assert table_schemas == ""
+    get_search_path.assert_not_called()
+    get_inspector.assert_not_called()
+    get_raw_connection.assert_not_called()
+
+
 # =============================================================================
 # Row-Level Security Tests
 # =============================================================================
@@ -645,6 +765,7 @@ def test_execute_returns_cached_result(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
+    assert result.statements[0].data is not None
     assert result.statements[0].data.equals(cached_df)
     assert result.statements[0].row_count == 2
     get_conn_mock.assert_not_called()
@@ -1036,6 +1157,42 @@ def test_execute_async_dml_without_permission_raises(
         database.execute_async("INSERT INTO users (name) VALUES ('test')")
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_execute_async_undefined_template_var_raises_superset_template_exception(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A Jinja template referencing an undefined variable (not called as a
+    function) must not leak a raw ``jinja2.exceptions.UndefinedError`` out of
+    ``execute_async`` - it should surface as ``SupersetTemplateException``."""
+    from superset.exceptions import SupersetTemplateException
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    options = QueryOptions(template_params={"foo": "bar"})
+
+    with pytest.raises(SupersetTemplateException):
+        database.execute_async("SELECT {{ missing_var[0] }}", options=options)
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_execute_sync_undefined_template_var_returns_failed_result(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """The sync ``execute`` path's broad ``except Exception`` still catches the
+    template rendering failure and returns a FAILED ``QueryResult``, unchanged
+    by the ``_render_sql_template`` fix."""
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    options = QueryOptions(template_params={"foo": "bar"})
+    result = database.execute("SELECT {{ missing_var[0] }}", options=options)
+
+    assert result.status == QueryStatus.FAILED
+
+
 def test_async_handle_get_status(
     mocker: MockerFixture,
     database: Database,
@@ -1174,8 +1331,11 @@ def test_execute_multi_statement_updates_query_progress(
     mock_db_session: MagicMock,
 ) -> None:
     """Test that multi-statement execution updates Query.progress."""
+    from sqlalchemy import inspect
+
     from superset.models.sql_lab import Query as QueryModel
     from superset.result_set import SupersetResultSet
+    from superset.sql.execution.executor import SQLExecutor
 
     # Mock raw connection for multi-statement execution
     mock_cursor = MagicMock()
@@ -1217,12 +1377,23 @@ def test_execute_multi_statement_updates_query_progress(
     mock_query = MagicMock(spec=QueryModel)
     mock_query.limit = None
     mock_query.id = 123
-    mocker.patch("superset.models.sql_lab.Query", return_value=mock_query)
+    # Replace only the tracking record, not the mapped schema-resolution probe.
+    create_record = mocker.patch.object(
+        SQLExecutor, "_create_query_record", return_value=mock_query
+    )
+    resolve_schema = mocker.spy(database, "get_default_schema_for_query")
 
     # Execute multiple statements
     result = database.execute("SELECT 1; SELECT 2;")
 
     assert result.status == QueryStatus.SUCCESS
+    create_record.assert_called_once()
+    resolve_schema.assert_called_once()
+    probe = resolve_schema.call_args.args[0]
+    assert isinstance(probe, QueryModel)
+    assert inspect(probe).transient
+    assert probe.database is database
+    assert result.query_id == mock_query.id
     # Query.progress should have been updated
     assert mock_query.progress == 100  # Final progress after completion
     # set_extra_json_key should have been called for progress messages

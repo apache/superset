@@ -26,6 +26,7 @@ pinning against regressions.
 import importlib.util
 import json  # noqa: TID251 - testing a standalone script that uses stdlib json
 import shlex
+import sys
 from pathlib import Path
 
 import polib  # type: ignore[import-untyped]
@@ -35,6 +36,9 @@ from babel.messages.frontend import CommandLineInterface
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "backfill_po.py"
 )
+# Run as a script, backfill_po.py imports its sibling literal_percent.py from
+# its own directory.
+sys.path.insert(0, str(_SCRIPT_PATH.parent))
 _spec = importlib.util.spec_from_file_location("backfill_po", _SCRIPT_PATH)
 assert _spec is not None, f"Could not load {_SCRIPT_PATH}"
 assert _spec.loader is not None, f"No loader on spec for {_SCRIPT_PATH}"
@@ -58,6 +62,12 @@ def test_is_valid_lang_code_accepts_region_and_script_subtags(lang: str) -> None
 def test_is_valid_lang_code_rejects_malformed_and_traversal(lang: str) -> None:
     """Malformed codes and path-traversal attempts are rejected."""
     assert not backfill_po._is_valid_lang_code(lang)
+
+
+def test_lang_name_names_the_script_for_both_serbian_catalogs() -> None:
+    """``sr`` is Cyrillic and ``sr_Latn`` is Latin; the prompt must say which."""
+    assert "Cyrillic" in backfill_po._lang_name("sr")
+    assert "Latin" in backfill_po._lang_name("sr_Latn")
 
 
 def test_parse_response_singular_strings() -> None:
@@ -559,6 +569,7 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     index_path.write_text("{}", encoding="utf-8")
 
     monkeypatch.setattr(backfill_po, "TRANSLATIONS_DIR", tmp_path)
+    monkeypatch.setattr(backfill_po, "resolve_model", lambda model: "claude-test")
 
     seen_msgids: list[str] = []
 
@@ -774,3 +785,203 @@ def test_single_plaintext_fallback_sends_the_note(
         "Developer note (authoritative on the intended meaning): a URL identifier"
         in sent["prompt"]
     )
+
+
+# --- model resolution and the claude -p invocation -----------------------------
+
+
+class _FakeResult:
+    def __init__(self, stdout: str, returncode: int = 0) -> None:
+        self.stdout = stdout
+        self.stderr = ""
+        self.returncode = returncode
+
+
+def test_default_model_is_an_alias_for_the_latest_sonnet() -> None:
+    assert backfill_po.DEFAULT_MODEL == "sonnet"
+
+
+def test_claude_command_disables_tools() -> None:
+    cmd = backfill_po._claude_command("/usr/bin/claude", "sonnet")
+    assert cmd[:4] == ["/usr/bin/claude", "--model", "sonnet", "-p"]
+    tools_at = cmd.index("--tools")
+    assert cmd[tools_at + 1] == ""
+
+
+def test_resolve_model_returns_concrete_ids_without_a_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(*args: object, **kwargs: object) -> None:
+        raise AssertionError("no CLI call expected for a concrete model ID")
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", boom)
+    assert backfill_po.resolve_model("claude-opus-5-5") == "claude-opus-5-5"
+    # Models served through a gateway (ANTHROPIC_BASE_URL) are not aliases.
+    assert backfill_po.resolve_model("gemma4-26b") == "gemma4-26b"
+
+
+def test_resolve_model_reads_the_concrete_id_for_an_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: dict[str, list[str]] = {}
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        sent["args"] = args
+        payload = {"result": "OK", "modelUsage": {"claude-sonnet-9-9": {}}}
+        return _FakeResult(json.dumps(payload))
+
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+
+    assert backfill_po.resolve_model("sonnet") == "claude-sonnet-9-9"
+    assert "--output-format" in sent["args"]
+    assert "--tools" in sent["args"]
+
+
+def test_resolve_model_falls_back_to_the_alias_on_unreadable_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(
+        backfill_po.subprocess, "run", lambda *a, **k: _FakeResult("not json")
+    )
+    assert backfill_po.resolve_model("sonnet") == "sonnet"
+
+
+def test_resolve_model_raises_when_the_cli_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(
+        backfill_po.subprocess, "run", lambda *a, **k: _FakeResult("", returncode=1)
+    )
+    with pytest.raises(RuntimeError):
+        backfill_po.resolve_model("sonnet")
+
+
+# --- normalize_catalog: canonical Babel formatting ------------------------------
+
+_LONG = (
+    "This is a deliberately long source string that is well past the "
+    "seventy-six column wrapping width Babel uses when writing catalogs."
+)
+
+
+def _write_catalog(tmp_path: Path, body: str) -> Path:
+    po = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po.parent.mkdir(parents=True)
+    po.write_text(
+        'msgid ""\nmsgstr ""\n'
+        '"Language: fr\\n"\n'
+        '"Plural-Forms: nplurals=2; plural=(n > 1);\\n"\n'
+        '"Content-Type: text/plain; charset=utf-8\\n"\n\n' + body,
+        encoding="utf-8",
+    )
+    return po
+
+
+def test_normalize_catalog_wraps_long_lines_and_keeps_content(
+    tmp_path: Path,
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        "# Machine-translated via backfill_po.py (claude-x) [no refs]\n"
+        "#, fuzzy\n"
+        f'msgid "{_LONG}"\n'
+        'msgstr "Traduction"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    text = po.read_text(encoding="utf-8")
+    assert all(len(line) <= 80 for line in text.splitlines())
+    assert not text.endswith("\n\n")
+    entry = polib.pofile(str(po)).find(_LONG)
+    assert entry is not None
+    assert entry.msgstr == "Traduction"
+    assert "fuzzy" in entry.flags
+    assert "Machine-translated via backfill_po.py" in entry.tcomment
+
+
+@pytest.mark.parametrize(
+    "msgid",
+    [
+        "% of total",
+        "% of row total",
+        "% calculation",
+        f"{_LONG} For % of column with Column sum, the center must be in range.",
+    ],
+)
+def test_normalize_catalog_marks_percent_labels_no_python_format(
+    tmp_path: Path, msgid: str
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        f'#, python-format\nmsgid "{msgid}"\nmsgstr "Traduction"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    entry = polib.pofile(str(po)).find(msgid)
+    assert entry is not None
+    assert "no-python-format" in entry.flags
+    assert "python-format" not in entry.flags
+
+
+def test_normalize_catalog_keeps_python_format_on_real_placeholders(
+    tmp_path: Path,
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        '#, python-format\nmsgid "%(name)s: % of total"\n'
+        'msgstr "%(name)s : % du total"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    entry = polib.pofile(str(po)).find("%(name)s: % of total")
+    assert entry is not None
+    assert "python-format" in entry.flags
+    assert "no-python-format" not in entry.flags
+
+
+# --- _run_claude: retry on transient CLI failures -------------------------------
+
+
+def test_run_claude_retries_transient_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    results = [_FakeResult("", returncode=1), _FakeResult('{"0": "Hola"}')]
+    calls: list[list[str]] = []
+    sleeps: list[float] = []
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        calls.append(args)
+        return results.pop(0)
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    monkeypatch.setattr(backfill_po.time, "sleep", sleeps.append)
+
+    result = backfill_po._run_claude(["claude", "-p"], "prompt")
+
+    assert result.returncode == 0
+    assert len(calls) == 2
+    assert sleeps == [backfill_po._RETRY_DELAYS[0]]
+
+
+def test_run_claude_returns_last_failure_after_all_attempts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        calls.append(args)
+        return _FakeResult("", returncode=1)
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    monkeypatch.setattr(backfill_po.time, "sleep", lambda _s: None)
+
+    result = backfill_po._run_claude(["claude", "-p"], "prompt")
+
+    assert result.returncode == 1
+    assert len(calls) == len(backfill_po._RETRY_DELAYS) + 1

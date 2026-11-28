@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  within,
+  waitFor,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { MemoryRouter, useHistory } from 'react-router-dom';
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { ReactNode, useState } from 'react';
 import { ListView, type ListViewProps } from './ListView';
 import { ListViewFilterOperator, type ListViewFetchDataConfig } from './types';
@@ -51,7 +57,7 @@ type MockedListViewProps = Omit<
 };
 
 const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+const mockStore = createMockStore(middlewares);
 
 const fetchSelectsMock = jest.fn(() =>
   Promise.resolve({ data: [], totalCount: 0 }),
@@ -213,30 +219,37 @@ const factory = (overrides?: Partial<ListViewProps>) => {
   );
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ListView', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    factory();
-  });
+// factory() renders a ListView. It used to run from a describe-scoped
+// beforeEach, so only the tests that share that rendered list should call it.
+const setupListView = () => {
+  jest.clearAllMocks();
+  factory();
+};
 
-  afterEach(() => {
-    mockedPropsComprehensive.fetchData.mockClear();
-    mockedPropsComprehensive.bulkActions.forEach(ba => {
-      ba.onSelect.mockClear();
-    });
+const cleanupListView = () => {
+  mockedPropsComprehensive.fetchData.mockClear();
+  mockedPropsComprehensive.bulkActions.forEach(ba => {
+    ba.onSelect.mockClear();
   });
+};
 
-  test('calls fetchData on mount', () => {
+test('calls fetchData on mount', () => {
+  setupListView();
+  try {
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith({
       filters: [],
       pageIndex: 0,
       pageSize: 1,
       sortBy: [],
     });
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on sort', async () => {
+test('calls fetchData on sort', async () => {
+  setupListView();
+  try {
     // sort-header[0] is the first data column ('id'); the select-all
     // column header carries `data-test="header-toggle-all"` instead
     // of `sort-header` (see TableCollection's `header.cell` slot).
@@ -254,18 +267,28 @@ describe('ListView', () => {
         },
       ],
     });
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('renders pagination controls', () => {
+test('renders pagination controls', () => {
+  setupListView();
+  try {
     const paginationList = screen.getByRole('list');
     expect(paginationList).toBeInTheDocument();
 
-    const pageOneItem = screen.getByRole('listitem', { name: '1' });
+    const pageOneItem = screen.getByRole('button', { name: 'Page 1' });
     expect(pageOneItem).toBeInTheDocument();
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on page change', async () => {
-    const pageTwoItem = screen.getByRole('listitem', { name: '2' });
+test('calls fetchData on page change', async () => {
+  setupListView();
+  try {
+    const pageTwoItem = screen.getByRole('button', { name: 'Page 2' });
     await userEvent.click(pageTwoItem);
 
     await waitFor(() => {
@@ -278,9 +301,14 @@ describe('ListView', () => {
       );
       expect(pageChangeCall).toBeDefined();
     });
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('handles bulk actions on 1 row', async () => {
+test('handles bulk actions on 1 row', async () => {
+  setupListView();
+  try {
     const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
@@ -299,16 +327,26 @@ describe('ListView', () => {
         time: '2020-11-18T07:53:45.354Z',
       },
     ]);
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('renders UI filters', () => {
+test('renders UI filters', () => {
+  setupListView();
+  try {
     // select and datetime_range filters render as compact pill buttons;
     // search filter renders as a text input
     const filterPills = screen.getAllByTestId('compact-filter-pill');
     expect(filterPills).toHaveLength(3); // ID, Age, Time
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on filter', async () => {
+test('calls fetchData on filter', async () => {
+  setupListView();
+  try {
     // Click the ID compact pill to open its option panel
     const idPill = screen.getByRole('button', { name: 'ID' });
     await userEvent.click(idPill);
@@ -338,9 +376,14 @@ describe('ListView', () => {
         ],
       }),
     );
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('calls fetchData on card view sort', async () => {
+test('calls fetchData on card view sort', async () => {
+  setupListView();
+  try {
     factory({
       renderCard: jest.fn(),
       initialSort: [{ id: 'something' }],
@@ -356,9 +399,14 @@ describe('ListView', () => {
     await userEvent.click(sortOption);
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalled();
-  });
+  } finally {
+    cleanupListView();
+  }
+});
 
-  test('switches view mode via click of the toggle buttons', async () => {
+test('switches view mode via click of the toggle buttons', async () => {
+  setupListView();
+  try {
     const { container } = factory({
       renderCard: jest.fn(),
       data: [],
@@ -376,7 +424,9 @@ describe('ListView', () => {
 
     await userEvent.click(cardToggle);
     expect(screen.getByTestId('empty-state')).toHaveClass('card');
-  });
+  } finally {
+    cleanupListView();
+  }
 });
 
 // Mobile support tests
@@ -601,6 +651,151 @@ test('forceViewMode table shows table view', () => {
   expect(screen.queryByTestId('card')).not.toBeInTheDocument();
   // Table should be present
   expect(screen.getByRole('table')).toBeInTheDocument();
+});
+
+test.each([false, true])(
+  'Back and Forward restore card sort selection (drawer=%s)',
+  async drawer => {
+    const fetchData = jest.fn();
+    function SortHistoryList() {
+      const history = useHistory();
+      return (
+        <>
+          <button type="button" onClick={() => history.goBack()}>
+            Back
+          </button>
+          <button type="button" onClick={() => history.goForward()}>
+            Forward
+          </button>
+          <ListView
+            {...mockedPropsSimple}
+            fetchData={fetchData}
+            filters={mockedPropsComprehensive.filters}
+            forceViewMode="card"
+            renderCard={() => <div>Card</div>}
+            initialSort={[{ id: 'name', desc: false }]}
+            mobileFiltersOpen={drawer}
+            setMobileFiltersOpen={drawer ? jest.fn() : undefined}
+            cardSortSelectOptions={[
+              { id: 'name', desc: false, label: 'Alphabetical', value: 'name' },
+              { id: 'age', desc: true, label: 'Oldest first', value: 'age' },
+            ]}
+          />
+        </>
+      );
+    }
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/?sortColumn=name&sortOrder=asc',
+          '/?sortColumn=age&sortOrder=desc',
+        ]}
+        initialIndex={1}
+      >
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <SortHistoryList />
+        </QueryParamProvider>
+      </MemoryRouter>,
+    );
+    const openSort = async () =>
+      userEvent.click(
+        within(screen.getByTestId('card-sort-select')).getByRole('button'),
+      );
+    await openSort();
+    expect(
+      await screen.findByRole('option', { name: /Oldest first/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await openSort();
+    await waitFor(() =>
+      expect(fetchData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: [{ id: 'age', desc: true }] }),
+      ),
+    );
+    // The drawer can cover the history controls; these buttons emulate browser navigation.
+    fireEvent.click(screen.getByText('Back'));
+    await waitFor(() =>
+      expect(fetchData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: [{ id: 'name', desc: false }] }),
+      ),
+    );
+    await openSort();
+    expect(
+      await screen.findByRole('option', { name: /Alphabetical/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await openSort();
+    fireEvent.click(screen.getByText('Forward'));
+    await waitFor(() =>
+      expect(fetchData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: [{ id: 'age', desc: true }] }),
+      ),
+    );
+    await openSort();
+    expect(
+      await screen.findByRole('option', { name: /Oldest first/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+  },
+);
+
+test('Back and Forward restore table sort headers with the fetched sort', async () => {
+  const fetchData = jest.fn();
+  function SortHistoryTable() {
+    const history = useHistory();
+    return (
+      <>
+        <button type="button" onClick={() => history.goBack()}>
+          Back
+        </button>
+        <button type="button" onClick={() => history.goForward()}>
+          Forward
+        </button>
+        <ListView
+          {...mockedPropsSimple}
+          fetchData={fetchData}
+          forceViewMode="table"
+          initialSort={[{ id: 'name', desc: false }]}
+        />
+      </>
+    );
+  }
+  render(
+    <MemoryRouter
+      initialEntries={[
+        '/?sortColumn=name&sortOrder=asc',
+        '/?sortColumn=age&sortOrder=desc',
+      ]}
+      initialIndex={1}
+    >
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <SortHistoryTable />
+      </QueryParamProvider>
+    </MemoryRouter>,
+  );
+  const ageHeader = screen.getByRole('columnheader', { name: /Age/ });
+  const nameHeader = screen.getByRole('columnheader', { name: /Name/ });
+  expect(ageHeader).toHaveAttribute('aria-sort', 'descending');
+  await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sortBy: [{ id: 'name', desc: false }] }),
+    ),
+  );
+  expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
+  expect(ageHeader).not.toHaveAttribute('aria-sort');
+  await userEvent.click(screen.getByRole('button', { name: 'Forward' }));
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sortBy: [{ id: 'age', desc: true }] }),
+    ),
+  );
+  expect(ageHeader).toHaveAttribute('aria-sort', 'descending');
+  expect(nameHeader).not.toHaveAttribute('aria-sort');
+  await userEvent.click(ageHeader);
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sortBy: [{ id: 'age', desc: false }] }),
+    ),
+  );
+  expect(ageHeader).toHaveAttribute('aria-sort', 'ascending');
 });
 
 test('Back restores the search input and page results without a stale blur submission', async () => {

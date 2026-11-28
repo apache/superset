@@ -22,6 +22,7 @@ import type { ReportConfiguration } from 'src/features/alerts/types';
 
 interface UseReportConfigurationState {
   configuration: ReportConfiguration | null;
+  defaultExecutor: string | null;
   loading: boolean;
   error: boolean;
 }
@@ -35,6 +36,7 @@ interface UseReportConfigurationState {
 export function useReportConfiguration(enabled = true) {
   const [state, setState] = useState<UseReportConfigurationState>({
     configuration: null,
+    defaultExecutor: null,
     loading: enabled,
     error: false,
   });
@@ -46,7 +48,12 @@ export function useReportConfiguration(enabled = true) {
         endpoint: '/api/v1/report/configuration/',
       });
       const configuration = response.json?.result as ReportConfiguration;
-      setState({ configuration, loading: false, error: false });
+      setState({
+        configuration,
+        defaultExecutor: response.json?.default_executor ?? null,
+        loading: false,
+        error: false,
+      });
       return configuration;
     } catch {
       setState(current => ({ ...current, loading: false, error: true }));

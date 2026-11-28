@@ -49,33 +49,71 @@ import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getColtypesMapping } from '../utils/series';
+import { getMetricValue, resolveBound } from '../utils/metricBounds';
 
 export const getIntervalBoundsAndColors = (
   intervals: string,
   intervalColorIndices: string,
+  intervalColors: string[] | undefined,
   colorFn: CategoricalColorScale,
   min: number,
   max: number,
+  relative = false,
 ): Array<[number, string]> => {
   let intervalBoundsNonNormalized;
-  let intervalColorIndicesArray;
   try {
     intervalBoundsNonNormalized = parseNumbersList(intervals, ',');
-    intervalColorIndicesArray = parseNumbersList(intervalColorIndices, ',');
   } catch (error) {
     intervalBoundsNonNormalized = [] as number[];
-    intervalColorIndicesArray = [] as number[];
   }
 
-  const intervalBounds = intervalBoundsNonNormalized.map(
-    bound => (bound - min) / (max - min),
+  // ECharts expects bounds as fractions of the axis; relative bounds are
+  // already percentages of it
+  const intervalBounds = intervalBoundsNonNormalized.map(bound =>
+    relative ? bound / 100 : (bound - min) / (max - min),
   );
-  const intervalColors = intervalColorIndicesArray.map(
+
+  // New-style: `interval_colors` holds real hex/rgb colors chosen through
+  // the Gauge control panel's per-interval `IntervalColorsControl`,
+  // positionally matched to the bounds parsed from `intervals`. Prefer this
+  // whenever it's populated.
+  if (Array.isArray(intervalColors) && intervalColors.length > 0) {
+    return intervalBounds.map((val, idx) => [
+      val,
+      // Wrap around the scheme for a bound past the end of `intervalColors`,
+      // matching `IntervalColorsControl`'s own positional fallback exactly --
+      // otherwise this and the editor's display disagree once there are more
+      // bounds than colors in the chosen scheme, and editing any other band
+      // would persist the wrong (undefined-turned-into-missing) color here.
+      intervalColors[idx] || colorFn.colors[idx % (colorFn.colors.length || 1)],
+    ]);
+  }
+
+  // Backward compatibility: charts saved before `interval_colors` existed
+  // store `interval_color_indices`, a comma-separated list of 1-indexed
+  // positions into the chart's categorical color scheme (e.g. "1,2,4")
+  // instead of literal colors. Resolve those indices against the scheme
+  // here -- exactly as this function always has -- so existing dashboards
+  // keep rendering identically. No data migration is required: this
+  // fallback runs every time such a chart is rendered.
+  //
+  // One deliberate difference: an unparseable index list (e.g. a trailing
+  // comma, `1,2,`) used to discard the bounds along with the indices, so no
+  // bands were drawn at all. The bounds are parsed on their own above and
+  // survive, painted with the positional scheme colors, which is what
+  // `IntervalColorsControl` shows for the same input.
+  let intervalColorIndicesArray;
+  try {
+    intervalColorIndicesArray = parseNumbersList(intervalColorIndices, ',');
+  } catch (error) {
+    intervalColorIndicesArray = [] as number[];
+  }
+  const legacyColors = intervalColorIndicesArray.map(
     ind => colorFn.colors[(ind - 1) % colorFn.colors.length],
   );
 
   return intervalBounds.map((val, idx) => {
-    const color = intervalColors[idx];
+    const color = legacyColors[idx];
     return [val, color || colorFn.colors[idx]];
   });
 };
@@ -119,6 +157,8 @@ export default function transformProps(
     metric,
     minVal,
     maxVal,
+    minMetric,
+    maxMetric,
     colorScheme,
     fontSize,
     numberFormat,
@@ -135,6 +175,8 @@ export default function transformProps(
     showPointer,
     intervals,
     intervalColorIndices,
+    intervalsRelative,
+    intervalColors,
     valueFormatter,
     sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
@@ -228,20 +270,32 @@ export default function transformProps(
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
-  const isValidNumber = (
-    val: number | null | undefined | string,
-  ): val is number => {
-    if (val == null || val === '') return false;
-    const num = typeof val === 'string' ? Number(val) : val;
-    return !Number.isNaN(num) && Number.isFinite(num);
+  // All gauges share one axis, so grouped rows collapse to the widest
+  // bounds: the smallest min and the largest max across groups.
+  const boundFromRows = (
+    boundMetric: EchartsGaugeFormData['maxMetric'],
+    pick: (...values: number[]) => number,
+  ) => {
+    const values = data
+      .map(row => getMetricValue(row, boundMetric))
+      .filter((value): value is number => value !== undefined);
+    return values.length ? pick(...values) : undefined;
   };
 
-  const min = isValidNumber(minVal)
-    ? Number(minVal)
-    : calculateMin(transformedData);
-  const max = isValidNumber(maxVal)
-    ? Number(maxVal)
-    : calculateMax(transformedData);
+  const min = resolveBound({
+    fromMetric: boundFromRows(minMetric, Math.min),
+    fixed: minVal,
+    fallback: () => calculateMin(transformedData),
+  });
+  let max = resolveBound({
+    fromMetric: boundFromRows(maxMetric, Math.max),
+    fixed: maxVal,
+    fallback: () => calculateMax(transformedData),
+  });
+  if ((minMetric || maxMetric) && max <= min) {
+    // e.g. a target metric of 0; keep a usable axis instead of a blank gauge
+    max = min + (Math.abs(min) || 1);
+  }
   const axisLabels = range(min, max, (max - min) / splitNumber);
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
@@ -249,9 +303,11 @@ export default function transformProps(
   const intervalBoundsAndColors = getIntervalBoundsAndColors(
     intervals,
     intervalColorIndices,
+    intervalColors,
     colorFn,
     min,
     max,
+    intervalsRelative,
   );
   const splitLineDistance =
     axisLineWidth + splitLineLength + OFFSETS.ticksFromLine;

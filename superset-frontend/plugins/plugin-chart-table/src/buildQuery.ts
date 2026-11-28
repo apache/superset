@@ -24,7 +24,6 @@ import {
   QueryFormOrderBy,
   QueryMode,
   QueryObject,
-  TimeGranularity,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
@@ -34,6 +33,7 @@ import {
 
 import {
   getTotalsMetrics,
+  omitDormantTimeGrain,
   isTimeComparison,
   timeCompareOperator,
   toTotalsAggregate,
@@ -41,36 +41,6 @@ import {
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
-
-// Only recognized duration choices are safe to treat as dormant. Legacy date
-// formats and anchored week intervals are not semantic-layer durations.
-const DURATION_GRAINS = new Set<string>(
-  Object.values(TimeGranularity).filter(
-    grain => grain.startsWith('P') && !grain.includes('/'),
-  ),
-);
-
-function omitDormantGrain(
-  query: QueryObject,
-  temporalColumns: Record<string, boolean> | undefined,
-): QueryObject {
-  const grain = query.extras?.time_grain_sqla;
-  if (
-    typeof grain !== 'string' ||
-    !DURATION_GRAINS.has(grain) ||
-    query.granularity ||
-    query.is_timeseries ||
-    !Array.isArray(query.columns) ||
-    !query.columns.every(
-      column => isPhysicalColumn(column) && temporalColumns?.[column] === false,
-    )
-  ) {
-    return query;
-  }
-  const extras = { ...query.extras };
-  delete extras.time_grain_sqla;
-  return { ...query, extras };
-}
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -385,6 +355,12 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
 
     const calculationMode = formData.percent_metric_calculation || 'row_limit';
 
+    // The summary row is a display feature: a file download skips its query so a plain
+    // export is one file (several queries are bundled into a zip). The all-records query
+    // stays: the backend uses it as the denominator for the percent metrics, so skipping it
+    // would compute the exported percentages over only the exported rows.
+    const isFileExport = ['csv', 'xlsx'].includes(formData.result_format ?? '');
+
     if (
       calculationMode === 'all_records' &&
       percentMetrics &&
@@ -405,6 +381,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     if (
       metrics?.length &&
       formData.show_totals &&
+      !isFileExport &&
       queryMode === QueryMode.Aggregate
     ) {
       const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
@@ -462,7 +439,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     queryMode === QueryMode.Aggregate
   ) {
     context.queries = context.queries.map(query =>
-      omitDormantGrain(query, formData.temporal_columns_lookup),
+      omitDormantTimeGrain(query, formData.temporal_columns_lookup),
     );
   }
   return context;

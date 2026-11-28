@@ -70,6 +70,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
 from superset import db
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
@@ -81,6 +82,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetParseError,
     SupersetSecurityException,
+    SupersetTemplateException,
     SupersetTimeoutException,
 )
 from superset.extensions import cache_manager
@@ -104,6 +106,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
     from superset.result_set import SupersetResultSet
+    from superset.utils.rls import RLSSchema
 
 logger = logging.getLogger(__name__)
 
@@ -613,12 +616,16 @@ class SQLExecutor:
 
         try:
             # 1. Prepare SQL (assembly only, no security checks)
-            original_script, transformed_script, catalog, schema = self._prepare_sql(
-                sql, opts
-            )
+            (
+                original_script,
+                transformed_script,
+                catalog,
+                schema,
+                table_schemas,
+            ) = self._prepare_sql(sql, opts)
 
             # 2. Security checks on transformed script
-            self._check_security(transformed_script, schema)
+            self._check_security(transformed_script, schema, table_schemas)
 
             # 3. Get mutation status and format SQL
             has_mutation = transformed_script.has_mutation()
@@ -793,12 +800,16 @@ class SQLExecutor:
         opts: QueryOptionsType = options or QueryOptionsType()
 
         # 1. Prepare SQL (assembly only, no security checks)
-        original_script, transformed_script, catalog, schema = self._prepare_sql(
-            sql, opts
-        )
+        (
+            original_script,
+            transformed_script,
+            catalog,
+            schema,
+            table_schemas,
+        ) = self._prepare_sql(sql, opts)
 
         # 2. Security checks on transformed script
-        self._check_security(transformed_script, schema)
+        self._check_security(transformed_script, schema, table_schemas)
 
         # 3. Get mutation status and format SQL
         has_mutation = transformed_script.has_mutation()
@@ -850,7 +861,7 @@ class SQLExecutor:
         self,
         sql: str,
         opts: QueryOptions,
-    ) -> tuple[SQLScript, SQLScript, str | None, str | None]:
+    ) -> tuple[SQLScript, SQLScript, str | None, str | None, RLSSchema]:
         """
         Prepare SQL for execution (no side effects, no security checks).
 
@@ -866,7 +877,9 @@ class SQLExecutor:
 
         :param sql: Original SQL query
         :param opts: Query options
-        :returns: Tuple of (original_script, transformed_script, catalog, schema)
+        :returns: Tuple of (original_script, transformed_script, catalog, schema,
+            table_schemas), where ``table_schemas`` is the schema, or search path,
+            unqualified tables resolve to (see ``get_unqualified_table_schemas``)
         """
         # 1. Render Jinja2 templates
         rendered_sql = self._render_sql_template(sql, opts.template_params)
@@ -895,21 +908,38 @@ class SQLExecutor:
         resolved_schema = self._resolve_query_schema(sql, opts, catalog)
         schema = opts.schema or resolved_schema
 
+        # A query without a schema still reads unqualified tables through the
+        # connection's search path, so RLS and schema-qualified denylist entries
+        # match each against the schema it's read from there.
+        from superset.utils.rls import get_unqualified_table_schemas
+
+        table_schemas = get_unqualified_table_schemas(
+            self.database, catalog, schema, transformed_script.statements
+        )
+
         # 5. Apply RLS to transformed script only
-        self._apply_rls_to_script(transformed_script, catalog, schema)
+        self._apply_rls_to_script(transformed_script, catalog, table_schemas)
 
         # 6. Apply limit only if not a mutation
         if not transformed_script.has_mutation():
             self._apply_limit_to_script(transformed_script, opts)
 
-        return original_script, transformed_script, catalog, schema
+        return original_script, transformed_script, catalog, schema, table_schemas
 
-    def _check_security(self, script: SQLScript, schema: str | None = None) -> None:
+    def _check_security(
+        self,
+        script: SQLScript,
+        schema: str | None = None,
+        table_schemas: RLSSchema = "",
+    ) -> None:
         """
         Perform security checks on prepared SQL script.
 
         :param script: Prepared SQLScript
         :param schema: Effective schema unqualified references resolve to
+        :param table_schemas: The schema, or search path, unqualified tables
+            resolve to when the query has no schema (see
+            ``get_unqualified_table_schemas``)
         :raises SupersetSecurityException: If security checks fail
         """
         # Check disallowed functions
@@ -925,7 +955,9 @@ class SQLExecutor:
             )
 
         # Check disallowed tables
-        if disallowed_tables := self._check_disallowed_tables(script, schema):
+        if disallowed_tables := self._check_disallowed_tables(
+            script, schema, table_schemas
+        ):
             raise SupersetSecurityException(
                 SupersetError(
                     message=f"Disallowed SQL tables: {', '.join(disallowed_tables)}",
@@ -1196,19 +1228,23 @@ class SQLExecutor:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
             if query is None:
                 return False
-            query.status = status.value
-            query.error_message = error_message
-            query.end_time = now_as_float()
+            # Loading an expired timestamp must not flush unguarded metadata.
+            with db.session.no_autoflush:
+                query.end_time = query.end_time or now_as_float()
+                query.status = status.value
+                query.error_message = error_message
             # A success commit can apply and still raise; keep that outcome.
             if not commit_query_unless_stopped(query, keep_success=True):
                 stopped = query.status == DBQueryStatus.STOPPED
                 db.session.commit()  # pylint: disable=consider-using-transaction
                 return stopped
         except Exception:  # pylint: disable=broad-except
-            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Unable to record failure of query %s", query_id, exc_info=True
             )
+            # Metadata recovery must not replace the original execution error.
+            with contextlib.suppress(Exception):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
         return False
 
     def _record_cached_result(
@@ -1293,6 +1329,7 @@ class SQLExecutor:
         :param sql: SQL string potentially containing Jinja2 templates
         :param template_params: Parameters to pass to the template
         :returns: Rendered SQL string
+        :raises SupersetTemplateException: if the template fails to render
         """
         if template_params is None:
             return sql
@@ -1300,7 +1337,10 @@ class SQLExecutor:
         from superset.jinja_context import get_template_processor
 
         tp = get_template_processor(database=self.database)
-        return tp.process_template(sql, **template_params)
+        try:
+            return tp.process_template(sql, **template_params)
+        except TemplateError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
 
     def _apply_limit_to_script(self, script: SQLScript, opts: QueryOptions) -> None:
         """
@@ -1385,13 +1425,19 @@ class SQLExecutor:
         )
 
     def _check_disallowed_tables(
-        self, script: SQLScript, schema: str | None = None
+        self,
+        script: SQLScript,
+        schema: str | None = None,
+        table_schemas: RLSSchema = "",
     ) -> set[str] | None:
         """
         Check for disallowed SQL tables/views.
 
         :param script: Parsed SQL script
         :param schema: Effective schema unqualified references resolve to
+        :param table_schemas: The schema, or search path, unqualified tables
+            resolve to when the query has no schema (see
+            ``get_unqualified_table_schemas``)
         :returns: Set of disallowed tables found, or None if none found
         """
         disallowed_config = app.config.get("DISALLOWED_SQL_TABLES", {})
@@ -1405,24 +1451,32 @@ class SQLExecutor:
         # Honors schema-qualified denylist entries (e.g.
         # ``information_schema.tables``) as well as bare names. The effective
         # schema lets an unqualified reference that resolves to it at runtime
-        # (via the connection ``search_path``) match too.
-        return script.get_disallowed_tables(engine_disallowed, schema) or None
+        # (via the connection ``search_path``) match too, including the schema
+        # the search path reads it from when the query has none.
+        from superset.utils.rls import get_disallowed_tables
+
+        return (
+            get_disallowed_tables(
+                self.database, script, engine_disallowed, table_schemas or schema
+            )
+            or None
+        )
 
     def _apply_rls_to_script(
-        self, script: SQLScript, catalog: str | None, schema: str | None
+        self, script: SQLScript, catalog: str | None, schema: RLSSchema
     ) -> None:
         """
         Apply Row-Level Security to SQLScript statements in place.
 
         :param script: SQLScript object to modify
         :param catalog: Catalog name
-        :param schema: Schema name
+        :param schema: Schema, or search path, unqualified tables resolve to
         """
         from superset.utils.rls import apply_rls
 
         # Apply RLS to each statement in the script
         for statement in script.statements:
-            apply_rls(self.database, catalog, schema or "", statement)
+            apply_rls(self.database, catalog, schema, statement)
 
     def _create_query_record(
         self,

@@ -2069,6 +2069,27 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
+    def test_get_table_metadata_reflection_error(self):
+        """
+        Database API: Test get table metadata returns 422, not 500, when the
+        target database's reflection (pk/fk/index/comment introspection) raises
+        a SQLAlchemyError, e.g. a postgres-wire-protocol engine missing catalog
+        columns SQLAlchemy's postgres dialect queries.
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        uri = (
+            f"api/v1/database/{example_db.id}/table_metadata/"
+            "?name=birth_names&schema=null"
+        )
+        with mock.patch.object(
+            example_db.db_engine_spec,
+            "get_table_metadata",
+            side_effect=SQLAlchemyError("Binder Error: Referenced table not found"),
+        ):
+            rv = self.client.get(uri)
+        assert rv.status_code == 422
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_table_extra_metadata_deprecated(self):
         """
@@ -3962,11 +3983,21 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -3997,11 +4028,20 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.credentials_info.private_key": "Service Account Private Key",  # noqa: E501
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": "`",
@@ -4062,11 +4102,21 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4114,11 +4164,20 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+                            "$.service_account_info.private_key": "Service Account Private Key",  # noqa: E501
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": True,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4179,11 +4238,21 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": "`",
@@ -4200,11 +4269,20 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.*": "Encrypted Extra",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4241,11 +4319,21 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": "`",
@@ -4262,11 +4350,20 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.*": "Encrypted Extra",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,
+                        "supports_partition_filter_mapping": False,
+                        "partition_value_transform_default": None,
                         "supports_schemas": True,
                         "identifier_quote": {
                             "start": '"',
@@ -4509,7 +4606,9 @@ class TestDatabaseApi(SupersetTestCase):
                 {
                     "message": (
                         "The schema_cache_timeout in metadata_cache_timeout "
-                        "must be a non-negative integer."
+                        "must be a non-negative integer, but received -1. "
+                        "Enter a whole number of seconds (0 or greater) "
+                        "under Advanced > Performance."
                     ),
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",

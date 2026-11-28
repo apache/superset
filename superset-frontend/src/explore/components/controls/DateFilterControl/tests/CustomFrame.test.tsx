@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import {
   render,
   screen,
@@ -39,7 +39,7 @@ const specificValue = '2021-03-16T00:00:00 : 2021-03-17T00:00:00';
 const relativeNowValue = `DATEADD(DATETIME("now"), -7, day) : DATEADD(DATETIME("now"), 7, day)`;
 const relativeTodayValue = `DATEADD(DATETIME("today"), -7, day) : DATEADD(DATETIME("today"), 7, day)`;
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 const store = mockStore({
   common: { locale: 'en' },
 });

@@ -51,12 +51,14 @@ from sqlalchemy.orm import Session
 from werkzeug.exceptions import NotFound
 
 from superset.common.chart_data import ChartDataResultType
+from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
+from superset.security import manager as security_manager_module
 from superset.security.manager import (
     _collect_sortable_identifiers,
     freeze_value,
@@ -3425,6 +3427,184 @@ def test_query_context_modified_series_limit_metric_bad_aggregate_blocked(
     assert query_context_modified(query_context)
 
 
+# Pasted from levelsToMirrors.test.ts ("birth_names levels give the mirrors the
+# guest tests paste") and also used in
+# tests/integration_tests/charts/data/tree_table_guest_tests.py.
+TREE_TABLE_MIRRORS: dict[str, Any] = {
+    "tree_columns": ["state", "gender", "name", "num"],
+    "tree_metrics": [
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": "COUNT_DISTINCT",
+            "column": {"column_name": "name"},
+            "label": "COUNT_DISTINCT(name)",
+        }
+    ],
+    "tree_orderby": [
+        ["state", True],
+        ["state", False],
+        ["gender", True],
+        ["gender", False],
+        ["name", True],
+        ["name", False],
+        ["num", True],
+        ["num", False],
+    ],
+}
+
+
+def _tree_table_query_context(
+    mocker: MockerFixture,
+    stored_params: dict[str, Any],
+    children_columns: list[str],
+) -> QueryContext:
+    from superset.charts.schemas import ChartDataQueryContextSchema
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.common.query_object_factory import QueryObjectFactory
+
+    stored_chart = Slice(
+        id=42,
+        viz_type="ag-grid-table",
+        params=json.dumps(stored_params),
+        query_context=json.dumps(
+            {
+                "datasource": {"id": 1, "type": "table"},
+                "queries": [
+                    {
+                        "columns": ["state", "gender"],
+                        "metrics": [],
+                        "orderby": [["state", True]],
+                    }
+                ],
+            }
+        ),
+    )
+    datasource = mocker.MagicMock(columns=[], currency_formats={})
+    mocker.patch.object(
+        QueryContextFactory, "_convert_to_model", return_value=datasource
+    )
+    mocker.patch.object(
+        QueryObjectFactory, "_convert_to_model", return_value=datasource
+    )
+    mocker.patch.object(QueryContextFactory, "_get_slice", return_value=stored_chart)
+    return ChartDataQueryContextSchema().load(
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "form_data": {
+                "slice_id": 42,
+                "viz_type": "ag-grid-table",
+                "query_mode": "tree",
+                **TREE_TABLE_MIRRORS,
+            },
+            "queries": [
+                {
+                    "columns": children_columns,
+                    "metrics": [],
+                    "orderby": [["state", True], ["name", True]],
+                },
+                {
+                    "columns": ["state"],
+                    "metrics": TREE_TABLE_MIRRORS["tree_metrics"],
+                },
+            ],
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "stored_params, children_columns, modified",
+    [
+        (TREE_TABLE_MIRRORS, ["name", "state", "num"], False),
+        ({}, ["name", "state", "num"], True),
+        (TREE_TABLE_MIRRORS, ["name", "state", "num", "num_boys"], True),
+    ],
+    ids=["mirrors", "no-mirrors", "extra-column"],
+)
+def test_query_context_modified_tree_table_mirrors(
+    app_context: None,
+    mocker: MockerFixture,
+    stored_params: dict[str, Any],
+    children_columns: list[str],
+    modified: bool,
+) -> None:
+    """
+    A Tree table's children and counts queries pass the guest payload check
+    only through the chart's stored mirrors, and only for Levels columns.
+    """
+    query_context = _tree_table_query_context(
+        mocker,
+        {"viz_type": "ag-grid-table", "query_mode": "tree", **stored_params},
+        children_columns,
+    )
+    assert query_context.slice_ is not None
+    assert query_context_modified(query_context) is modified
+
+
+def test_guest_payload_check_reads_stored_tree_mode_once(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    context = _tree_table_query_context(
+        mocker,
+        {"viz_type": "ag-grid-table", "query_mode": "tree", **TREE_TABLE_MIRRORS},
+        ["name", "state", "num"],
+    )
+    read_tree_mode = mocker.spy(security_manager_module, "_is_tree_mode_chart")
+
+    assert not query_context_modified(context)
+    read_tree_mode.assert_called_once_with(context.slice_)
+
+
+@pytest.mark.parametrize("query_mode", ["aggregate", "raw"])
+def test_table_v2_retained_tree_mirrors_are_not_authorization(
+    app_context: None, mocker: MockerFixture, query_mode: str
+) -> None:
+    """a non-Tree stored chart cannot grant access through Tree mirrors."""
+    stored = {
+        "viz_type": "ag-grid-table",
+        "query_mode": query_mode,
+        **TREE_TABLE_MIRRORS,
+    }
+    query_context = _tree_table_query_context(mocker, stored, ["name", "state", "num"])
+    assert query_context.slice_ is not None
+    query_context.slice_.viz_type = "ag-grid-table"
+    assert query_context_modified(query_context)
+
+
+@pytest.mark.parametrize("stored_viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("stored_query_mode", ["aggregate", "raw", "tree"])
+def test_tree_mirrors_require_stored_table_v2_tree_identity(
+    app_context: None,
+    mocker: MockerFixture,
+    stored_viz_type: str,
+    stored_query_mode: str,
+) -> None:
+    """request-only Tree claims never widen a non-Tree stored chart."""
+    params = {
+        "viz_type": stored_viz_type,
+        "query_mode": stored_query_mode,
+        **TREE_TABLE_MIRRORS,
+    }
+    context = _tree_table_query_context(mocker, params, ["name", "state", "num"])
+    assert context.slice_ is not None
+    context.slice_.viz_type = stored_viz_type
+    assert query_context_modified(context) is not (
+        stored_viz_type == "ag-grid-table" and stored_query_mode == "tree"
+    )
+
+
+def test_tree_mirrors_do_not_allow_arbitrary_ordering(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """a Tree guest cannot introduce an owner-unsaved sort expression."""
+    context = _tree_table_query_context(
+        mocker,
+        {"viz_type": "ag-grid-table", "query_mode": "tree", **TREE_TABLE_MIRRORS},
+        ["name", "state", "num"],
+    )
+    context.queries[0].orderby = [("random()", True)]
+    assert query_context_modified(context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
@@ -3469,6 +3649,7 @@ def test_raise_for_access_catalog(
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.db_engine_spec.case_insensitive_catalogs = False
     database.get_default_catalog.return_value = "db1"
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
@@ -4070,6 +4251,7 @@ def test_raise_for_access_catalog_supporting_engine_still_requires_catalog(
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.db_engine_spec.case_insensitive_catalogs = False
     database.database_name = "examples"
     database.db_engine_spec.supports_catalog = True
     database.get_default_catalog.return_value = "examples"
@@ -4239,8 +4421,9 @@ def test_raise_for_access_allow_editorship_false_keeps_catalog_access(
     mocker.patch.object(
         sm,
         "can_access",
-        side_effect=lambda perm, vm: perm == "catalog_access"
-        and vm == f"[{MSSQL_CONN_NAME}].[other]",
+        side_effect=lambda perm, vm: (
+            perm == "catalog_access" and vm == f"[{MSSQL_CONN_NAME}].[other]"
+        ),
     )
 
     sm.raise_for_access(query=query, allow_editorship=False)
@@ -4275,8 +4458,10 @@ def test_raise_for_access_allow_editorship_false_keeps_datasource_access(
     mocker.patch.object(
         sm,
         "can_access",
-        side_effect=lambda perm, vm: perm == "datasource_access"
-        and vm == f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)",
+        side_effect=lambda perm, vm: (
+            perm == "datasource_access"
+            and vm == f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)"
+        ),
     )
 
     sm.raise_for_access(query=query, allow_editorship=False)
@@ -4317,6 +4502,7 @@ def test_get_datasources_accessible_by_user_schema_access(
     mocker.patch.object(sm, "can_access_database", return_value=False)
 
     database = mocker.MagicMock()
+    database.db_engine_spec.case_insensitive_catalogs = False
     database.database_name = "db1"
     database.get_default_catalog.return_value = "catalog2"
 

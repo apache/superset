@@ -18,17 +18,20 @@
 """A set of constants and methods to manage permissions and security"""
 
 import datetime
+import functools
 import logging
 import re
 import time
 from collections import defaultdict
 from collections.abc import Set as AbstractSet
+from contextlib import contextmanager
 from math import ceil
 from types import SimpleNamespace
 from typing import (
     Any,
     Callable,
     cast,
+    Iterator,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -36,7 +39,17 @@ from typing import (
 )
 from urllib.parse import quote
 
-from flask import abort, current_app, Flask, g, has_app_context, Request, Response
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    g,
+    has_app_context,
+    has_request_context,
+    Request,
+    request,
+    Response,
+)
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
@@ -86,16 +99,20 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
+from werkzeug.local import LocalProxy
 
+from superset.charts.query_mode import is_tree_query_mode
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
+    SemanticViewGuestRLSUnsupportedError,
     SupersetSecurityException,
 )
 from superset.security.guest_token import (
     DEFAULT_GUEST_TOKEN_REVOCATION_VERSION,
+    enforce_guest_token_identity,
     get_current_guest_token_revocation_version,
     GUEST_TOKEN_REVOCATION_CLAIM,
     GuestToken,
@@ -104,6 +121,7 @@ from superset.security.guest_token import (
     GuestTokenRlsRule,
     GuestTokenUser,
     GuestUser,
+    incr_security_metric,
 )
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
@@ -132,7 +150,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.models.sql_lab import Query
+    from superset.models.sql_lab import Query, SavedQuery
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -274,6 +292,28 @@ def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -
             row["extra_editors"] = extra_editors_by_id[row_id]
 
 
+_VIEW_ACCESS_ANSWERS = "_view_access_answers"
+
+
+def remember_view_access(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Let ``can_access`` reuse its answers for the rest of the request.
+
+    Meant for the read-only requests that look up a dashboard. Their access
+    checks ask the same few questions -- ``all_datasource_access``,
+    ``all_database_access``, the database, catalog and schema permissions --
+    once per member dataset, and each answer is a query against the role
+    tables. Requests without it ask every time.
+    """
+
+    @functools.wraps(f)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        request.__dict__.setdefault(_VIEW_ACCESS_ANSWERS, {})
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
 # ``_render_permission_instructions_link``.
 RETIRED_PERMISSION_LINK_PLACEHOLDER = "{datasource_name}"
@@ -329,6 +369,10 @@ def _render_permission_instructions_link(
 
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
+# Permissions whose view menu names include a catalog: ``[database].[catalog]`` and
+# ``[database].[catalog].[schema]``.
+CATALOG_SCOPED_PERMISSIONS = frozenset({"catalog_access", "schema_access"})
+
 
 class DatabaseCatalogSchema(NamedTuple):
     database: str
@@ -355,13 +399,9 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
     """
     from superset.extensions import (  # pylint: disable=import-outside-toplevel
         event_logger,
-        stats_logger_manager,
     )
 
-    try:
-        stats_logger_manager.instance.incr(f"security.{action}")
-    except Exception:  # pylint: disable=broad-except
-        logger.warning("Failed to emit audit metric: %s", action, exc_info=True)
+    incr_security_metric(action)
 
     user_id = get_user_id()
     try:
@@ -590,7 +630,8 @@ class SupersetUserApi(UserApi):
         here (to obtain its id) and syncing its ``Subject`` row alongside it
         means both writes ride the same transaction and commit together,
         instead of the subject sync needing a second, separate commit after
-        the fact.
+        the fact. The forced-password-change flag is raised the same way: the
+        new account starts on a password the administrator chose.
         """
         super().pre_add(item)
         from superset.daos.user import UserDAO
@@ -598,6 +639,7 @@ class SupersetUserApi(UserApi):
         self.datamodel.session.add(item)
         self.datamodel.session.flush()
         UserDAO._sync_subject(item)
+        self._require_password_change(item.id)
 
     def pre_update(self, item: Model, data: dict[str, Any]) -> None:
         """Same reasoning as ``pre_add``: ``UserApi.put`` calls ``pre_update``
@@ -613,14 +655,46 @@ class SupersetUserApi(UserApi):
             # An admin-initiated password change via this endpoint (the
             # Users list edit modal) must invalidate the target account's
             # other outstanding sessions, the same as the self-service
-            # ``/me/`` path. The forced-change flag is deliberately left
-            # alone: a temporary password set by an admin still has to be
-            # replaced by the user at next login.
+            # ``/me/`` path. The password is a temporary one the admin chose,
+            # so the target also has to replace it at next login -- unless the
+            # admin is editing their own account.
             from superset.security.session_invalidation import (
                 invalidate_sessions_for_user,
             )
 
             invalidate_sessions_for_user(item.id)
+            acting_user = getattr(self.appbuilder.sm, "current_user", None)
+            if getattr(acting_user, "id", None) != item.id:
+                self._require_password_change(item.id)
+            else:
+                # An admin replacing their own password has chosen it, the
+                # same as the self-service ``/me/`` path.
+                from superset.security.password_change import (
+                    clear_password_must_change,
+                )
+
+                clear_password_must_change(item.id)
+
+    @staticmethod
+    def _require_password_change(user_id: int) -> None:
+        """Flag ``user_id`` to change their password at next login.
+
+        Only when ``ENABLE_FORCE_PASSWORD_CHANGE`` is on, so turning the
+        setting on later does not retroactively lock out every account an
+        administrator ever set a password for, and only under ``AUTH_DB``:
+        with any other auth type the password set here is not the one users
+        sign in with. Writes without committing: FAB commits the user change
+        right after ``pre_add``/``pre_update``.
+        """
+        config = current_app.config
+        if (
+            not config.get("ENABLE_FORCE_PASSWORD_CHANGE")
+            or config.get("AUTH_TYPE", AUTH_DB) != AUTH_DB
+        ):
+            return
+        from superset.security.password_change import write_password_must_change
+
+        write_password_must_change(user_id)
 
     @expose("/", methods=["POST"])
     @protect()
@@ -1253,9 +1327,21 @@ def _collect_sortable_identifiers(
     return allowed
 
 
+def _is_tree_mode_chart(stored_chart: "Slice") -> bool:
+    """Read the Tree capability from the stored chart, never the request."""
+    return is_tree_query_mode(
+        {
+            "viz_type": stored_chart.viz_type,
+            "query_mode": stored_chart.params_dict.get("query_mode"),
+        }
+    )
+
+
 def _collect_stored_orderby_entries(
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> set[str]:
     """
     Frozen saved orderby entries a guest may replay exactly.
@@ -1263,6 +1349,11 @@ def _collect_stored_orderby_entries(
     allowed: set[str] = {
         freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
     }
+    if is_tree_mode:
+        allowed.update(
+            freeze_value(entry)
+            for entry in stored_chart.params_dict.get("tree_orderby") or []
+        )
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
             allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
@@ -1369,6 +1460,8 @@ def _orderby_modified(
     query_context: "QueryContext",
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> bool:
     """
     Whether any order-by clause sorts by a term the stored chart does not already
@@ -1380,7 +1473,7 @@ def _orderby_modified(
     """
     visible_targets = _collect_sortable_identifiers(stored_chart, stored_query_context)
     stored_orderby_entries = _collect_stored_orderby_entries(
-        stored_chart, stored_query_context
+        stored_chart, stored_query_context, is_tree_mode=is_tree_mode
     )
     form_data = query_context.form_data or {}
     # Both ``form_data`` and each ``QueryObject`` can carry an order-by, and in
@@ -1765,6 +1858,8 @@ def _columns_metrics_modified(
     form_data: dict[str, Any],
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    *,
+    is_tree_mode: bool,
 ) -> bool:
     """
     Whether the requested columns/metrics/group-by read beyond what the stored
@@ -1783,6 +1878,8 @@ def _columns_metrics_modified(
         ("groupby", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
     ]:
         is_metric = key == "metrics"
+        if is_tree_mode:
+            stored_params_keys += ("tree_metrics" if is_metric else "tree_columns",)
 
         # Requested column values additionally collapse a frontend-synthesized
         # ``BASE_AXIS`` x-axis to the column it references (see
@@ -2036,6 +2133,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # query_context was present is the key signal for the missing/stale case.
     # Use ``is not None`` so an empty-but-present stored context reads as present.
     stored_context_state = "present" if stored_query_context is not None else "missing"
+    is_tree_mode = _is_tree_mode_chart(stored_chart)
 
     # Each comparator guards one facet of the payload against the stored chart;
     # the first one that objects rejects the request, with its reason logged
@@ -2060,7 +2158,11 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ),
         (
             lambda: _columns_metrics_modified(
-                query_context, form_data, stored_chart, stored_query_context
+                query_context,
+                form_data,
+                stored_chart,
+                stored_query_context,
+                is_tree_mode=is_tree_mode,
             ),
             "columns/metrics/group-by not a subset of the stored chart",
         ),
@@ -2072,7 +2174,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ),
         (
             lambda: _orderby_modified(
-                query_context, stored_chart, stored_query_context
+                query_context,
+                stored_chart,
+                stored_query_context,
+                is_tree_mode=is_tree_mode,
             ),
             "order-by references a term not on the stored chart",
         ),
@@ -2534,15 +2639,198 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Note this method adds protection from has_access failing from missing
         permission/view entries.
 
+        Within a request that ``remember_view_access`` marks -- a dashboard
+        lookup -- each answer is reused for the rest of that request, and
+        within a ``cache_permission_checks`` scope for the rest of that scope;
+        every other call asks the role tables. The request's memo hangs off the
+        request object, not ``flask.g``, which outlives a request when an app
+        context is pushed outside one, and it is keyed by the user object
+        itself, unwrapped from flask-login's ``current_user`` proxy, so no
+        answer can reach another user.
+
         :param permission_name: The FAB permission name
         :param view_name: The FAB view-menu name
         :returns: Whether the user can access the FAB permission/view
         """
 
         user = g.user
-        if user.is_anonymous:
-            return self.is_item_public(permission_name, view_name)
-        return self._has_view_access(user, permission_name, view_name)
+        cached: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        key: tuple[str, str] = (permission_name, view_name)
+        if cached is not None and cached[0] is user and key in cached[1]:
+            return cached[1][key]
+        allowed: bool = (
+            self.is_item_public(permission_name, view_name)
+            if user.is_anonymous
+            else self._remembered_view_access(user, permission_name, view_name)
+        )
+        if cached is not None and cached[0] is user:
+            cached[1][key] = allowed
+        return allowed
+
+    def _remembered_view_access(
+        self, user: Any, permission_name: str, view_name: str
+    ) -> bool:
+        """
+        Answer for a signed-in user, reusing the answers of a marked request.
+
+        :param user: The user as bound to ``g.user``, possibly flask-login's proxy
+        :param permission_name: The FAB permission name
+        :param view_name: The FAB view-menu name
+        :returns: Whether the user can access the FAB permission/view
+        """
+        if isinstance(user, LocalProxy):
+            user = user._get_current_object()
+        memos = (
+            request.__dict__.get(_VIEW_ACCESS_ANSWERS)
+            if has_request_context()
+            else None
+        )
+        if memos is None:
+            return self._has_view_access(user, permission_name, view_name)
+
+        owner, answers = memos.get(id(user), (None, {}))
+        if owner is not user:
+            answers = {}
+            memos[id(user)] = (user, answers)
+        key = (permission_name, view_name)
+        if key not in answers:
+            answers[key] = self._has_view_access(user, permission_name, view_name)
+        return answers[key]
+
+    @contextmanager
+    def cache_permission_checks(self) -> Iterator[None]:
+        """Memoize exact permission checks during one read-only serialization.
+
+        Do not use around permission writes or authentication changes. The cache
+        belongs to the Flask context and the ``g.user`` binding at scope entry.
+        Reassigning that binding bypasses it; a re-login behind the same
+        LocalProxy would not. The read-only list dump does not authenticate.
+        The cache is discarded even if serialization fails, and custom
+        security-manager overrides still run normally.
+        """
+        previous: tuple[Any, dict[tuple[str, str], bool]] | None = getattr(
+            g, "_permission_check_cache", None
+        )
+        g._permission_check_cache = (getattr(g, "user", None), {})
+        try:
+            yield
+        finally:
+            if previous is None:
+                g.pop("_permission_check_cache", None)
+            else:
+                g._permission_check_cache = previous
+
+    def can_access_catalog_scoped(
+        self,
+        database: "Database",
+        permission_name: str,
+        view_name: str,
+    ) -> bool:
+        """
+        Return True if the user holds the catalog or schema permission ``view_name``
+        of ``database``.
+
+        On engines with case-insensitive catalog names the permission also matches
+        when the user's grant spells the catalog in another case. The permission
+        sync creates catalog permissions from the catalogs listed by the database,
+        while the default catalog comes from the connection URI; on Snowflake the
+        former are uppercase and the latter usually lowercase, so the exact check
+        alone fails even though both name the same catalog.
+
+        :param database: The database the permission belongs to
+        :param permission_name: ``catalog_access`` or ``schema_access``
+        :param view_name: The catalog or schema permission
+        :returns: Whether the user can access the catalog or schema
+        """
+        if self.can_access(permission_name, view_name):
+            return True
+        if not database.db_engine_spec.case_insensitive_catalogs:
+            return False
+
+        requested = self._parse_catalog_scoped_perm(permission_name, view_name)
+        if requested is None:
+            return False
+
+        database_name, catalog, schema = requested
+        for granted_name in self._get_user_view_menu_names(permission_name):
+            granted = self._parse_catalog_scoped_perm(permission_name, granted_name)
+            if (
+                granted is not None
+                and granted[0] == database_name
+                and granted[2] == schema
+                and granted[1].upper() == catalog.upper()
+            ):
+                return True
+
+        return False
+
+    @staticmethod
+    def _parse_catalog_scoped_perm(
+        permission_name: str,
+        view_menu_name: str,
+    ) -> tuple[str, str, str | None] | None:
+        """
+        Split a catalog or schema permission into ``(database, catalog, schema)``.
+
+        Returns ``None`` for other permissions, and for the catalog-less
+        ``[database].[schema]`` form.
+        """
+        if not (view_menu_name.startswith("[") and view_menu_name.endswith("]")):
+            return None
+        parts = view_menu_name[1:-1].split("].[")
+        if permission_name == "catalog_access" and len(parts) == 2:
+            return parts[0], parts[1], None
+        if permission_name == "schema_access" and len(parts) == 3:
+            return parts[0], parts[1], parts[2]
+        return None
+
+    def _get_case_insensitive_catalog_databases(
+        self,
+        database_names: AbstractSet[str],
+    ) -> dict[str, "Database"]:
+        """
+        Return the databases, among ``database_names``, whose engine has
+        case-insensitive catalog names, keyed by name.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.commands.database.exceptions import DatabaseInvalidError
+        from superset.models.core import Database
+
+        if not database_names:
+            return {}
+
+        databases = {}
+        for database in self.session.query(Database).filter(
+            Database.database_name.in_(database_names)
+        ):
+            try:
+                if database.db_engine_spec.case_insensitive_catalogs:
+                    databases[database.database_name] = database
+            except DatabaseInvalidError:
+                # unparsable URI: keep matching its permissions exactly
+                continue
+        return databases
+
+    def _catalogs_equal(
+        self,
+        database: "Database",
+        catalog: str | None,
+        other: str | None,
+    ) -> bool:
+        """
+        Compare two catalog names of a database, ignoring case when the engine's
+        catalog names are case-insensitive.
+        """
+        if catalog == other:
+            return True
+        return bool(
+            catalog
+            and other
+            and database.db_engine_spec.case_insensitive_catalogs
+            and catalog.upper() == other.upper()
+        )
 
     def can_access_all_queries(self) -> bool:
         """
@@ -2594,7 +2882,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return bool(
             self.can_access_all_datasources()
             or self.can_access_database(database)
-            or (catalog_perm and self.can_access("catalog_access", catalog_perm))
+            or (
+                catalog_perm
+                and self.can_access_catalog_scoped(
+                    database,
+                    "catalog_access",
+                    catalog_perm,
+                )
+            )
         )
 
     def can_access_schema(self, datasource: "BaseDatasource | Explorable") -> bool:
@@ -2639,7 +2934,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return True
 
             # Schema-level permission (SQL only)
-            if self.can_access("schema_access", datasource.schema_perm or ""):
+            if self.can_access_catalog_scoped(
+                database,
+                "schema_access",
+                datasource.schema_perm or "",
+            ):
                 return True
 
         # Non-SQL explorables don't have schema hierarchy
@@ -3070,6 +3369,56 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     def user_view_menu_names(self, permission_name: str) -> set[str]:
+        """
+        Return the names of the view menus the user holds ``permission_name`` on.
+
+        Catalog and schema permissions on engines with case-insensitive catalog
+        names are returned with the catalog in every spelling Superset uses for
+        it (as listed, upper and lower case, and as the default catalog), so
+        callers that match them against stored names, eg, the ``schema_perm`` of
+        datasets, find them regardless of the case.
+        """
+        view_menu_names = self._get_user_view_menu_names(permission_name)
+        if permission_name in CATALOG_SCOPED_PERMISSIONS:
+            return self._add_catalog_case_variants(permission_name, view_menu_names)
+        return view_menu_names
+
+    def _add_catalog_case_variants(
+        self,
+        permission_name: str,
+        view_menu_names: set[str],
+    ) -> set[str]:
+        """
+        Add the other spellings of the catalog to the catalog/schema permissions of
+        databases whose engine has case-insensitive catalog names.
+        """
+        parsed = {
+            name: perm
+            for name in view_menu_names
+            if (perm := self._parse_catalog_scoped_perm(permission_name, name))
+        }
+        databases = self._get_case_insensitive_catalog_databases(
+            {database_name for database_name, _, _ in parsed.values()}
+        )
+        if not databases:
+            return view_menu_names
+
+        expanded = set(view_menu_names)
+        for database_name, catalog, schema in parsed.values():
+            if database_name not in databases:
+                continue
+            spellings = {catalog.upper(), catalog.lower()}
+            default_catalog = databases[database_name].get_default_catalog()
+            if default_catalog and default_catalog.upper() == catalog.upper():
+                spellings.add(default_catalog)
+            for spelling in spellings:
+                if schema is None:
+                    expanded.add(f"[{database_name}].[{spelling}]")
+                else:
+                    expanded.add(f"[{database_name}].[{spelling}].[{schema}]")
+        return expanded
+
+    def _get_user_view_menu_names(self, permission_name: str) -> set[str]:
         base_query = (
             self.session.query(self.viewmenu_model.name)
             .join(self.permissionview_model)
@@ -3204,13 +3553,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             # [database].[schema] matches when no catalog is specified, or when the user
             # specifies the default catalog
-            if len(parts) == 2 and (catalog is None or catalog == default_catalog):
+            if len(parts) == 2 and (
+                catalog is None
+                or self._catalogs_equal(database, catalog, default_catalog)
+            ):
                 accessible_schemas.add(parts[1])
 
             # [database].[catalog].[schema] matches when the catalog is equal to the
             # requested catalog or, when no catalog specified, it's equal to the default
             # catalog.
-            elif len(parts) == 3 and parts[1] == catalog:
+            elif len(parts) == 3 and self._catalogs_equal(database, parts[1], catalog):
                 accessible_schemas.add(parts[2])
 
         # datasource_access
@@ -3282,7 +3634,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.session.query(SqlaTable.schema)
+                self.session.query(SqlaTable.catalog)
                 .filter(SqlaTable.database_id == database.id)
                 .filter(or_(SqlaTable.perm.in_(perms)))  # type: ignore[union-attr]
                 .distinct()
@@ -3294,6 +3646,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     if (table.catalog or default_catalog)
                 }
             )
+
+        if database.db_engine_spec.case_insensitive_catalogs:
+            # the candidates come from the catalog listing, while the default
+            # catalog and the catalog of datasets can be spelled in another case
+            accessible = {catalog.upper() for catalog in accessible_catalogs}
+            return {catalog for catalog in catalogs if catalog.upper() in accessible}
 
         return catalogs & accessible_catalogs
 
@@ -3325,7 +3683,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         catalog = catalog or database.get_default_catalog()
         if catalog:
             catalog_perm = self.get_catalog_perm(database.database_name, catalog)
-            if catalog_perm and self.can_access("catalog_access", catalog_perm):
+            if catalog_perm and self.can_access_catalog_scoped(
+                database,
+                "catalog_access",
+                catalog_perm,
+            ):
                 return datasource_names
 
         if schema:
@@ -3334,7 +3696,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 catalog,
                 schema,
             )
-            if schema_perm and self.can_access("schema_access", schema_perm):
+            if schema_perm and self.can_access_catalog_scoped(
+                database,
+                "schema_access",
+                schema_perm,
+            ):
                 return datasource_names
 
         user_perms = self.user_view_menu_names("datasource_access")
@@ -3871,6 +4237,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             mapper, connection, old_database_name, target
         )
         self._sync_loaded_dataset_perms(connection, target)
+        # Saved-query-backed charts carry the saved query's computed perm
+        # strings as well (see ``saved_query_before_update``), and the dataset
+        # walk above never reaches them: there is no PVM to rename, so rewrite
+        # the chart rows directly.
+        self._update_saved_query_chart_perms(connection, target)
         # Note schema permissions are updated at the API level
         # (database.commands.update). Since we need to fetch all existing schemas from
         # the db
@@ -3944,6 +4315,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_id: int,
         database_name: str,
     ) -> None:
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
         view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
         self._delete_pvm_on_sqla_event(
@@ -3960,10 +4335,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.permission_model.name == "catalog_access",
                 )
             )
-            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
+            .filter(
+                self.viewmenu_model.name.startswith(
+                    f"[{database_name}].[", autoescape=True
+                )
+            )
             .all()
         )
+        # A different database can extend the same bracket-delimited prefix.
+        foreign_prefixes = [
+            f"[{name}]."
+            for (name,) in self.session.query(Database.database_name).filter(
+                Database.id != database_id,
+                Database.database_name.startswith(
+                    f"{database_name}].", autoescape=True
+                ),
+            )
+        ]
         for schema_pvm in schema_pvms:
+            if any(
+                schema_pvm.view_menu.name.startswith(prefix)
+                for prefix in foreign_prefixes
+            ):
+                continue
             self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
 
     def _update_vm_database_access(
@@ -3999,13 +4393,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_updated_pvm = self.find_permission_view_menu(
             "database_access", new_view_menu_name
         )
-        if new_updated_pvm:
+        if new_updated_pvm and new_updated_pvm.id != db_pvm.id:
             logger.info(
                 "New permission [%s] already exists, deleting the previous",
                 new_view_menu_name,
             )
-            self._delete_vm_database_access(
-                mapper, connection, target.id, old_database_name
+            # Mapper events cannot flush ORM relationship changes: merge grants
+            # through the event connection before deleting the source PVM.
+            source_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id == db_pvm.id
+                    )
+                ).scalars()
+            )
+            destination_roles = set(
+                connection.execute(
+                    select(assoc_permissionview_role.c.role_id).where(
+                        assoc_permissionview_role.c.permission_view_id
+                        == new_updated_pvm.id
+                    )
+                ).scalars()
+            )
+            for role_id in source_roles - destination_roles:
+                connection.execute(
+                    assoc_permissionview_role.insert().values(
+                        role_id=role_id, permission_view_id=new_updated_pvm.id
+                    )
+                )
+            # Leave schema/catalog grants for permission sync to migrate.
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "database_access", old_view_menu_name
             )
             return None
         connection.execute(
@@ -4883,6 +5301,223 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(perm=new_perm)
             )
 
+    def saved_query_before_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SavedQuery",
+    ) -> None:
+        """
+        Keep a saved query's dependent charts' denormalized permission
+        columns in sync when its database, catalog, or schema changes.
+
+        ``SavedQuery.perm``/``catalog_perm``/``schema_perm`` are computed
+        properties, not persisted columns (unlike ``SqlaTable`` and
+        ``SemanticView``, which each get a PVM-rename dance in
+        ``dataset_before_update``/``semantic_view_before_update``), so there
+        is no FAB ViewMenu here to rename -- saved queries never get a
+        ``datasource_access`` PVM of their own. But ``Slice``'s
+        ``before_insert``/``before_update`` listener (``set_related_perm``)
+        copies those computed strings onto the chart at save time, and
+        nothing re-copies them if the saved query moves afterwards: a chart
+        would otherwise keep matching stale schema/catalog grants
+        indefinitely. This is the dependent-chart half of
+        ``semantic_view_before_update``, without the PVM-rename half.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.sql_lab import SavedQuery
+
+        sq_table = SavedQuery.__table__  # pylint: disable=no-member
+        current = connection.execute(
+            sq_table.select().where(sq_table.c.id == target.id)
+        ).one()
+
+        if (
+            current.db_id == target.db_id
+            and current.catalog == target.catalog
+            and current.schema == target.schema
+        ):
+            return
+
+        if target.database is None:
+            return
+
+        # Skip the perm computation (which may hit the warehouse via
+        # ``get_default_catalog``) when no chart references this saved query.
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        has_charts = connection.execute(
+            select(chart_table.c.id)
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id == target.id,
+            )
+            .limit(1)
+        ).first()
+        if has_charts is None:
+            return
+
+        self._sync_saved_query_chart_perms(connection, target, target.database)
+
+    def _saved_query_chart_perm_values(
+        self,
+        saved_query: "SavedQuery",
+        database: "Database",
+        default_catalog: Optional[str] = None,
+    ) -> dict[str, Optional[str]]:
+        """
+        Compute the denormalized ``perm``/``catalog_perm``/``schema_perm`` a
+        chart backed by ``saved_query`` should carry, given ``database``.
+
+        ``database`` is passed explicitly rather than read off the saved query
+        because callers run inside a flush: ``SavedQuery.before_update`` may
+        have just reloaded it from a changed ``db_id``, and on a database
+        rename (``database_after_update``) the new ``database_name`` only
+        exists on the in-memory target.
+
+        ``default_catalog`` lets callers that resolve many saved queries
+        against one database look the default catalog up once (it can be a
+        warehouse round trip); when omitted it is resolved lazily, and only
+        for a saved query whose own ``catalog`` is unset.
+        """
+        database_name = database.database_name
+        catalog = saved_query.catalog or default_catalog
+        if catalog is None and not saved_query.catalog:
+            catalog = database.get_default_catalog()
+        return {
+            "perm": f"[{database_name}].[{saved_query.name}](id:{saved_query.id})",
+            "catalog_perm": self.get_catalog_perm(database_name, catalog),
+            "schema_perm": self.get_schema_perm(
+                database_name, catalog, saved_query.schema
+            ),
+        }
+
+    def _sync_saved_query_chart_perms(
+        self,
+        connection: Connection,
+        saved_query: "SavedQuery",
+        database: "Database",
+        default_catalog: Optional[str] = None,
+    ) -> None:
+        """Re-copy ``saved_query``'s perm strings onto its dependent charts."""
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id == saved_query.id,
+            )
+            .values(
+                **self._saved_query_chart_perm_values(
+                    saved_query, database, default_catalog
+                )
+            )
+        )
+
+    def sync_database_saved_query_chart_perms(
+        self,
+        connection: Connection,
+        database: "Database",
+    ) -> None:
+        """
+        Re-copy perm strings onto the charts of every saved query on
+        ``database`` that has dependent charts.
+
+        Only saved queries referenced by a chart are loaded, and the default
+        catalog is resolved at most once, so a database with many historical
+        saved queries does not trigger a per-query warehouse round trip.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+        from superset.models.sql_lab import SavedQuery
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        chart_ids = (
+            select(chart_table.c.datasource_id)
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id.is_not(None),
+            )
+            .scalar_subquery()
+        )
+        saved_queries = (
+            self.session.query(SavedQuery)
+            .filter(SavedQuery.db_id == database.id, SavedQuery.id.in_(chart_ids))
+            .all()
+        )
+        if not saved_queries:
+            return
+        default_catalog = (
+            database.get_default_catalog()
+            if any(not saved_query.catalog for saved_query in saved_queries)
+            else None
+        )
+        for saved_query in saved_queries:
+            self._sync_saved_query_chart_perms(
+                connection, saved_query, database, default_catalog
+            )
+
+    def _update_saved_query_chart_perms(
+        self,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Rewrite the denormalized perm columns on every chart backed by one of
+        ``target``'s saved queries after the database is renamed.
+
+        ``_update_vm_datasources_access`` only walks datasets, so saved-query
+        charts would otherwise keep their ``[old_name].[...]`` strings and
+        match a schema or catalog grant on an unrelated connection that later
+        takes the old name.
+        """
+        self.sync_database_saved_query_chart_perms(connection, target)
+
+    def saved_query_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SavedQuery",
+    ) -> None:
+        """
+        Detach a deleted saved query's dependent charts.
+
+        ``slices`` has no foreign key to ``saved_query``, so an ORM delete of
+        a saved query would otherwise leave its charts pointing at a dead
+        ``datasource_id`` with the saved query's ``perm``/``catalog_perm``/
+        ``schema_perm`` still denormalized on the row: a surviving schema or
+        catalog grant would keep listing a chart whose datasource no longer
+        resolves, and on a backend that reuses ids a later saved query could
+        be silently adopted by the orphaned chart. Clear the datasource
+        reference and the perm columns the way the dataset purge detaches a
+        purged dataset's charts (``_detach_dataset_charts``); no chart is
+        deleted. There is no PVM to drop here, unlike
+        ``dataset_after_delete``/``semantic_view_after_delete``, because a
+        saved query never gets a ``datasource_access`` ViewMenu of its own.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id == target.id,
+            )
+            .values(
+                datasource_id=None,
+                perm=None,
+                catalog_perm=None,
+                schema_perm=None,
+            )
+        )
+
     def semantic_view_after_delete(
         self,
         mapper: Mapper,
@@ -5302,18 +5937,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if sql and database:
             query = Query(
-                database=database,
                 sql=sql,
                 schema=schema,
                 catalog=catalog,
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            # This ephemeral Query must never be persisted; with
-            # cascade_backrefs=False it is not added to the session in the
-            # first place, so only expunge if something else added it.
-            if query in self.session:
-                self.session.expunge(query)
+            # Avoid backref events: a read-only access check must not dirty the
+            # database and evict its cached engines on the next session flush.
+            set_committed_value(query, "database", database)
 
         # When only ``database`` is provided, enforce database-level access
         # here so the call is not a no-op.
@@ -5614,7 +6246,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         database.database_name,
                         effective_catalog,
                     )
-                    if catalog_perm and self.can_access("catalog_access", catalog_perm):
+                    if catalog_perm and self.can_access_catalog_scoped(
+                        database,
+                        "catalog_access",
+                        catalog_perm,
+                    ):
                         continue
 
                     schema_perm = self.get_schema_perm(
@@ -5622,7 +6258,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         effective_catalog,
                         table_.schema,
                     )
-                    if schema_perm and self.can_access("schema_access", schema_perm):
+                    if schema_perm and self.can_access_catalog_scoped(
+                        database,
+                        "schema_access",
+                        schema_perm,
+                    ):
                         continue
 
                 # Under strict scoping, refuse tables whose schema we could
@@ -6066,15 +6706,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             datasource.type == DatasourceType.SEMANTIC_VIEW
             and self.get_guest_rls_filters(datasource)
         ):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                    message=_(
-                        "Semantic views cannot enforce guest row-level security rules."
-                    ),
-                    level=ErrorLevel.WARNING,
-                )
-            )
+            raise SemanticViewGuestRLSUnsupportedError()
 
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource | Explorable"
@@ -6399,6 +7031,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         rls: list[GuestTokenRlsRule],
         datasets: Optional[list[int]] = None,
     ) -> bytes:
+        enforce_guest_token_identity(user, resources)
         secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
         algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = get_conf()["GUEST_TOKEN_JWT_EXP_SECONDS"]
@@ -6457,6 +7090,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain a user claim")
             if token.get("resources") is None:
                 raise ValueError("Guest token does not contain a resources claim")
+            enforce_guest_token_identity(token["user"], token["resources"])
             if token.get("rls_rules") is None:
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("type") != "guest":
@@ -6626,20 +7260,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         resource," so it's rejected for anyone else rather than guessed at.
         Unrecognized scope strings are rejected outright (fail closed).
 
-        NOTE: this only prevents the request from being honored; it does
-        not (yet) produce a clean 400 response, since FAB's ``ApiKeyApi``
-        has no validation hook this can plug into without replacing the API
-        registration entirely. Raising here surfaces as a 500 via FAB's
-        ``@safe`` decorator until that's addressed — tracked as a known
-        follow-up, not silently accepted.
+        Raises ``ApiKeyScopeError`` (a ``ValueError`` and a ``BadRequest``), so
+        FAB's ``ApiKeyApi`` answers with a 400 carrying the reason instead of
+        a generic 500.
         """
         if not scopes:
             return
         # pylint: disable-next=import-outside-toplevel
         from superset.security.api_key_scopes import (
+            ApiKeyScopeError,
             RESOURCE_SCOPE_ACTIONS,
             RESOURCE_SCOPE_CLASS,
-            SCOPE_ACTION_METHOD_PERMISSIONS,
         )
 
         admin_role_name = get_conf()["AUTH_ROLE_ADMIN"]
@@ -6655,21 +7286,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 _, resource_slug, action = parts
                 class_permission_name = RESOURCE_SCOPE_CLASS.get(resource_slug)
                 if class_permission_name is None:
-                    raise ValueError(
+                    raise ApiKeyScopeError(
                         f"Requested scope '{scope}' names an unrecognized "
                         f"resource '{resource_slug}'"
                     )
                 if action not in RESOURCE_SCOPE_ACTIONS:
-                    raise ValueError(
+                    raise ApiKeyScopeError(
                         f"Requested scope '{scope}' names an unrecognized "
                         f"action '{action}'"
                     )
-                if any(
-                    self._has_view_access(user, f"can_{method}", class_permission_name)
-                    for method in SCOPE_ACTION_METHOD_PERMISSIONS[action]
+                if self._user_can_issue_resource_scope(
+                    lambda permission, view: self._has_view_access(
+                        user, permission, view
+                    ),
+                    class_permission_name,
+                    action,
                 ):
                     continue
-                raise ValueError(
+                raise ApiKeyScopeError(
                     f"Requested scope '{scope}' exceeds the issuing user's "
                     "own permissions"
                 )
@@ -6680,11 +7314,62 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and is_admin
             ):
                 continue
-            raise ValueError(
+            raise ApiKeyScopeError(
                 f"Requested scope '{scope}' is not a recognized "
                 "superset:<resource>:<action> scope, or requires Admin to "
                 "self-issue as a flat scope"
             )
+
+    @staticmethod
+    def _user_can_issue_resource_scope(
+        has_access: Callable[[str, str], bool],
+        class_permission_name: str,
+        action: str,
+    ) -> bool:
+        """Whether ``has_access`` grants a method behind ``<resource>:<action>``.
+
+        The single rule shared by ``_validate_requested_api_key_scopes`` and
+        ``get_allowed_api_key_scopes``, so what the UI offers and what
+        ``create_api_key`` accepts cannot drift apart. ``has_access`` takes
+        ``(permission_name, view_name)``.
+        """
+        # pylint: disable-next=import-outside-toplevel
+        from superset.security.api_key_scopes import SCOPE_ACTION_METHOD_PERMISSIONS
+
+        return any(
+            has_access(f"can_{method}", class_permission_name)
+            for method in SCOPE_ACTION_METHOD_PERMISSIONS[action]
+        )
+
+    def get_allowed_api_key_scopes(self, user: Any) -> list[str]:
+        """Return the per-resource API-key scopes ``user`` may self-issue.
+
+        Walks the canonical ``superset:<resource>:<action>`` catalog and keeps
+        every scope the user's permissions cover, using the same rule as
+        ``_validate_requested_api_key_scopes``. The user's (permission, view)
+        pairs are loaded once (one query per role) and checked in memory
+        instead of one query per catalog scope. Lets the API-key UI offer
+        only scopes the user can actually obtain instead of the full catalog.
+        """
+        # pylint: disable-next=import-outside-toplevel
+        from superset.security.api_key_scopes import (
+            RESOURCE_SCOPE_ACTIONS,
+            RESOURCE_SCOPE_CLASS,
+        )
+
+        granted = self.get_user_permissions(user)
+
+        def has_access(permission: str, view: str) -> bool:
+            return (permission, view) in granted
+
+        return [
+            f"superset:{resource}:{action}"
+            for resource, class_permission_name in RESOURCE_SCOPE_CLASS.items()
+            for action in sorted(RESOURCE_SCOPE_ACTIONS)
+            if self._user_can_issue_resource_scope(
+                has_access, class_permission_name, action
+            )
+        ]
 
     def create_api_key(
         self,
@@ -6696,8 +7381,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """Create a new API key, enforcing the scope-intersection rule.
 
         Thin wrapper around FAB's ``SecurityManager.create_api_key`` — see
-        ``_validate_requested_api_key_scopes`` for the actual check. FAB's
-        base implementation is otherwise unchanged.
+        ``_validate_requested_api_key_scopes`` for the actual check. A
+        rejected scope raises ``ApiKeyScopeError``, a ``BadRequest`` that
+        FAB's ``ApiKeyApi`` (whose ``@safe`` decorator maps it to a 400)
+        reports to the caller rather than failing with a 500. FAB's base
+        implementation is otherwise unchanged.
         """
         self._validate_requested_api_key_scopes(user, scopes)
         return super().create_api_key(  # type: ignore[misc]
@@ -6724,10 +7412,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # no JWT/guest token definitionally cannot be an embedded guest
             # viewer, so returning ``False`` is the semantically correct answer.
             try:
-                if not get_current_user():
-                    return False
-                user = g.user
+                # Evaluating the current user is what may raise; its username is
+                # deliberately not consulted, as guest tokens may carry any
+                # username value (including an empty one).
+                get_current_user()
+                user = getattr(g, "user", None)
             except NoAuthorizationError:
+                return False
+            if not user:
                 return False
 
         return hasattr(user, "is_guest_user") and user.is_guest_user

@@ -23,9 +23,11 @@ import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
 
 import {
+  act,
   render,
   screen,
   fireEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
@@ -109,6 +111,53 @@ test('Renders the dashboard title', () => {
   expect(titleElement).toBeInTheDocument();
 });
 
+test.each([true, false])(
+  'keyboard reaches permission hints before opening the menu (soft delete=%s)',
+  async enabled => {
+    mockedIsFeatureEnabled.mockReturnValue(enabled);
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardCard
+          dashboard={mockDashboard}
+          hasPerm={mockHasPerm}
+          bulkSelectEnabled={false}
+          loading={false}
+          favoriteStatus={false}
+          saveFavoriteStatus={mockSaveFavoriteStatus}
+          handleBulkDashboardExport={mockHandleBulkDashboardExport}
+          onDelete={mockOnDelete}
+          openDashboardEditModal={mockOpenDashboardEditModal}
+          user={nonEditorUser}
+        />
+      </MemoryRouter>,
+    );
+    const menuButton = within(container).getByTestId('dashboard-card-menu');
+    // Native Tab keyCode matters: rc-dropdown consumes keyCode 9 while open.
+    for (let i = 0; i < 20 && document.activeElement !== menuButton; i += 1) {
+      fireEvent.keyDown(document.activeElement!, {
+        key: 'Tab',
+        code: 'Tab',
+        keyCode: 9,
+        which: 9,
+      });
+      await userEvent.tab();
+      fireEvent.keyUp(document.activeElement!, {
+        key: 'Tab',
+        code: 'Tab',
+        keyCode: 9,
+        which: 9,
+      });
+    }
+    expect(menuButton).toHaveFocus();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('in order to edit.');
+    expect(tooltip).toHaveTextContent(
+      `in order to ${enabled ? 'archive' : 'delete'}.`,
+    );
+  },
+);
+
 test.each([
   [true, 'archive'],
   [false, 'delete'],
@@ -142,6 +191,9 @@ test.each([
     expect(archiveButton).toBeDisabled();
     const editButton = screen.getByTestId('dashboard-card-option-edit-button');
     expect(editButton).toBeDisabled();
+    expect(editButton.parentElement).not.toHaveAttribute('tabindex');
+    expect(archiveButton.parentElement).not.toHaveAttribute('tabindex');
+
     expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
       target: ':disabled',
     });
@@ -240,7 +292,7 @@ describe('thumbnail URL construction', () => {
       </MemoryRouter>,
     );
 
-  test('constructs thumbnail URL from dashboard id and changed_on_utc', () => {
+  test('constructs thumbnail URL from dashboard id and changed_on_utc', async () => {
     renderCard({
       id: 2,
       changed_by_name: '',
@@ -252,12 +304,17 @@ describe('thumbnail URL construction', () => {
       changed_on_utc: '2024-01-01T00:00:00',
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/api\/v1\/dashboard\/2\/thumbnail\/2024-01-01T00%3A00%3A00\/$/,
+        ),
+        expect.objectContaining({ method: 'GET' }),
+      ),
     );
   });
 
-  test('falls back to changed_on when changed_on_utc is absent', () => {
+  test('falls back to changed_on when changed_on_utc is absent', async () => {
     renderCard({
       id: 3,
       changed_by_name: '',
@@ -269,12 +326,17 @@ describe('thumbnail URL construction', () => {
       changed_on: '2024-06-01T12:00:00',
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/v1/dashboard/3/thumbnail/2024-06-01T12%3A00%3A00/',
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/api\/v1\/dashboard\/3\/thumbnail\/2024-06-01T12%3A00%3A00\/$/,
+        ),
+        expect.objectContaining({ method: 'GET' }),
+      ),
     );
   });
 
-  test('renders no thumbnail when both changed_on_utc and changed_on are absent', () => {
+  test('renders no thumbnail when both changed_on_utc and changed_on are absent', async () => {
     renderCard({
       id: 4,
       changed_by_name: '',
@@ -283,6 +345,12 @@ describe('thumbnail URL construction', () => {
       published: false,
       url: '/dashboard/4',
       editors: [aliceEditor, bobEditor],
+    });
+
+    // The thumbnail request starts asynchronously (after auth), so drain
+    // pending effects and promises before asserting nothing was fetched.
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     expect(fetchSpy).not.toHaveBeenCalled();

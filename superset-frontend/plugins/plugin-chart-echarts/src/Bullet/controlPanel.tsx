@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  ControlPanelState,
+} from '@superset-ui/chart-controls';
+import { boundMetricControl } from '../utils/metricBounds';
 
 // Control names match the legacy nvd3 bullet chart so saved charts keep
 // working without a form-data migration.
@@ -26,7 +30,21 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['metric'], ['groupby'], ['adhoc_filters']],
+      controlSetRows: [
+        ['metric'],
+        [
+          boundMetricControl(
+            'target_metric',
+            t('Target from metric'),
+            t(
+              'Optional metric drawn as a target tick on each row, using ' +
+                "that row's own value, e.g. a per-region quota.",
+            ),
+          ),
+        ],
+        ['groupby'],
+        ['adhoc_filters'],
+      ],
     },
     {
       label: t('Chart Options'),
@@ -56,6 +74,42 @@ const config: ControlPanelConfig = {
                 'Comma-separated text labels, one per range value',
               ),
               visibility: ({ controls }) => Boolean(controls?.ranges?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'ranges_relative',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Ranges as % of target'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Read ranges as percentages of each row's target, e.g. 50,90,120, so the bands scale with each row. Requires Target from metric.",
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.target_metric?.value),
+            },
+          },
+          {
+            name: 'range_colors',
+            config: {
+              type: 'BulletRangeColorsControl',
+              label: t('Range colors'),
+              default: [],
+              renderTrigger: true,
+              description: t(
+                'Optional custom color for each range band, e.g. to match a brand palette. Bands left unset use the default shading.',
+              ),
+              visibility: ({ controls }) => Boolean(controls?.ranges?.value),
+              // Clearing the `ranges` text hides this control while it is
+              // being retyped; keep the picked colors across that hide.
+              resetOnHide: false,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: (state: ControlPanelState) => ({
+                ranges: state?.controls?.ranges?.value as string,
+              }),
             },
           },
         ],
