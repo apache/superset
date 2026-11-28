@@ -165,9 +165,11 @@ describe('BigNumberWithTrendline', () => {
       );
     });
 
-    test('should respect datasource d3 format', () => {
+    test('should fall back to datasource d3 format without a chart format', () => {
       const propsWithDatasource = {
         ...props,
+        formData: { ...props.formData, yAxisFormat: undefined },
+        rawFormData: { ...props.rawFormData, y_axis_format: undefined },
         datasource: {
           ...props.datasource,
           metrics: [
