@@ -68,6 +68,7 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
         with:
+          develocity-access-key: ${{ github.repository == 'apache/superset' && secrets.DEVELOCITY_ACCESS_KEY || '' }}
           python-version: ${{ matrix.python-version }}
       - name: Verify Teams SDK is available for authentication and delivery tests
         run: python -c "import microsoft_teams.apps"
