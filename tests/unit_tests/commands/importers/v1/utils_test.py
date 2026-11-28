@@ -217,14 +217,15 @@ class TestLoadYaml:
             load_yaml("test.yaml", 'key: "unterminated string')
 
 
-def _assert_logged_as_warning(caplog: pytest.LogCaptureFixture, fragment: str) -> None:
+def _assert_logged_as_info(caplog: pytest.LogCaptureFixture, fragment: str) -> None:
     """Expected, user-input validation failures are already surfaced to the
-    client as a 422; they must be logged at WARNING, never ERROR, so they do
-    not show up as error events in log-based alerting."""
+    client as a 422; they must be logged at INFO, never WARNING/ERROR, since
+    Sentry's logging integration forwards WARNING+ records as events
+    regardless of the eventual HTTP status."""
     matching = [r for r in caplog.records if fragment in r.getMessage()]
     assert matching, f"no log record containing {fragment!r}"
-    assert all(r.levelno == logging.WARNING for r in matching)
-    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert all(r.levelno == logging.INFO for r in matching)
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
 
 
 class TestLoadConfigs:
@@ -283,7 +284,7 @@ class TestLoadConfigs:
         }
         exceptions: list[ValidationError] = []
 
-        caplog.set_level(logging.WARNING)
+        caplog.set_level(logging.INFO)
         configs = load_configs(
             contents=contents,
             schemas={"databases/": self._trivial_schema()},
@@ -302,7 +303,7 @@ class TestLoadConfigs:
         assert isinstance(exceptions[0], ValidationError)
         assert file_name in exceptions[0].messages
         assert "masked_encrypted_extra" in exceptions[0].messages[file_name]
-        _assert_logged_as_warning(caplog, "Invalid JSON in masked_encrypted_extra")
+        _assert_logged_as_info(caplog, "Invalid JSON in masked_encrypted_extra")
 
     @pytest.mark.parametrize("secrets", ["a-secret", ["a-secret"], None])
     @patch("superset.commands.importers.v1.utils.db")
@@ -422,7 +423,7 @@ class TestLoadConfigs:
     ) -> None:
         """An SSH tunnel password supplied for a config that has no
         ``ssh_tunnel`` section hits a raw KeyError before schema validation;
-        it is collected as a ValidationError and logged at WARNING."""
+        it is collected as a ValidationError and logged at INFO."""
         from marshmallow.exceptions import ValidationError
 
         from superset.commands.importers.v1.utils import load_configs
@@ -440,7 +441,7 @@ class TestLoadConfigs:
         }
         exceptions: list[ValidationError] = []
 
-        caplog.set_level(logging.WARNING)
+        caplog.set_level(logging.INFO)
         configs = load_configs(
             contents,
             self._database_schemas(),
@@ -457,14 +458,14 @@ class TestLoadConfigs:
         assert exceptions[0].messages == {
             file_name: {"ssh_tunnel": ["Missing data for required field."]}
         }
-        _assert_logged_as_warning(caplog, "Missing required key")
+        _assert_logged_as_info(caplog, "Missing required key")
 
     @patch("superset.commands.importers.v1.utils.db")
     def test_schema_validation_failure_logged_as_warning(
         self, mock_db: MagicMock, caplog: pytest.LogCaptureFixture
     ) -> None:
         """A config failing marshmallow schema validation (e.g. a missing
-        required field) is collected and logged at WARNING, not ERROR."""
+        required field) is collected and logged at INFO, not WARNING/ERROR."""
         from marshmallow.exceptions import ValidationError
 
         from superset.commands.importers.v1.utils import load_configs
@@ -480,7 +481,7 @@ class TestLoadConfigs:
         }
         exceptions: list[ValidationError] = []
 
-        caplog.set_level(logging.WARNING)
+        caplog.set_level(logging.INFO)
         configs = load_configs(
             contents,
             self._database_schemas(),
@@ -499,7 +500,7 @@ class TestLoadConfigs:
                 "sqlalchemy_uri": ["Missing data for required field."]
             }
         }
-        _assert_logged_as_warning(caplog, "Schema validation failed")
+        _assert_logged_as_info(caplog, "Schema validation failed")
 
     @patch("superset.commands.importers.v1.utils.db")
     def test_uuid_present_loads_successfully(self, mock_db: MagicMock) -> None:

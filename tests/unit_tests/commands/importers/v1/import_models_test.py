@@ -41,42 +41,43 @@ class _ImportThingsCommand(ImportModelsCommand):
     schemas = {"things/": _ThingSchema()}
 
 
-def _assert_only_warnings(caplog: pytest.LogCaptureFixture, fragment: str) -> None:
+def _assert_only_info(caplog: pytest.LogCaptureFixture, fragment: str) -> None:
     matching = [r for r in caplog.records if fragment in r.getMessage()]
     assert matching, f"no log record containing {fragment!r}"
-    assert all(r.levelno == logging.WARNING for r in matching)
-    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert all(r.levelno == logging.INFO for r in matching)
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
 
 
 @patch.object(_ImportThingsCommand, "_get_uuids", return_value=set())
 @patch("superset.commands.importers.v1.utils.db")
-def test_validate_logs_per_file_failures_as_warning(
+def test_validate_logs_per_file_failures_as_info(
     mock_db: Any, mock_get_uuids: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Per-file validation failures are returned to the client as a 422
-    (CommandInvalidError), so logging them is informational: WARNING, not
-    ERROR."""
+    (CommandInvalidError), so logging them is informational: INFO, not
+    WARNING/ERROR, since Sentry's logging integration forwards WARNING+
+    records as events regardless of the eventual HTTP status."""
     mock_db.session.query.return_value.all.return_value = []
     contents = {
         "metadata.yaml": METADATA,
         "things/thing.yaml": "uuid: 6ff1d5b3-4b0f-4c6a-9d2f-9c8b7a6e5d4c\n",
     }
 
-    caplog.set_level(logging.WARNING)
+    caplog.set_level(logging.INFO)
     with pytest.raises(CommandInvalidError) as excinfo:
         _ImportThingsCommand(contents).validate()
 
     assert excinfo.value.status == 422
-    _assert_only_warnings(caplog, "Validation failed for things/thing.yaml")
+    _assert_only_info(caplog, "Validation failed for things/thing.yaml")
 
 
 @patch.object(_ImportThingsCommand, "_get_uuids", return_value=set())
 @patch("superset.commands.importers.v1.load_configs")
-def test_validate_logs_non_mapping_errors_as_warning(
+def test_validate_logs_non_mapping_errors_as_info(
     mock_load_configs: Any, mock_get_uuids: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
     """ValidationErrors whose messages are not keyed by file name take the
-    fallback branch, which is also logged at WARNING."""
+    fallback branch, which is also logged at INFO."""
 
     def _load_configs(
         contents: Any, schemas: Any, passwords: Any, exceptions: Any, *args: Any
@@ -86,8 +87,8 @@ def test_validate_logs_non_mapping_errors_as_warning(
 
     mock_load_configs.side_effect = _load_configs
 
-    caplog.set_level(logging.WARNING)
+    caplog.set_level(logging.INFO)
     with pytest.raises(CommandInvalidError):
         _ImportThingsCommand({"metadata.yaml": METADATA}).validate()
 
-    _assert_only_warnings(caplog, "Import validation error")
+    _assert_only_info(caplog, "Import validation error")
