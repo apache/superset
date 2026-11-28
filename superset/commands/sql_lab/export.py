@@ -26,6 +26,7 @@ from jinja2.exceptions import TemplateError
 
 from superset import db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.models.sql_lab import Query
@@ -134,11 +135,30 @@ class SqlResultExportCommand(BaseCommand):
             }:
                 # remove extra row from `increased_limit`
                 limit -= 1
-            df = self._query.database.get_df(
-                sql,
-                self._query.catalog,
-                self._query.schema,
-            )[:limit]
+            try:
+                df = self._query.database.get_df(
+                    sql,
+                    self._query.catalog,
+                    self._query.schema,
+                )[:limit]
+            except SupersetDBAPIError as ex:
+                # Re-running the query to build the CSV can fail for reasons the
+                # original SQL Lab execution never hit, e.g. a result large enough
+                # to need export is also large enough to trip an engine-side limit
+                # (such as Trino's 10k-entry cap on `sequence()`). That's a query
+                # problem, not a Superset bug, so surface it as a clean 4xx instead
+                # of letting the raw DBAPI error reach the generic 500 handler.
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__(
+                            "Could not export results to CSV: %(error)s",
+                            error=str(ex),
+                        ),
+                        error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                        level=ErrorLevel.WARNING,
+                    ),
+                    status=400,
+                ) from ex
 
         # Manual encoding using the specified encoding (default to utf-8 if not set)
         csv_string = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])
