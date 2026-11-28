@@ -79,7 +79,8 @@ def test_tag_latest_release_reads_every_decoration(tag, expected_output):
     has to be considered, not just the first one.
     """
     result = BashMock.tag_latest_release(
-        tag, latest_tag_list="(HEAD -> master, tag: 2.1.0, tag: latest)"
+        tag, latest_tag_list="(HEAD -> master, tag: latest, tag: 2.1.0)"
     )
 
+    assert "The current release with the latest tag is version 2.1.0" in result.stdout
     assert expected_output in result.stdout
