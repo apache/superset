@@ -27,54 +27,18 @@ export interface CalHeatmapPayload {
   range: number;
 }
 
-const daysInMonth = (year: number, month: number) =>
-  new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Adds calendar months, clamping the day like dateutil.relativedelta. */
-const addMonths = (date: Date, months: number): Date => {
-  const totalMonths = date.getUTCFullYear() * 12 + date.getUTCMonth() + months;
-  const year = Math.floor(totalMonths / 12);
-  const month = totalMonths % 12;
-  const day = Math.min(date.getUTCDate(), daysInMonth(year, month));
-  return new Date(
-    Date.UTC(
-      year,
-      month,
-      day,
-      date.getUTCHours(),
-      date.getUTCMinutes(),
-      date.getUTCSeconds(),
-      date.getUTCMilliseconds(),
-    ),
-  );
-};
-
-/**
- * Calendar delta between two dates with dateutil.relativedelta semantics:
- * whole months first, then remaining days (weeks = days // 7).
- */
-export const calendarDelta = (start: Date, end: Date) => {
-  let months =
-    (end.getUTCFullYear() - start.getUTCFullYear()) * 12 +
-    (end.getUTCMonth() - start.getUTCMonth());
-  if (addMonths(start, months) > end) {
-    months -= 1;
-  }
-  const anchor = addMonths(start, months);
-  const days = Math.floor(
-    (end.getTime() - anchor.getTime()) / (24 * 60 * 60 * 1000),
-  );
-  return {
-    years: Math.trunc(months / 12),
-    months: months % 12,
-    weeks: Math.floor(days / 7),
-  };
-};
+// Index of the Monday-start week containing `ms` (cal-heatmap's default week
+// start). 1970-01-01 is a Thursday, hence the +3 day offset.
+const mondayWeekIndex = (ms: number) =>
+  Math.floor((Math.floor(ms / DAY_MS) + 3) / 7);
 
 /**
  * Ports the legacy CalHeatmapViz.get_data reshape: per-metric value maps
  * keyed by unix seconds, plus the domain range computed from the query's
- * time bounds exactly like the backend's relativedelta arithmetic.
+ * time bounds. Month and week ranges count the calendar periods touched by
+ * `[fromDttm, toDttm)`; the upper bound is exclusive.
  */
 export default function transformData(
   records: Record<string, unknown>[],
@@ -101,16 +65,24 @@ export default function transformData(
 
   const start = new Date(fromDttm);
   const end = new Date(toDttm);
-  const delta = calendarDelta(start, end);
+  // Last whole millisecond strictly below the exclusive `toDttm` bound. The
+  // ceil keeps a fractional bound just above a boundary inside the period
+  // that boundary starts.
+  const lastMs = Math.max(Math.ceil(toDttm) - 1, fromDttm);
+  const last = new Date(lastMs);
   const diffSecs = (toDttm - fromDttm) / 1000;
 
   let range: number;
   if (domain === 'year') {
     range = end.getUTCFullYear() - start.getUTCFullYear() + 1;
   } else if (domain === 'month') {
-    range = delta.years * 12 + delta.months + 1;
+    range =
+      (last.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      last.getUTCMonth() -
+      start.getUTCMonth() +
+      1;
   } else if (domain === 'week') {
-    range = delta.years * 53 + delta.weeks + 1;
+    range = mondayWeekIndex(lastMs) - mondayWeekIndex(fromDttm) + 1;
   } else if (domain === 'day') {
     range = Math.floor(diffSecs / (24 * 60 * 60)) + 1;
   } else {
