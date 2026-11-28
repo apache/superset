@@ -103,6 +103,11 @@ const TagModal: FC<TagModalProps> = ({
     setSavedQueriesToTag([]);
   };
 
+  const handleHide = () => {
+    if (clearOnHide) clearTagForm();
+    onHide();
+  };
+
   useEffect(() => {
     const resourceMap: { [key: string]: TaggableResourceOption[] } = {
       [TaggableResources.Dashboard]: [],
@@ -275,17 +280,14 @@ const TagModal: FC<TagModalProps> = ({
           title={isEditMode ? t('Edit Tag') : t('Create Tag')}
         />
       }
-      onHide={() => {
-        if (clearOnHide) clearTagForm();
-        onHide();
-      }}
+      onHide={handleHide}
       show={show}
       footer={
         <div>
           <Button
             data-test="modal-save-dashboard-button"
             buttonStyle="secondary"
-            onClick={onHide}
+            onClick={handleHide}
           >
             {t('Cancel')}
           </Button>

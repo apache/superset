@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import TagModal from 'src/features/tags/TagModal';
 import fetchMock from 'fetch-mock';
 import { Tag } from 'src/views/CRUD/types';
@@ -30,6 +36,11 @@ const mockedProps = {
 };
 
 const fetchEditFetchObjects = `glob:*/api/v1/tag/get_objects/?tags=*`;
+
+fetchMock.get('glob:*/api/v1/chart/?q=*', {
+  count: 1,
+  result: [{ id: 1, slice_name: 'Sales chart' }],
+});
 
 test('should render', () => {
   const { container } = render(<TagModal {...mockedProps} />);
@@ -49,6 +60,40 @@ test('description input has an accessible name', async () => {
   render(<TagModal {...mockedProps} />);
   expect(await screen.findByLabelText('Tag description')).toBeInTheDocument();
 });
+
+test.each(['Cancel', 'Save', 'Close'])(
+  'reopening the create form after %s clears the name and chart',
+  async action => {
+    if (action === 'Save') {
+      fetchMock.post('glob:*/api/v1/tag/', { id: 1 });
+    }
+    const onHide = jest.fn();
+    const { rerender } = render(
+      <TagModal {...mockedProps} onHide={onHide} clearOnHide />,
+    );
+
+    await userEvent.type(screen.getByLabelText('Tag name'), 'Draft tag');
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Select charts' }),
+    );
+    await userEvent.click(await screen.findByText('Sales chart'));
+    expect(
+      within(screen.getByRole('dialog')).getByText('Sales chart'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: action }));
+    await waitFor(() => expect(onHide).toHaveBeenCalledTimes(1));
+    rerender(
+      <TagModal {...mockedProps} onHide={onHide} clearOnHide show={false} />,
+    );
+    rerender(<TagModal {...mockedProps} onHide={onHide} clearOnHide />);
+
+    expect(screen.getByLabelText('Tag name')).toHaveValue('');
+    expect(
+      within(screen.getByRole('dialog')).queryByText('Sales chart'),
+    ).not.toBeInTheDocument();
+  },
+);
 
 test('renders correctly in edit mode', () => {
   fetchMock.get(fetchEditFetchObjects, [[]]);
