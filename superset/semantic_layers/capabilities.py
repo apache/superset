@@ -35,3 +35,8 @@ def supported_view_features(declarations: object) -> frozenset[SemanticViewFeatu
         if isinstance(feature, SemanticViewFeature)
         and feature is not SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS
     )
+
+
+def supported_view_feature_names(declarations: object) -> frozenset[str]:
+    """Serialize supported SDK features consistently across metadata payloads."""
+    return frozenset(feature.value for feature in supported_view_features(declarations))

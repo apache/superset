@@ -401,6 +401,46 @@ reserved member. Existing unsupported expressions are not converted or saved
 automatically; choose a saved dimension instead. Ordinary SQL datasets retain
 their expression modes.
 
+### Host operation metadata
+
+The authorized datasource-info endpoint (`GET /api/v1/datasource/<type>/<id>`)
+also exposes an optional `capabilities.operations` list. These host operations
+are distinct from SDK `features`: `RAW_ROWS`, `ADHOC_METRICS`, `SAMPLES`,
+`DRILL_TO_DETAIL`, and `SQL_LAB`. SQL Lab means executable SQL hand-off, not a
+promise of non-executing SQL preview. Ad-hoc metrics do not imply saved metrics
+or metric/dimension compatibility discovery.
+
+SQL datasets and SQL Lab queries declare SQL operations. Semantic views expose
+their provider's recognized SDK features through the model adapter rather than
+an endpoint rule that infers capabilities from the source type. No SDK feature
+is promoted into an additional operation here. Existing SDK feature payloads
+and supported filter operators remain unchanged, and providers need no new method.
+The operation list can grow additively as future capabilities are agreed; this
+change defines no new expression kinds, evaluators or reserved operation names.
+
+Host implementations can optionally expose an `ExplorableCapabilities` value
+through `explorable_capabilities`; it is not required by the `Explorable` protocol.
+An absent declaration leaves `operations` absent, preserving legacy clients and
+implementations. An explicit empty list means none of these operations, not
+unknown support. Malformed explicit declarations grant no operations. The existing
+capability keys remain available, including the separate `is_rls_supported` field.
+Existing `supports_samples`, `supports_drill_to_detail` and
+`supports_adhoc_metrics` keys are projected from the same declaration in
+authorized datasource-info, Explore and dashboard metadata. Payloads that did
+not carry a key do not gain it. Inaccessible dashboard placeholders expose only
+their existing host-safe flags and never bind a provider to discover capabilities.
+Declarations must also agree with the source's execution guards: metadata is not
+a replacement for those guards. The existing column-picker adapter exposes the
+optional operation list without changing picker modes or migrating consumers.
+Omitted `supported_operators` and `features` on the host declaration preserve
+their legacy projection; explicitly empty sets refuse those axes independently
+of the operation list. A malformed declaration refuses only operations.
+
+This is metadata, not an access grant or a replacement for query validation.
+Source-owned authorization, RLS, saved charts, caches, chart pickers and SQL Lab
+actions are unchanged. Consumer migrations require their own compatibility tests;
+an old server's missing list must not be treated as an explicit refusal.
+
 ## Server pagination
 
 A view may declare `SemanticViewFeature.ROW_OFFSET` when it supports

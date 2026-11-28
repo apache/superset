@@ -17,7 +17,18 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
-import { ColumnPickerCapabilities } from 'src/explore/types';
+import {
+  ColumnPickerCapabilities,
+  ExplorableOperation,
+} from 'src/explore/types';
+
+const OPERATIONS: ExplorableOperation[] = [
+  'ADHOC_METRICS',
+  'DRILL_TO_DETAIL',
+  'RAW_ROWS',
+  'SAMPLES',
+  'SQL_LAB',
+];
 
 const DEFAULT_CAPABILITIES: ColumnPickerCapabilities = {
   dimensionClassification: 'expression',
@@ -32,6 +43,21 @@ const DEFAULT_CAPABILITIES: ColumnPickerCapabilities = {
 export interface PickerCapabilityDatasource {
   type?: string;
   semantic_view_features?: string[];
+  capabilities?: { operations?: unknown };
+}
+
+/** Unknown names grant nothing; absence is distinct from explicit refusal. */
+function declaredOperations(
+  operations: unknown,
+): ExplorableOperation[] | undefined {
+  if (operations === undefined) {
+    return undefined;
+  }
+  return Array.isArray(operations)
+    ? operations.filter((value): value is ExplorableOperation =>
+        OPERATIONS.some(operation => operation === value),
+      )
+    : [];
 }
 
 /**
@@ -48,11 +74,16 @@ export interface PickerCapabilityDatasource {
 export function getColumnPickerCapabilities(
   datasource?: PickerCapabilityDatasource | null,
 ): ColumnPickerCapabilities {
+  const operations = declaredOperations(datasource?.capabilities?.operations);
+  const declaration = operations === undefined ? {} : { operations };
   if (datasource?.type !== DatasourceType.SemanticView) {
-    return DEFAULT_CAPABILITIES;
+    return operations === undefined
+      ? DEFAULT_CAPABILITIES
+      : { ...DEFAULT_CAPABILITIES, ...declaration };
   }
 
   return {
+    ...declaration,
     dimensionClassification: 'saved',
     disabledModes: ['simple', 'sqlExpression'],
     showCompatibilityFailure: true,

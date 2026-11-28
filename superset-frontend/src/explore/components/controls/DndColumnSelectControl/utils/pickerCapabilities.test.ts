@@ -99,3 +99,53 @@ test('absent datasource metadata produces default capabilities', () => {
     showCompatibilityFailure: false,
   });
 });
+
+test('old server metadata leaves operation fallback to the caller', () => {
+  expect(getColumnPickerCapabilities().operations).toBeUndefined();
+  expect(
+    getColumnPickerCapabilities({ capabilities: {} }).operations,
+  ).toBeUndefined();
+});
+
+test('the existing adapter preserves explicit empty operations', () => {
+  expect(
+    getColumnPickerCapabilities({
+      type: 'semantic_view',
+      capabilities: { operations: [] },
+    }).operations ?? ['RAW_ROWS'],
+  ).toEqual([]);
+});
+
+test('operation projection accepts the five known names and ignores unknown values', () => {
+  expect(
+    getColumnPickerCapabilities({
+      capabilities: {
+        operations: [
+          'ADHOC_METRICS',
+          'DRILL_TO_DETAIL',
+          'RAW_ROWS',
+          'SAMPLES',
+          'SQL_LAB',
+          'future_operation',
+          7,
+        ],
+      },
+    }).operations,
+  ).toEqual([
+    'ADHOC_METRICS',
+    'DRILL_TO_DETAIL',
+    'RAW_ROWS',
+    'SAMPLES',
+    'SQL_LAB',
+  ]);
+});
+
+test.each([null, true, 'RAW_ROWS', { RAW_ROWS: true }])(
+  'malformed explicit operations %p do not become legacy fallback',
+  operations => {
+    expect(
+      getColumnPickerCapabilities({ capabilities: { operations } })
+        .operations ?? ['RAW_ROWS'],
+    ).toEqual([]);
+  },
+);

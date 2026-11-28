@@ -128,6 +128,14 @@ export interface ExploreResponsePayload {
  */
 export type ColumnPickerMode = 'saved' | 'simple' | 'sqlExpression';
 
+/** Host operation names exposed by the optional datasource declaration. */
+export type ExplorableOperation =
+  | 'RAW_ROWS'
+  | 'ADHOC_METRICS'
+  | 'SAMPLES'
+  | 'DRILL_TO_DETAIL'
+  | 'SQL_LAB';
+
 /**
  * Provider-neutral column-picker behavior derived from datasource metadata.
  *
@@ -137,6 +145,8 @@ export type ColumnPickerMode = 'saved' | 'simple' | 'sqlExpression';
  * directly.
  */
 export interface ColumnPickerCapabilities {
+  /** Optional host declaration; absent metadata retains legacy behavior. */
+  operations?: ExplorableOperation[];
   /**
    * How expression-less datasource columns are classified in the picker:
    * 'expression' keeps the existing split (truthy expression → Saved),

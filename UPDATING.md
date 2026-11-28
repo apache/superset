@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Datasource-info responses add optional `capabilities.operations` metadata. An absent list preserves legacy behavior; an empty list explicitly declares no host operations. Existing sample, drill-to-detail and ad-hoc metric flags are projected from the same declaration wherever those keys are returned in authorized metadata. This metadata does not grant access or change query validation.
 - MCP `get_table` query failures now populate `error_code`. Untyped dataset
   engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
   specific `SupersetErrorType` code for typed errors, while guests receive

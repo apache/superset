@@ -48,10 +48,15 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.explorables.capabilities import (
+    declared_capabilities,
+    ExplorableCapabilities,
+    project_operation_flags,
+)
 from superset.extensions import cache_manager, feature_flag_manager
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
-from superset.semantic_layers.capabilities import supported_view_features
+from superset.semantic_layers.capabilities import supported_view_feature_names
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
@@ -1132,6 +1137,24 @@ class DatasourceRestApi(BaseSupersetApi):
                     properties:
                       result:
                         type: object
+                        properties:
+                          capabilities:
+                            type: object
+                            properties:
+                              operations:
+                                type: array
+                                description: >-
+                                  Optional declared host operations, not access
+                                  grants. Absent preserves legacy behavior;
+                                  an empty array declares no operations.
+                                items:
+                                  type: string
+                                  enum:
+                                    - RAW_ROWS
+                                    - ADHOC_METRICS
+                                    - SAMPLES
+                                    - DRILL_TO_DETAIL
+                                    - SQL_LAB
             400:
               $ref: '#/components/responses/400'
             401:
@@ -1160,16 +1183,24 @@ class DatasourceRestApi(BaseSupersetApi):
                 if is_semantic_view
                 else {op.value for op in FilterOperator}
             )
-            features: list[str] = sorted(
-                feature.value
-                for feature in supported_view_features(
-                    getattr(
-                        getattr(datasource, "implementation", None), "features", None
+            declaration: ExplorableCapabilities | None = declared_capabilities(
+                datasource
+            )
+            features: list[str] = (
+                sorted(declaration.features)
+                if declaration is not None and declaration.features is not None
+                else sorted(
+                    supported_view_feature_names(
+                        getattr(
+                            getattr(datasource, "implementation", None),
+                            "features",
+                            None,
+                        )
                     )
                 )
             )
             result = dict(datasource.data)
-            result["capabilities"] = {
+            capabilities: dict[str, Any] = {
                 "is_rls_supported": datasource.is_rls_supported,
                 "query_language": datasource.query_language,
                 "supports_samples": getattr(datasource, "supports_samples", True),
@@ -1183,6 +1214,15 @@ class DatasourceRestApi(BaseSupersetApi):
                 "supported_operators": sorted(supported_operators),
                 "features": features,
             }
+            if declaration is not None:
+                capabilities["operations"] = declaration.names
+                project_operation_flags(capabilities, declaration)
+                project_operation_flags(result, declaration)
+                if declaration.supported_operators is not None:
+                    capabilities["supported_operators"] = sorted(
+                        declaration.supported_operators
+                    )
+            result["capabilities"] = capabilities
             return self.response(200, result=result)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)

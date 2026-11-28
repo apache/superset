@@ -112,6 +112,12 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.explorables.base import TimeGrainDict
+from superset.explorables.capabilities import (
+    declared_capabilities,
+    ExplorableCapabilities,
+    project_operation_flags,
+    sql_capabilities,
+)
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -672,6 +678,11 @@ class BaseDatasource(
     @property
     def data(self) -> ExplorableData:
         """Data representation of the datasource sent to the frontend"""
+        flags: dict[str, Any] = {
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
+        }
+        project_operation_flags(flags, declared_capabilities(self))
         return {
             # simple fields
             "id": self.id,
@@ -704,8 +715,8 @@ class BaseDatasource(
             "order_by_choices": self.order_by_choices,
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
-            "supports_samples": self.supports_samples,
-            "supports_drill_to_detail": self.supports_drill_to_detail,
+            "supports_samples": flags["supports_samples"],
+            "supports_drill_to_detail": flags["supports_drill_to_detail"],
         }
 
     @staticmethod
@@ -2097,6 +2108,14 @@ class SqlaTable(
         "MIN": sa.func.MIN,
         "MAX": sa.func.MAX,
     }
+
+    @property
+    def explorable_capabilities(self) -> ExplorableCapabilities:
+        """Describe operations without changing source-owned access checks."""
+        return sql_capabilities(
+            samples=self.supports_samples,
+            drill_to_detail=self.supports_drill_to_detail,
+        )
 
     def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name

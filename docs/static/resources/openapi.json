@@ -26948,6 +26948,27 @@
                 "schema": {
                   "properties": {
                     "result": {
+                      "properties": {
+                        "capabilities": {
+                          "properties": {
+                            "operations": {
+                              "description": "Optional declared host operations, not access grants. Absent preserves legacy behavior; an empty array declares no operations.",
+                              "items": {
+                                "enum": [
+                                  "RAW_ROWS",
+                                  "ADHOC_METRICS",
+                                  "SAMPLES",
+                                  "DRILL_TO_DETAIL",
+                                  "SQL_LAB"
+                                ],
+                                "type": "string"
+                              },
+                              "type": "array"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
                       "type": "object"
                     }
                   },

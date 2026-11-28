@@ -50,6 +50,11 @@ from superset.connectors.sqla.models import (
     SqlaTable,
 )
 from superset.daos.datasource import Datasource, DatasourceDAO
+from superset.explorables.capabilities import (
+    declared_capabilities,
+    ExplorableCapabilities,
+    project_operation_flags,
+)
 from superset.models.helpers import (
     AuditMixinNullable,
     ImportExportMixin,
@@ -617,7 +622,9 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                     )
                     continue
                 # Filter out unneeded fields from the datasource payload
+                declaration: ExplorableCapabilities | None = None
                 try:
+                    declaration = declared_capabilities(datasource)
                     payload: dict[str, Any] = dict(
                         datasource.data_for_slices(list(slices))
                     )
@@ -647,6 +654,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                         type(ex).__name__,
                     )
                     continue
+                project_operation_flags(payload, declaration)
                 result.append(
                     (
                         datasource,
