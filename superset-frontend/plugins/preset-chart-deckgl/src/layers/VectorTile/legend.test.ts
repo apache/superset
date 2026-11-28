@@ -50,7 +50,7 @@ const binaryTile = {
       ],
     },
     lines: {
-      // One line with two vertices: counted once.
+      // A line with two vertices, and a line cut at the tile edge (starts at x = -0.01).
       positions: {
         value: new Float32Array([0.1, 0.1, 0.2, 0.2, -0.01, 0.5, 0.3, 0.5]),
         size: 2,
@@ -96,6 +96,12 @@ test('skips buffer copies of points', () => {
       'category',
     ),
   ).toEqual(['cafe', 'park']);
+  expect(
+    readTileValues(
+      [{ content: { points: binaryTile.content.points } }],
+      'visitors',
+    ),
+  ).toEqual([10, 20]);
 });
 
 test('counts a line once per tile, even with many vertices', () => {

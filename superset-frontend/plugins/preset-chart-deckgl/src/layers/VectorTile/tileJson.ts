@@ -38,7 +38,7 @@ const NUMERIC_TILE_TYPE =
 export const isNumericTileType = (type?: string): boolean =>
   type === undefined || NUMERIC_TILE_TYPE.test(type.trim());
 
-const isHttpUrl = (value: string): boolean => {
+export const isHttpUrl = (value: string): boolean => {
   try {
     return ['http:', 'https:'].includes(new URL(value).protocol);
   } catch {

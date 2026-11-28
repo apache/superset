@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { getTileJsonProperties, isNumericTileType } from './tileJson';
+import {
+  getTileJsonProperties,
+  isHttpUrl,
+  isNumericTileType,
+} from './tileJson';
 
 const tileJson = {
   vector_layers: [
@@ -56,4 +60,15 @@ test('recognises numeric tile types from different servers', () => {
   ['text', 'String', 'Boolean'].forEach(type =>
     expect(isNumericTileType(type)).toBe(false),
   );
+});
+
+test.each([
+  ['http://tiles.example.com/x.json', true],
+  ['https://tiles.example.com/x.json', true],
+  // eslint-disable-next-line no-script-url -- checks that script URLs are rejected
+  ['javascript:alert(1)', false],
+  ['file:///etc/passwd', false],
+  ['not a url', false],
+])('isHttpUrl(%s) is %s', (url, expected) => {
+  expect(isHttpUrl(url)).toBe(expected);
 });

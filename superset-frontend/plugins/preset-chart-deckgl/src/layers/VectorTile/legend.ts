@@ -57,8 +57,9 @@ const isInsideTile = (x: number, y: number) =>
 
 /**
  * Reads a property for each feature straight from binary tile data, without
- * converting geometry. Features whose first vertex lies in the tile buffer are
- * skipped, so points near tile edges are counted once.
+ * converting geometry. Points copied into a tile's buffer are skipped so each
+ * is counted once; lines and polygons spanning several tiles are counted once
+ * per tile, since the tile server cuts them at tile edges.
  */
 function readBinaryValues(
   geometry: BinaryGeometry,
@@ -84,13 +85,7 @@ function readBinaryValues(
   return values;
 }
 
-/**
- * Reads a property for each feature straight from binary tile data, without
- * converting geometry. Points copied into a tile's buffer are skipped so each
- * is counted once; lines and polygons spanning several tiles are counted once
- * per tile, since the tile server cuts them at tile edges.
- */
-
+/** The property's value for each feature in the loaded tiles. */
 export function readTileValues(tiles: unknown[], property: string): unknown[] {
   return tiles.flatMap(tile => {
     const { content } = tile as LoadedTile;

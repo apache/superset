@@ -132,6 +132,9 @@ test('breakpoints use the default colour for gaps, missing and non-numeric value
   expect(getColor(point({}))).toEqual(GREY);
   expect(getColor(point({ rating: null }))).toEqual(GREY);
   expect(getColor(point({ rating: 'abc' }))).toEqual(GREY);
+  expect(getColor(point({ rating: '' }))).toEqual(GREY);
+  expect(getColor(point({ rating: true }))).toEqual(GREY);
+  expect(getColor(point({ rating: false }))).toEqual(GREY);
 });
 
 test('breakpoints ignore the categorical property', () => {
