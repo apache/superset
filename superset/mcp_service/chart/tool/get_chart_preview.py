@@ -36,6 +36,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import (
     OAuth2Error,
@@ -272,19 +273,30 @@ class PreviewFormatStrategy:
             canonical["viz_type"] = self.chart.viz_type
         return canonical
 
-    def _seed_query_context_form_data(self, query_context: Any) -> None:
-        """Seed Flask form data before saved-preview query execution."""
-        if not hasattr(query_context, "form_data") or not isinstance(
-            getattr(query_context, "queries", None), (list, tuple)
-        ):
-            return
-        from superset.charts.data.form_data import set_query_context_form_data
+    def _run_chart_data_command(self, query_context: Any) -> dict[str, Any]:
+        """Execute ChartDataCommand with the same Jinja context as get_chart_data."""
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-        set_query_context_form_data(
-            query_context,
-            self.chart.datasource_id,
-            self.chart.datasource_type,
-        )
+        self._authorize_guest_query(query_context)
+        # Prefer the executed datasource. Chart-like objects may omit a real
+        # id; skip the Jinja helper rather than raising so typed preview
+        # errors still surface.
+        datasource = getattr(query_context, "datasource", None)
+        datasource_id = getattr(datasource, "id", None)
+        datasource_type = getattr(datasource, "type", None)
+        if not isinstance(datasource_id, (int, str)):
+            datasource_id = getattr(self.chart, "datasource_id", None)
+        if not isinstance(datasource_type, str):
+            datasource_type = getattr(self.chart, "datasource_type", None) or "table"
+        if isinstance(datasource_id, (int, str)):
+            set_query_context_form_data(
+                query_context,
+                datasource_id,
+                str(datasource_type),
+            )
+        command = ChartDataCommand(query_context)
+        command.validate()
+        return command.run()
 
 
 def _preview_form_data_key(chart: Any, request: GetChartPreviewRequest) -> str | None:
@@ -330,7 +342,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 
     def generate(self) -> ASCIIPreview | ChartError:
         try:
-            from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
             form_data = self._canonical_form_data(
@@ -361,11 +372,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             if not _first_query_has_fields(query_context):
                 return _no_query_fields_error(self.chart)
 
-            self._authorize_guest_query(query_context)
-            self._seed_query_context_form_data(query_context)
-            command = ChartDataCommand(query_context)
-            command.validate()
-            result = command.run()
+            result = self._run_chart_data_command(query_context)
 
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
@@ -431,7 +438,6 @@ class TablePreviewStrategy(PreviewFormatStrategy):
         ) is not None:
             return unsupported
         try:
-            from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
             form_data = self._canonical_form_data(
@@ -457,11 +463,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             if not _first_query_has_fields(query_context):
                 return _no_query_fields_error(self.chart)
 
-            self._authorize_guest_query(query_context)
-            self._seed_query_context_form_data(query_context)
-            command = ChartDataCommand(query_context)
-            command.validate()
-            result = command.run()
+            result = self._run_chart_data_command(query_context)
 
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
@@ -542,7 +544,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
-            from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.daos.chart import ChartDAO
             from superset.utils import json as utils_json
 
@@ -584,12 +585,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 force=self.request.force_refresh,
             )
 
-            # Execute the query
-            self._authorize_guest_query(query_context)
-            self._seed_query_context_form_data(query_context)
-            command = ChartDataCommand(query_context)
-            command.validate()
-            result = command.run()
+            result = self._run_chart_data_command(query_context)
 
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
