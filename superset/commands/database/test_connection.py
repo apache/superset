@@ -35,9 +35,11 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 )
 from superset.commands.database.utils import (
     engine_params_changed,
+    load_encrypted_extra,
     ping,
     reuse_stored_password,
     ssh_tunnel_endpoint_changed,
+    uri_identity_changed,
 )
 from superset.daos.database import DatabaseDAO
 from superset.databases.utils import make_url_safe
@@ -76,6 +78,11 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
+        # form parameters naming an authentication method, see
+        # ``DatabaseParametersSchemaMixin.carry_auth_parameters``
+        auth_parameters: dict[str, Any] | None = self._properties.pop(
+            "parameters", None
+        )
 
         if (database_name := self._properties.get("database_name")) is not None:
             self._model = DatabaseDAO.get_database_by_name(database_name)
@@ -98,6 +105,24 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine_params_changed(model.extra, self._properties.get("extra", "{}"))
                 or self._ssh_tunnel_endpoint_changed
             )
+            # A credential the form leaves in the saved connection (a key file
+            # path) is used only while the destination is unchanged.
+            if (
+                auth_parameters
+                and model.db_engine_spec.reuses_stored_credentials(
+                    auth_parameters, load_encrypted_extra(model.encrypted_extra)
+                )
+                and (
+                    self._identity_changed
+                    or uri_identity_changed(
+                        model.sqlalchemy_uri,
+                        uri,
+                        model.extra,
+                        self._properties.get("extra", model.extra),
+                    )
+                )
+            ):
+                raise DatabaseTestConnectionUnsafeRebindError()
             if reusable_uri := reuse_stored_password(
                 model, uri, self._properties.get("extra", "{}")
             ):
