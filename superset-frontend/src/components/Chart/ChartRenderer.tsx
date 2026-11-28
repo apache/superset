@@ -71,8 +71,34 @@ import { getDisplayControlNames } from 'src/explore/controlUtils/getDisplayContr
 type FilterValue = string | number | boolean | null | undefined;
 
 // LegendState type based on ECharts
-interface LegendState {
+export interface LegendState {
   [name: string]: boolean;
+}
+
+// Caps how many distinct charts' legend state sessionStorage tracks in one
+// tab session. Without this, a long-lived tab that visits many different
+// charts accumulates one entry per chartId ever seen, unbounded, for as long
+// as the tab stays open. Evicting the least-recently-touched chart once the
+// cap is exceeded keeps total storage bounded regardless of session length.
+const MAX_TRACKED_LEGEND_CHARTS = 200;
+const LEGEND_LRU_KEY = 'chart_legend_lru';
+
+function touchLegendLru(chartId: number): void {
+  try {
+    const raw = sessionStorage.getItem(LEGEND_LRU_KEY);
+    const lru: number[] = raw ? JSON.parse(raw) : [];
+    const next = [chartId, ...lru.filter(id => id !== chartId)];
+    next.splice(MAX_TRACKED_LEGEND_CHARTS).forEach(evictedId => {
+      sessionStorage.removeItem(`chart_legend_state_${evictedId}`);
+      sessionStorage.removeItem(`chart_legend_index_${evictedId}`);
+    });
+    sessionStorage.setItem(LEGEND_LRU_KEY, JSON.stringify(next));
+  } catch (error) {
+    logging.warn(
+      '[ChartRenderer] Failed to update legend LRU tracking:',
+      error,
+    );
+  }
 }
 
 // Webpack globals declaration
@@ -293,10 +319,35 @@ function ChartRendererComponent({
     [source, suppressContextMenu],
   );
 
-  const [state, setState] = useState<ChartRendererState>({
-    inContextMenu: false,
-    legendState: undefined,
-    legendIndex: 0,
+  const [state, setState] = useState<ChartRendererState>(() => {
+    // Restore legend state/index from sessionStorage (per-chart) so a user's
+    // legend selection and scroll position survive re-renders and page changes.
+    let legendState: LegendState | undefined;
+    let legendIndex = 0;
+    try {
+      const storedState = sessionStorage.getItem(
+        `chart_legend_state_${chartId}`,
+      );
+      if (storedState !== null) {
+        legendState = JSON.parse(storedState);
+      }
+      const storedIndex = sessionStorage.getItem(
+        `chart_legend_index_${chartId}`,
+      );
+      if (storedIndex !== null) {
+        legendIndex = JSON.parse(storedIndex);
+      }
+    } catch (error) {
+      logging.warn(
+        '[ChartRenderer] Failed to load legend state from sessionStorage:',
+        error,
+      );
+    }
+    return {
+      inContextMenu: false,
+      legendState,
+      legendIndex,
+    };
   });
 
   const hasQueryResponseChangeRef = useRef(false);
@@ -497,13 +548,43 @@ function ChartRendererComponent({
   const handleLegendStateChanged = useCallback(
     (legendState: LegendState): void => {
       setState(prev => ({ ...prev, legendState }));
+      // Unsaved Explore charts all share id 0, so their legend state isn't persisted
+      if (!chartId) return;
+      try {
+        sessionStorage.setItem(
+          `chart_legend_state_${chartId}`,
+          JSON.stringify(legendState),
+        );
+        touchLegendLru(chartId);
+      } catch (error) {
+        logging.warn(
+          '[ChartRenderer] Failed to save legend state to sessionStorage:',
+          error,
+        );
+      }
     },
-    [],
+    [chartId],
   );
 
-  const handleLegendScroll = useCallback((legendIndex: number): void => {
-    setState(prev => ({ ...prev, legendIndex }));
-  }, []);
+  const handleLegendScroll = useCallback(
+    (legendIndex: number): void => {
+      setState(prev => ({ ...prev, legendIndex }));
+      if (!chartId) return;
+      try {
+        sessionStorage.setItem(
+          `chart_legend_index_${chartId}`,
+          JSON.stringify(legendIndex),
+        );
+        touchLegendLru(chartId);
+      } catch (error) {
+        logging.warn(
+          '[ChartRenderer] Failed to save legend index to sessionStorage:',
+          error,
+        );
+      }
+    },
+    [chartId],
+  );
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
   // calls `handleOnContextMenu` with no `filters` param.
