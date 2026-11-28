@@ -71,6 +71,7 @@ from sqlalchemy.types import JSON
 from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
+from superset.charts.query_mode import is_tree_query_mode
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
     contains_jinja,
@@ -93,7 +94,11 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.constants import EPOCH_FORMATS
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    reuse_discovered_default_schema,
+    TimestampExpression,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -842,6 +847,12 @@ class BaseDatasource(
         form_data: dict[str, Any], viz_type: str | None
     ) -> dict[str, Any]:
         """Exclude table controls retained while their query mode is hidden."""
+        if is_tree_query_mode({**form_data, "viz_type": viz_type}):
+            return (
+                {"columns": form_data["tree_columns"]}
+                if "tree_columns" in form_data
+                else {}
+            )
         if viz_type not in ("table", "ag-grid-table", "handlebars"):
             return form_data
         mode = form_data.get("query_mode")
@@ -985,10 +996,26 @@ class BaseDatasource(
 
             # Full-access metadata retains hidden controls and query-only
             # dependencies. Only saved display controls supply authored labels.
-            display_columns, display_metrics = self._form_display_references(
-                form_data,
-                slc.viz_type or self._saved_display_form_data(slc).get("viz_type"),
+            viz_type = slc.viz_type or self._saved_display_form_data(slc).get(
+                "viz_type"
             )
+            display_columns, display_metrics = self._form_display_references(
+                form_data, viz_type
+            )
+            if is_tree_query_mode({**form_data, "viz_type": viz_type}):
+                tree_columns, _ = self._slice_display_references(slc)
+                display_columns.extend(tree_columns)
+                # API-created charts can omit mirrors, but child queries still
+                # need the storage formats of their IDs and links.
+                levels = form_data.get("levels")
+                if isinstance(levels, list):
+                    column_names.update(
+                        level[field]
+                        for level in levels
+                        if isinstance(level, dict)
+                        for field in ("id_column", "parent_column")
+                        if isinstance(level.get(field), str)
+                    )
             for references in (display_columns, display_metrics):
                 for reference in references:
                     if isinstance(reference, dict) and (
@@ -3307,6 +3334,7 @@ class SqlaTable(
                 return True
         return False
 
+    @reuse_discovered_default_schema()
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         """
         The cache key of a SqlaTable needs to consider any keys added by the parent
@@ -3333,6 +3361,8 @@ class SqlaTable(
             # which the Jinja template processor collects, and the mapping's own
             # identity is appended below. A miss falls through to SQL
             # generation, which probes.
+            # Propagate construction errors without changing the caller's
+            # metadata transaction or looking up a partial macro cache key.
             sqla_query = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 mirror_partition_filters=False,
