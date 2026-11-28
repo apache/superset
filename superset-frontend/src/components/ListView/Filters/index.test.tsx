@@ -468,36 +468,93 @@ test('numerical_range onClear calls updateFilterValue with undefined directly', 
   expect(updateFilterValue).toHaveBeenCalledWith(0, undefined);
 });
 
-test('renders only the first search filter when multiple search filters are configured', () => {
-  const filters = [
-    {
-      Header: 'Name',
-      key: 'name',
-      id: 'name',
-      input: 'search' as const,
-      operator: ListViewFilterOperator.Contains,
-      inputName: 'filter_name_search',
-    },
-    {
-      Header: 'Description',
-      key: 'description',
-      id: 'description',
-      input: 'search' as const,
-      operator: ListViewFilterOperator.Contains,
-      // No inputName - should use id
-    },
-  ];
+const twoSearchFilters = [
+  {
+    Header: 'Name',
+    key: 'name',
+    id: 'name',
+    input: 'search' as const,
+    operator: ListViewFilterOperator.Contains,
+    inputName: 'filter_name_search',
+  },
+  {
+    Header: 'Description',
+    key: 'description',
+    id: 'description',
+    input: 'search' as const,
+    operator: ListViewFilterOperator.Contains,
+    // No inputName - should use id
+  },
+];
 
+test('renders the first search filter inline and subsequent search filters as pills', () => {
   render(
     <UIFilters
-      filters={filters}
+      filters={twoSearchFilters}
       internalFilters={[]}
       updateFilterValue={mockUpdateFilterValue}
     />,
   );
 
-  // Only the first search filter renders — one search box per page
+  // The first search filter renders inline — one primary search box per page
   const inputs = screen.getAllByTestId('filters-search') as HTMLInputElement[];
   expect(inputs).toHaveLength(1);
   expect(inputs[0].name).toBe('filter_name_search');
+
+  // Subsequent search filters stay accessible as compact pills labelled by field
+  const pill = screen.getByTestId('compact-filter-pill');
+  expect(pill).toBeInTheDocument();
+  expect(pill).toHaveAttribute('aria-haspopup', 'dialog');
+  expect(screen.getByText('Description')).toBeInTheDocument();
+});
+
+test('secondary search filter pill opens a search input and submits the value for that field', async () => {
+  render(
+    <UIFilters
+      filters={twoSearchFilters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await userEvent.click(screen.getByTestId('compact-filter-pill'));
+
+  const inputs = (await screen.findAllByTestId(
+    'filters-search',
+  )) as HTMLInputElement[];
+  const secondaryInput = inputs.find(input => input.name === 'description');
+  expect(secondaryInput).toBeDefined();
+
+  await userEvent.type(secondaryInput!, 'smith');
+  await userEvent.keyboard('{Enter}');
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(1, 'smith');
+});
+
+test('secondary search pill shows active state and clears the value for that field', async () => {
+  render(
+    <UIFilters
+      filters={twoSearchFilters}
+      internalFilters={[
+        {
+          id: 'name',
+          operator: ListViewFilterOperator.Contains,
+          value: '',
+        },
+        {
+          id: 'description',
+          operator: ListViewFilterOperator.Contains,
+          value: 'smith',
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  const clearButton = screen.getByRole('button', {
+    name: /clear description filter/i,
+  });
+  expect(clearButton).toBeInTheDocument();
+
+  await userEvent.click(clearButton);
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(1, undefined);
 });

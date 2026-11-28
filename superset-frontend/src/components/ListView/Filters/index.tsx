@@ -159,11 +159,10 @@ function UIFilters(
   }));
 
   // Search always leads the filter bar regardless of declaration order.
-  // Only the first search filter renders; subsequent ones are skipped (see note below).
-  // NOTE: This means secondary search fields (e.g. Email/Username on Users,
-  // Group Key on RLS) are not currently accessible via the filter bar. Those
-  // pages previously relied on multiple inline inputs. This is a known UX
-  // trade-off — revisit if admin workflows require additional search fields.
+  // The first search filter renders as the inline search box; each additional
+  // search filter (e.g. Email and Username on the Users page, Group Key on
+  // Row Level Security) renders as a compact pill whose popover holds that
+  // field's search input, so every configured search field stays reachable.
   let searchFilterRendered = false;
 
   // Render in two passes: search first, then all other filter types.
@@ -241,25 +240,53 @@ function UIFilters(
       );
     }
     if (input === 'search' && typeof Header === 'string') {
-      if (searchFilterRendered) return null;
-      searchFilterRendered = true;
-      return (
-        <SearchFilter
-          ref={filterRefs[index]}
-          Header={Header}
-          initialValue={initialValue}
-          key={key}
-          name={inputName ?? id}
-          toolTipDescription={toolTipDescription}
-          onSubmit={(value: string) => {
-            if (onFilterUpdate) {
-              onFilterUpdate(value);
-            }
+      const handleSearchSubmit = (value: string) => {
+        if (onFilterUpdate) {
+          onFilterUpdate(value);
+        }
 
-            updateFilterValue(index, value);
-          }}
-          autoComplete={autoComplete}
-        />
+        updateFilterValue(index, value);
+      };
+      if (!searchFilterRendered) {
+        searchFilterRendered = true;
+        return (
+          <SearchFilter
+            ref={filterRefs[index]}
+            Header={Header}
+            initialValue={initialValue}
+            key={key}
+            name={inputName ?? id}
+            toolTipDescription={toolTipDescription}
+            onSubmit={handleSearchSubmit}
+            autoComplete={autoComplete}
+          />
+        );
+      }
+      const searchValue =
+        typeof initialValue === 'string' ? initialValue : undefined;
+      return (
+        <CompactFilterTrigger
+          key={key}
+          label={Header}
+          hasValue={!!searchValue}
+          tooltipTitle={searchValue}
+          popupType="dialog"
+          onClear={() => clearFilterAtIndex(index)}
+        >
+          {({ onClose }) => (
+            <FilterPopoverContent onClose={onClose}>
+              <SearchFilter
+                ref={filterRefs[index]}
+                Header={Header}
+                initialValue={initialValue}
+                name={inputName ?? id}
+                toolTipDescription={toolTipDescription}
+                onSubmit={handleSearchSubmit}
+                autoComplete={autoComplete}
+              />
+            </FilterPopoverContent>
+          )}
+        </CompactFilterTrigger>
       );
     }
     if (input === 'datetime_range') {
