@@ -20,13 +20,18 @@ import subprocess
 
 class BashMock:
     @staticmethod
-    def tag_latest_release(tag):
+    def tag_latest_release(tag, latest_tag_list=None):
         bash_command = f"./scripts/tag_latest_release.sh {tag} --dry-run"
+        env = {"TEST_ENV": "true"}
+        if latest_tag_list is not None:
+            # Overrides the mocked `git show --pretty=%d` decoration that the
+            # script reads for the commit currently tagged `latest`.
+            env["TEST_LATEST_TAG_LIST"] = latest_tag_list
         result = subprocess.run(  # noqa: S602
             bash_command,
             shell=True,
             capture_output=True,
             text=True,
-            env={"TEST_ENV": "true"},
+            env=env,
         )
         return result

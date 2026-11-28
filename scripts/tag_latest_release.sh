@@ -46,7 +46,7 @@ git_show_ref () {
 get_latest_tag_list () {
   if [[ "$TEST_ENV" == "true" ]]
   then
-    echo "(tag: 2.1.0, apache/2.1test)"
+    echo "${TEST_LATEST_TAG_LIST:-(tag: 2.1.0, apache/2.1test)}"
   else
     result=$(git show-ref --tags --dereference latest | awk '{print $2}' | xargs git show --pretty=tformat:%d -s | grep tag:)
     echo "${result}"
@@ -140,7 +140,7 @@ TAGS=($(split_string "$LATEST_TAGS" " "))
 compare_result=""
 
 # Iterate through the tags of the latest release
-for tag in $TAGS
+for tag in $(printf '%s\n' "${TAGS[@]}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
 do
   if [[ $tag == "latest" ]]; then
     continue
