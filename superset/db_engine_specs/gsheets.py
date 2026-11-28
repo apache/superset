@@ -463,7 +463,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     ) -> list[SupersetError]:
         errors: list[SupersetError] = []
 
-        # backwards compatible just incase people are send data
+        # backwards compatible just in case people are send data
         # via parameters for validation
         parameters = properties.get("parameters", {})
         if parameters and parameters.get("catalog"):

@@ -835,7 +835,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     quote_table_includes_schema = True
 
     # Does the DB support catalogs? A catalog here is a group of schemas, and has
-    # different names depending on the DB: BigQuery calles it a "project", Postgres calls  # noqa: E501
+    # different names depending on the DB: BigQuery calls it a "project", Postgres calls  # noqa: E501
     # it a "database", Trino calls it a "catalog", etc.
     #
     # When this is changed to true in a DB engine spec it MUST support the
@@ -1073,7 +1073,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "default_redirect_uri": default_redirect_uri,
             # When OAuth2 is complete the browser tab where OAuth2 happened will send a
             # message to the original browser tab informing that the process was
-            # successful. To allow cross-tab commmunication in a safe way we assign a
+            # successful. To allow cross-tab communication in a safe way we assign a
             # UUID to the original tab, and the second tab will use it when sending the
             # message.
             "tab_id": tab_id,
@@ -1313,7 +1313,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Method for dynamic `allows_alias_in_select`.
 
-        In Dremio this atribute is version-dependent, so Superset needs to inspect the
+        In Dremio this attribute is version-dependent, so Superset needs to inspect the
         database configuration in order to determine it. This method allows engine-specs
         to define dynamic values for the attribute.
         """
