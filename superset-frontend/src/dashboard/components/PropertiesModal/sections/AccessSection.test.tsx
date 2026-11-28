@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  selectOption,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { loadTags } from 'src/components/Tag/utils';
 import AccessSection from './AccessSection';
 
 // Mock feature flags
@@ -32,6 +39,7 @@ jest.mock('src/components/Tag/utils', () => ({
 }));
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedLoadTags = loadTags as jest.Mock;
 
 const defaultProps = {
   isLoading: false,
@@ -120,4 +128,72 @@ test('shows editors and viewers helper text when EnableViewers is on', () => {
 
   expect(screen.getByText(/Editors is a list of subjects/)).toBeInTheDocument();
   expect(screen.getByText(/Viewers is a list of subjects/)).toBeInTheDocument();
+});
+
+test('adds a picked tag to the existing selection', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.TaggingSystem,
+  );
+  mockedLoadTags.mockResolvedValue({
+    data: [
+      { value: 1, label: 'Important' },
+      { value: 3, label: 'Review' },
+    ],
+    totalCount: 2,
+  });
+
+  render(<AccessSection {...defaultProps} />);
+
+  await selectOption('Review', 'Tags');
+
+  expect(defaultProps.onChangeTags).toHaveBeenCalledWith(
+    [
+      expect.objectContaining({ value: 1, label: 'Important' }),
+      expect.objectContaining({ value: 3, label: 'Review' }),
+    ],
+    expect.anything(),
+  );
+});
+
+test('shows selected tags in the tag selector', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.TaggingSystem,
+  );
+
+  const tags = [
+    { id: 1, name: 'Important' },
+    { id: 2, name: 'Urgent' },
+  ];
+
+  render(<AccessSection {...defaultProps} tags={tags} />);
+
+  const tagsField = screen.getByTestId('dashboard-tags-field');
+  expect(within(tagsField).getByText('Important')).toBeInTheDocument();
+  expect(within(tagsField).getByText('Urgent')).toBeInTheDocument();
+});
+
+test('calls onClearTags when the tags are cleared', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.TaggingSystem,
+  );
+
+  render(<AccessSection {...defaultProps} />);
+
+  const tagsField = screen.getByTestId('dashboard-tags-field');
+  await userEvent.hover(within(tagsField).getByRole('combobox'));
+  await userEvent.click(within(tagsField).getByLabelText('close-circle'));
+
+  expect(defaultProps.onClearTags).toHaveBeenCalled();
+});
+
+test('shows tags helper text when TaggingSystem is enabled', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.TaggingSystem,
+  );
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(
+    screen.getByText(/A list of tags that have been applied to this dashboard/),
+  ).toBeInTheDocument();
 });
