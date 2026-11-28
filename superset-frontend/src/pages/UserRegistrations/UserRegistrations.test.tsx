@@ -38,24 +38,21 @@ fetchMock.get(userRegistrationsEndpoint, {
   result: mockUserRegistrations,
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('UserRegistrations', () => {
-  beforeEach(() => {
-    render(<UserRegistrations />, {
-      useRedux: true,
-      useRouter: true,
-      useQueryParams: true,
-    });
+beforeEach(() => {
+  render(<UserRegistrations />, {
+    useRedux: true,
+    useRouter: true,
+    useQueryParams: true,
   });
-  test('fetches and renders user registrations', async () => {
-    expect(await screen.findByText('User registrations')).toBeVisible();
-    const calls = fetchMock.callHistory.calls(userRegistrationsEndpoint);
-    expect(calls.length).toBeGreaterThan(0);
-  });
+});
+test('fetches and renders user registrations', async () => {
+  expect(await screen.findByText('User registrations')).toBeVisible();
+  const calls = fetchMock.callHistory.calls(userRegistrationsEndpoint);
+  expect(calls.length).toBeGreaterThan(0);
+});
 
-  test('does not expose the registration hash', async () => {
-    expect(await screen.findByText('User registrations')).toBeVisible();
-    // The activation hash is a bearer token and must not be shown in the UI.
-    expect(screen.queryByText('Registration hash')).not.toBeInTheDocument();
-  });
+test('does not expose the registration hash', async () => {
+  expect(await screen.findByText('User registrations')).toBeVisible();
+  // The activation hash is a bearer token and must not be shown in the UI.
+  expect(screen.queryByText('Registration hash')).not.toBeInTheDocument();
 });

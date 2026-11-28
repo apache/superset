@@ -701,7 +701,7 @@ class TestTreeTableGuestChartData(SupersetTestCase):
                         "id": str(self.embedded.uuid),
                     }
                 ],
-                [{"dataset": self.table.id, "clause": "gender = 'boy'"}],
+                [{"dataset": str(self.table.id), "clause": "gender = 'boy'"}],
             )
         for stored_sql in (False, True):
             params = json.loads(self.chart_c.params)
@@ -838,7 +838,7 @@ class TestTreeTableGuestChartData(SupersetTestCase):
                         "id": str(self.embedded.uuid),
                     }
                 ],
-                [{"dataset": self.table.id, "clause": "gender = 'boy'"}],
+                [{"dataset": str(self.table.id), "clause": "gender = 'boy'"}],
             )
         role = security_manager.find_role(self.app.config["GUEST_ROLE_NAME"])
         can_csv = security_manager.find_permission_view_menu("can_csv", "Superset")
