@@ -101,38 +101,35 @@ async function openDropdownAndAddFilter(
   fireEvent.click(await findByRole('menuitem', { name: /add filter/i }));
 }
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('createNewOnOpen', () => {
-  test('does not show alert when there is no unsaved filters', async () => {
-    const onCancel = jest.fn();
-    const { getByRole } = setup({ onCancel, createNewOnOpen: false });
-    fireEvent.click(getByRole('button', { name: 'Cancel' }));
-    expect(onCancel).toHaveBeenCalledTimes(1);
-  });
+test('does not show alert when there is no unsaved filters', async () => {
+  const onCancel = jest.fn();
+  const { getByRole } = setup({ onCancel, createNewOnOpen: false });
+  fireEvent.click(getByRole('button', { name: 'Cancel' }));
+  expect(onCancel).toHaveBeenCalledTimes(1);
+});
 
-  test('shows correct alert message for unsaved filters', async () => {
-    const onCancel = jest.fn();
-    const { getByRole, getByTestId, findByRole } = setup({
-      onCancel,
-      createNewOnOpen: false,
-    });
-    await openDropdownAndAddFilter(getByTestId, findByRole);
-    fireEvent.click(getByRole('button', { name: 'Cancel' }));
-    expect(onCancel).toHaveBeenCalledTimes(0);
-    expect(getByRole('alert')).toBeInTheDocument();
-    expect(getByRole('alert')).toHaveTextContent('There are unsaved changes.');
+test('shows correct alert message for unsaved filters', async () => {
+  const onCancel = jest.fn();
+  const { getByRole, getByTestId, findByRole } = setup({
+    onCancel,
+    createNewOnOpen: false,
   });
+  await openDropdownAndAddFilter(getByTestId, findByRole);
+  fireEvent.click(getByRole('button', { name: 'Cancel' }));
+  expect(onCancel).toHaveBeenCalledTimes(0);
+  expect(getByRole('alert')).toBeInTheDocument();
+  expect(getByRole('alert')).toHaveTextContent('There are unsaved changes.');
+});
 
-  test('confirm-cancel button proceeds with cancel after the unsaved alert', async () => {
-    const onCancel = jest.fn();
-    const { getByRole, getByTestId, findByRole } = setup({
-      onCancel,
-      createNewOnOpen: false,
-    });
-    await openDropdownAndAddFilter(getByTestId, findByRole);
-    fireEvent.click(getByRole('button', { name: 'Cancel' }));
-    expect(getByRole('alert')).toBeInTheDocument();
-    fireEvent.click(getByTestId('native-filter-modal-confirm-cancel-button'));
-    expect(onCancel).toHaveBeenCalledTimes(1);
+test('confirm-cancel button proceeds with cancel after the unsaved alert', async () => {
+  const onCancel = jest.fn();
+  const { getByRole, getByTestId, findByRole } = setup({
+    onCancel,
+    createNewOnOpen: false,
   });
+  await openDropdownAndAddFilter(getByTestId, findByRole);
+  fireEvent.click(getByRole('button', { name: 'Cancel' }));
+  expect(getByRole('alert')).toBeInTheDocument();
+  fireEvent.click(getByTestId('native-filter-modal-confirm-cancel-button'));
+  expect(onCancel).toHaveBeenCalledTimes(1);
 });

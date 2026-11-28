@@ -222,61 +222,61 @@ test('Clicking on checkbox when resetConfig:false', async () => {
   expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ColumnSelect filterValues behavior', () => {
-  beforeEach(() => {
-    (getControlItems as jest.Mock).mockReturnValue([
-      {
-        name: 'groupby',
-        config: { label: 'Column', multiple: false, required: false },
-      },
-    ]);
-  });
+function mockColumnSelectControlItem() {
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'groupby',
+      config: { label: 'Column', multiple: false, required: false },
+    },
+  ]);
+}
 
-  test('only renders filterable columns when doesColumnMatchFilterType returns true', () => {
-    (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
-    const props = {
-      ...createProps(),
-      formFilter: { filterType: 'filterType' },
-    };
-    // @ts-expect-error: bypass incomplete formFilter type for test
-    const element = getControlItemsMap(props).mainControlItems.groupby
-      .element as React.ReactElement;
-    render(element);
-    expect(screen.getByText('col1')).toBeInTheDocument();
-    expect(screen.getByText('col3')).toBeInTheDocument();
-    expect(screen.queryByText('col2')).not.toBeInTheDocument();
-  });
+test('only renders filterable columns when doesColumnMatchFilterType returns true', () => {
+  mockColumnSelectControlItem();
+  (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
+  const props = {
+    ...createProps(),
+    formFilter: { filterType: 'filterType' },
+  };
+  // @ts-expect-error: bypass incomplete formFilter type for test
+  const element = getControlItemsMap(props).mainControlItems.groupby
+    .element as React.ReactElement;
+  render(element);
+  expect(screen.getByText('col1')).toBeInTheDocument();
+  expect(screen.getByText('col3')).toBeInTheDocument();
+  expect(screen.queryByText('col2')).not.toBeInTheDocument();
+});
 
-  test('renders no columns when doesColumnMatchFilterType returns false', () => {
-    (doesColumnMatchFilterType as jest.Mock).mockReturnValue(false);
-    const props = {
-      ...createProps(),
-      formFilter: { filterType: 'filterType' },
-    };
-    // @ts-expect-error: bypass incomplete formFilter type for test
-    const element = getControlItemsMap(props).mainControlItems.groupby
-      .element as React.ReactElement;
-    render(element);
-    expect(screen.queryByText('col1')).not.toBeInTheDocument();
-    expect(screen.queryByText('col3')).not.toBeInTheDocument();
-    expect(screen.queryByText('col2')).not.toBeInTheDocument();
-  });
-  test('passes the datasource type so semantic range filters can require numeric columns', () => {
-    (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
-    const props = {
-      ...createProps(),
-      datasourceType: DatasourceType.SemanticView,
-      formFilter: { filterType: 'filter_range' },
-    };
-    // @ts-expect-error: bypass incomplete formFilter type for test
-    const element = getControlItemsMap(props).mainControlItems.groupby
-      .element as React.ReactElement;
-    render(element);
-    expect(doesColumnMatchFilterType).toHaveBeenCalledWith(
-      'filter_range',
-      expect.objectContaining({ name: 'col1' }),
-      DatasourceType.SemanticView,
-    );
-  });
+test('renders no columns when doesColumnMatchFilterType returns false', () => {
+  mockColumnSelectControlItem();
+  (doesColumnMatchFilterType as jest.Mock).mockReturnValue(false);
+  const props = {
+    ...createProps(),
+    formFilter: { filterType: 'filterType' },
+  };
+  // @ts-expect-error: bypass incomplete formFilter type for test
+  const element = getControlItemsMap(props).mainControlItems.groupby
+    .element as React.ReactElement;
+  render(element);
+  expect(screen.queryByText('col1')).not.toBeInTheDocument();
+  expect(screen.queryByText('col3')).not.toBeInTheDocument();
+  expect(screen.queryByText('col2')).not.toBeInTheDocument();
+});
+test('passes the datasource type so semantic range filters can require numeric columns', () => {
+  mockColumnSelectControlItem();
+  (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
+  const props = {
+    ...createProps(),
+    datasourceType: DatasourceType.SemanticView,
+    formFilter: { filterType: 'filter_range' },
+  };
+  // @ts-expect-error: bypass incomplete formFilter type for test
+  const element = getControlItemsMap(props).mainControlItems.groupby
+    .element as React.ReactElement;
+  render(element);
+  expect(doesColumnMatchFilterType).toHaveBeenCalledWith(
+    'filter_range',
+    expect.objectContaining({ name: 'col1' }),
+    DatasourceType.SemanticView,
+  );
 });

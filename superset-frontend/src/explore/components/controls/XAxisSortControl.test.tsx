@@ -35,46 +35,43 @@ const defaultProps = {
 const ascending = () => screen.queryByText('Ascending');
 const descending = () => screen.queryByText('Descending');
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('XAxisSortControl', () => {
-  test('renders the value it was given', () => {
-    render(<XAxisSortControl {...defaultProps} value="ascending" />);
-    expect(ascending()).toBeInTheDocument();
-  });
+test('renders the value it was given', () => {
+  render(<XAxisSortControl {...defaultProps} value="ascending" />);
+  expect(ascending()).toBeInTheDocument();
+});
 
-  test('follows the value prop when it changes', () => {
-    const { rerender: rerenderControl } = render(
-      <XAxisSortControl {...defaultProps} value="ascending" />,
-    );
+test('follows the value prop when it changes', () => {
+  const { rerender: rerenderControl } = render(
+    <XAxisSortControl {...defaultProps} value="ascending" />,
+  );
 
-    expect(ascending()).toBeInTheDocument();
+  expect(ascending()).toBeInTheDocument();
 
-    rerenderControl(<XAxisSortControl {...defaultProps} value="descending" />);
+  rerenderControl(<XAxisSortControl {...defaultProps} value="descending" />);
 
-    expect(descending()).toBeInTheDocument();
-    expect(ascending()).not.toBeInTheDocument();
-  });
+  expect(descending()).toBeInTheDocument();
+  expect(ascending()).not.toBeInTheDocument();
+});
 
-  test('clears the value when shouldReset turns true', () => {
-    const onChange = jest.fn();
-    const { rerender: rerenderControl } = render(
-      <XAxisSortControl
-        {...defaultProps}
-        value="ascending"
-        onChange={onChange}
-      />,
-    );
+test('clears the value when shouldReset turns true', () => {
+  const onChange = jest.fn();
+  const { rerender: rerenderControl } = render(
+    <XAxisSortControl
+      {...defaultProps}
+      value="ascending"
+      onChange={onChange}
+    />,
+  );
 
-    rerenderControl(
-      <XAxisSortControl
-        {...defaultProps}
-        value="ascending"
-        shouldReset
-        onChange={onChange}
-      />,
-    );
+  rerenderControl(
+    <XAxisSortControl
+      {...defaultProps}
+      value="ascending"
+      shouldReset
+      onChange={onChange}
+    />,
+  );
 
-    expect(ascending()).not.toBeInTheDocument();
-    expect(onChange).toHaveBeenCalledWith(undefined);
-  });
+  expect(ascending()).not.toBeInTheDocument();
+  expect(onChange).toHaveBeenCalledWith(undefined);
 });

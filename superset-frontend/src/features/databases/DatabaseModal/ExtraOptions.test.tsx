@@ -93,244 +93,241 @@ const defaultDb = {
   parameters: {}, // added dummy value for parameters
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ExtraOptions Component', () => {
-  const onInputChange = jest.fn();
-  const onTextChange = jest.fn();
-  const onEditorChange = jest.fn();
-  const onExtraInputChange = jest.fn();
-  const onExtraEditorChange = jest.fn();
+const onInputChange = jest.fn();
+const onTextChange = jest.fn();
+const onEditorChange = jest.fn();
+const onExtraInputChange = jest.fn();
+const onExtraEditorChange = jest.fn();
 
-  const renderComponent = (dbProps = defaultDb, extension = undefined) =>
-    render(
-      <ExtraOptions
-        db={dbProps as unknown as DatabaseObject}
-        onInputChange={onInputChange}
-        onTextChange={onTextChange}
-        onEditorChange={onEditorChange}
-        onExtraInputChange={onExtraInputChange}
-        onExtraEditorChange={onExtraEditorChange}
-        extraExtension={extension}
-      />,
-      { useRedux: true },
-    );
+const renderComponent = (dbProps = defaultDb, extension = undefined) =>
+  render(
+    <ExtraOptions
+      db={dbProps as unknown as DatabaseObject}
+      onInputChange={onInputChange}
+      onTextChange={onTextChange}
+      onEditorChange={onEditorChange}
+      onExtraInputChange={onExtraInputChange}
+      onExtraEditorChange={onExtraEditorChange}
+      extraExtension={extension}
+    />,
+    { useRedux: true },
+  );
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+test('renders all main panels', () => {
+  renderComponent();
+
+  expect(screen.getByText(t('SQL Lab'))).toBeInTheDocument();
+  expect(screen.getByText(t('Performance'))).toBeInTheDocument();
+  expect(screen.getByText(t('Security'))).toBeInTheDocument();
+  expect(screen.getByText(t('Other'))).toBeInTheDocument();
+});
+
+test('calls onInputChange when "Expose database in SQL Lab" checkbox is clicked', () => {
+  renderComponent();
+  const sqlLabText = screen.getByText(t('SQL Lab'));
+  fireEvent.click(sqlLabText);
+
+  const checkbox = screen.getByLabelText(t('Expose database in SQL Lab'));
+  fireEvent.click(checkbox);
+  expect(onInputChange).toHaveBeenCalled();
+});
+
+test('calls onExtraInputChange when "Enable query cost estimation" checkbox is clicked', () => {
+  renderComponent();
+  const sqlLabText = screen.getByText(t('SQL Lab'));
+  fireEvent.click(sqlLabText);
+  const checkbox = screen.getByLabelText(t('Enable query cost estimation'));
+  fireEvent.click(checkbox);
+  expect(onExtraInputChange).toHaveBeenCalled();
+});
+
+test('calls onExtraEditorChange when metadata_params json editor changes', async () => {
+  renderComponent();
+
+  // Click to open the editor tab/section
+  const otherHeader = screen.getByText(t('Other'));
+  fireEvent.click(otherHeader);
+
+  // Wait for Ace to initialize (in case it's async)
+  await waitFor(() => {
+    expect(document.querySelector('#metadata_params')).toBeInTheDocument();
   });
 
-  test('renders all main panels', () => {
-    renderComponent();
+  // Grab editor instance by ID or name
+  const editorInstance = ace.edit('metadata_params');
 
-    expect(screen.getByText(t('SQL Lab'))).toBeInTheDocument();
-    expect(screen.getByText(t('Performance'))).toBeInTheDocument();
-    expect(screen.getByText(t('Security'))).toBeInTheDocument();
-    expect(screen.getByText(t('Other'))).toBeInTheDocument();
+  act(() => {
+    editorInstance.setValue('{"key":"value"}');
   });
 
-  test('calls onInputChange when "Expose database in SQL Lab" checkbox is clicked', () => {
-    renderComponent();
-    const sqlLabText = screen.getByText(t('SQL Lab'));
-    fireEvent.click(sqlLabText);
-
-    const checkbox = screen.getByLabelText(t('Expose database in SQL Lab'));
-    fireEvent.click(checkbox);
-    expect(onInputChange).toHaveBeenCalled();
+  expect(onExtraEditorChange).toHaveBeenCalledWith({
+    json: '{"key":"value"}',
+    name: 'metadata_params',
   });
 
-  test('calls onExtraInputChange when "Enable query cost estimation" checkbox is clicked', () => {
-    renderComponent();
-    const sqlLabText = screen.getByText(t('SQL Lab'));
-    fireEvent.click(sqlLabText);
-    const checkbox = screen.getByLabelText(t('Enable query cost estimation'));
-    fireEvent.click(checkbox);
-    expect(onExtraInputChange).toHaveBeenCalled();
+  act(() => {
+    editorInstance.setValue('foo');
   });
 
-  test('calls onExtraEditorChange when metadata_params json editor changes', async () => {
-    renderComponent();
-
-    // Click to open the editor tab/section
-    const otherHeader = screen.getByText(t('Other'));
-    fireEvent.click(otherHeader);
-
-    // Wait for Ace to initialize (in case it's async)
-    await waitFor(() => {
-      expect(document.querySelector('#metadata_params')).toBeInTheDocument();
-    });
-
-    // Grab editor instance by ID or name
-    const editorInstance = ace.edit('metadata_params');
-
-    act(() => {
-      editorInstance.setValue('{"key":"value"}');
-    });
-
-    expect(onExtraEditorChange).toHaveBeenCalledWith({
-      json: '{"key":"value"}',
-      name: 'metadata_params',
-    });
-
-    act(() => {
-      editorInstance.setValue('foo');
-    });
-
-    expect(onExtraEditorChange).toHaveBeenCalledWith({
-      json: 'foo',
-      name: 'metadata_params',
-    });
-
-    // it accepts invalid json strings
-    act(() => {
-      editorInstance.setValue('{"key":"value');
-    });
-
-    expect(onExtraEditorChange).toHaveBeenCalledWith({
-      json: '{"key":"value',
-      name: 'metadata_params',
-    });
+  expect(onExtraEditorChange).toHaveBeenCalledWith({
+    json: 'foo',
+    name: 'metadata_params',
   });
 
-  test('calls onTextChange when server certificate textarea is changed', () => {
-    renderComponent();
-    // Click to open the security tab/section
-    const securityHeader = screen.getByText(t('Security'));
-    fireEvent.click(securityHeader);
-
-    const textarea = screen.getByPlaceholderText(t('Enter CA_BUNDLE'));
-    fireEvent.change(textarea, { target: { value: 'new cert' } });
-    expect(onTextChange).toHaveBeenCalled();
+  // it accepts invalid json strings
+  act(() => {
+    editorInstance.setValue('{"key":"value');
   });
 
-  test('handles input change for schema cache timeout', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('schema-cache-timeout-test');
-    fireEvent.change(input, { target: { value: '500' } });
-    expect(onExtraInputChange).toHaveBeenCalled();
+  expect(onExtraEditorChange).toHaveBeenCalledWith({
+    json: '{"key":"value',
+    name: 'metadata_params',
+  });
+});
+
+test('calls onTextChange when server certificate textarea is changed', () => {
+  renderComponent();
+  // Click to open the security tab/section
+  const securityHeader = screen.getByText(t('Security'));
+  fireEvent.click(securityHeader);
+
+  const textarea = screen.getByPlaceholderText(t('Enter CA_BUNDLE'));
+  fireEvent.change(textarea, { target: { value: 'new cert' } });
+  expect(onTextChange).toHaveBeenCalled();
+});
+
+test('handles input change for schema cache timeout', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('schema-cache-timeout-test');
+  fireEvent.change(input, { target: { value: '500' } });
+  expect(onExtraInputChange).toHaveBeenCalled();
+});
+
+test('schema cache timeout input has min=0 to prevent negative values', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('schema-cache-timeout-test');
+  expect(input).toHaveAttribute('min', '0');
+});
+
+test('schema cache timeout rejects negative values', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('schema-cache-timeout-test');
+  fireEvent.change(input, {
+    target: { value: '-4', name: 'schema_cache_timeout' },
+  });
+  expect(onExtraInputChange).not.toHaveBeenCalled();
+});
+
+test('handles input change for table cache timeout', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('table-cache-timeout-test');
+  fireEvent.change(input, { target: { value: '1000' } });
+  expect(onExtraInputChange).toHaveBeenCalled();
+});
+
+test('table cache timeout input has min=0 to prevent negative values', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('table-cache-timeout-test');
+  expect(input).toHaveAttribute('min', '0');
+});
+
+test('table cache timeout rejects negative values', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('table-cache-timeout-test');
+  fireEvent.change(input, {
+    target: { value: '-1', name: 'table_cache_timeout' },
+  });
+  expect(onExtraInputChange).not.toHaveBeenCalled();
+});
+
+test('chart cache timeout input has min=-1', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('cache-timeout-test');
+  expect(input).toHaveAttribute('min', '-1');
+});
+
+test('chart cache timeout allows -1 (bypass cache)', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('cache-timeout-test');
+  fireEvent.change(input, {
+    target: { value: '-1', name: 'cache_timeout' },
+  });
+  expect(onInputChange).toHaveBeenCalled();
+});
+
+test('chart cache timeout rejects values less than -1', () => {
+  renderComponent();
+  const performanceHeader = screen.getByText(t('Performance'));
+  fireEvent.click(performanceHeader);
+  const input = screen.getByTestId('cache-timeout-test');
+  fireEvent.change(input, {
+    target: { value: '-5', name: 'cache_timeout' },
+  });
+  expect(onInputChange).not.toHaveBeenCalled();
+});
+
+test('renders the collaps tab correctly and resets to default tab after closing', () => {
+  const { rerender } = renderComponent();
+  const sqlLabTab = screen.getByRole('tab', {
+    name: /SQL Lab./i,
   });
 
-  test('schema cache timeout input has min=0 to prevent negative values', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('schema-cache-timeout-test');
-    expect(input).toHaveAttribute('min', '0');
-  });
+  expect(sqlLabTab).toHaveAttribute('aria-expanded', 'false');
+  fireEvent.click(sqlLabTab);
+  expect(sqlLabTab).toHaveAttribute('aria-expanded', 'true');
+  const customDb = {
+    ...defaultDb,
+    expose_in_sqllab: false,
+  };
 
-  test('schema cache timeout rejects negative values', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('schema-cache-timeout-test');
-    fireEvent.change(input, {
-      target: { value: '-4', name: 'schema_cache_timeout' },
-    });
-    expect(onExtraInputChange).not.toHaveBeenCalled();
-  });
+  rerender(
+    <ExtraOptions
+      db={customDb as unknown as DatabaseObject}
+      onInputChange={onInputChange}
+      onTextChange={onTextChange}
+      onEditorChange={onEditorChange}
+      onExtraInputChange={onExtraInputChange}
+      onExtraEditorChange={onExtraEditorChange}
+      extraExtension={undefined}
+    />,
+  );
+  expect(sqlLabTab).toHaveAttribute('aria-expanded', 'false');
+});
 
-  test('handles input change for table cache timeout', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('table-cache-timeout-test');
-    fireEvent.change(input, { target: { value: '1000' } });
-    expect(onExtraInputChange).toHaveBeenCalled();
-  });
+test('all collapse panels should expand when clicking anywhere on the header', () => {
+  renderComponent();
+  const allPanelTabs = screen.getAllByRole('tab');
+  expect(allPanelTabs.length).toBeGreaterThanOrEqual(4); // At least 4 main panels
 
-  test('table cache timeout input has min=0 to prevent negative values', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('table-cache-timeout-test');
-    expect(input).toHaveAttribute('min', '0');
-  });
-
-  test('table cache timeout rejects negative values', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('table-cache-timeout-test');
-    fireEvent.change(input, {
-      target: { value: '-1', name: 'table_cache_timeout' },
-    });
-    expect(onExtraInputChange).not.toHaveBeenCalled();
-  });
-
-  test('chart cache timeout input has min=-1', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('cache-timeout-test');
-    expect(input).toHaveAttribute('min', '-1');
-  });
-
-  test('chart cache timeout allows -1 (bypass cache)', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('cache-timeout-test');
-    fireEvent.change(input, {
-      target: { value: '-1', name: 'cache_timeout' },
-    });
-    expect(onInputChange).toHaveBeenCalled();
-  });
-
-  test('chart cache timeout rejects values less than -1', () => {
-    renderComponent();
-    const performanceHeader = screen.getByText(t('Performance'));
-    fireEvent.click(performanceHeader);
-    const input = screen.getByTestId('cache-timeout-test');
-    fireEvent.change(input, {
-      target: { value: '-5', name: 'cache_timeout' },
-    });
-    expect(onInputChange).not.toHaveBeenCalled();
-  });
-
-  test('renders the collaps tab correctly and resets to default tab after closing', () => {
-    const { rerender } = renderComponent();
-    const sqlLabTab = screen.getByRole('tab', {
-      name: /SQL Lab./i,
-    });
-
-    expect(sqlLabTab).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(sqlLabTab);
-    expect(sqlLabTab).toHaveAttribute('aria-expanded', 'true');
-    const customDb = {
-      ...defaultDb,
-      expose_in_sqllab: false,
-    };
-
-    rerender(
-      <ExtraOptions
-        db={customDb as unknown as DatabaseObject}
-        onInputChange={onInputChange}
-        onTextChange={onTextChange}
-        onEditorChange={onEditorChange}
-        onExtraInputChange={onExtraInputChange}
-        onExtraEditorChange={onExtraEditorChange}
-        extraExtension={undefined}
-      />,
-    );
-    expect(sqlLabTab).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  test('all collapse panels should expand when clicking anywhere on the header', () => {
-    renderComponent();
-    const allPanelTabs = screen.getAllByRole('tab');
-    expect(allPanelTabs.length).toBeGreaterThanOrEqual(4); // At least 4 main panels
-
-    allPanelTabs.forEach(panelTab => {
-      // Initially should be collapsed
-      expect(panelTab).toHaveAttribute('aria-expanded', 'false');
-      // Click on the panel tab (entire header should be clickable)
-      fireEvent.click(panelTab);
-      expect(panelTab).toHaveAttribute('aria-expanded', 'true');
-      fireEvent.click(panelTab);
-      // Panel should collapse back
-      expect(panelTab).toHaveAttribute('aria-expanded', 'false');
-    });
+  allPanelTabs.forEach(panelTab => {
+    // Initially should be collapsed
+    expect(panelTab).toHaveAttribute('aria-expanded', 'false');
+    // Click on the panel tab (entire header should be clickable)
+    fireEvent.click(panelTab);
+    expect(panelTab).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(panelTab);
+    // Panel should collapse back
+    expect(panelTab).toHaveAttribute('aria-expanded', 'false');
   });
 });
 

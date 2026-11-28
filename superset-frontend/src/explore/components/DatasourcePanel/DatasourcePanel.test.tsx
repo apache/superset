@@ -199,18 +199,8 @@ test('should render the columns', async () => {
   );
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('DatasourcePanel', () => {
-  beforeAll(() => {
-    jest.setTimeout(30000);
-  });
-
-  afterEach(async () => {
-    cleanup();
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
-
-  test('should search and render matching columns', async () => {
+test('should search and render matching columns', async () => {
+  try {
     const { unmount } = render(
       <ExploreContainer>
         <DatasourcePanel {...props} />
@@ -238,8 +228,11 @@ describe('DatasourcePanel', () => {
     );
 
     unmount();
-  }, 15000);
-});
+  } finally {
+    cleanup();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+}, 15000);
 
 test('should search and render matching metrics', async () => {
   render(

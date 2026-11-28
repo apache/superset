@@ -45,146 +45,143 @@ jest.mock(
       ),
 );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('DatasetPanel', () => {
-  test('renders a blank state DatasetPanel', () => {
-    render(<DatasetPanel columnList={[]} loading={false} />, {
+test('renders a blank state DatasetPanel', () => {
+  render(<DatasetPanel columnList={[]} loading={false} />, {
+    useRouter: true,
+  });
+
+  const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
+  expect(blankDatasetImg).toBeVisible();
+  const blankDatasetTitle = screen.getByText(SELECT_TABLE_TITLE);
+  expect(blankDatasetTitle).toBeVisible();
+  const blankDatasetDescription1 = screen.getByText(SELECT_MESSAGE, {
+    exact: false,
+  });
+  expect(blankDatasetDescription1).toBeVisible();
+  const blankDatasetDescription2 = screen.getByText(VIEW_DATASET_MESSAGE, {
+    exact: false,
+  });
+  expect(blankDatasetDescription2).toBeVisible();
+  const sqlLabLink = screen.getByRole('link', {
+    name: CREATE_MESSAGE,
+  });
+  expect(sqlLabLink).toBeVisible();
+});
+
+test('renders a no columns screen', () => {
+  render(<DatasetPanel tableName="Name" columnList={[]} loading={false} />, {
+    useRouter: true,
+  });
+
+  const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
+  expect(blankDatasetImg).toBeVisible();
+  const noColumnsTitle = screen.getByText(NO_COLUMNS_TITLE);
+  expect(noColumnsTitle).toBeVisible();
+  const noColumnsDescription = screen.getByText(NO_COLUMNS_DESCRIPTION);
+  expect(noColumnsDescription).toBeVisible();
+});
+
+test('renders a loading screen', () => {
+  render(<DatasetPanel tableName="Name" columnList={[]} loading />, {
+    useRouter: true,
+  });
+
+  const loadingIndicator = screen.getByTestId('loading-indicator');
+  expect(loadingIndicator).toBeVisible();
+  const blankDatasetTitle = screen.getByText(REFRESHING);
+  expect(blankDatasetTitle).toBeVisible();
+});
+
+test('renders an error screen', () => {
+  render(
+    <DatasetPanel
+      tableName="Name"
+      error={{
+        error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+        extra: null,
+        level: 'error',
+        message: 'Structured backend failure',
+      }}
+      columnList={[]}
+      loading={false}
+    />,
+    {
       useRouter: true,
-    });
+    },
+  );
 
-    const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
-    expect(blankDatasetImg).toBeVisible();
-    const blankDatasetTitle = screen.getByText(SELECT_TABLE_TITLE);
-    expect(blankDatasetTitle).toBeVisible();
-    const blankDatasetDescription1 = screen.getByText(SELECT_MESSAGE, {
-      exact: false,
-    });
-    expect(blankDatasetDescription1).toBeVisible();
-    const blankDatasetDescription2 = screen.getByText(VIEW_DATASET_MESSAGE, {
-      exact: false,
-    });
-    expect(blankDatasetDescription2).toBeVisible();
-    const sqlLabLink = screen.getByRole('link', {
-      name: CREATE_MESSAGE,
-    });
-    expect(sqlLabLink).toBeVisible();
-  });
+  const errorTitle = screen.getByText(ERROR_TITLE);
+  expect(errorTitle).toBeVisible();
+  const errorDescription = screen.getByText('Structured backend failure');
+  expect(errorDescription).toBeVisible();
+  expect(screen.getByTitle('Name')).toHaveStyle({ position: 'relative' });
+});
 
-  test('renders a no columns screen', () => {
-    render(<DatasetPanel tableName="Name" columnList={[]} loading={false} />, {
+test('renders a table with columns displayed', async () => {
+  const tableName = 'example_name';
+  render(
+    <DatasetPanel
+      tableName={tableName}
+      columnList={exampleColumns}
+      loading={false}
+    />,
+    {
       useRouter: true,
-    });
-
-    const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
-    expect(blankDatasetImg).toBeVisible();
-    const noColumnsTitle = screen.getByText(NO_COLUMNS_TITLE);
-    expect(noColumnsTitle).toBeVisible();
-    const noColumnsDescription = screen.getByText(NO_COLUMNS_DESCRIPTION);
-    expect(noColumnsDescription).toBeVisible();
+    },
+  );
+  expect(await screen.findByText(tableName)).toBeVisible();
+  expect(screen.getByTitle(COLUMN_TITLE)).toBeVisible();
+  expect(
+    screen.getByLabelText(tableColumnDefinition[0].title as string),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByLabelText(tableColumnDefinition[1].title as string),
+  ).toBeInTheDocument();
+  exampleColumns.forEach(row => {
+    expect(screen.getByText(row.name)).toBeInTheDocument();
+    expect(screen.getByText(row.type)).toBeInTheDocument();
   });
+});
 
-  test('renders a loading screen', () => {
-    render(<DatasetPanel tableName="Name" columnList={[]} loading />, {
+test('renders an info banner if table already has a dataset', async () => {
+  render(
+    <DatasetPanel
+      tableName="example_table"
+      columnList={exampleColumns}
+      loading={false}
+      datasets={exampleDataset}
+    />,
+    {
       useRouter: true,
-    });
+    },
+  );
 
-    const loadingIndicator = screen.getByTestId('loading-indicator');
-    expect(loadingIndicator).toBeVisible();
-    const blankDatasetTitle = screen.getByText(REFRESHING);
-    expect(blankDatasetTitle).toBeVisible();
-  });
+  // This is text in the info banner
+  expect(
+    await screen.findByText(
+      /this table already has a dataset associated with it. you can only associate one dataset with a table./i,
+    ),
+  ).toBeVisible();
+});
 
-  test('renders an error screen', () => {
-    render(
-      <DatasetPanel
-        tableName="Name"
-        error={{
-          error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
-          extra: null,
-          level: 'error',
-          message: 'Structured backend failure',
-        }}
-        columnList={[]}
-        loading={false}
-      />,
-      {
-        useRouter: true,
-      },
-    );
+test('sorts the column list by name when sorting by Column Name', () => {
+  const sorter = tableColumnDefinition[0].sorter as (
+    a: ITableColumn,
+    b: ITableColumn,
+  ) => number;
+  const sorted = [...exampleColumns].sort(sorter);
+  expect(sorted.map(c => c.name)).toEqual([
+    'birth_date',
+    'height_in_inches',
+    'name',
+  ]);
+});
 
-    const errorTitle = screen.getByText(ERROR_TITLE);
-    expect(errorTitle).toBeVisible();
-    const errorDescription = screen.getByText('Structured backend failure');
-    expect(errorDescription).toBeVisible();
-    expect(screen.getByTitle('Name')).toHaveStyle({ position: 'relative' });
-  });
-
-  test('renders a table with columns displayed', async () => {
-    const tableName = 'example_name';
-    render(
-      <DatasetPanel
-        tableName={tableName}
-        columnList={exampleColumns}
-        loading={false}
-      />,
-      {
-        useRouter: true,
-      },
-    );
-    expect(await screen.findByText(tableName)).toBeVisible();
-    expect(screen.getByTitle(COLUMN_TITLE)).toBeVisible();
-    expect(
-      screen.getByLabelText(tableColumnDefinition[0].title as string),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(tableColumnDefinition[1].title as string),
-    ).toBeInTheDocument();
-    exampleColumns.forEach(row => {
-      expect(screen.getByText(row.name)).toBeInTheDocument();
-      expect(screen.getByText(row.type)).toBeInTheDocument();
-    });
-  });
-
-  test('renders an info banner if table already has a dataset', async () => {
-    render(
-      <DatasetPanel
-        tableName="example_table"
-        columnList={exampleColumns}
-        loading={false}
-        datasets={exampleDataset}
-      />,
-      {
-        useRouter: true,
-      },
-    );
-
-    // This is text in the info banner
-    expect(
-      await screen.findByText(
-        /this table already has a dataset associated with it. you can only associate one dataset with a table./i,
-      ),
-    ).toBeVisible();
-  });
-
-  test('sorts the column list by name when sorting by Column Name', () => {
-    const sorter = tableColumnDefinition[0].sorter as (
-      a: ITableColumn,
-      b: ITableColumn,
-    ) => number;
-    const sorted = [...exampleColumns].sort(sorter);
-    expect(sorted.map(c => c.name)).toEqual([
-      'birth_date',
-      'height_in_inches',
-      'name',
-    ]);
-  });
-
-  test('sorts the column list by type when sorting by Datatype', () => {
-    const sorter = tableColumnDefinition[1].sorter as (
-      a: ITableColumn,
-      b: ITableColumn,
-    ) => number;
-    const sorted = [...exampleColumns].sort(sorter);
-    expect(sorted.map(c => c.type)).toEqual(['DATE', 'NUMBER', 'STRING']);
-  });
+test('sorts the column list by type when sorting by Datatype', () => {
+  const sorter = tableColumnDefinition[1].sorter as (
+    a: ITableColumn,
+    b: ITableColumn,
+  ) => number;
+  const sorted = [...exampleColumns].sort(sorter);
+  expect(sorted.map(c => c.type)).toEqual(['DATE', 'NUMBER', 'STRING']);
 });

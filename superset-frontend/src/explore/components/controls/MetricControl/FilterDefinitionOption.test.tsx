@@ -36,28 +36,25 @@ const sumValueAdhocMetric = new AdhocMetric({
   aggregate: AGGREGATES.SUM,
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('FilterDefinitionOption', () => {
-  test('renders a StyledColumnOption given a column', async () => {
-    render(<FilterDefinitionOption option={{ column_name: 'a_column' }} />);
-    await expect(screen.getByText('a_column')).toBeVisible();
-  });
+test('renders a StyledColumnOption given a column', async () => {
+  render(<FilterDefinitionOption option={{ column_name: 'a_column' }} />);
+  await expect(screen.getByText('a_column')).toBeVisible();
+});
 
-  test('renders a StyledColumnOption given an adhoc metric', async () => {
-    render(
-      <FilterDefinitionOption
-        option={sumValueAdhocMetric as unknown as { label: string }}
-      />,
-    );
-    await expect(screen.getByText('SUM(source)')).toBeVisible();
-  });
+test('renders a StyledColumnOption given an adhoc metric', async () => {
+  render(
+    <FilterDefinitionOption
+      option={sumValueAdhocMetric as unknown as { label: string }}
+    />,
+  );
+  await expect(screen.getByText('SUM(source)')).toBeVisible();
+});
 
-  test('renders the metric name given a saved metric', async () => {
-    render(
-      <FilterDefinitionOption
-        option={{ saved_metric_name: 'my_custom_metric' }}
-      />,
-    );
-    await expect(screen.getByText('my_custom_metric')).toBeVisible();
-  });
+test('renders the metric name given a saved metric', async () => {
+  render(
+    <FilterDefinitionOption
+      option={{ saved_metric_name: 'my_custom_metric' }}
+    />,
+  );
+  await expect(screen.getByText('my_custom_metric')).toBeVisible();
 });

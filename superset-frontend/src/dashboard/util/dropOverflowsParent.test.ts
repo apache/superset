@@ -35,202 +35,199 @@ const mockDropResult = (
   dragging: { id: string },
 ): DropResult => ({ source, destination, dragging }) as unknown as DropResult;
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('dropOverflowsParent', () => {
-  test('returns true if a parent does NOT have adequate width for child', () => {
-    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
+test('returns true if a parent does NOT have adequate width for child', () => {
+  const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
 
-    const layout = {
-      a: {
-        id: 'a',
-        type: ROW_TYPE,
-        children: ['b', 'b', 'b', 'b'], // width = 4x bs = 12
+  const layout = {
+    a: {
+      id: 'a',
+      type: ROW_TYPE,
+      children: ['b', 'b', 'b', 'b'], // width = 4x bs = 12
+    },
+    b: {
+      id: 'b',
+      type: CHART_TYPE,
+      meta: {
+        width: 3,
       },
-      b: {
-        id: 'b',
-        type: CHART_TYPE,
-        meta: {
-          width: 3,
-        },
+    },
+    z: {
+      id: 'z',
+      type: CHART_TYPE,
+      meta: {
+        width: 2,
       },
-      z: {
-        id: 'z',
-        type: CHART_TYPE,
-        meta: {
-          width: 2,
-        },
+    },
+  };
+
+  expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
+});
+
+test('returns false if a parent DOES have adequate width for child', () => {
+  const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
+
+  const layout = {
+    a: {
+      id: 'a',
+      type: ROW_TYPE,
+      children: ['b', 'b'],
+    },
+    b: {
+      id: 'b',
+      type: CHART_TYPE,
+      meta: {
+        width: 3,
       },
-    };
-
-    expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
-  });
-
-  test('returns false if a parent DOES have adequate width for child', () => {
-    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
-
-    const layout = {
-      a: {
-        id: 'a',
-        type: ROW_TYPE,
-        children: ['b', 'b'],
+    },
+    z: {
+      id: 'z',
+      type: CHART_TYPE,
+      meta: {
+        width: 2,
       },
-      b: {
-        id: 'b',
-        type: CHART_TYPE,
-        meta: {
-          width: 3,
-        },
+    },
+  };
+
+  expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
+});
+
+test('returns false if a child CAN shrink to available parent space', () => {
+  const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
+
+  const layout = {
+    a: {
+      id: 'a',
+      type: ROW_TYPE,
+      children: ['b', 'b'], // 2x b = 10
+    },
+    b: {
+      id: 'b',
+      type: CHART_TYPE,
+      meta: {
+        width: 5,
       },
-      z: {
-        id: 'z',
-        type: CHART_TYPE,
-        meta: {
-          width: 2,
-        },
+    },
+    z: {
+      id: 'z',
+      type: CHART_TYPE,
+      meta: {
+        width: 10,
       },
-    };
+    },
+  };
 
-    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
-  });
+  expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
+});
 
-  test('returns false if a child CAN shrink to available parent space', () => {
-    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
+test('returns true if a child CANNOT shrink to available parent space', () => {
+  const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'b' });
 
-    const layout = {
-      a: {
-        id: 'a',
-        type: ROW_TYPE,
-        children: ['b', 'b'], // 2x b = 10
+  const layout = {
+    a: {
+      id: 'a',
+      type: COLUMN_TYPE,
+      meta: {
+        width: 6,
       },
-      b: {
-        id: 'b',
-        type: CHART_TYPE,
-        meta: {
-          width: 5,
-        },
+    },
+    // rows with children cannot shrink
+    b: {
+      id: 'b',
+      type: ROW_TYPE,
+      children: ['bChild', 'bChild', 'bChild'],
+    },
+    bChild: {
+      id: 'bChild',
+      type: CHART_TYPE,
+      meta: {
+        width: 3,
       },
-      z: {
-        id: 'z',
-        type: CHART_TYPE,
-        meta: {
-          width: 10,
-        },
+    },
+  };
+
+  expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
+});
+
+test('returns true if a column has children that CANNOT shrink to available parent space', () => {
+  const dropResult = mockDropResult(
+    { id: '_' },
+    { id: 'destination' },
+    { id: 'dragging' },
+  );
+
+  const layout = {
+    destination: {
+      id: 'destination',
+      type: ROW_TYPE,
+      children: ['b', 'b'], // 2x b = 10, 2 available
+    },
+    b: {
+      id: 'b',
+      type: CHART_TYPE,
+      meta: {
+        width: 5,
       },
-    };
-
-    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
-  });
-
-  test('returns true if a child CANNOT shrink to available parent space', () => {
-    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'b' });
-
-    const layout = {
-      a: {
-        id: 'a',
-        type: COLUMN_TYPE,
-        meta: {
-          width: 6,
-        },
+    },
+    dragging: {
+      id: 'dragging',
+      type: COLUMN_TYPE,
+      meta: {
+        width: 10,
       },
-      // rows with children cannot shrink
-      b: {
-        id: 'b',
-        type: ROW_TYPE,
-        children: ['bChild', 'bChild', 'bChild'],
-      },
-      bChild: {
-        id: 'bChild',
-        type: CHART_TYPE,
-        meta: {
-          width: 3,
-        },
-      },
-    };
+      children: ['rowWithChildren'], // 2x b = width 10
+    },
+    rowWithChildren: {
+      id: 'rowWithChildren',
+      type: ROW_TYPE,
+      children: ['b', 'b'],
+    },
+  };
 
-    expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
-  });
+  expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
+  // remove children
+  expect(
+    dropOverflowsParent(dropResult, {
+      ...layout,
+      dragging: { ...layout.dragging, children: [] } as any,
+    } as any),
+  ).toBe(false);
+});
 
-  test('returns true if a column has children that CANNOT shrink to available parent space', () => {
-    const dropResult = mockDropResult(
-      { id: '_' },
-      { id: 'destination' },
-      { id: 'dragging' },
-    );
+test('should work with new components that are not in the layout', () => {
+  const dropResult = mockDropResult(
+    { id: NEW_COMPONENTS_SOURCE_ID },
+    { id: 'a' },
+    { id: CHART_TYPE },
+  );
 
-    const layout = {
-      destination: {
-        id: 'destination',
-        type: ROW_TYPE,
-        children: ['b', 'b'], // 2x b = 10, 2 available
-      },
-      b: {
-        id: 'b',
-        type: CHART_TYPE,
-        meta: {
-          width: 5,
-        },
-      },
-      dragging: {
-        id: 'dragging',
-        type: COLUMN_TYPE,
-        meta: {
-          width: 10,
-        },
-        children: ['rowWithChildren'], // 2x b = width 10
-      },
-      rowWithChildren: {
-        id: 'rowWithChildren',
-        type: ROW_TYPE,
-        children: ['b', 'b'],
-      },
-    };
+  const layout = {
+    a: {
+      id: 'a',
+      type: ROW_TYPE,
+      children: [] as any,
+    },
+  };
 
-    expect(dropOverflowsParent(dropResult, layout as any)).toBe(true);
-    // remove children
-    expect(
-      dropOverflowsParent(dropResult, {
-        ...layout,
-        dragging: { ...layout.dragging, children: [] } as any,
-      } as any),
-    ).toBe(false);
-  });
+  expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
+});
 
-  test('should work with new components that are not in the layout', () => {
-    const dropResult = mockDropResult(
-      { id: NEW_COMPONENTS_SOURCE_ID },
-      { id: 'a' },
-      { id: CHART_TYPE },
-    );
+test('source/destination without widths should not overflow parent', () => {
+  const dropResult = mockDropResult(
+    { id: '_' },
+    { id: 'tab' },
+    { id: 'header' },
+  );
 
-    const layout = {
-      a: {
-        id: 'a',
-        type: ROW_TYPE,
-        children: [] as any,
-      },
-    };
+  const layout = {
+    tab: {
+      id: 'tab',
+      type: TAB_TYPE,
+    },
+    header: {
+      id: 'header',
+      type: HEADER_TYPE,
+    },
+  };
 
-    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
-  });
-
-  test('source/destination without widths should not overflow parent', () => {
-    const dropResult = mockDropResult(
-      { id: '_' },
-      { id: 'tab' },
-      { id: 'header' },
-    );
-
-    const layout = {
-      tab: {
-        id: 'tab',
-        type: TAB_TYPE,
-      },
-      header: {
-        id: 'header',
-        type: HEADER_TYPE,
-      },
-    };
-
-    expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
-  });
+  expect(dropOverflowsParent(dropResult, layout as any)).toBe(false);
 });

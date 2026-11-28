@@ -36,132 +36,123 @@ const getIndentation = (depth: number) =>
     .fill('')
     .join('-');
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('isValidChild', () => {
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('valid calls', () => {
-    // these are representations of nested structures for easy testing
-    //  [ROOT (depth 0) > GRID (depth 1) > HEADER (depth 2)]
-    // every unique parent > child relationship is tested, but because this
-    // test representation WILL result in duplicates, we hash each test
-    // to keep track of which we've run
-    const didTest: Record<string, boolean> = {};
-    const validExamples = [
-      [ROOT, GRID, CHART], // chart is valid because it is wrapped in a row
-      [ROOT, GRID, MARKDOWN], // markdown is valid because it is wrapped in a row
-      [ROOT, GRID, COLUMN], // column is valid because it is wrapped in a row
-      [ROOT, GRID, HEADER],
-      [ROOT, GRID, ROW, MARKDOWN],
-      [ROOT, GRID, ROW, CHART],
+// these are representations of nested structures for easy testing
+//  [ROOT (depth 0) > GRID (depth 1) > HEADER (depth 2)]
+// every unique parent > child relationship is tested, but because this
+// test representation WILL result in duplicates, we hash each test
+// to keep track of which we've run
+const didTest: Record<string, boolean> = {};
+const validExamples = [
+  [ROOT, GRID, CHART], // chart is valid because it is wrapped in a row
+  [ROOT, GRID, MARKDOWN], // markdown is valid because it is wrapped in a row
+  [ROOT, GRID, COLUMN], // column is valid because it is wrapped in a row
+  [ROOT, GRID, HEADER],
+  [ROOT, GRID, ROW, MARKDOWN],
+  [ROOT, GRID, ROW, CHART],
 
-      [ROOT, GRID, ROW, COLUMN, HEADER],
-      [ROOT, GRID, ROW, COLUMN, DIVIDER],
-      [ROOT, GRID, ROW, COLUMN, CHART],
-      [ROOT, GRID, ROW, COLUMN, MARKDOWN],
+  [ROOT, GRID, ROW, COLUMN, HEADER],
+  [ROOT, GRID, ROW, COLUMN, DIVIDER],
+  [ROOT, GRID, ROW, COLUMN, CHART],
+  [ROOT, GRID, ROW, COLUMN, MARKDOWN],
 
-      [ROOT, GRID, ROW, COLUMN, ROW, CHART],
-      [ROOT, GRID, ROW, COLUMN, ROW, MARKDOWN],
+  [ROOT, GRID, ROW, COLUMN, ROW, CHART],
+  [ROOT, GRID, ROW, COLUMN, ROW, MARKDOWN],
 
-      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, CHART],
-      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
-      [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+  [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, CHART],
+  [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+  [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
 
-      // tab equivalents
-      [ROOT, TABS, TAB, CHART],
-      [ROOT, TABS, TAB, MARKDOWN],
-      [ROOT, TABS, TAB, COLUMN],
-      [ROOT, TABS, TAB, HEADER],
-      [ROOT, TABS, TAB, ROW, MARKDOWN],
-      [ROOT, TABS, TAB, ROW, CHART],
+  // tab equivalents
+  [ROOT, TABS, TAB, CHART],
+  [ROOT, TABS, TAB, MARKDOWN],
+  [ROOT, TABS, TAB, COLUMN],
+  [ROOT, TABS, TAB, HEADER],
+  [ROOT, TABS, TAB, ROW, MARKDOWN],
+  [ROOT, TABS, TAB, ROW, CHART],
 
-      [ROOT, TABS, TAB, ROW, COLUMN, HEADER],
-      [ROOT, TABS, TAB, ROW, COLUMN, DIVIDER],
-      [ROOT, TABS, TAB, ROW, COLUMN, CHART],
-      [ROOT, TABS, TAB, ROW, COLUMN, MARKDOWN],
+  [ROOT, TABS, TAB, ROW, COLUMN, HEADER],
+  [ROOT, TABS, TAB, ROW, COLUMN, DIVIDER],
+  [ROOT, TABS, TAB, ROW, COLUMN, CHART],
+  [ROOT, TABS, TAB, ROW, COLUMN, MARKDOWN],
 
-      [ROOT, TABS, TAB, ROW, COLUMN, ROW, CHART],
-      [ROOT, TABS, TAB, ROW, COLUMN, ROW, MARKDOWN],
+  [ROOT, TABS, TAB, ROW, COLUMN, ROW, CHART],
+  [ROOT, TABS, TAB, ROW, COLUMN, ROW, MARKDOWN],
 
-      [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, CHART],
-      [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
-      [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
-      [ROOT, GRID, ROW, COLUMN, TABS],
-    ];
+  [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, CHART],
+  [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+  [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+  [ROOT, GRID, ROW, COLUMN, TABS],
+];
 
-    validExamples.forEach((example, exampleIdx) => {
-      let childDepth = 0;
-      example.forEach((childType, i) => {
-        const parentDepth = childDepth - 1;
-        const parentType = example[i - 1];
-        const testKey = `${parentType}-${childType}-${parentDepth}`;
+validExamples.forEach((example, exampleIdx) => {
+  let childDepth = 0;
+  example.forEach((childType, i) => {
+    const parentDepth = childDepth - 1;
+    const parentType = example[i - 1];
+    const testKey = `${parentType}-${childType}-${parentDepth}`;
 
-        if (i > 0 && !didTest[testKey]) {
-          didTest[testKey] = true;
+    if (i > 0 && !didTest[testKey]) {
+      didTest[testKey] = true;
 
-          test(`(${exampleIdx})${getIndentation(
-            childDepth,
-          )}${parentType} (depth ${parentDepth}) > ${childType} ✅`, () => {
-            expect(
-              isValidChild({
-                parentDepth,
-                parentType,
-                childType,
-              }),
-            ).toBe(true);
-          });
-        }
-        // see isValidChild.js for why tabs do not increment the depth of their children
-        childDepth += childType !== TABS && childType !== TAB ? 1 : 0;
+      test(`(${exampleIdx})${getIndentation(
+        childDepth,
+      )}${parentType} (depth ${parentDepth}) > ${childType} ✅`, () => {
+        expect(
+          isValidChild({
+            parentDepth,
+            parentType,
+            childType,
+          }),
+        ).toBe(true);
       });
-    });
+    }
+    // see isValidChild.js for why tabs do not increment the depth of their children
+    childDepth += childType !== TABS && childType !== TAB ? 1 : 0;
   });
+});
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('invalid calls', () => {
-    // In order to assert that a parent > child hierarchy at a given depth is invalid
-    // we also define some valid hierarchies in doing so. we indicate which
-    // parent > [child] relationships should be asserted as invalid using a nested array
-    const invalidExamples = [
-      [ROOT, [DIVIDER]],
-      [ROOT, [CHART]],
-      [ROOT, [MARKDOWN]],
-      [ROOT, GRID, [TAB]],
-      [ROOT, GRID, TABS, [ROW]],
-      // [ROOT, GRID, TABS, TAB, [TABS]], // @TODO this needs to be fixed
-      [ROOT, GRID, ROW, [TABS]],
-      [ROOT, GRID, ROW, [TAB]],
-      [ROOT, GRID, ROW, [DIVIDER]],
-      [ROOT, GRID, ROW, COLUMN, [TAB]],
-      [ROOT, GRID, ROW, COLUMN, ROW, [DIVIDER]],
-      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, [ROW]], // too nested
-    ];
+// In order to assert that a parent > child hierarchy at a given depth is invalid
+// we also define some valid hierarchies in doing so. we indicate which
+// parent > [child] relationships should be asserted as invalid using a nested array
+const invalidExamples = [
+  [ROOT, [DIVIDER]],
+  [ROOT, [CHART]],
+  [ROOT, [MARKDOWN]],
+  [ROOT, GRID, [TAB]],
+  [ROOT, GRID, TABS, [ROW]],
+  // [ROOT, GRID, TABS, TAB, [TABS]], // @TODO this needs to be fixed
+  [ROOT, GRID, ROW, [TABS]],
+  [ROOT, GRID, ROW, [TAB]],
+  [ROOT, GRID, ROW, [DIVIDER]],
+  [ROOT, GRID, ROW, COLUMN, [TAB]],
+  [ROOT, GRID, ROW, COLUMN, ROW, [DIVIDER]],
+  [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, [ROW]], // too nested
+];
 
-    invalidExamples.forEach((example, exampleIdx) => {
-      let childDepth = 0;
-      example.forEach((childType, i) => {
-        // should test child
-        if (i > 0 && Array.isArray(childType)) {
-          const parentDepth = childDepth - 1;
-          const parentType = example[i - 1];
+invalidExamples.forEach((example, exampleIdx) => {
+  let childDepth = 0;
+  example.forEach((childType, i) => {
+    // should test child
+    if (i > 0 && Array.isArray(childType)) {
+      const parentDepth = childDepth - 1;
+      const parentType = example[i - 1];
 
-          if (typeof parentType !== 'string')
-            throw new TypeError('parent must be string');
+      if (typeof parentType !== 'string')
+        throw new TypeError('parent must be string');
 
-          test(`(${exampleIdx})${getIndentation(
-            childDepth,
-          )}${parentType} (depth ${parentDepth}) > ${childType} ❌`, () => {
-            expect(
-              isValidChild({
-                parentDepth,
-                parentType,
-                childType: childType[0],
-              }),
-            ).toBe(false);
-          });
-        }
-        // see isValidChild.js for why tabs do not increment the depth of their children
-        childDepth += childType !== TABS && childType !== TAB ? 1 : 0;
+      test(`(${exampleIdx})${getIndentation(
+        childDepth,
+      )}${parentType} (depth ${parentDepth}) > ${childType} ❌`, () => {
+        expect(
+          isValidChild({
+            parentDepth,
+            parentType,
+            childType: childType[0],
+          }),
+        ).toBe(false);
       });
-    });
+    }
+    // see isValidChild.js for why tabs do not increment the depth of their children
+    childDepth += childType !== TABS && childType !== TAB ? 1 : 0;
   });
 });

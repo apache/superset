@@ -154,100 +154,252 @@ const createStore = (initState: object) =>
       getDefaultMiddleware().concat(api.middleware, logAction),
   });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('SqlEditor', () => {
-  beforeAll(() => {
-    jest.setTimeout(30000);
+beforeAll(() => {
+  jest.setTimeout(30000);
+});
+
+afterEach(async () => {
+  cleanup();
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+const mockedProps = {
+  queryEditor: initialState.sqlLab.queryEditors[0],
+  tables: [table],
+  getHeight: () => '100px',
+  editorQueries: [],
+  dataPreviewQueries: [],
+  defaultQueryLimit: 1000,
+  maxRow: 100000,
+  displayLimit: 100,
+  saveQueryWarning: '',
+  scheduleQueryWarning: '',
+};
+
+beforeEach(() => {
+  store = createStore(mockInitialState);
+  actions = [];
+
+  (ResultSet as unknown as jest.Mock).mockClear();
+  (ResultSet as unknown as jest.Mock).mockImplementation(() => (
+    <div data-test="mock-result-set" />
+  ));
+});
+
+afterEach(() => {
+  act(() => {
+    store.dispatch(api.util.resetApiState());
   });
+});
 
-  afterEach(async () => {
-    cleanup();
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
+test('does not render SqlEditor if no db selected', async () => {
+  const queryEditor = initialState.sqlLab.queryEditors[2];
+  const { findByText } = setup({ ...mockedProps, queryEditor }, store);
+  expect(
+    await findByText('Select a database to write a query'),
+  ).toBeInTheDocument();
+});
 
-  const mockedProps = {
-    queryEditor: initialState.sqlLab.queryEditors[0],
-    tables: [table],
-    getHeight: () => '100px',
-    editorQueries: [],
-    dataPreviewQueries: [],
-    defaultQueryLimit: 1000,
-    maxRow: 100000,
-    displayLimit: 100,
-    saveQueryWarning: '',
-    scheduleQueryWarning: '',
-  };
+test('renders db unavailable message', async () => {
+  const queryEditor = initialState.sqlLab.queryEditors[1];
+  const { findByText } = setup({ ...mockedProps, queryEditor }, store);
+  expect(
+    await findByText(
+      'The database that was used to generate this query could not be found',
+    ),
+  ).toBeInTheDocument();
+});
 
-  beforeEach(() => {
-    store = createStore(mockInitialState);
-    actions = [];
+// Update other similar tests with timeouts
+test('render an EditorWrapper', async () => {
+  const { findByTestId, unmount } = setup(mockedProps, store);
 
-    (ResultSet as unknown as jest.Mock).mockClear();
-    (ResultSet as unknown as jest.Mock).mockImplementation(() => (
-      <div data-test="mock-result-set" />
-    ));
-  });
+  await waitFor(
+    () => expect(findByTestId('react-ace')).resolves.toBeInTheDocument(),
+    { timeout: 10000 },
+  );
 
-  afterEach(() => {
-    act(() => {
-      store.dispatch(api.util.resetApiState());
-    });
-  });
+  unmount();
+}, 15000);
 
-  test('does not render SqlEditor if no db selected', async () => {
-    const queryEditor = initialState.sqlLab.queryEditors[2];
-    const { findByText } = setup({ ...mockedProps, queryEditor }, store);
-    expect(
-      await findByText('Select a database to write a query'),
-    ).toBeInTheDocument();
-  });
+test('skip rendering an EditorWrapper when the current tab is inactive', async () => {
+  const { queryByTestId } = setup(
+    {
+      ...mockedProps,
+      queryEditor: initialState.sqlLab.queryEditors[1],
+    },
+    store,
+  );
+  expect(queryByTestId('react-ace')).not.toBeInTheDocument();
+});
 
-  test('renders db unavailable message', async () => {
-    const queryEditor = initialState.sqlLab.queryEditors[1];
-    const { findByText } = setup({ ...mockedProps, queryEditor }, store);
-    expect(
-      await findByText(
-        'The database that was used to generate this query could not be found',
-      ),
-    ).toBeInTheDocument();
-  });
+test('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
+  const { findByTestId } = setup(mockedProps, store);
+  const editor = await findByTestId('react-ace');
+  const sql = 'select *';
+  const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock.calls
+    .length;
+  expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
+  fireEvent.change(editor, { target: { value: sql } });
+  expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
+});
 
-  // Update other similar tests with timeouts
-  test('render an EditorWrapper', async () => {
-    const { findByTestId, unmount } = setup(mockedProps, store);
-
-    await waitFor(
-      () => expect(findByTestId('react-ace')).resolves.toBeInTheDocument(),
-      { timeout: 10000 },
-    );
-
-    unmount();
-  }, 15000);
-
-  test('skip rendering an EditorWrapper when the current tab is inactive', async () => {
-    const { queryByTestId } = setup(
-      {
-        ...mockedProps,
-        queryEditor: initialState.sqlLab.queryEditors[1],
+test('renders sql from unsaved change', async () => {
+  const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
+  store = createStore({
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      databases: {
+        2023: {
+          allow_ctas: false,
+          allow_cvas: false,
+          allow_dml: false,
+          allow_file_upload: false,
+          allow_run_async: false,
+          backend: 'postgresql',
+          database_name: 'examples',
+          expose_in_sqllab: true,
+          force_ctas_schema: null,
+          id: 1,
+        },
       },
-      store,
-    );
-    expect(queryByTestId('react-ace')).not.toBeInTheDocument();
+      unsavedQueryEditor: {
+        id: defaultQueryEditor.id,
+        dbId: 2023,
+        sql: expectedSql,
+      },
+    },
   });
+  const { findByTestId } = setup(mockedProps, store);
 
-  test('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
-    const { findByTestId } = setup(mockedProps, store);
-    const editor = await findByTestId('react-ace');
-    const sql = 'select *';
-    const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock
-      .calls.length;
-    expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
-    fireEvent.change(editor, { target: { value: sql } });
-    expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
+  const editor = await findByTestId('react-ace');
+  expect(editor).toHaveValue(expectedSql);
+});
+
+test('render a SouthPane', async () => {
+  const { findByTestId } = setup(mockedProps, store);
+  expect(await findByTestId('mock-result-set')).toBeInTheDocument();
+});
+
+test('runs query action with ctas false', async () => {
+  store = createStore({
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      databases: {
+        5667: {
+          allow_ctas: false,
+          allow_cvas: false,
+          allow_dml: false,
+          allow_file_upload: false,
+          allow_run_async: true,
+          backend: 'postgresql',
+          database_name: 'examples',
+          expose_in_sqllab: true,
+          force_ctas_schema: null,
+          id: 1,
+        },
+      },
+      unsavedQueryEditor: {
+        id: defaultQueryEditor.id,
+        dbId: 5667,
+        sql: 'expectedSql',
+      },
+    },
   });
+  const { findByTestId } = setup(mockedProps, store);
+  const runButton = await findByTestId('run-query-action');
+  fireEvent.click(runButton);
+  await waitFor(() =>
+    expect(actions).toContainEqual({
+      type: 'START_QUERY',
+      query: expect.objectContaining({
+        ctas: false,
+        sqlEditorId: defaultQueryEditor.id,
+      }),
+    }),
+  );
+});
 
-  test('renders sql from unsaved change', async () => {
-    const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
+test('render a Limit Dropdown', async () => {
+  const defaultQueryLimit = 101;
+  const updatedProps = { ...mockedProps, defaultQueryLimit };
+  const { findByText } = setup(updatedProps, store);
+  fireEvent.click(await findByText('Limit'));
+  expect(await findByText('10 000')).toBeInTheDocument();
+});
+
+const setupWithLatestQuery = (overrides: Partial<typeof latestQuery>) =>
+  setup(
+    mockedProps,
+    createStore({
+      ...mockInitialState,
+      sqlLab: {
+        ...mockInitialState.sqlLab,
+        queries: {
+          [latestQuery.id]: { ...latestQuery, ...overrides },
+        },
+        databases: {
+          1991: {
+            ...mockInitialState.sqlLab.databases[1991],
+            allows_virtual_table_explore: true,
+          },
+        },
+      },
+    }),
+  );
+
+// findByRole('button', { name }) walks every stylesheet rule via nwsapi to
+// compute the accessible name, which can crash on an unrelated antd Tabs
+// "more" button style; findByLabelText matches the same aria-label without
+// that traversal.
+test('enables the save dataset button when the latest query succeeded', async () => {
+  const { findByLabelText } = setupWithLatestQuery({
+    state: QueryState.Success,
+    sql: mockedProps.queryEditor.sql,
+  });
+  expect(await findByLabelText('Save dataset')).toBeEnabled();
+});
+
+test('disables the save dataset button when the latest query failed', async () => {
+  const { findByLabelText } = setupWithLatestQuery({
+    state: QueryState.Failed,
+    results: undefined,
+  });
+  expect(await findByLabelText('Save dataset')).toBeDisabled();
+});
+
+test('disables the save dataset button when the results are not loaded', async () => {
+  const { findByLabelText } = setupWithLatestQuery({
+    state: QueryState.Success,
+    results: undefined,
+  });
+  expect(await findByLabelText('Save dataset')).toBeDisabled();
+});
+
+test('renders an Extension if provided', async () => {
+  const extensionsRegistry = getExtensionsRegistry();
+
+  extensionsRegistry.set('sqleditor.extension.form', () => (
+    <>sqleditor.extension.form extension component</>
+  ));
+
+  setupCodeOverrides();
+  const { findByText } = setup(mockedProps, store);
+  expect(
+    await findByText('sqleditor.extension.form extension component'),
+  ).toBeInTheDocument();
+});
+
+test('sends the catalog and schema to the endpoint', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.EstimateQueryCost,
+  );
+  try {
+    const estimateApi = 'http://localhost/api/v1/sqllab/estimate/';
+    fetchMock.post(estimateApi, {});
+
     store = createStore({
       ...initialState,
       sqlLab: {
@@ -264,246 +416,81 @@ describe('SqlEditor', () => {
             expose_in_sqllab: true,
             force_ctas_schema: null,
             id: 1,
+            allows_cost_estimate: true,
           },
         },
         unsavedQueryEditor: {
           id: defaultQueryEditor.id,
           dbId: 2023,
-          sql: expectedSql,
+          sql: 'SELECT * FROM t',
+          schema: 'public',
+          catalog: 'prod',
         },
       },
     });
-    const { findByTestId } = setup(mockedProps, store);
+    const { findByLabelText } = setup(mockedProps, store);
+    const button = await findByLabelText('Estimate cost');
+    expect(button).toBeInTheDocument();
 
-    const editor = await findByTestId('react-ace');
-    expect(editor).toHaveValue(expectedSql);
-  });
-
-  test('render a SouthPane', async () => {
-    const { findByTestId } = setup(mockedProps, store);
-    expect(await findByTestId('mock-result-set')).toBeInTheDocument();
-  });
-
-  test('runs query action with ctas false', async () => {
-    store = createStore({
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        databases: {
-          5667: {
-            allow_ctas: false,
-            allow_cvas: false,
-            allow_dml: false,
-            allow_file_upload: false,
-            allow_run_async: true,
-            backend: 'postgresql',
-            database_name: 'examples',
-            expose_in_sqllab: true,
-            force_ctas_schema: null,
-            id: 1,
-          },
-        },
-        unsavedQueryEditor: {
-          id: defaultQueryEditor.id,
-          dbId: 5667,
-          sql: 'expectedSql',
-        },
-      },
-    });
-    const { findByTestId } = setup(mockedProps, store);
-    const runButton = await findByTestId('run-query-action');
-    fireEvent.click(runButton);
-    await waitFor(() =>
-      expect(actions).toContainEqual({
-        type: 'START_QUERY',
-        query: expect.objectContaining({
-          ctas: false,
-          sqlEditorId: defaultQueryEditor.id,
-        }),
-      }),
-    );
-  });
-
-  test('render a Limit Dropdown', async () => {
-    const defaultQueryLimit = 101;
-    const updatedProps = { ...mockedProps, defaultQueryLimit };
-    const { findByText } = setup(updatedProps, store);
-    fireEvent.click(await findByText('Limit'));
-    expect(await findByText('10 000')).toBeInTheDocument();
-  });
-
-  const setupWithLatestQuery = (overrides: Partial<typeof latestQuery>) =>
-    setup(
-      mockedProps,
-      createStore({
-        ...mockInitialState,
-        sqlLab: {
-          ...mockInitialState.sqlLab,
-          queries: {
-            [latestQuery.id]: { ...latestQuery, ...overrides },
-          },
-          databases: {
-            1991: {
-              ...mockInitialState.sqlLab.databases[1991],
-              allows_virtual_table_explore: true,
-            },
-          },
-        },
-      }),
-    );
-
-  // findByRole('button', { name }) walks every stylesheet rule via nwsapi to
-  // compute the accessible name, which can crash on an unrelated antd Tabs
-  // "more" button style; findByLabelText matches the same aria-label without
-  // that traversal.
-  test('enables the save dataset button when the latest query succeeded', async () => {
-    const { findByLabelText } = setupWithLatestQuery({
-      state: QueryState.Success,
-      sql: mockedProps.queryEditor.sql,
-    });
-    expect(await findByLabelText('Save dataset')).toBeEnabled();
-  });
-
-  test('disables the save dataset button when the latest query failed', async () => {
-    const { findByLabelText } = setupWithLatestQuery({
-      state: QueryState.Failed,
-      results: undefined,
-    });
-    expect(await findByLabelText('Save dataset')).toBeDisabled();
-  });
-
-  test('disables the save dataset button when the results are not loaded', async () => {
-    const { findByLabelText } = setupWithLatestQuery({
-      state: QueryState.Success,
-      results: undefined,
-    });
-    expect(await findByLabelText('Save dataset')).toBeDisabled();
-  });
-
-  test('renders an Extension if provided', async () => {
-    const extensionsRegistry = getExtensionsRegistry();
-
-    extensionsRegistry.set('sqleditor.extension.form', () => (
-      <>sqleditor.extension.form extension component</>
-    ));
-
-    setupCodeOverrides();
-    const { findByText } = setup(mockedProps, store);
-    expect(
-      await findByText('sqleditor.extension.form extension component'),
-    ).toBeInTheDocument();
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('with EstimateQueryCost enabled', () => {
-    beforeEach(() => {
-      mockIsFeatureEnabled.mockImplementation(
-        featureFlag => featureFlag === FeatureFlag.EstimateQueryCost,
-      );
-    });
-    afterEach(() => {
-      mockIsFeatureEnabled.mockClear();
-    });
-
-    test('sends the catalog and schema to the endpoint', async () => {
-      const estimateApi = 'http://localhost/api/v1/sqllab/estimate/';
-      fetchMock.post(estimateApi, {});
-
-      store = createStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          databases: {
-            2023: {
-              allow_ctas: false,
-              allow_cvas: false,
-              allow_dml: false,
-              allow_file_upload: false,
-              allow_run_async: false,
-              backend: 'postgresql',
-              database_name: 'examples',
-              expose_in_sqllab: true,
-              force_ctas_schema: null,
-              id: 1,
-              allows_cost_estimate: true,
-            },
-          },
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            dbId: 2023,
-            sql: 'SELECT * FROM t',
-            schema: 'public',
+    // click button
+    fireEvent.click(button);
+    await waitFor(() => {
+      expect(fetchMock.callHistory.lastCall()?.url).toEqual(estimateApi);
+      expect(fetchMock.callHistory.lastCall()?.options).toEqual(
+        expect.objectContaining({
+          body: JSON.stringify({
+            database_id: 2023,
             catalog: 'prod',
-          },
-        },
-      });
-      const { findByLabelText } = setup(mockedProps, store);
-      const button = await findByLabelText('Estimate cost');
-      expect(button).toBeInTheDocument();
-
-      // click button
-      fireEvent.click(button);
-      await waitFor(() => {
-        expect(fetchMock.callHistory.lastCall()?.url).toEqual(estimateApi);
-        expect(fetchMock.callHistory.lastCall()?.options).toEqual(
-          expect.objectContaining({
-            body: JSON.stringify({
-              database_id: 2023,
-              catalog: 'prod',
-              schema: 'public',
-              sql: 'SELECT * FROM t',
-              template_params: {},
-            }),
-            cache: 'default',
-            credentials: 'same-origin',
-            headers: {
-              accept: 'application/json',
-              'content-type': 'application/json',
-              'x-csrftoken': '1234',
-            },
-            method: 'post',
-            mode: 'same-origin',
-            redirect: 'follow',
-            signal: undefined,
+            schema: 'public',
+            sql: 'SELECT * FROM t',
+            template_params: {},
           }),
-        );
-      });
-    });
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('with SqllabBackendPersistence enabled', () => {
-    beforeEach(() => {
-      mockIsFeatureEnabled.mockImplementation(
-        featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
-      );
-    });
-    afterEach(() => {
-      mockIsFeatureEnabled.mockClear();
-    });
-
-    test('should render loading state when its Editor is not loaded', async () => {
-      const switchTabApi = `glob:*/tabstateview/${defaultQueryEditor.id}/activate`;
-      fetchMock.post(switchTabApi, {});
-      const { getByTestId } = setup(
-        {
-          ...mockedProps,
-          queryEditor: {
-            ...mockedProps.queryEditor,
-            loaded: false,
+          cache: 'default',
+          credentials: 'same-origin',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            'x-csrftoken': '1234',
           },
-        },
-        store,
+          method: 'post',
+          mode: 'same-origin',
+          redirect: 'follow',
+          signal: undefined,
+        }),
       );
-      const indicator = getByTestId('sqlEditor-loading');
-      expect(indicator).toBeInTheDocument();
-      await waitFor(() =>
-        expect(
-          fetchMock.callHistory.calls('glob:*/tabstateview/*').length,
-        ).toBe(1),
-      );
-      // it will be called from EditorAutoSync
-      expect(fetchMock.callHistory.calls(switchTabApi).length).toBe(0);
     });
-  });
+  } finally {
+    mockIsFeatureEnabled.mockClear();
+  }
+});
+
+test('should render loading state when its Editor is not loaded', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+  );
+  try {
+    const switchTabApi = `glob:*/tabstateview/${defaultQueryEditor.id}/activate`;
+    fetchMock.post(switchTabApi, {});
+    const { getByTestId } = setup(
+      {
+        ...mockedProps,
+        queryEditor: {
+          ...mockedProps.queryEditor,
+          loaded: false,
+        },
+      },
+      store,
+    );
+    const indicator = getByTestId('sqlEditor-loading');
+    expect(indicator).toBeInTheDocument();
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('glob:*/tabstateview/*').length).toBe(
+        1,
+      ),
+    );
+    // it will be called from EditorAutoSync
+    expect(fetchMock.callHistory.calls(switchTabApi).length).toBe(0);
+  } finally {
+    mockIsFeatureEnabled.mockClear();
+  }
 });

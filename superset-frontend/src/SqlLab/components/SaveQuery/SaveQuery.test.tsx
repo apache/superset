@@ -110,343 +110,176 @@ const stateWithLatestQuery = ({
 const middlewares = [thunk];
 const mockStore = createMockStore(middlewares);
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('SavedQuery', () => {
-  test('doesnt render save button when allows_virtual_table_explore is undefined', async () => {
-    const noRenderProps = {
-      ...mockedProps,
-      database: {
-        ...mockedProps.database,
-        allows_virtual_table_explore: undefined,
+test('doesnt render save button when allows_virtual_table_explore is undefined', async () => {
+  const noRenderProps = {
+    ...mockedProps,
+    database: {
+      ...mockedProps.database,
+      allows_virtual_table_explore: undefined,
+    },
+  };
+  render(<SaveQuery {...noRenderProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+  expect(() => {
+    screen.getByRole('button', { name: /save/i });
+  }).toThrow(
+    'Unable to find an accessible element with the role "button" and name `/save/i`',
+  );
+});
+
+test('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
+  render(<SaveQuery {...mockedProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  const saveBtn = screen.getByRole('button', { name: /save/i });
+
+  expect(saveBtn).toBeVisible();
+});
+
+test('blocks "Save dataset" until the query has run successfully', () => {
+  // Without a successful run the save can only fail server-side.
+  render(<SaveQuery {...splitSaveBtnProps} />, {
+    useRedux: true,
+    store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'failed' })),
+  });
+
+  expect(screen.getByRole('button', { name: /save dataset/i })).toBeDisabled();
+  // Saving the query itself is unaffected.
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('blocks "Save dataset" when no query has been run at all', () => {
+  render(<SaveQuery {...splitSaveBtnProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  expect(screen.getByRole('button', { name: /save dataset/i })).toBeDisabled();
+});
+
+test('blocks "Save dataset" when the SQL changed after a successful run', () => {
+  // The run succeeded, but not for what is in the editor now -- and it is
+  // the editor's SQL that gets saved.
+  render(<SaveQuery {...splitSaveBtnProps} />, {
+    useRedux: true,
+    store: mockStore(
+      stateWithLatestQuery({
+        id: 'qid-1',
+        state: 'success',
+        sql: 'SELECT 1 AS ran_earlier',
+      }),
+    ),
+  });
+
+  expect(screen.getByRole('button', { name: /save dataset/i })).toBeDisabled();
+});
+
+test('blocks "Save dataset" when the successful query returned no columns', () => {
+  // e.g. a DDL/DML statement -- there is nothing to introspect into a dataset.
+  render(<SaveQuery {...splitSaveBtnProps} columns={[]} />, {
+    useRedux: true,
+    store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
+  });
+
+  expect(screen.getByRole('button', { name: /save dataset/i })).toBeDisabled();
+});
+
+test('enables "Save dataset" once the query has succeeded', () => {
+  render(<SaveQuery {...splitSaveBtnProps} />, {
+    useRedux: true,
+    store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
+  });
+
+  expect(screen.getByRole('button', { name: /save dataset/i })).toBeEnabled();
+});
+
+test('renders a save query modal when user clicks save button', async () => {
+  render(<SaveQuery {...mockedProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  const saveBtn = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveBtn);
+
+  const saveQueryModalHeader = screen.getByRole('heading', {
+    name: /save query/i,
+  });
+
+  expect(saveQueryModalHeader).toBeInTheDocument();
+});
+
+test('renders the save query modal UI', async () => {
+  render(<SaveQuery {...mockedProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  const saveBtn = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveBtn);
+
+  const closeBtn = screen.getByRole('button', { name: /close/i });
+  const saveQueryModalHeader = screen.getByRole('heading', {
+    name: /save query/i,
+  });
+  const nameLabel = screen.getByText(/name/i);
+  const descriptionLabel = screen.getByText(/description/i);
+  const textBoxes = screen.getAllByRole('textbox');
+  const nameTextbox = textBoxes[0];
+  const descriptionTextbox = textBoxes[1];
+  // There are now two save buttons, the initial save button and the modal save button
+  const saveBtns = screen.getAllByRole('button', { name: /save/i });
+  const cancelBtn = screen.getByRole('button', { name: /cancel/i });
+
+  expect(closeBtn).toBeInTheDocument();
+  expect(saveQueryModalHeader).toBeInTheDocument();
+  expect(nameLabel).toBeInTheDocument();
+  expect(descriptionLabel).toBeInTheDocument();
+  expect(textBoxes.length).toBe(2);
+  expect(nameTextbox).toBeInTheDocument();
+  expect(descriptionTextbox).toBeInTheDocument();
+  expect(saveBtns.length).toBe(2);
+  expect(saveBtns[0]).toBeInTheDocument();
+  expect(saveBtns[1]).toBeInTheDocument();
+  expect(cancelBtn).toBeInTheDocument();
+});
+
+test('renders a "save as new" and "update" button if query already exists', async () => {
+  render(<SaveQuery {...mockedProps} />, {
+    useRedux: true,
+    store: mockStore({
+      ...mockState,
+      sqlLab: {
+        ...mockState.sqlLab,
+        unsavedQueryEditor: {
+          id: mockedProps.queryEditorId,
+          remoteId: '42',
+        },
       },
-    };
-    render(<SaveQuery {...noRenderProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-    expect(() => {
-      screen.getByRole('button', { name: /save/i });
-    }).toThrow(
-      'Unable to find an accessible element with the role "button" and name `/save/i`',
-    );
+    }),
   });
 
-  test('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
-    render(<SaveQuery {...mockedProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
+  const saveBtn = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveBtn);
 
-    const saveBtn = screen.getByRole('button', { name: /save/i });
+  const saveAsNewBtn = screen.getByRole('button', { name: /save as new/i });
+  const updateBtn = screen.getByRole('button', { name: /update/i });
 
-    expect(saveBtn).toBeVisible();
-  });
+  expect(saveAsNewBtn).toBeInTheDocument();
+  expect(updateBtn).toBeInTheDocument();
+});
 
-  test('blocks "Save dataset" until the query has run successfully', () => {
-    // Without a successful run the save can only fail server-side.
-    render(<SaveQuery {...splitSaveBtnProps} />, {
-      useRedux: true,
-      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'failed' })),
-    });
+test('pre-fills the description from an existing saved query and updates with it unchanged', async () => {
+  const storedDescription = 'This is the stored description';
+  const mockOnUpdate = jest.fn();
 
-    expect(
-      screen.getByRole('button', { name: /save dataset/i }),
-    ).toBeDisabled();
-    // Saving the query itself is unaffected.
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
-  });
-
-  test('blocks "Save dataset" when no query has been run at all', () => {
-    render(<SaveQuery {...splitSaveBtnProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    expect(
-      screen.getByRole('button', { name: /save dataset/i }),
-    ).toBeDisabled();
-  });
-
-  test('blocks "Save dataset" when the SQL changed after a successful run', () => {
-    // The run succeeded, but not for what is in the editor now -- and it is
-    // the editor's SQL that gets saved.
-    render(<SaveQuery {...splitSaveBtnProps} />, {
-      useRedux: true,
-      store: mockStore(
-        stateWithLatestQuery({
-          id: 'qid-1',
-          state: 'success',
-          sql: 'SELECT 1 AS ran_earlier',
-        }),
-      ),
-    });
-
-    expect(
-      screen.getByRole('button', { name: /save dataset/i }),
-    ).toBeDisabled();
-  });
-
-  test('blocks "Save dataset" when the successful query returned no columns', () => {
-    // e.g. a DDL/DML statement -- there is nothing to introspect into a dataset.
-    render(<SaveQuery {...splitSaveBtnProps} columns={[]} />, {
-      useRedux: true,
-      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
-    });
-
-    expect(
-      screen.getByRole('button', { name: /save dataset/i }),
-    ).toBeDisabled();
-  });
-
-  test('enables "Save dataset" once the query has succeeded', () => {
-    render(<SaveQuery {...splitSaveBtnProps} />, {
-      useRedux: true,
-      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
-    });
-
-    expect(screen.getByRole('button', { name: /save dataset/i })).toBeEnabled();
-  });
-
-  test('renders a save query modal when user clicks save button', async () => {
-    render(<SaveQuery {...mockedProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    await userEvent.click(saveBtn);
-
-    const saveQueryModalHeader = screen.getByRole('heading', {
-      name: /save query/i,
-    });
-
-    expect(saveQueryModalHeader).toBeInTheDocument();
-  });
-
-  test('renders the save query modal UI', async () => {
-    render(<SaveQuery {...mockedProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    await userEvent.click(saveBtn);
-
-    const closeBtn = screen.getByRole('button', { name: /close/i });
-    const saveQueryModalHeader = screen.getByRole('heading', {
-      name: /save query/i,
-    });
-    const nameLabel = screen.getByText(/name/i);
-    const descriptionLabel = screen.getByText(/description/i);
-    const textBoxes = screen.getAllByRole('textbox');
-    const nameTextbox = textBoxes[0];
-    const descriptionTextbox = textBoxes[1];
-    // There are now two save buttons, the initial save button and the modal save button
-    const saveBtns = screen.getAllByRole('button', { name: /save/i });
-    const cancelBtn = screen.getByRole('button', { name: /cancel/i });
-
-    expect(closeBtn).toBeInTheDocument();
-    expect(saveQueryModalHeader).toBeInTheDocument();
-    expect(nameLabel).toBeInTheDocument();
-    expect(descriptionLabel).toBeInTheDocument();
-    expect(textBoxes.length).toBe(2);
-    expect(nameTextbox).toBeInTheDocument();
-    expect(descriptionTextbox).toBeInTheDocument();
-    expect(saveBtns.length).toBe(2);
-    expect(saveBtns[0]).toBeInTheDocument();
-    expect(saveBtns[1]).toBeInTheDocument();
-    expect(cancelBtn).toBeInTheDocument();
-  });
-
-  test('renders a "save as new" and "update" button if query already exists', async () => {
-    render(<SaveQuery {...mockedProps} />, {
-      useRedux: true,
-      store: mockStore({
-        ...mockState,
-        sqlLab: {
-          ...mockState.sqlLab,
-          unsavedQueryEditor: {
-            id: mockedProps.queryEditorId,
-            remoteId: '42',
-          },
-        },
-      }),
-    });
-
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    await userEvent.click(saveBtn);
-
-    const saveAsNewBtn = screen.getByRole('button', { name: /save as new/i });
-    const updateBtn = screen.getByRole('button', { name: /update/i });
-
-    expect(saveAsNewBtn).toBeInTheDocument();
-    expect(updateBtn).toBeInTheDocument();
-  });
-
-  test('pre-fills the description from an existing saved query and updates with it unchanged', async () => {
-    const storedDescription = 'This is the stored description';
-    const mockOnUpdate = jest.fn();
-
-    render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
-      useRedux: true,
-      store: mockStore({
-        ...mockState,
-        sqlLab: {
-          ...mockState.sqlLab,
-          queryEditors: [
-            {
-              id: mockedProps.queryEditorId,
-              dbId: 1,
-              catalog: null,
-              schema: 'main',
-              sql: 'SELECT * FROM t',
-              name: 'My saved query',
-              description: storedDescription,
-              remoteId: 42,
-            },
-          ],
-        },
-      }),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    const descriptionTextbox = screen.getByRole('textbox', {
-      name: 'Description',
-    });
-    expect(descriptionTextbox).toHaveValue(storedDescription);
-
-    await userEvent.click(screen.getByRole('button', { name: /update/i }));
-
-    await waitFor(() => expect(mockOnUpdate).toHaveBeenCalled());
-    expect(mockOnUpdate.mock.calls[0][0]).toEqual(
-      expect.objectContaining({ description: storedDescription }),
-    );
-  });
-
-  test('renders a split save button when allows_virtual_table_explore is enabled', async () => {
-    render(<SaveQuery {...splitSaveBtnProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await waitFor(() => {
-      const saveBtn = screen.getByRole('button', { name: 'Save' });
-      const saveDataSetBtn = screen.getByRole('button', {
-        name: /save dataset/i,
-      });
-
-      expect(saveBtn).toBeVisible();
-      expect(saveDataSetBtn).toBeVisible();
-    });
-  });
-
-  test('renders a save dataset modal when user clicks "save dataset" menu item', async () => {
-    render(<SaveQuery {...splitSaveBtnProps} />, {
-      useRedux: true,
-      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
-    });
-
-    const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
-    await userEvent.click(saveDatasetMenuItem);
-
-    // antd may render a truncation tooltip with the same text alongside
-    // the heading, so target the heading's own test id rather than text.
-    const saveDatasetHeader = screen.getByTestId(
-      'save-or-overwrite-dataset-title',
-    );
-
-    expect(saveDatasetHeader).toBeInTheDocument();
-  });
-
-  test('renders the save dataset modal UI', async () => {
-    render(<SaveQuery {...splitSaveBtnProps} />, {
-      useRedux: true,
-      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
-    });
-    const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
-    await userEvent.click(saveDatasetMenuItem);
-
-    const closeBtn = screen.getByRole('button', { name: /close/i });
-    // antd may render a truncation tooltip with the same text alongside
-    // the heading, so target the heading's own test id rather than text.
-    const saveDatasetHeader = screen.getByTestId(
-      'save-or-overwrite-dataset-title',
-    );
-    const saveRadio = screen.getByRole('radio', {
-      name: /save as new/i,
-    });
-    const saveLabel = screen.getByText(/save as new/i);
-    const saveTextbox = screen.getByRole('textbox');
-    const overwriteRadio = screen.getByRole('radio', {
-      name: /overwrite existing/i,
-    });
-    const overwriteLabel = screen.getByText(/overwrite existing/i);
-    const overwriteCombobox = screen.getByRole('combobox');
-    const overwritePlaceholderText = screen.getByText(
-      /select or type dataset name/i,
-    );
-
-    expect(saveDatasetHeader).toBeInTheDocument();
-    expect(closeBtn).toBeInTheDocument();
-    expect(saveRadio).toBeInTheDocument();
-    expect(saveLabel).toBeInTheDocument();
-    expect(saveTextbox).toBeInTheDocument();
-    expect(overwriteRadio).toBeInTheDocument();
-    expect(overwriteLabel).toBeInTheDocument();
-    expect(overwriteCombobox).toBeInTheDocument();
-    expect(overwritePlaceholderText).toBeInTheDocument();
-  });
-
-  test('modal stays open while save is in progress and closes after completion', async () => {
-    let resolveSave: () => void;
-    const savePromise = new Promise<void>(resolve => {
-      resolveSave = resolve;
-    });
-
-    const mockOnSave = jest.fn().mockImplementation(() => savePromise);
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    // Open the modal
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    await userEvent.click(saveBtn);
-
-    // Verify modal is open
-    expect(
-      screen.getByRole('heading', { name: /save query/i }),
-    ).toBeInTheDocument();
-
-    // Click save button in the modal
-    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
-    await userEvent.click(modalSaveBtn);
-
-    // Modal should still be open while save is in progress
-    expect(
-      screen.getByRole('heading', { name: /save query/i }),
-    ).toBeInTheDocument();
-
-    // Resolve the save promise
-    resolveSave!();
-
-    // Wait for modal to close after save completes
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('heading', { name: /save query/i }),
-      ).not.toBeInTheDocument();
-    });
-
-    expect(mockOnSave).toHaveBeenCalledTimes(1);
-  });
-
-  test('handles save with a new tab that has no changes', async () => {
-    const mockOnSave = jest.fn().mockResolvedValue(undefined);
-
-    // Mock state for a new tab with default SQL
-    const newTabState = {
+  render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
+    useRedux: true,
+    store: mockStore({
       ...mockState,
       sqlLab: {
         ...mockState.sqlLab,
@@ -456,403 +289,557 @@ describe('SavedQuery', () => {
             dbId: 1,
             catalog: null,
             schema: 'main',
-            sql: 'SELECT ...', // Default SQL for new tabs
-            name: undefined,
-            description: undefined,
+            sql: 'SELECT * FROM t',
+            name: 'My saved query',
+            description: storedDescription,
+            remoteId: 42,
           },
         ],
       },
-    };
+    }),
+  });
 
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(newTabState),
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  const descriptionTextbox = screen.getByRole('textbox', {
+    name: 'Description',
+  });
+  expect(descriptionTextbox).toHaveValue(storedDescription);
+
+  await userEvent.click(screen.getByRole('button', { name: /update/i }));
+
+  await waitFor(() => expect(mockOnUpdate).toHaveBeenCalled());
+  expect(mockOnUpdate.mock.calls[0][0]).toEqual(
+    expect.objectContaining({ description: storedDescription }),
+  );
+});
+
+test('renders a split save button when allows_virtual_table_explore is enabled', async () => {
+  render(<SaveQuery {...splitSaveBtnProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await waitFor(() => {
+    const saveBtn = screen.getByRole('button', { name: 'Save' });
+    const saveDataSetBtn = screen.getByRole('button', {
+      name: /save dataset/i,
     });
 
-    // Open the modal
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    await userEvent.click(saveBtn);
+    expect(saveBtn).toBeVisible();
+    expect(saveDataSetBtn).toBeVisible();
+  });
+});
 
-    // Modal should open
+test('renders a save dataset modal when user clicks "save dataset" menu item', async () => {
+  render(<SaveQuery {...splitSaveBtnProps} />, {
+    useRedux: true,
+    store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
+  });
+
+  const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
+  await userEvent.click(saveDatasetMenuItem);
+
+  // antd may render a truncation tooltip with the same text alongside
+  // the heading, so target the heading's own test id rather than text.
+  const saveDatasetHeader = screen.getByTestId(
+    'save-or-overwrite-dataset-title',
+  );
+
+  expect(saveDatasetHeader).toBeInTheDocument();
+});
+
+test('renders the save dataset modal UI', async () => {
+  render(<SaveQuery {...splitSaveBtnProps} />, {
+    useRedux: true,
+    store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
+  });
+  const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
+  await userEvent.click(saveDatasetMenuItem);
+
+  const closeBtn = screen.getByRole('button', { name: /close/i });
+  // antd may render a truncation tooltip with the same text alongside
+  // the heading, so target the heading's own test id rather than text.
+  const saveDatasetHeader = screen.getByTestId(
+    'save-or-overwrite-dataset-title',
+  );
+  const saveRadio = screen.getByRole('radio', {
+    name: /save as new/i,
+  });
+  const saveLabel = screen.getByText(/save as new/i);
+  const saveTextbox = screen.getByRole('textbox');
+  const overwriteRadio = screen.getByRole('radio', {
+    name: /overwrite existing/i,
+  });
+  const overwriteLabel = screen.getByText(/overwrite existing/i);
+  const overwriteCombobox = screen.getByRole('combobox');
+  const overwritePlaceholderText = screen.getByText(
+    /select or type dataset name/i,
+  );
+
+  expect(saveDatasetHeader).toBeInTheDocument();
+  expect(closeBtn).toBeInTheDocument();
+  expect(saveRadio).toBeInTheDocument();
+  expect(saveLabel).toBeInTheDocument();
+  expect(saveTextbox).toBeInTheDocument();
+  expect(overwriteRadio).toBeInTheDocument();
+  expect(overwriteLabel).toBeInTheDocument();
+  expect(overwriteCombobox).toBeInTheDocument();
+  expect(overwritePlaceholderText).toBeInTheDocument();
+});
+
+test('modal stays open while save is in progress and closes after completion', async () => {
+  let resolveSave: () => void;
+  const savePromise = new Promise<void>(resolve => {
+    resolveSave = resolve;
+  });
+
+  const mockOnSave = jest.fn().mockImplementation(() => savePromise);
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  // Open the modal
+  const saveBtn = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveBtn);
+
+  // Verify modal is open
+  expect(
+    screen.getByRole('heading', { name: /save query/i }),
+  ).toBeInTheDocument();
+
+  // Click save button in the modal
+  const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+  await userEvent.click(modalSaveBtn);
+
+  // Modal should still be open while save is in progress
+  expect(
+    screen.getByRole('heading', { name: /save query/i }),
+  ).toBeInTheDocument();
+
+  // Resolve the save promise
+  resolveSave!();
+
+  // Wait for modal to close after save completes
+  await waitFor(() => {
     expect(
-      screen.getByRole('heading', { name: /save query/i }),
-    ).toBeInTheDocument();
-
-    // The name field should have "Undefined" as default
-    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
-    expect(nameInput).toHaveValue('Undefined');
-
-    // Click save button
-    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
-    await userEvent.click(modalSaveBtn);
-
-    // Wait for save to complete and modal to close
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('heading', { name: /save query/i }),
-      ).not.toBeInTheDocument();
-    });
+      screen.queryByRole('heading', { name: /save query/i }),
+    ).not.toBeInTheDocument();
   });
 
-  test('disables the save button when the query name is empty or whitespace-only', async () => {
-    render(<SaveQuery {...mockedProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
+  expect(mockOnSave).toHaveBeenCalledTimes(1);
+});
 
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+test('handles save with a new tab that has no changes', async () => {
+  const mockOnSave = jest.fn().mockResolvedValue(undefined);
 
-    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
-    const modalSaveBtn = () =>
-      screen.getAllByRole('button', { name: /save/i })[1];
-
-    // Default label is present, so the save button starts enabled
-    expect(modalSaveBtn()).toBeEnabled();
-
-    // Clearing the name disables the save button
-    await userEvent.clear(nameInput);
-    await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
-
-    // A whitespace-only name keeps the save button disabled
-    await userEvent.type(nameInput, '   ');
-    await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
-
-    // A non-empty name re-enables the save button
-    await userEvent.type(nameInput, 'My query');
-    await waitFor(() => expect(modalSaveBtn()).toBeEnabled());
-  });
-
-  test('keeps the modal open and shows the error inline when saving is rejected', async () => {
-    const mockOnSave = jest.fn().mockRejectedValue(new Error(DUPLICATE_ERROR));
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
-    await userEvent.clear(nameInput);
-    await userEvent.type(nameInput, 'Baseline Query');
-    await userEvent.click(screen.getAllByRole('button', { name: /save/i })[1]);
-
-    await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /save query/i }),
-    ).toBeInTheDocument();
-    expect(nameInput).toHaveValue('Baseline Query');
-    expect(nameInput).toBeInvalid();
-    expect(nameInput).toHaveAccessibleDescription(DUPLICATE_ERROR);
-  });
-
-  test('keeps the modal open and shows the error inline when updating is rejected', async () => {
-    const mockOnUpdate = jest
-      .fn()
-      .mockRejectedValue(new Error(DUPLICATE_ERROR));
-
-    render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
-      useRedux: true,
-      store: mockStore({
-        ...mockState,
-        sqlLab: {
-          ...mockState.sqlLab,
-          queryEditors: [
-            {
-              id: mockedProps.queryEditorId,
-              dbId: 1,
-              catalog: null,
-              schema: 'main',
-              sql: 'SELECT * FROM t',
-              name: 'My saved query',
-              remoteId: 42,
-            },
-          ],
+  // Mock state for a new tab with default SQL
+  const newTabState = {
+    ...mockState,
+    sqlLab: {
+      ...mockState.sqlLab,
+      queryEditors: [
+        {
+          id: mockedProps.queryEditorId,
+          dbId: 1,
+          catalog: null,
+          schema: 'main',
+          sql: 'SELECT ...', // Default SQL for new tabs
+          name: undefined,
+          description: undefined,
         },
-      }),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    await userEvent.click(screen.getByRole('button', { name: /update/i }));
-
-    await waitFor(() => expect(mockOnUpdate).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /save query/i }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole('textbox')[0]).toHaveValue('My saved query');
-  });
-
-  test('clears the inline error when the name changes and closes after a successful retry', async () => {
-    const mockOnSave = jest
-      .fn()
-      .mockRejectedValueOnce(new Error(DUPLICATE_ERROR))
-      .mockResolvedValueOnce(undefined);
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    const modalSaveBtn = () =>
-      screen.getAllByRole('button', { name: /save/i })[1];
-    await userEvent.click(modalSaveBtn());
-    expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
-
-    await userEvent.type(screen.getAllByRole('textbox')[0], ' 2');
-    expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
-
-    await userEvent.click(modalSaveBtn());
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('heading', { name: /save query/i }),
-      ).not.toBeInTheDocument(),
-    );
-    expect(mockOnSave).toHaveBeenCalledTimes(2);
-  });
-
-  test('has no invalid state or description while there is no error', async () => {
-    render(<SaveQuery {...mockedProps} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    const nameInput = screen.getAllByRole('textbox')[0];
-    expect(nameInput).not.toHaveAttribute('aria-invalid');
-    expect(nameInput).not.toHaveAttribute('aria-describedby');
-  });
-
-  test('disables the buttons while a save is pending so a second click does not save twice', async () => {
-    let resolveSave: () => void = () => {};
-    const mockOnSave = jest.fn().mockImplementation(
-      () =>
-        new Promise<void>(resolve => {
-          resolveSave = resolve;
-        }),
-    );
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    const modalSaveBtn = () =>
-      screen.getAllByRole('button', { name: /save/i })[1];
-    await userEvent.click(modalSaveBtn());
-    await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
-    await userEvent.click(modalSaveBtn());
-
-    expect(mockOnSave).toHaveBeenCalledTimes(1);
-
-    resolveSave();
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('heading', { name: /save query/i }),
-      ).not.toBeInTheDocument(),
-    );
-    expect(mockOnSave).toHaveBeenCalledTimes(1);
-  });
-
-  test('disables update while an update is pending so a second click does not update twice', async () => {
-    let resolveUpdate: () => void = () => {};
-    const mockOnUpdate = jest.fn().mockImplementation(
-      () =>
-        new Promise<void>(resolve => {
-          resolveUpdate = resolve;
-        }),
-    );
-
-    render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
-      useRedux: true,
-      store: mockStore(savedQueryState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    await userEvent.click(screen.getByRole('button', { name: /update/i }));
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /update/i })).toBeDisabled(),
-    );
-    await userEvent.click(screen.getByRole('button', { name: /update/i }));
-
-    expect(mockOnUpdate).toHaveBeenCalledTimes(1);
-    resolveUpdate();
-    await waitFor(() => expect(mockOnUpdate).toHaveBeenCalledTimes(1));
-  });
-
-  test('does not show an error that arrives after the name was edited', async () => {
-    let rejectSave: (error: Error) => void = () => {};
-    const mockOnSave = jest.fn().mockImplementation(
-      () =>
-        new Promise<void>((_resolve, reject) => {
-          rejectSave = reject;
-        }),
-    );
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    await userEvent.click(screen.getAllByRole('button', { name: /save/i })[1]);
-    await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
-
-    await userEvent.type(screen.getAllByRole('textbox')[0], ' 2');
-    rejectSave(new Error(DUPLICATE_ERROR));
-
-    await waitFor(() =>
-      expect(screen.getAllByRole('button', { name: /save/i })[1]).toBeEnabled(),
-    );
-    expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
-  });
-
-  test('does not show an error that arrives after the modal was closed and reopened', async () => {
-    let rejectSave: (error: Error) => void = () => {};
-    const mockOnSave = jest.fn().mockImplementation(
-      () =>
-        new Promise<void>((_resolve, reject) => {
-          rejectSave = reject;
-        }),
-    );
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    await userEvent.click(screen.getAllByRole('button', { name: /save/i })[1]);
-    await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
-
-    await userEvent.click(screen.getByTestId('cancel-query'));
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('heading', { name: /save query/i }),
-      ).not.toBeInTheDocument(),
-    );
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    expect(
-      await screen.findByRole('heading', { name: /save query/i }),
-    ).toBeInTheDocument();
-
-    rejectSave(new Error(DUPLICATE_ERROR));
-    await waitFor(() =>
-      expect(screen.getAllByRole('button', { name: /save/i })[1]).toBeEnabled(),
-    );
-    expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
-  });
-
-  test('re-enables the buttons when a request settles after the name was edited', async () => {
-    let resolveSave: () => void = () => {};
-    const mockOnSave = jest.fn().mockImplementation(
-      () =>
-        new Promise<void>(resolve => {
-          resolveSave = resolve;
-        }),
-    );
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    const modalSaveBtn = () =>
-      screen.getAllByRole('button', { name: /save/i })[1];
-    await userEvent.click(modalSaveBtn());
-    await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
-
-    await userEvent.type(screen.getAllByRole('textbox')[0], ' 2');
-    expect(modalSaveBtn()).toBeDisabled();
-
-    resolveSave();
-    await waitFor(() => expect(modalSaveBtn()).toBeEnabled());
-    expect(mockOnSave).toHaveBeenCalledTimes(1);
-  });
-
-  const openAndSubmitTwice = async () => {
-    const settlers: {
-      resolve: () => void;
-      reject: (error: Error) => void;
-    }[] = [];
-    const mockOnSave = jest.fn().mockImplementation(
-      () =>
-        new Promise<void>((resolve, reject) => {
-          settlers.push({ resolve, reject });
-        }),
-    );
-
-    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
-      useRedux: true,
-      store: mockStore(mockState),
-    });
-
-    const modalSaveBtn = () =>
-      screen.getAllByRole('button', { name: /save/i })[1];
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    await userEvent.click(modalSaveBtn());
-    await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
-
-    await userEvent.click(screen.getByTestId('cancel-query'));
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('heading', { name: /save query/i }),
-      ).not.toBeInTheDocument(),
-    );
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-    await userEvent.click(modalSaveBtn());
-    await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
-
-    return { settlers, mockOnSave, modalSaveBtn };
+      ],
+    },
   };
 
-  test('keeps a newer request pending when an earlier one is rejected, then closes when it succeeds', async () => {
-    const { settlers, mockOnSave, modalSaveBtn } = await openAndSubmitTwice();
-
-    await act(async () => {
-      settlers[0].reject(new Error(DUPLICATE_ERROR));
-    });
-    expect(modalSaveBtn()).toBeDisabled();
-    expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
-    await userEvent.click(modalSaveBtn());
-    expect(mockOnSave).toHaveBeenCalledTimes(2);
-
-    await act(async () => {
-      settlers[1].resolve();
-    });
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('heading', { name: /save query/i }),
-      ).not.toBeInTheDocument(),
-    );
-    expect(mockOnSave).toHaveBeenCalledTimes(2);
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(newTabState),
   });
 
-  test('keeps a newer request pending when an earlier one succeeds, then shows its error when it is rejected', async () => {
-    const { settlers, modalSaveBtn } = await openAndSubmitTwice();
+  // Open the modal
+  const saveBtn = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveBtn);
 
-    await act(async () => {
-      settlers[0].resolve();
-    });
-    expect(modalSaveBtn()).toBeDisabled();
+  // Modal should open
+  expect(
+    screen.getByRole('heading', { name: /save query/i }),
+  ).toBeInTheDocument();
+
+  // The name field should have "Undefined" as default
+  const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+  expect(nameInput).toHaveValue('Undefined');
+
+  // Click save button
+  const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+  await userEvent.click(modalSaveBtn);
+
+  // Wait for save to complete and modal to close
+  await waitFor(() => {
+    expect(mockOnSave).toHaveBeenCalled();
+  });
+
+  await waitFor(() => {
     expect(
-      screen.getByRole('heading', { name: /save query/i }),
-    ).toBeInTheDocument();
-
-    await act(async () => {
-      settlers[1].reject(new Error(DUPLICATE_ERROR));
-    });
-    expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
-    expect(modalSaveBtn()).toBeEnabled();
+      screen.queryByRole('heading', { name: /save query/i }),
+    ).not.toBeInTheDocument();
   });
+});
+
+test('disables the save button when the query name is empty or whitespace-only', async () => {
+  render(<SaveQuery {...mockedProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+  const modalSaveBtn = () =>
+    screen.getAllByRole('button', { name: /save/i })[1];
+
+  // Default label is present, so the save button starts enabled
+  expect(modalSaveBtn()).toBeEnabled();
+
+  // Clearing the name disables the save button
+  await userEvent.clear(nameInput);
+  await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
+
+  // A whitespace-only name keeps the save button disabled
+  await userEvent.type(nameInput, '   ');
+  await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
+
+  // A non-empty name re-enables the save button
+  await userEvent.type(nameInput, 'My query');
+  await waitFor(() => expect(modalSaveBtn()).toBeEnabled());
+});
+
+test('keeps the modal open and shows the error inline when saving is rejected', async () => {
+  const mockOnSave = jest.fn().mockRejectedValue(new Error(DUPLICATE_ERROR));
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, 'Baseline Query');
+  await userEvent.click(screen.getAllByRole('button', { name: /save/i })[1]);
+
+  await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
+  expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { name: /save query/i }),
+  ).toBeInTheDocument();
+  expect(nameInput).toHaveValue('Baseline Query');
+  expect(nameInput).toBeInvalid();
+  expect(nameInput).toHaveAccessibleDescription(DUPLICATE_ERROR);
+});
+
+test('keeps the modal open and shows the error inline when updating is rejected', async () => {
+  const mockOnUpdate = jest.fn().mockRejectedValue(new Error(DUPLICATE_ERROR));
+
+  render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
+    useRedux: true,
+    store: mockStore({
+      ...mockState,
+      sqlLab: {
+        ...mockState.sqlLab,
+        queryEditors: [
+          {
+            id: mockedProps.queryEditorId,
+            dbId: 1,
+            catalog: null,
+            schema: 'main',
+            sql: 'SELECT * FROM t',
+            name: 'My saved query',
+            remoteId: 42,
+          },
+        ],
+      },
+    }),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(screen.getByRole('button', { name: /update/i }));
+
+  await waitFor(() => expect(mockOnUpdate).toHaveBeenCalledTimes(1));
+  expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { name: /save query/i }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole('textbox')[0]).toHaveValue('My saved query');
+});
+
+test('clears the inline error when the name changes and closes after a successful retry', async () => {
+  const mockOnSave = jest
+    .fn()
+    .mockRejectedValueOnce(new Error(DUPLICATE_ERROR))
+    .mockResolvedValueOnce(undefined);
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  const modalSaveBtn = () =>
+    screen.getAllByRole('button', { name: /save/i })[1];
+  await userEvent.click(modalSaveBtn());
+  expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
+
+  await userEvent.type(screen.getAllByRole('textbox')[0], ' 2');
+  expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
+
+  await userEvent.click(modalSaveBtn());
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /save query/i }),
+    ).not.toBeInTheDocument(),
+  );
+  expect(mockOnSave).toHaveBeenCalledTimes(2);
+});
+
+test('has no invalid state or description while there is no error', async () => {
+  render(<SaveQuery {...mockedProps} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  const nameInput = screen.getAllByRole('textbox')[0];
+  expect(nameInput).not.toHaveAttribute('aria-invalid');
+  expect(nameInput).not.toHaveAttribute('aria-describedby');
+});
+
+test('disables the buttons while a save is pending so a second click does not save twice', async () => {
+  let resolveSave: () => void = () => {};
+  const mockOnSave = jest.fn().mockImplementation(
+    () =>
+      new Promise<void>(resolve => {
+        resolveSave = resolve;
+      }),
+  );
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  const modalSaveBtn = () =>
+    screen.getAllByRole('button', { name: /save/i })[1];
+  await userEvent.click(modalSaveBtn());
+  await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
+  await userEvent.click(modalSaveBtn());
+
+  expect(mockOnSave).toHaveBeenCalledTimes(1);
+
+  resolveSave();
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /save query/i }),
+    ).not.toBeInTheDocument(),
+  );
+  expect(mockOnSave).toHaveBeenCalledTimes(1);
+});
+
+test('disables update while an update is pending so a second click does not update twice', async () => {
+  let resolveUpdate: () => void = () => {};
+  const mockOnUpdate = jest.fn().mockImplementation(
+    () =>
+      new Promise<void>(resolve => {
+        resolveUpdate = resolve;
+      }),
+  );
+
+  render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
+    useRedux: true,
+    store: mockStore(savedQueryState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(screen.getByRole('button', { name: /update/i }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /update/i })).toBeDisabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /update/i }));
+
+  expect(mockOnUpdate).toHaveBeenCalledTimes(1);
+  resolveUpdate();
+  await waitFor(() => expect(mockOnUpdate).toHaveBeenCalledTimes(1));
+});
+
+test('does not show an error that arrives after the name was edited', async () => {
+  let rejectSave: (error: Error) => void = () => {};
+  const mockOnSave = jest.fn().mockImplementation(
+    () =>
+      new Promise<void>((_resolve, reject) => {
+        rejectSave = reject;
+      }),
+  );
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(screen.getAllByRole('button', { name: /save/i })[1]);
+  await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
+
+  await userEvent.type(screen.getAllByRole('textbox')[0], ' 2');
+  rejectSave(new Error(DUPLICATE_ERROR));
+
+  await waitFor(() =>
+    expect(screen.getAllByRole('button', { name: /save/i })[1]).toBeEnabled(),
+  );
+  expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
+});
+
+test('does not show an error that arrives after the modal was closed and reopened', async () => {
+  let rejectSave: (error: Error) => void = () => {};
+  const mockOnSave = jest.fn().mockImplementation(
+    () =>
+      new Promise<void>((_resolve, reject) => {
+        rejectSave = reject;
+      }),
+  );
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(screen.getAllByRole('button', { name: /save/i })[1]);
+  await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
+
+  await userEvent.click(screen.getByTestId('cancel-query'));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /save query/i }),
+    ).not.toBeInTheDocument(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(
+    await screen.findByRole('heading', { name: /save query/i }),
+  ).toBeInTheDocument();
+
+  rejectSave(new Error(DUPLICATE_ERROR));
+  await waitFor(() =>
+    expect(screen.getAllByRole('button', { name: /save/i })[1]).toBeEnabled(),
+  );
+  expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
+});
+
+test('re-enables the buttons when a request settles after the name was edited', async () => {
+  let resolveSave: () => void = () => {};
+  const mockOnSave = jest.fn().mockImplementation(
+    () =>
+      new Promise<void>(resolve => {
+        resolveSave = resolve;
+      }),
+  );
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  const modalSaveBtn = () =>
+    screen.getAllByRole('button', { name: /save/i })[1];
+  await userEvent.click(modalSaveBtn());
+  await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
+
+  await userEvent.type(screen.getAllByRole('textbox')[0], ' 2');
+  expect(modalSaveBtn()).toBeDisabled();
+
+  resolveSave();
+  await waitFor(() => expect(modalSaveBtn()).toBeEnabled());
+  expect(mockOnSave).toHaveBeenCalledTimes(1);
+});
+
+const openAndSubmitTwice = async () => {
+  const settlers: {
+    resolve: () => void;
+    reject: (error: Error) => void;
+  }[] = [];
+  const mockOnSave = jest.fn().mockImplementation(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        settlers.push({ resolve, reject });
+      }),
+  );
+
+  render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+    useRedux: true,
+    store: mockStore(mockState),
+  });
+
+  const modalSaveBtn = () =>
+    screen.getAllByRole('button', { name: /save/i })[1];
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(modalSaveBtn());
+  await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
+
+  await userEvent.click(screen.getByTestId('cancel-query'));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /save query/i }),
+    ).not.toBeInTheDocument(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(modalSaveBtn());
+  await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
+
+  return { settlers, mockOnSave, modalSaveBtn };
+};
+
+test('keeps a newer request pending when an earlier one is rejected, then closes when it succeeds', async () => {
+  const { settlers, mockOnSave, modalSaveBtn } = await openAndSubmitTwice();
+
+  await act(async () => {
+    settlers[0].reject(new Error(DUPLICATE_ERROR));
+  });
+  expect(modalSaveBtn()).toBeDisabled();
+  expect(screen.queryByText(DUPLICATE_ERROR)).not.toBeInTheDocument();
+  await userEvent.click(modalSaveBtn());
+  expect(mockOnSave).toHaveBeenCalledTimes(2);
+
+  await act(async () => {
+    settlers[1].resolve();
+  });
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('heading', { name: /save query/i }),
+    ).not.toBeInTheDocument(),
+  );
+  expect(mockOnSave).toHaveBeenCalledTimes(2);
+});
+
+test('keeps a newer request pending when an earlier one succeeds, then shows its error when it is rejected', async () => {
+  const { settlers, modalSaveBtn } = await openAndSubmitTwice();
+
+  await act(async () => {
+    settlers[0].resolve();
+  });
+  expect(modalSaveBtn()).toBeDisabled();
+  expect(
+    screen.getByRole('heading', { name: /save query/i }),
+  ).toBeInTheDocument();
+
+  await act(async () => {
+    settlers[1].reject(new Error(DUPLICATE_ERROR));
+  });
+  expect(await screen.findByText(DUPLICATE_ERROR)).toBeInTheDocument();
+  expect(modalSaveBtn()).toBeEnabled();
 });

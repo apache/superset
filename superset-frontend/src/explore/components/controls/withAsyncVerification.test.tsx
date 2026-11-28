@@ -82,46 +82,43 @@ async function setup({
   return { props, ...utils, verifier, VerifiedControl };
 }
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('VerifiedMetricsControl', () => {
-  test('should call verify correctly', async () => {
-    expect.assertions(3);
-    const { verifier, props, rerender, VerifiedControl } = await setup();
+test('should call verify correctly', async () => {
+  expect.assertions(3);
+  const { verifier, props, rerender, VerifiedControl } = await setup();
 
-    expect(verifier).toHaveBeenCalledTimes(1);
-    expect(verifier).toHaveBeenCalledWith(
-      expect.objectContaining({ savedMetrics: props.savedMetrics }),
-    );
+  expect(verifier).toHaveBeenCalledTimes(1);
+  expect(verifier).toHaveBeenCalledWith(
+    expect.objectContaining({ savedMetrics: props.savedMetrics }),
+  );
 
-    // should call verifier with new props when props are updated
-    rerender(<VerifiedControl {...props} validMetric={['abc']} />);
+  // should call verifier with new props when props are updated
+  rerender(<VerifiedControl {...props} validMetric={['abc']} />);
 
-    expect(verifier).toHaveBeenCalledWith(
-      expect.objectContaining({ validMetric: ['abc'] }),
-    );
-  });
+  expect(verifier).toHaveBeenCalledWith(
+    expect.objectContaining({ validMetric: ['abc'] }),
+  );
+});
 
-  test('should trigger onChange event', async () => {
-    expect.assertions(2);
-    const mockOnChange = jest.fn();
-    const { verifier, props } = await setup({
-      baseControl: 'MetricsControl',
-      onChange: mockOnChange,
-      extraProps: {
-        onChange: (value: any) => {
-          // Simulate the MetricsControl onChange
-          mockOnChange(value, props);
-        },
+test('should trigger onChange event', async () => {
+  expect.assertions(2);
+  const mockOnChange = jest.fn();
+  const { verifier, props } = await setup({
+    baseControl: 'MetricsControl',
+    onChange: mockOnChange,
+    extraProps: {
+      onChange: (value: any) => {
+        // Simulate the MetricsControl onChange
+        mockOnChange(value, props);
       },
-    });
-
-    // Wait for the initial verification to complete
-    await verifier;
-
-    // Call the onChange from props
-    props.onChange(['sum__value']);
-
-    expect(mockOnChange).toHaveBeenCalledTimes(1);
-    expect(mockOnChange).toHaveBeenCalledWith(['sum__value'], props);
+    },
   });
+
+  // Wait for the initial verification to complete
+  await verifier;
+
+  // Call the onChange from props
+  props.onChange(['sum__value']);
+
+  expect(mockOnChange).toHaveBeenCalledTimes(1);
+  expect(mockOnChange).toHaveBeenCalledWith(['sum__value'], props);
 });

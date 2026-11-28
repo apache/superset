@@ -33,215 +33,212 @@ const mockFindNonTabChildChartIds =
     typeof mockFindNonTabChildChartIdsImport
   >;
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('childChartsDidLoad', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+test('returns didLoad true when all charts are in completed states', () => {
+  const chartIds = [1, 2, 3];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
+    '2': { chartStatus: 'stopped', chartUpdateStartTime: 200 },
+    '3': { chartStatus: 'failed', chartUpdateStartTime: 150 },
+  };
+
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('returns didLoad true when all charts are in completed states', () => {
-    const chartIds = [1, 2, 3];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
-      '2': { chartStatus: 'stopped', chartUpdateStartTime: 200 },
-      '3': { chartStatus: 'failed', chartUpdateStartTime: 150 },
-    };
+  expect(result.didLoad).toBe(true);
+  expect(result.minQueryStartTime).toBe(100);
+  expect(mockFindNonTabChildChartIds).toHaveBeenCalledWith({
+    id: 'test-id',
+    layout,
+  });
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('returns didLoad false when some charts are in loading state', () => {
+  const chartIds = [1, 2, 3];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
+    '2': { chartStatus: 'loading', chartUpdateStartTime: 200 },
+    '3': { chartStatus: 'failed', chartUpdateStartTime: 150 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(true);
-    expect(result.minQueryStartTime).toBe(100);
-    expect(mockFindNonTabChildChartIds).toHaveBeenCalledWith({
-      id: 'test-id',
-      layout,
-    });
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('returns didLoad false when some charts are in loading state', () => {
-    const chartIds = [1, 2, 3];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
-      '2': { chartStatus: 'loading', chartUpdateStartTime: 200 },
-      '3': { chartStatus: 'failed', chartUpdateStartTime: 150 },
-    };
+  expect(result.didLoad).toBe(false);
+  expect(result.minQueryStartTime).toBe(100);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('handles missing chart queries gracefully', () => {
+  const chartIds = [1, 2, 3];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
+    // Chart 2 is missing from queries
+    '3': { chartStatus: 'failed', chartUpdateStartTime: 150 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(false);
-    expect(result.minQueryStartTime).toBe(100);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('handles missing chart queries gracefully', () => {
-    const chartIds = [1, 2, 3];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
-      // Chart 2 is missing from queries
-      '3': { chartStatus: 'failed', chartUpdateStartTime: 150 },
-    };
+  expect(result.didLoad).toBe(false);
+  expect(result.minQueryStartTime).toBe(100);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('handles empty chart queries object', () => {
+  const chartIds = [1, 2, 3];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {};
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(false);
-    expect(result.minQueryStartTime).toBe(100);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('handles empty chart queries object', () => {
-    const chartIds = [1, 2, 3];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {};
+  expect(result.didLoad).toBe(false);
+  expect(result.minQueryStartTime).toBe(Infinity);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('handles empty chart IDs array', () => {
+  const chartIds: number[] = [];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(false);
-    expect(result.minQueryStartTime).toBe(Infinity);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('handles empty chart IDs array', () => {
-    const chartIds: number[] = [];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'rendered', chartUpdateStartTime: 100 },
-    };
+  expect(result.didLoad).toBe(true); // every() returns true for empty array
+  expect(result.minQueryStartTime).toBe(Infinity);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('calculates minimum query start time correctly', () => {
+  const chartIds = [1, 2, 3, 4];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'rendered', chartUpdateStartTime: 500 },
+    '2': { chartStatus: 'stopped', chartUpdateStartTime: 100 },
+    '3': { chartStatus: 'failed', chartUpdateStartTime: 300 },
+    '4': { chartStatus: 'rendered', chartUpdateStartTime: 200 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(true); // every() returns true for empty array
-    expect(result.minQueryStartTime).toBe(Infinity);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('calculates minimum query start time correctly', () => {
-    const chartIds = [1, 2, 3, 4];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'rendered', chartUpdateStartTime: 500 },
-      '2': { chartStatus: 'stopped', chartUpdateStartTime: 100 },
-      '3': { chartStatus: 'failed', chartUpdateStartTime: 300 },
-      '4': { chartStatus: 'rendered', chartUpdateStartTime: 200 },
-    };
+  expect(result.didLoad).toBe(true);
+  expect(result.minQueryStartTime).toBe(100);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('handles charts with missing chartUpdateStartTime', () => {
+  const chartIds = [1, 2];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'rendered' }, // Missing chartUpdateStartTime
+    '2': { chartStatus: 'stopped', chartUpdateStartTime: 200 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(true);
-    expect(result.minQueryStartTime).toBe(100);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('handles charts with missing chartUpdateStartTime', () => {
-    const chartIds = [1, 2];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'rendered' }, // Missing chartUpdateStartTime
-      '2': { chartStatus: 'stopped', chartUpdateStartTime: 200 },
-    };
+  expect(result.didLoad).toBe(true);
+  expect(result.minQueryStartTime).toBe(200);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('handles charts with null chartStatus', () => {
+  const chartIds = [1, 2];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: null, chartUpdateStartTime: 100 },
+    '2': { chartStatus: 'stopped', chartUpdateStartTime: 200 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(true);
-    expect(result.minQueryStartTime).toBe(200);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('handles charts with null chartStatus', () => {
-    const chartIds = [1, 2];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: null, chartUpdateStartTime: 100 },
-      '2': { chartStatus: 'stopped', chartUpdateStartTime: 200 },
-    };
+  expect(result.didLoad).toBe(false); // null chartStatus is not in the completed states
+  expect(result.minQueryStartTime).toBe(100);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('recognizes all valid completed chart states', () => {
+  const chartIds = [1, 2, 3];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'stopped', chartUpdateStartTime: 100 },
+    '2': { chartStatus: 'failed', chartUpdateStartTime: 200 },
+    '3': { chartStatus: 'rendered', chartUpdateStartTime: 150 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(false); // null chartStatus is not in the completed states
-    expect(result.minQueryStartTime).toBe(100);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('recognizes all valid completed chart states', () => {
-    const chartIds = [1, 2, 3];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'stopped', chartUpdateStartTime: 100 },
-      '2': { chartStatus: 'failed', chartUpdateStartTime: 200 },
-      '3': { chartStatus: 'rendered', chartUpdateStartTime: 150 },
-    };
+  expect(result.didLoad).toBe(true);
+  expect(result.minQueryStartTime).toBe(100);
+});
 
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
+test('does not recognize incomplete chart states', () => {
+  const chartIds = [1, 2];
+  const layout: Layout = {};
+  const chartQueries: Record<string, Partial<ChartState>> = {
+    '1': { chartStatus: 'loading', chartUpdateStartTime: 100 },
+    '2': { chartStatus: 'success', chartUpdateStartTime: 200 },
+  };
 
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
+  mockFindNonTabChildChartIds.mockReturnValue(chartIds);
 
-    expect(result.didLoad).toBe(true);
-    expect(result.minQueryStartTime).toBe(100);
+  const result = childChartsDidLoad({
+    chartQueries,
+    layout,
+    id: 'test-id',
   });
 
-  test('does not recognize incomplete chart states', () => {
-    const chartIds = [1, 2];
-    const layout: Layout = {};
-    const chartQueries: Record<string, Partial<ChartState>> = {
-      '1': { chartStatus: 'loading', chartUpdateStartTime: 100 },
-      '2': { chartStatus: 'success', chartUpdateStartTime: 200 },
-    };
-
-    mockFindNonTabChildChartIds.mockReturnValue(chartIds);
-
-    const result = childChartsDidLoad({
-      chartQueries,
-      layout,
-      id: 'test-id',
-    });
-
-    expect(result.didLoad).toBe(false); // 'loading' and 'success' are not in completed states
-    expect(result.minQueryStartTime).toBe(100);
-  });
+  expect(result.didLoad).toBe(false); // 'loading' and 'success' are not in completed states
+  expect(result.minQueryStartTime).toBe(100);
 });

@@ -85,219 +85,212 @@ const createProps = (overrides = {}) => ({
   ...overrides,
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ChartContainer', () => {
-  jest.setTimeout(10000);
+jest.setTimeout(10000);
 
-  afterEach(() => {
-    fetchMock.removeRoutes();
-    fetchMock.clearHistory();
-    window.history.replaceState({}, '', window.location.pathname);
+afterEach(() => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  window.history.replaceState({}, '', window.location.pathname);
+});
+
+test('renders when vizType is line', () => {
+  const props = createProps();
+  expect(isValidElement(<ChartContainer {...props} />)).toBe(true);
+});
+
+test('renders with alert banner', async () => {
+  const props = createProps({
+    chartIsStale: true,
+    chart: { chartStatus: 'rendered', queriesResponse: [{}] },
+  });
+  getChartMetadataRegistry().registerValue(
+    VizType.Histogram,
+    new ChartMetadata({
+      name: 'fake table',
+      thumbnail: '.png',
+    }),
+  );
+  render(<ChartContainer {...props} />, { useRedux: true });
+  expect(await screen.findByText('Your chart is not up to date')).toBeVisible();
+});
+
+test('doesnt render alert banner when no changes in control panel were made (chart is not stale)', async () => {
+  const props = createProps({
+    chartIsStale: false,
+  });
+  render(<ChartContainer {...props} />, { useRedux: true });
+  expect(await screen.findByText(/cached/i)).toBeInTheDocument();
+  expect(
+    screen.queryByText('Your chart is not up to date'),
+  ).not.toBeInTheDocument();
+});
+
+test('doesnt render alert banner when chart not created yet (no queries response)', async () => {
+  const props = createProps({
+    chartIsStale: true,
+    chart: { queriesResponse: [] },
+  });
+  render(<ChartContainer {...props} />, { useRedux: true });
+  expect(await screen.findByRole('timer')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Your chart is not up to date'),
+  ).not.toBeInTheDocument();
+});
+
+test('renders prompt to fill required controls when required control removed', async () => {
+  const props = createProps({
+    chartIsStale: true,
+    chart: { chartStatus: 'rendered', queriesResponse: [{}] },
+    errorMessage: 'error',
+  });
+  render(<ChartContainer {...props} />, { useRedux: true });
+  expect(
+    await screen.findByText('Required control values have been removed'),
+  ).toBeVisible();
+});
+
+test('should render cached button and call expected actions', async () => {
+  const setForceQuery = jest.fn();
+  const postChartFormData = jest.fn();
+  const updateQueryFormData = jest.fn();
+  const props = createProps({
+    actions: {
+      setForceQuery,
+      postChartFormData,
+      updateQueryFormData,
+    },
+  });
+  render(<ChartContainer {...props} />, { useRedux: true });
+
+  const cached = await screen.findByText('Cached');
+  expect(cached).toBeInTheDocument();
+
+  await userEvent.click(cached);
+  expect(setForceQuery).toHaveBeenCalledTimes(1);
+  expect(postChartFormData).toHaveBeenCalledTimes(1);
+  expect(updateQueryFormData).toHaveBeenCalledTimes(1);
+});
+
+test('should hide cached button', async () => {
+  const props = createProps({
+    chart: {
+      chartStatus: 'rendered',
+      queriesResponse: [{ is_cached: false }],
+    },
+  });
+  render(<ChartContainer {...props} />, { useRedux: true });
+  expect(await screen.findByRole('timer')).toBeInTheDocument();
+  expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
+});
+
+test('hides gutter when collapsing data panel', async () => {
+  const props = createProps();
+  setItem(LocalStorageKeys.IsDatapanelOpen, true);
+  const { container } = render(<ChartContainer {...props} />, {
+    useRedux: true,
+  });
+  const tabpanel = screen.getByRole('tabpanel', { name: /results/i });
+  expect(
+    await within(tabpanel).findByText(/0 rows/i, undefined, {
+      timeout: 5000,
+    }),
+  ).toBeInTheDocument();
+
+  const gutter = container.querySelector('.gutter');
+  expect(gutter).toBeVisible();
+
+  await userEvent.click(screen.getByLabelText('Collapse data panel'));
+  expect(await screen.findByRole('timer')).toBeInTheDocument();
+  expect(gutter).not.toBeVisible();
+});
+
+test('does not render standalone download control when show_download is absent', () => {
+  const props = createProps({
+    standalone: ExploreStandaloneMode.HideNav,
+    can_download: true,
   });
 
-  test('renders when vizType is line', () => {
-    const props = createProps();
-    expect(isValidElement(<ChartContainer {...props} />)).toBe(true);
+  render(<ChartContainer {...props} />, { useRedux: true });
+
+  expect(
+    screen.queryByTestId('standalone-download-button'),
+  ).not.toBeInTheDocument();
+});
+
+test('does not render standalone download control when show_download is disabled', () => {
+  window.history.replaceState({}, '', '?show_download=0');
+
+  const props = createProps({
+    standalone: ExploreStandaloneMode.HideNav,
+    can_download: true,
   });
 
-  test('renders with alert banner', async () => {
-    const props = createProps({
-      chartIsStale: true,
-      chart: { chartStatus: 'rendered', queriesResponse: [{}] },
-    });
-    getChartMetadataRegistry().registerValue(
-      VizType.Histogram,
-      new ChartMetadata({
-        name: 'fake table',
-        thumbnail: '.png',
-      }),
-    );
-    render(<ChartContainer {...props} />, { useRedux: true });
-    expect(
-      await screen.findByText('Your chart is not up to date'),
-    ).toBeVisible();
+  render(<ChartContainer {...props} />, { useRedux: true });
+
+  expect(
+    screen.queryByTestId('standalone-download-button'),
+  ).not.toBeInTheDocument();
+});
+
+test('renders standalone download control when show_download is enabled and user can download', () => {
+  window.history.replaceState({}, '', '?show_download=1');
+
+  const props = createProps({
+    standalone: ExploreStandaloneMode.HideNav,
+    can_download: true,
   });
 
-  test('doesnt render alert banner when no changes in control panel were made (chart is not stale)', async () => {
-    const props = createProps({
-      chartIsStale: false,
-    });
-    render(<ChartContainer {...props} />, { useRedux: true });
-    expect(await screen.findByText(/cached/i)).toBeInTheDocument();
-    expect(
-      screen.queryByText('Your chart is not up to date'),
-    ).not.toBeInTheDocument();
+  render(<ChartContainer {...props} />, { useRedux: true });
+
+  expect(screen.getByTestId('standalone-download-button')).toBeInTheDocument();
+});
+
+test('does not render standalone download control when user cannot download', () => {
+  window.history.replaceState({}, '', '?show_download=1');
+
+  const props = createProps({
+    standalone: ExploreStandaloneMode.HideNav,
+    can_download: false,
   });
 
-  test('doesnt render alert banner when chart not created yet (no queries response)', async () => {
-    const props = createProps({
-      chartIsStale: true,
-      chart: { queriesResponse: [] },
-    });
-    render(<ChartContainer {...props} />, { useRedux: true });
-    expect(await screen.findByRole('timer')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Your chart is not up to date'),
-    ).not.toBeInTheDocument();
+  render(<ChartContainer {...props} />, { useRedux: true });
+
+  expect(
+    screen.queryByTestId('standalone-download-button'),
+  ).not.toBeInTheDocument();
+});
+
+test('does not render standalone download control outside standalone mode', () => {
+  window.history.replaceState({}, '', '?show_download=1');
+
+  const props = createProps({
+    standalone: ExploreStandaloneMode.None,
+    can_download: true,
   });
 
-  test('renders prompt to fill required controls when required control removed', async () => {
-    const props = createProps({
-      chartIsStale: true,
-      chart: { chartStatus: 'rendered', queriesResponse: [{}] },
-      errorMessage: 'error',
-    });
-    render(<ChartContainer {...props} />, { useRedux: true });
-    expect(
-      await screen.findByText('Required control values have been removed'),
-    ).toBeVisible();
+  render(<ChartContainer {...props} />, { useRedux: true });
+
+  expect(
+    screen.queryByTestId('standalone-download-button'),
+  ).not.toBeInTheDocument();
+});
+
+test('shows the legacy aggregation notice for a tagged saved pivot table', async () => {
+  fetchMock.get('glob:*/api/v1/chart/318', {
+    result: {
+      tags: [{ id: 7, name: LEGACY_AGGREGATION_TAG, type: 1 }],
+    },
+  });
+  const props = createProps({
+    vizType: 'pivot_table_v2',
+    slice: { slice_id: 318, form_data: {}, query_context: {} },
   });
 
-  test('should render cached button and call expected actions', async () => {
-    const setForceQuery = jest.fn();
-    const postChartFormData = jest.fn();
-    const updateQueryFormData = jest.fn();
-    const props = createProps({
-      actions: {
-        setForceQuery,
-        postChartFormData,
-        updateQueryFormData,
-      },
-    });
-    render(<ChartContainer {...props} />, { useRedux: true });
+  render(<ChartContainer {...props} />, { useRedux: true });
 
-    const cached = await screen.findByText('Cached');
-    expect(cached).toBeInTheDocument();
-
-    await userEvent.click(cached);
-    expect(setForceQuery).toHaveBeenCalledTimes(1);
-    expect(postChartFormData).toHaveBeenCalledTimes(1);
-    expect(updateQueryFormData).toHaveBeenCalledTimes(1);
-  });
-
-  test('should hide cached button', async () => {
-    const props = createProps({
-      chart: {
-        chartStatus: 'rendered',
-        queriesResponse: [{ is_cached: false }],
-      },
-    });
-    render(<ChartContainer {...props} />, { useRedux: true });
-    expect(await screen.findByRole('timer')).toBeInTheDocument();
-    expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
-  });
-
-  test('hides gutter when collapsing data panel', async () => {
-    const props = createProps();
-    setItem(LocalStorageKeys.IsDatapanelOpen, true);
-    const { container } = render(<ChartContainer {...props} />, {
-      useRedux: true,
-    });
-    const tabpanel = screen.getByRole('tabpanel', { name: /results/i });
-    expect(
-      await within(tabpanel).findByText(/0 rows/i, undefined, {
-        timeout: 5000,
-      }),
-    ).toBeInTheDocument();
-
-    const gutter = container.querySelector('.gutter');
-    expect(gutter).toBeVisible();
-
-    await userEvent.click(screen.getByLabelText('Collapse data panel'));
-    expect(await screen.findByRole('timer')).toBeInTheDocument();
-    expect(gutter).not.toBeVisible();
-  });
-
-  test('does not render standalone download control when show_download is absent', () => {
-    const props = createProps({
-      standalone: ExploreStandaloneMode.HideNav,
-      can_download: true,
-    });
-
-    render(<ChartContainer {...props} />, { useRedux: true });
-
-    expect(
-      screen.queryByTestId('standalone-download-button'),
-    ).not.toBeInTheDocument();
-  });
-
-  test('does not render standalone download control when show_download is disabled', () => {
-    window.history.replaceState({}, '', '?show_download=0');
-
-    const props = createProps({
-      standalone: ExploreStandaloneMode.HideNav,
-      can_download: true,
-    });
-
-    render(<ChartContainer {...props} />, { useRedux: true });
-
-    expect(
-      screen.queryByTestId('standalone-download-button'),
-    ).not.toBeInTheDocument();
-  });
-
-  test('renders standalone download control when show_download is enabled and user can download', () => {
-    window.history.replaceState({}, '', '?show_download=1');
-
-    const props = createProps({
-      standalone: ExploreStandaloneMode.HideNav,
-      can_download: true,
-    });
-
-    render(<ChartContainer {...props} />, { useRedux: true });
-
-    expect(
-      screen.getByTestId('standalone-download-button'),
-    ).toBeInTheDocument();
-  });
-
-  test('does not render standalone download control when user cannot download', () => {
-    window.history.replaceState({}, '', '?show_download=1');
-
-    const props = createProps({
-      standalone: ExploreStandaloneMode.HideNav,
-      can_download: false,
-    });
-
-    render(<ChartContainer {...props} />, { useRedux: true });
-
-    expect(
-      screen.queryByTestId('standalone-download-button'),
-    ).not.toBeInTheDocument();
-  });
-
-  test('does not render standalone download control outside standalone mode', () => {
-    window.history.replaceState({}, '', '?show_download=1');
-
-    const props = createProps({
-      standalone: ExploreStandaloneMode.None,
-      can_download: true,
-    });
-
-    render(<ChartContainer {...props} />, { useRedux: true });
-
-    expect(
-      screen.queryByTestId('standalone-download-button'),
-    ).not.toBeInTheDocument();
-  });
-
-  test('shows the legacy aggregation notice for a tagged saved pivot table', async () => {
-    fetchMock.get('glob:*/api/v1/chart/318', {
-      result: {
-        tags: [{ id: 7, name: LEGACY_AGGREGATION_TAG, type: 1 }],
-      },
-    });
-    const props = createProps({
-      vizType: 'pivot_table_v2',
-      slice: { slice_id: 318, form_data: {}, query_context: {} },
-    });
-
-    render(<ChartContainer {...props} />, { useRedux: true });
-
-    expect(
-      await screen.findByText(
-        'This chart was updated to use the restored aggregation',
-      ),
-    ).toBeInTheDocument();
-  });
+  expect(
+    await screen.findByText(
+      'This chart was updated to use the restored aggregation',
+    ),
+  ).toBeInTheDocument();
 });

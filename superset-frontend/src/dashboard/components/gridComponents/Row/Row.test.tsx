@@ -310,30 +310,26 @@ test('trailing droptarget also gets a CSS-driven height when the row is full (re
   expect(getDroptargetHeights()).toEqual(['100%', '100%']);
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('visibility handling for intersection observers', () => {
-  const mockIntersectionObserver = jest.fn();
-  const mockObserve = jest.fn();
-  const mockDisconnect = jest.fn();
+const mockIntersectionObserver = jest.fn();
+const mockObserve = jest.fn();
+const mockDisconnect = jest.fn();
 
-  beforeAll(() => {
-    mockIntersectionObserver.mockReturnValue({
-      observe: mockObserve,
-      unobserve: jest.fn(),
-      disconnect: mockDisconnect,
-    });
-    window.IntersectionObserver = mockIntersectionObserver;
+function setupVisibilityObservers() {
+  mockIntersectionObserver.mockReturnValue({
+    observe: mockObserve,
+    unobserve: jest.fn(),
+    disconnect: mockDisconnect,
   });
+  window.IntersectionObserver = mockIntersectionObserver;
+  jest.clearAllMocks();
+  return () => {
+    delete (window as { IntersectionObserver?: unknown }).IntersectionObserver;
+  };
+}
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  afterAll(() => {
-    delete (window as any).IntersectionObserver;
-  });
-
-  test('should handle visibility prop changes without crashing', () => {
+test('should handle visibility prop changes without crashing', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     const { rerender } = setup({ isComponentVisible: true });
 
     expect(setup).not.toThrow();
@@ -345,18 +341,28 @@ describe('visibility handling for intersection observers', () => {
     expect(() => {
       rerender(<Row {...props} isComponentVisible />);
     }).not.toThrow();
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
+});
 
-  test('should create intersection observers when feature is enabled', () => {
+test('should create intersection observers when feature is enabled', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     setup({ isComponentVisible: true });
 
     expect(mockIntersectionObserver).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({ rootMargin: expect.any(String) }),
     );
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
+});
 
-  test('should not create intersection observers when feature is disabled', () => {
+test('should not create intersection observers when feature is disabled', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     const coreMock = jest.requireMock('@superset-ui/core');
     coreMock.isFeatureEnabled.mockReturnValue(false);
 
@@ -366,9 +372,14 @@ describe('visibility handling for intersection observers', () => {
     expect(mockIntersectionObserver).not.toHaveBeenCalled();
 
     coreMock.isFeatureEnabled.mockReturnValue(true);
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
+});
 
-  test('intersection observer callbacks handle entries without errors', () => {
+test('intersection observer callbacks handle entries without errors', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     const callback = ([entry]: [MockIntersectionObserverEntry]) => {
       if (entry.isIntersecting) return true;
 
@@ -382,9 +393,14 @@ describe('visibility handling for intersection observers', () => {
     const nonIntersectingEntry = { isIntersecting: false };
     expect(() => callback([nonIntersectingEntry])).not.toThrow();
     expect(callback([nonIntersectingEntry])).toBe(false);
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
+});
 
-  test('force-in-view event with no detail disconnects the observers for every row', () => {
+test('force-in-view event with no detail disconnects the observers for every row', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     setup({ isComponentVisible: true });
 
     act(() => {
@@ -392,9 +408,14 @@ describe('visibility handling for intersection observers', () => {
     });
 
     expect(mockDisconnect).toHaveBeenCalled();
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
+});
 
-  test('force-in-view event scoped to other rowIds does not disconnect this row', () => {
+test('force-in-view event scoped to other rowIds does not disconnect this row', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     setup({ isComponentVisible: true });
 
     act(() => {
@@ -406,9 +427,14 @@ describe('visibility handling for intersection observers', () => {
     });
 
     expect(mockDisconnect).not.toHaveBeenCalled();
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
+});
 
-  test('force-in-view event scoped to this rowId disconnects the observers', () => {
+test('force-in-view event scoped to this rowId disconnects the observers', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     setup({ isComponentVisible: true });
 
     act(() => {
@@ -420,9 +446,14 @@ describe('visibility handling for intersection observers', () => {
     });
 
     expect(mockDisconnect).toHaveBeenCalled();
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
+});
 
-  test('restore-virtualization event re-observes after a force-in-view', () => {
+test('restore-virtualization event re-observes after a force-in-view', () => {
+  const restoreVisibilityObservers = setupVisibilityObservers();
+  try {
     setup({ isComponentVisible: true });
     expect(mockObserve).toHaveBeenCalledTimes(2);
 
@@ -436,5 +467,7 @@ describe('visibility handling for intersection observers', () => {
     // The initial mount observes twice (enabler + disabler); restoring
     // after a force-in-view re-observes both again.
     expect(mockObserve).toHaveBeenCalledTimes(4);
-  });
+  } finally {
+    restoreVisibilityObservers();
+  }
 });

@@ -38,207 +38,201 @@ beforeAll(() => {
   setupAGGridModules();
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('useResultsPane query data reuse', () => {
-  beforeEach(() => {
-    mockedGetChartDataRequest.mockReset();
-  });
+beforeEach(() => {
+  mockedGetChartDataRequest.mockReset();
+});
 
-  test('reuses queriesResponse from Redux and skips the results API call (v1 charts)', async () => {
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 201,
-      queriesResponse: [
-        {
-          colnames: ['genre'],
-          coltypes: [1],
-          data: [{ genre: 'Action' }, { genre: 'Horror' }],
-          rowcount: 2,
-        },
-      ],
-    });
-
-    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
-
-    expect(await screen.findByText('Action')).toBeVisible();
-    expect(screen.getByText('Horror')).toBeVisible();
-    expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
-  });
-
-  test('falls back to the results API for legacy charts without a typed queriesResponse', async () => {
-    mockedGetChartDataRequest.mockResolvedValue({
-      json: {
-        result: [
-          {
-            colnames: ['genre'],
-            coltypes: [1],
-            data: [{ genre: 'Drama' }],
-            rowcount: 1,
-          },
-        ],
+test('reuses queriesResponse from Redux and skips the results API call (v1 charts)', async () => {
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 201,
+    queriesResponse: [
+      {
+        colnames: ['genre'],
+        coltypes: [1],
+        data: [{ genre: 'Action' }, { genre: 'Horror' }],
+        rowcount: 2,
       },
-    });
-    const props = createResultsPaneOnDashboardProps({ sliceId: 202 });
-
-    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
-
-    expect(await screen.findByText('Drama')).toBeVisible();
-    expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
+    ],
   });
 
-  test('falls back to the results API when queriesResponse has no colnames', async () => {
-    mockedGetChartDataRequest.mockResolvedValue({
-      json: {
-        result: [
-          {
-            colnames: ['genre'],
-            coltypes: [1],
-            data: [{ genre: 'Thriller' }],
-            rowcount: 1,
-          },
-        ],
-      },
-    });
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 203,
-      queriesResponse: [{ data: [{ genre: 'ignored' }] }],
-    });
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+  expect(await screen.findByText('Action')).toBeVisible();
+  expect(screen.getByText('Horror')).toBeVisible();
+  expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
+});
 
-    expect(await screen.findByText('Thriller')).toBeVisible();
-    expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
-  });
-
-  test('falls back to the API when queriesResponse has colnames but not the full v1 shape', async () => {
-    mockedGetChartDataRequest.mockResolvedValue({
-      json: {
-        result: [
-          {
-            colnames: ['genre'],
-            coltypes: [1],
-            data: [{ genre: 'Indie' }],
-            rowcount: 1,
-          },
-        ],
-      },
-    });
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 207,
-      // colnames present but coltypes/data missing: not a real v1 result
-      queriesResponse: [{ colnames: ['genre'] }],
-    });
-
-    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
-
-    expect(await screen.findByText('Indie')).toBeVisible();
-    expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
-  });
-
-  test('reuse path honors the effective row limit (slices Redux data, no extra query)', async () => {
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 204,
-      rowLimit: 2,
-      queriesResponse: [
+test('falls back to the results API for legacy charts without a typed queriesResponse', async () => {
+  mockedGetChartDataRequest.mockResolvedValue({
+    json: {
+      result: [
         {
           colnames: ['genre'],
           coltypes: [1],
-          data: [
-            { genre: 'Action' },
-            { genre: 'Horror' },
-            { genre: 'Comedy' },
-            { genre: 'Drama' },
-            { genre: 'Sci-Fi' },
-          ],
-          rowcount: 5,
-        },
-      ],
-    });
-
-    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
-
-    expect(await screen.findByText('Action')).toBeVisible();
-    expect(screen.getByText('Horror')).toBeVisible();
-    expect(screen.queryByText('Comedy')).not.toBeInTheDocument();
-    expect(screen.queryByText('Sci-Fi')).not.toBeInTheDocument();
-    expect(screen.getByText('2 rows')).toBeVisible();
-    expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
-
-    await userEvent.hover(screen.getByText('2 rows'));
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'The row limit set for the chart was reached',
-    );
-  });
-
-  test("warns about this pane's own row limit, not the chart's, when the pane's selector is what caps the result", async () => {
-    // chart row_limit (2000) is well above this pane's default 1000-row
-    // selector, so the selector - not the chart - is what truncates here.
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 208,
-      rowLimit: 2000,
-      queriesResponse: [
-        {
-          colnames: ['genre'],
-          coltypes: [1],
-          data: Array.from({ length: 1500 }, (_, i) => ({
-            genre: `genre-${i}`,
-          })),
-          rowcount: 1500,
-        },
-      ],
-    });
-
-    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
-
-    const rowCountLabel = await screen.findByTestId('row-count-label');
-    expect(rowCountLabel).toHaveTextContent('1k rows');
-
-    await userEvent.hover(rowCountLabel);
-    const tooltip = await screen.findByRole('tooltip');
-    expect(tooltip).toHaveTextContent(
-      'The row limit selected for this pane was reached',
-    );
-    expect(tooltip).not.toHaveTextContent('for the chart');
-  });
-
-  test('renders an empty (0 rows) result from reused data without an API call', async () => {
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 205,
-      queriesResponse: [
-        { colnames: ['genre'], coltypes: [1], data: [], rowcount: 0 },
-      ],
-    });
-
-    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
-
-    expect(await screen.findByText('0 rows')).toBeVisible();
-    expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
-  });
-
-  test('clears the force-query flag when reusing Redux data', async () => {
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 206,
-      queryForce: true,
-      queriesResponse: [
-        {
-          colnames: ['genre'],
-          coltypes: [1],
-          data: [{ genre: 'Action' }],
+          data: [{ genre: 'Drama' }],
           rowcount: 1,
         },
       ],
-    });
-    const setForceQuery = jest.fn();
-
-    render(
-      <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
-      {
-        useRedux: true,
-      },
-    );
-
-    await waitFor(() => expect(setForceQuery).toHaveBeenCalledWith(false));
-    expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
+    },
   });
+  const props = createResultsPaneOnDashboardProps({ sliceId: 202 });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('Drama')).toBeVisible();
+  expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
+});
+
+test('falls back to the results API when queriesResponse has no colnames', async () => {
+  mockedGetChartDataRequest.mockResolvedValue({
+    json: {
+      result: [
+        {
+          colnames: ['genre'],
+          coltypes: [1],
+          data: [{ genre: 'Thriller' }],
+          rowcount: 1,
+        },
+      ],
+    },
+  });
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 203,
+    queriesResponse: [{ data: [{ genre: 'ignored' }] }],
+  });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('Thriller')).toBeVisible();
+  expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
+});
+
+test('falls back to the API when queriesResponse has colnames but not the full v1 shape', async () => {
+  mockedGetChartDataRequest.mockResolvedValue({
+    json: {
+      result: [
+        {
+          colnames: ['genre'],
+          coltypes: [1],
+          data: [{ genre: 'Indie' }],
+          rowcount: 1,
+        },
+      ],
+    },
+  });
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 207,
+    // colnames present but coltypes/data missing: not a real v1 result
+    queriesResponse: [{ colnames: ['genre'] }],
+  });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('Indie')).toBeVisible();
+  expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
+});
+
+test('reuse path honors the effective row limit (slices Redux data, no extra query)', async () => {
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 204,
+    rowLimit: 2,
+    queriesResponse: [
+      {
+        colnames: ['genre'],
+        coltypes: [1],
+        data: [
+          { genre: 'Action' },
+          { genre: 'Horror' },
+          { genre: 'Comedy' },
+          { genre: 'Drama' },
+          { genre: 'Sci-Fi' },
+        ],
+        rowcount: 5,
+      },
+    ],
+  });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('Action')).toBeVisible();
+  expect(screen.getByText('Horror')).toBeVisible();
+  expect(screen.queryByText('Comedy')).not.toBeInTheDocument();
+  expect(screen.queryByText('Sci-Fi')).not.toBeInTheDocument();
+  expect(screen.getByText('2 rows')).toBeVisible();
+  expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
+
+  await userEvent.hover(screen.getByText('2 rows'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    'The row limit set for the chart was reached',
+  );
+});
+
+test("warns about this pane's own row limit, not the chart's, when the pane's selector is what caps the result", async () => {
+  // chart row_limit (2000) is well above this pane's default 1000-row
+  // selector, so the selector - not the chart - is what truncates here.
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 208,
+    rowLimit: 2000,
+    queriesResponse: [
+      {
+        colnames: ['genre'],
+        coltypes: [1],
+        data: Array.from({ length: 1500 }, (_, i) => ({
+          genre: `genre-${i}`,
+        })),
+        rowcount: 1500,
+      },
+    ],
+  });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  const rowCountLabel = await screen.findByTestId('row-count-label');
+  expect(rowCountLabel).toHaveTextContent('1k rows');
+
+  await userEvent.hover(rowCountLabel);
+  const tooltip = await screen.findByRole('tooltip');
+  expect(tooltip).toHaveTextContent(
+    'The row limit selected for this pane was reached',
+  );
+  expect(tooltip).not.toHaveTextContent('for the chart');
+});
+
+test('renders an empty (0 rows) result from reused data without an API call', async () => {
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 205,
+    queriesResponse: [
+      { colnames: ['genre'], coltypes: [1], data: [], rowcount: 0 },
+    ],
+  });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('0 rows')).toBeVisible();
+  expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
+});
+
+test('clears the force-query flag when reusing Redux data', async () => {
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 206,
+    queryForce: true,
+    queriesResponse: [
+      {
+        colnames: ['genre'],
+        coltypes: [1],
+        data: [{ genre: 'Action' }],
+        rowcount: 1,
+      },
+    ],
+  });
+  const setForceQuery = jest.fn();
+
+  render(<ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />, {
+    useRedux: true,
+  });
+
+  await waitFor(() => expect(setForceQuery).toHaveBeenCalledWith(false));
+  expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
 });
 
 test('preserves multiline formatting in results errors', async () => {

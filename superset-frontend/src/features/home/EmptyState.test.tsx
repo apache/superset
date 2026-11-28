@@ -25,110 +25,105 @@ import {
 import EmptyState, { EmptyStateProps } from './EmptyState';
 import { WelcomeTable } from './types';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('EmptyState', () => {
-  const variants: EmptyStateProps[] = [
-    {
-      tab: TableTab.Favorite,
-      tableName: WelcomeTable.Dashboards,
-    },
-    {
-      tab: TableTab.Mine,
-      tableName: WelcomeTable.Dashboards,
-    },
-    {
-      tab: TableTab.Favorite,
-      tableName: WelcomeTable.Charts,
-    },
-    {
-      tab: TableTab.Mine,
-      tableName: WelcomeTable.Charts,
-    },
-    {
-      tab: TableTab.Favorite,
-      tableName: WelcomeTable.SavedQueries,
-    },
-    {
-      tab: TableTab.Mine,
-      tableName: WelcomeTable.SavedQueries,
-    },
-  ];
-  const recents: EmptyStateProps[] = [
-    {
-      tab: TableTab.Viewed,
-      tableName: WelcomeTable.Recents,
-    },
-    {
-      tab: TableTab.Edited,
-      tableName: WelcomeTable.Recents,
-    },
-    {
-      tab: TableTab.Created,
-      tableName: WelcomeTable.Recents,
-    },
-  ];
+const variants: EmptyStateProps[] = [
+  {
+    tab: TableTab.Favorite,
+    tableName: WelcomeTable.Dashboards,
+  },
+  {
+    tab: TableTab.Mine,
+    tableName: WelcomeTable.Dashboards,
+  },
+  {
+    tab: TableTab.Favorite,
+    tableName: WelcomeTable.Charts,
+  },
+  {
+    tab: TableTab.Mine,
+    tableName: WelcomeTable.Charts,
+  },
+  {
+    tab: TableTab.Favorite,
+    tableName: WelcomeTable.SavedQueries,
+  },
+  {
+    tab: TableTab.Mine,
+    tableName: WelcomeTable.SavedQueries,
+  },
+];
+const recents: EmptyStateProps[] = [
+  {
+    tab: TableTab.Viewed,
+    tableName: WelcomeTable.Recents,
+  },
+  {
+    tab: TableTab.Edited,
+    tableName: WelcomeTable.Recents,
+  },
+  {
+    tab: TableTab.Created,
+    tableName: WelcomeTable.Recents,
+  },
+];
 
-  variants.forEach(variant => {
-    test(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
-      const { container } = render(<EmptyState {...variant} />);
+variants.forEach(variant => {
+  test(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
+    const { container } = render(<EmptyState {...variant} />);
 
-      // Select the first description node
-      expect(
-        container.querySelector('.ant-empty-description'),
-      ).toHaveTextContent('Nothing here yet');
-      expect(screen.getAllByRole('button')).toHaveLength(1);
-    });
+    // Select the first description node
+    expect(container.querySelector('.ant-empty-description')).toHaveTextContent(
+      'Nothing here yet',
+    );
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
+});
 
-  recents.forEach(recent => {
-    test(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
-      const { container } = render(<EmptyState {...recent} />);
+recents.forEach(recent => {
+  test(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
+    const { container } = render(<EmptyState {...recent} />);
 
-      // Select the first description node
-      // Check the correct text is displayed
-      expect(
-        container.querySelector('.ant-empty-description'),
-      ).toHaveTextContent('Nothing here yet');
+    // Select the first description node
+    // Check the correct text is displayed
+    expect(container.querySelector('.ant-empty-description')).toHaveTextContent(
+      'Nothing here yet',
+    );
 
-      // Validate the image
-      expect(
-        container.querySelector('.ant-empty-image')?.children,
-      ).toHaveLength(1);
-    });
+    // Validate the image
+    expect(container.querySelector('.ant-empty-image')?.children).toHaveLength(
+      1,
+    );
   });
+});
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('mobile consumption mode', () => {
-    let restoreMatchMedia: () => void;
-    let restoreFlag: () => void;
+test('withholds the creation action for a non-favorite tab', () => {
+  const restoreMatchMedia = mockMobileMatchMedia();
+  const restoreFlag = enableMobileConsumptionFlag();
+  try {
+    render(
+      <EmptyState tab={TableTab.Mine} tableName={WelcomeTable.Dashboards} />,
+    );
 
-    beforeEach(() => {
-      restoreMatchMedia = mockMobileMatchMedia();
-      restoreFlag = enableMobileConsumptionFlag();
-    });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  } finally {
+    restoreMatchMedia();
+    restoreFlag();
+  }
+});
 
-    afterEach(() => {
-      restoreMatchMedia();
-      restoreFlag();
-    });
+test('still offers the "See all ..." action for the favorite tab', () => {
+  const restoreMatchMedia = mockMobileMatchMedia();
+  const restoreFlag = enableMobileConsumptionFlag();
+  try {
+    render(
+      <EmptyState
+        tab={TableTab.Favorite}
+        tableName={WelcomeTable.Dashboards}
+      />,
+    );
 
-    test('withholds the creation action for a non-favorite tab', () => {
-      render(
-        <EmptyState tab={TableTab.Mine} tableName={WelcomeTable.Dashboards} />,
-      );
-
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    });
-
-    test('still offers the "See all ..." action for the favorite tab', () => {
-      render(
-        <EmptyState
-          tab={TableTab.Favorite}
-          tableName={WelcomeTable.Dashboards}
-        />,
-      );
-
-      expect(screen.getAllByRole('button')).toHaveLength(1);
-    });
-  });
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  } finally {
+    restoreMatchMedia();
+    restoreFlag();
+  }
 });

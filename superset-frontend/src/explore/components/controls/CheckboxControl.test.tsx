@@ -57,111 +57,108 @@ test.each([undefined, 'Unavailable'])(
   },
 );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('CheckboxControl', () => {
-  test('renders a Checkbox', () => {
-    render(setup());
+test('renders a Checkbox', () => {
+  render(setup());
 
-    const checkbox = screen.getByRole('checkbox');
-    expect(checkbox).toBeInTheDocument();
-    expect(checkbox).not.toBeChecked();
+  const checkbox = screen.getByRole('checkbox');
+  expect(checkbox).toBeInTheDocument();
+  expect(checkbox).not.toBeChecked();
+});
+
+test('Checks the box when the label is clicked', async () => {
+  const onChange = jest.fn();
+  render(setup({ onChange }));
+  const label = screen.getByRole('button', {
+    name: /checkbox label/i,
   });
 
-  test('Checks the box when the label is clicked', async () => {
-    const onChange = jest.fn();
-    render(setup({ onChange }));
-    const label = screen.getByRole('button', {
-      name: /checkbox label/i,
-    });
+  await userEvent.click(label);
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
 
-    await userEvent.click(label);
-    expect(onChange).toHaveBeenCalledTimes(1);
-  });
+test('keeps the checkbox checked after its label is clicked', () => {
+  function StatefulCheckbox() {
+    const [checked, setChecked] = useState(false);
+    return setup({ value: checked, onChange: setChecked });
+  }
 
-  test('keeps the checkbox checked after its label is clicked', () => {
-    function StatefulCheckbox() {
-      const [checked, setChecked] = useState(false);
-      return setup({ value: checked, onChange: setChecked });
-    }
+  render(<StatefulCheckbox />);
+  fireEvent.click(screen.getByText('checkbox label'));
 
-    render(<StatefulCheckbox />);
-    fireEvent.click(screen.getByText('checkbox label'));
+  expect(screen.getByRole('checkbox')).toBeChecked();
+});
 
-    expect(screen.getByRole('checkbox')).toBeChecked();
-  });
+test('prevents duplicate native label activation from the label text', () => {
+  render(setup());
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true });
 
-  test('prevents duplicate native label activation from the label text', () => {
-    render(setup());
-    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+  screen.getByText('checkbox label').dispatchEvent(click);
 
-    screen.getByText('checkbox label').dispatchEvent(click);
+  expect(click.defaultPrevented).toBe(true);
+});
 
-    expect(click.defaultPrevented).toBe(true);
-  });
+test('focuses the checkbox when its label text is clicked', () => {
+  render(setup());
 
-  test('focuses the checkbox when its label text is clicked', () => {
-    render(setup());
+  fireEvent.click(screen.getByText('checkbox label'));
 
-    fireEvent.click(screen.getByText('checkbox label'));
+  expect(screen.getByRole('checkbox')).toHaveFocus();
+});
 
-    expect(screen.getByRole('checkbox')).toHaveFocus();
-  });
+test('explains a disabled checkbox without a label', () => {
+  render(
+    setup({
+      label: undefined,
+      disabled: true,
+      disabledReason: 'Unavailable',
+    }),
+  );
 
-  test('explains a disabled checkbox without a label', () => {
-    render(
-      setup({
-        label: undefined,
-        disabled: true,
-        disabledReason: 'Unavailable',
-      }),
-    );
+  const checkbox = screen.getByRole('checkbox');
+  expect(checkbox).toHaveAccessibleDescription('Unavailable');
+  expect(screen.getByText('Unavailable')).toBeInTheDocument();
+});
 
-    const checkbox = screen.getByRole('checkbox');
-    expect(checkbox).toHaveAccessibleDescription('Unavailable');
-    expect(screen.getByText('Unavailable')).toBeInTheDocument();
-  });
+test('retains the control header and description when disabled', () => {
+  const { container } = render(
+    setup({
+      disabled: true,
+      description: 'Why this control is disabled',
+      hovered: true,
+      renderTrigger: true,
+    }),
+  );
 
-  test('retains the control header and description when disabled', () => {
-    const { container } = render(
-      setup({
-        disabled: true,
-        description: 'Why this control is disabled',
-        hovered: true,
-        renderTrigger: true,
-      }),
-    );
+  expect(
+    container.querySelector('[data-test="show_legend-header"]'),
+  ).toBeInTheDocument();
+  expect(
+    container.querySelector('[data-test="show_legend-description-icon"]'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('checkbox')).toBeDisabled();
+});
 
-    expect(
-      container.querySelector('[data-test="show_legend-header"]'),
-    ).toBeInTheDocument();
-    expect(
-      container.querySelector('[data-test="show_legend-description-icon"]'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).toBeDisabled();
-  });
+test('names the disabled checkbox from its visible label', () => {
+  render(setup({ disabled: true, disabledReason: 'Unavailable' }));
 
-  test('names the disabled checkbox from its visible label', () => {
-    render(setup({ disabled: true, disabledReason: 'Unavailable' }));
+  const checkbox = screen.getByRole('checkbox', { name: 'checkbox label' });
+  expect(checkbox).toHaveAttribute('id');
+  expect(checkbox).toHaveAccessibleDescription('Unavailable');
+});
 
-    const checkbox = screen.getByRole('checkbox', { name: 'checkbox label' });
-    expect(checkbox).toHaveAttribute('id');
-    expect(checkbox).toHaveAccessibleDescription('Unavailable');
-  });
+test('names a checkbox with a React label and no control name', () => {
+  render(setup({ name: undefined, label: <span>Custom label</span> }));
 
-  test('names a checkbox with a React label and no control name', () => {
-    render(setup({ name: undefined, label: <span>Custom label</span> }));
+  const checkbox = screen.getByRole('checkbox', { name: 'Custom label' });
+  expect(checkbox).toHaveAttribute('id');
+});
 
-    const checkbox = screen.getByRole('checkbox', { name: 'Custom label' });
-    expect(checkbox).toHaveAttribute('id');
-  });
+test('ignores label clicks while disabled', async () => {
+  const onChange = jest.fn();
+  render(setup({ disabled: true, onChange }));
 
-  test('ignores label clicks while disabled', async () => {
-    const onChange = jest.fn();
-    render(setup({ disabled: true, onChange }));
-
-    await userEvent.click(screen.getByText('checkbox label'));
-    expect(onChange).not.toHaveBeenCalled();
-  });
+  await userEvent.click(screen.getByText('checkbox label'));
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('same-name instances keep their labels and focus on their own checkbox', () => {

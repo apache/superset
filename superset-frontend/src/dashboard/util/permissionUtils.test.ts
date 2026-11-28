@@ -236,60 +236,56 @@ test('isUserAdmin returns false for non-admin user', () => {
   expect(isUserAdmin(editorUser)).toEqual(false);
 });
 
-describe('isUserEditorOrAdmin', () => {
-  test('returns true when the user is a subject editor', () => {
-    expect(isUserEditorOrAdmin(editorUser, [editorSubject])).toEqual(true);
-  });
-
-  test('returns true when the user is an admin, regardless of subject membership', () => {
-    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
-    expect(isUserEditorOrAdmin(adminUser, [nonMatchingSubject])).toEqual(true);
-  });
-
-  test('returns false when the user is neither a subject editor nor an admin', () => {
-    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
-    expect(isUserEditorOrAdmin(outsiderUser, [nonMatchingSubject])).toEqual(
-      false,
-    );
-  });
-
-  test('returns false when editors is empty', () => {
-    expect(isUserEditorOrAdmin(editorUser, [])).toEqual(false);
-  });
-
-  test('returns false when editors is omitted', () => {
-    expect(isUserEditorOrAdmin(outsiderUser)).toEqual(false);
-  });
-
-  test('returns true when the user is granted editorship only through extra_editors', () => {
-    expect(isUserEditorOrAdmin(editorUser, [], [10])).toEqual(true);
-  });
-
-  test('unions editors and extra_editors rather than preferring one', () => {
-    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
-    expect(isUserEditorOrAdmin(editorUser, [nonMatchingSubject], [10])).toEqual(
-      true,
-    );
-  });
-
-  test('returns false when extra_editors names other subjects', () => {
-    expect(isUserEditorOrAdmin(editorUser, [], [999])).toEqual(false);
-  });
+test('returns true when the user is a subject editor', () => {
+  expect(isUserEditorOrAdmin(editorUser, [editorSubject])).toEqual(true);
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
-  // The file-level `jest.mock('src/utils/getBootstrapData', ...)` above
-  // permanently stubs out getBootstrapData with fixed data, which would
-  // shadow the DOM-driven bootstrap data these tests set up. Unmock it so
-  // the re-imported permissionUtils picks up the real implementation
-  // (reading document.getElementById('app')), then restore the mock
-  // afterward so later tests in this file keep their expected stub.
-  beforeEach(() => {
-    jest.unmock('src/utils/getBootstrapData');
-  });
+test('returns true when the user is an admin, regardless of subject membership', () => {
+  const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+  expect(isUserEditorOrAdmin(adminUser, [nonMatchingSubject])).toEqual(true);
+});
 
-  afterEach(() => {
+test('returns false when the user is neither a subject editor nor an admin', () => {
+  const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+  expect(isUserEditorOrAdmin(outsiderUser, [nonMatchingSubject])).toEqual(
+    false,
+  );
+});
+
+test('returns false when editors is empty', () => {
+  expect(isUserEditorOrAdmin(editorUser, [])).toEqual(false);
+});
+
+test('returns false when editors is omitted', () => {
+  expect(isUserEditorOrAdmin(outsiderUser)).toEqual(false);
+});
+
+test('returns true when the user is granted editorship only through extra_editors', () => {
+  expect(isUserEditorOrAdmin(editorUser, [], [10])).toEqual(true);
+});
+
+test('unions editors and extra_editors rather than preferring one', () => {
+  const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+  expect(isUserEditorOrAdmin(editorUser, [nonMatchingSubject], [10])).toEqual(
+    true,
+  );
+});
+
+test('returns false when extra_editors names other subjects', () => {
+  expect(isUserEditorOrAdmin(editorUser, [], [999])).toEqual(false);
+});
+
+// The file-level `jest.mock('src/utils/getBootstrapData', ...)` above
+// permanently stubs out getBootstrapData with fixed data, which would
+// shadow the DOM-driven bootstrap data these tests set up. Unmock it so
+// the re-imported permissionUtils picks up the real implementation
+// (reading document.getElementById('app')), then restore the mock
+// afterward so later tests in this file keep their expected stub.
+async function withRealBootstrapData(run: () => Promise<void>) {
+  jest.unmock('src/utils/getBootstrapData');
+  try {
+    await run();
+  } finally {
     document.body.innerHTML = '';
     jest.resetModules();
     jest.mock('src/utils/getBootstrapData', () => ({
@@ -300,9 +296,11 @@ describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
         },
       })),
     }));
-  });
+  }
+}
 
-  test('recognizes a user in the configured custom admin role', async () => {
+test('recognizes a user in the configured custom admin role', async () => {
+  await withRealBootstrapData(async () => {
     document.body.innerHTML =
       '<div id="app" data-bootstrap=\'{"common":{"conf":{"AUTH_ROLE_ADMIN":"SuperAdmin"}}}\'></div>';
 
@@ -318,8 +316,10 @@ describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
       }),
     ).toEqual(true);
   });
+});
 
-  test('does not throw and falls back to the default role when bootstrap data has no conf', async () => {
+test('does not throw and falls back to the default role when bootstrap data has no conf', async () => {
+  await withRealBootstrapData(async () => {
     document.body.innerHTML =
       '<div id="app" data-bootstrap=\'{"common":{}}\'></div>';
 

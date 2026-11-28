@@ -586,22 +586,17 @@ test('Logout link href is single-prefixed under subdirectory deployment', async 
   }
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('mobile consumption mode', () => {
-  let restoreMatchMedia: () => void;
+function setupMobileConsumptionMode() {
+  const restoreMatchMedia = mockMobileMatchMedia();
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.MobileConsumptionMode,
+  );
+  return restoreMatchMedia;
+}
 
-  beforeEach(() => {
-    restoreMatchMedia = mockMobileMatchMedia();
-    mockIsFeatureEnabled.mockImplementation(
-      (flag: FeatureFlag) => flag === FeatureFlag.MobileConsumptionMode,
-    );
-  });
-
-  afterEach(() => {
-    restoreMatchMedia();
-  });
-
-  test('renders a hamburger menu instead of the desktop nav, and opens a drawer on click', async () => {
+test('renders a hamburger menu instead of the desktop nav, and opens a drawer on click', async () => {
+  const restoreMatchMedia = setupMobileConsumptionMode();
+  try {
     const mockedProps = createProps();
     resetUseSelectorMock();
     render(<RightMenu {...mockedProps} />, {
@@ -618,7 +613,9 @@ describe('mobile consumption mode', () => {
     await userEvent.click(hamburger);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  });
+  } finally {
+    restoreMatchMedia();
+  }
 });
 
 test.each([

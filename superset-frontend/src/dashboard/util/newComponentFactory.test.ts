@@ -46,22 +46,19 @@ const types = [
   TAB_TYPE,
 ];
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('newEntityFactory', () => {
-  types.forEach(type => {
-    test(`returns a new ${type}`, () => {
-      const result = newComponentFactory(type);
+types.forEach(type => {
+  test(`returns a new ${type}`, () => {
+    const result = newComponentFactory(type);
 
-      expect(result.type).toBe(type);
-      expect(typeof result.id).toBe('string');
-      expect(typeof result.meta).toBe('object');
-      expect(Array.isArray(result.children)).toBe(true);
-    });
+    expect(result.type).toBe(type);
+    expect(typeof result.id).toBe('string');
+    expect(typeof result.meta).toBe('object');
+    expect(Array.isArray(result.children)).toBe(true);
   });
+});
 
-  test('adds passed meta data to the entity', () => {
-    const banana = 'banana';
-    const result = newComponentFactory(CHART_TYPE, { banana });
-    expect(result.meta.banana).toBe(banana);
-  });
+test('adds passed meta data to the entity', () => {
+  const banana = 'banana';
+  const result = newComponentFactory(CHART_TYPE, { banana });
+  expect(result.meta.banana).toBe(banana);
 });

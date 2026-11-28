@@ -248,45 +248,42 @@ test('renders the error message when metadata fails without a structured error',
   expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('table actions', () => {
-  test('refreshes table metadata when triggered', async () => {
-    const { getByRole } = render(<TablePreview {...mockedProps} />, {
-      useRedux: true,
-      initialState,
-    });
-    await waitFor(() =>
-      expect(
-        fetchMock.callHistory.calls(getTableMetadataEndpoint),
-      ).toHaveLength(1),
-    );
-    const refreshButton = getByRole('button', { name: 'Refresh table schema' });
-    fireEvent.click(refreshButton);
-    await waitFor(() =>
-      expect(
-        fetchMock.callHistory.calls(getTableMetadataEndpoint),
-      ).toHaveLength(2),
-    );
+test('refreshes table metadata when triggered', async () => {
+  const { getByRole } = render(<TablePreview {...mockedProps} />, {
+    useRedux: true,
+    initialState,
   });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    ),
+  );
+  const refreshButton = getByRole('button', { name: 'Refresh table schema' });
+  fireEvent.click(refreshButton);
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      2,
+    ),
+  );
+});
 
-  test('shows CREATE VIEW statement', async () => {
-    const { getByRole } = render(<TablePreview {...mockedProps} />, {
-      useRedux: true,
-      initialState,
-    });
-    await waitFor(() =>
-      expect(
-        fetchMock.callHistory.calls(getTableMetadataEndpoint),
-      ).toHaveLength(1),
-    );
-    const viewButton = getByRole('button', {
-      name: 'Show CREATE VIEW statement',
-    });
-    fireEvent.click(viewButton);
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('dialog', { name: 'CREATE VIEW statement' }),
-      ).toBeInTheDocument(),
-    );
+test('shows CREATE VIEW statement', async () => {
+  const { getByRole } = render(<TablePreview {...mockedProps} />, {
+    useRedux: true,
+    initialState,
   });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    ),
+  );
+  const viewButton = getByRole('button', {
+    name: 'Show CREATE VIEW statement',
+  });
+  fireEvent.click(viewButton);
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: 'CREATE VIEW statement' }),
+    ).toBeInTheDocument(),
+  );
 });

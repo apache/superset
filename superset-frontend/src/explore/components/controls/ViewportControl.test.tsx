@@ -32,24 +32,21 @@ const defaultProps = {
 };
 const renderedCoordinate = '6° 51\' 08.5017" | 31° 13\' 21.5646"';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ViewportControl', () => {
-  beforeEach(() => {
-    render(<ViewportControl {...defaultProps} />);
-  });
+beforeEach(() => {
+  render(<ViewportControl {...defaultProps} />);
+});
 
-  test('renders a OverlayTrigger if clicked', async () => {
-    expect(screen.getByTestId('foo-header')).toBeInTheDocument(); // Presence of ControlHeader
-    await userEvent.click(screen.getByText(renderedCoordinate));
-    expect(screen.getByText('Viewport')).toBeInTheDocument(); // Presence of Popover
-  });
+test('renders a OverlayTrigger if clicked', async () => {
+  expect(screen.getByTestId('foo-header')).toBeInTheDocument(); // Presence of ControlHeader
+  await userEvent.click(screen.getByText(renderedCoordinate));
+  expect(screen.getByText('Viewport')).toBeInTheDocument(); // Presence of Popover
+});
 
-  test('renders a Popover with 5 TextControl if clicked', async () => {
-    await userEvent.click(screen.getByText(renderedCoordinate));
-    expect(screen.queryAllByTestId('inline-name')).toHaveLength(5);
-  });
+test('renders a Popover with 5 TextControl if clicked', async () => {
+  await userEvent.click(screen.getByText(renderedCoordinate));
+  expect(screen.queryAllByTestId('inline-name')).toHaveLength(5);
+});
 
-  test('renders a summary in the label', () => {
-    expect(screen.getByText(renderedCoordinate)).toBeInTheDocument();
-  });
+test('renders a summary in the label', () => {
+  expect(screen.getByText(renderedCoordinate)).toBeInTheDocument();
 });
