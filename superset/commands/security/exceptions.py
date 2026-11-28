@@ -37,6 +37,28 @@ class RuleDeleteFailedError(DeleteFailedError):
     message = _("RLS rules could not be deleted.")
 
 
+class PasswordRecoveryUserNotFoundError(CommandException):
+    status = 404
+    message = _("User not found.")
+
+
+class PasswordRecoveryIneligibleError(CommandException):
+    """The account cannot receive a reset link; the message names the reason."""
+
+    status = 400
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class PasswordRecoveryThrottledError(CommandException):
+    status = 429
+    message = _(
+        "A password reset link was sent recently. "
+        "Please wait a bit before sending another."
+    )
+
+
 class PasswordRecoveryDisabledError(CommandException):
     status = 404
     message = _("Not found")

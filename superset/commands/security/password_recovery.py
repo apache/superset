@@ -18,10 +18,12 @@
 
 ``RequestPasswordRecoveryCommand`` issues a single-use token and emails a reset
 link; ``ResetPasswordWithTokenCommand`` consumes the token and sets the new
-password. Hashing, session invalidation and auditing use the same primitives as
-every other password write (FAB's hash settings and ``update_user``, Superset's
-session-invalidation epoch, the security audit log); see
-``superset.security.password_recovery`` for the token design.
+password. ``AdminRequestPasswordRecoveryCommand`` sends the same link to
+another user on an administrator's behalf, with explicit errors when the
+account cannot receive one. Hashing, session invalidation and auditing use the
+same primitives as every other password write (FAB's hash settings and
+``update_user``, Superset's session-invalidation epoch, the security audit
+log); see ``superset.security.password_recovery`` for the token design.
 """
 
 from __future__ import annotations
@@ -33,6 +35,7 @@ from types import SimpleNamespace
 from typing import Any, Callable, Optional
 
 from flask import current_app
+from flask_babel import gettext as _
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
@@ -41,7 +44,10 @@ from superset.commands.base import BaseCommand
 from superset.commands.security.exceptions import (
     PasswordRecoveryDisabledError,
     PasswordRecoveryFailedError,
+    PasswordRecoveryIneligibleError,
     PasswordRecoveryInvalidTokenError,
+    PasswordRecoveryThrottledError,
+    PasswordRecoveryUserNotFoundError,
 )
 from superset.daos.key_value import KeyValueDAO
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
@@ -92,6 +98,7 @@ class RequestPasswordRecoveryCommand(BaseCommand):
     def __init__(self, email: str, dispatch: Optional[Dispatcher] = None) -> None:
         self._email = email.strip()
         self._dispatch = dispatch or _send_now
+        self._admin_triggered = False
 
     def validate(self) -> None:
         if not password_recovery.is_enabled():
@@ -198,7 +205,10 @@ class RequestPasswordRecoveryCommand(BaseCommand):
         """
         ttl = password_recovery.token_ttl_minutes()
         subject, html = password_recovery.build_email(
-            (user or _DECOY_USER).username, reset_url, ttl
+            (user or _DECOY_USER).username,
+            reset_url,
+            ttl,
+            requested_by_admin=self._admin_triggered,
         )
         if user is None:
             return
@@ -208,6 +218,123 @@ class RequestPasswordRecoveryCommand(BaseCommand):
             password_recovery.send_email(recipient, subject, html)
 
         self._dispatch(_deliver)
+
+
+class AdminRequestPasswordRecoveryCommand(RequestPasswordRecoveryCommand):
+    """Send a recovery link to another user, on an administrator's behalf.
+
+    Reuses the self-service token issue and email send, so an admin-triggered
+    link has the same single-use token, resend cooldown and audit shape. The
+    differences are deliberate: the caller is a signed-in administrator who
+    already knows the account, so an unknown or ineligible user is an explicit
+    error instead of the same silent outcome, and the audit event records who
+    asked for the link.
+    """
+
+    def __init__(
+        self,
+        user_id: int,
+        requested_by_user_id: int,
+        dispatch: Optional[Dispatcher] = None,
+    ) -> None:
+        self._user_id = user_id
+        self._requested_by_user_id = requested_by_user_id
+        self._email = ""
+        self._dispatch = dispatch or _send_now
+        self._admin_triggered = True
+        self._user: Any = None
+
+    def validate(self) -> None:
+        if not password_recovery.is_enabled():
+            raise PasswordRecoveryDisabledError()
+        user = (
+            db.session.query(security_manager.user_model)
+            .filter(security_manager.user_model.id == self._user_id)
+            .one_or_none()
+        )
+        if user is None:
+            raise PasswordRecoveryUserNotFoundError()
+        if not getattr(user, "email", None):
+            raise PasswordRecoveryIneligibleError(
+                _("This user has no email address, so a reset link cannot be sent.")
+            )
+        if not getattr(user, "password", None):
+            raise PasswordRecoveryIneligibleError(
+                _(
+                    "This account does not use a local password, so a reset "
+                    "link cannot be sent."
+                )
+            )
+        if not getattr(user, "is_active", False):
+            raise PasswordRecoveryIneligibleError(_("This user account is not active."))
+        self._user = user
+        self._email = user.email
+
+    def run(self) -> None:
+        self.validate()
+        base_url = password_recovery.reset_base_url()
+        if base_url is None:
+            logger.error(
+                "Password recovery is enabled but no public base URL is "
+                "configured; set AUTH_PASSWORD_RECOVERY['base_url']. No reset "
+                "link was sent."
+            )
+            _log_event(
+                "PasswordRecoveryRequested",
+                {
+                    "outcome": "not_configured",
+                    "target_user_id": self._user.id,
+                    "requested_by_user_id": self._requested_by_user_id,
+                },
+            )
+            raise PasswordRecoveryFailedError(
+                _("Password recovery is not fully configured; no reset link was sent.")
+            )
+        throttled, token = self._issue(self._user)
+        if throttled:
+            _log_event(
+                "PasswordRecoveryRequested",
+                {
+                    "outcome": "throttled",
+                    "target_user_id": self._user.id,
+                    "requested_by_user_id": self._requested_by_user_id,
+                },
+            )
+            raise PasswordRecoveryThrottledError()
+        if token is not None:
+            reset_url = password_recovery.build_reset_url(base_url, token)
+            try:
+                self._send(self._user, reset_url)
+            except Exception as ex:  # pylint: disable=broad-except
+                # The send runs inline for the admin endpoint, so a delivery
+                # failure is reported instead of being logged as "sent": the
+                # token and the resend cooldown are already committed, so the
+                # link stays usable and a retry is possible once the
+                # cooldown ends.
+                logger.warning(
+                    "Failed to send admin-requested password reset email to user %s",
+                    self._user.id,
+                    exc_info=True,
+                )
+                _log_event(
+                    "PasswordRecoveryRequested",
+                    {
+                        "outcome": "failed",
+                        "target_user_id": self._user.id,
+                        "requested_by_user_id": self._requested_by_user_id,
+                    },
+                )
+                raise PasswordRecoveryFailedError(
+                    _("The password reset email could not be sent. Please try again.")
+                ) from ex
+        _log_event(
+            "PasswordRecoveryRequested",
+            {
+                "outcome": "sent",
+                "target_user_id": self._user.id,
+                "requested_by_user_id": self._requested_by_user_id,
+            },
+        )
 
 
 class ResetPasswordWithTokenCommand(BaseCommand):

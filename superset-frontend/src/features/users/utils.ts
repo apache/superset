@@ -87,6 +87,12 @@ export const deleteUser = async (userId: number) =>
     endpoint: `/api/v1/security/users/${userId}`,
   });
 
+export const requestAdminPasswordReset = async (userId: number) =>
+  SupersetClient.post({
+    endpoint: '/api/v1/security/password_recovery/admin/',
+    jsonPayload: { user_id: userId },
+  });
+
 export const getUserDisplayLabel = (user: {
   first_name?: string;
   last_name?: string;

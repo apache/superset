@@ -276,24 +276,45 @@ def build_reset_url(base_url: str, token: str) -> str:
     return f"{url}#token={token}"
 
 
-def build_email(username: str, reset_url: str, ttl_minutes: int) -> tuple[str, str]:
+def build_email(
+    username: str,
+    reset_url: str,
+    ttl_minutes: int,
+    requested_by_admin: bool = False,
+) -> tuple[str, str]:
     """Render the recovery email, returning ``(subject, html_body)``."""
     app_name = current_app.config.get("APP_NAME") or "Superset"
     subject = __("Reset your %(app_name)s password", app_name=app_name)
-    greeting = __(
-        'A password reset was requested for the %(app_name)s account "%(username)s".',
-        app_name=escape(app_name),
-        username=escape(username),
-    )
+    if requested_by_admin:
+        greeting = __(
+            "An administrator requested a password reset for the "
+            '%(app_name)s account "%(username)s".',
+            app_name=escape(app_name),
+            username=escape(username),
+        )
+    else:
+        greeting = __(
+            "A password reset was requested for the "
+            '%(app_name)s account "%(username)s".',
+            app_name=escape(app_name),
+            username=escape(username),
+        )
     button = __("Reset password")
     expiry = __(
         "This link can be used once and expires in %(minutes)s minutes.",
         minutes=ttl_minutes,
     )
-    disclaimer = __(
-        "If you did not request a password reset, you can ignore this email; "
-        "your password will not change."
-    )
+    if requested_by_admin:
+        disclaimer = __(
+            "If you were not expecting this reset, contact your "
+            "administrator; your password will not change unless you use "
+            "the link above."
+        )
+    else:
+        disclaimer = __(
+            "If you did not request a password reset, you can ignore this email; "
+            "your password will not change."
+        )
     html = (
         '<html><body style="font-family:Arial,sans-serif;color:#333;">'
         f"<p>{greeting}</p>"

@@ -27,7 +27,9 @@ import {
   Icons,
   DeleteModal,
   ConfirmStatusChange,
+  Modal,
 } from '@superset-ui/core/components';
+import { getClientErrorObject } from '@superset-ui/core';
 import {
   ListView,
   type ListViewColumn,
@@ -41,11 +43,19 @@ import {
   UserListEditModal,
 } from 'src/features/users/UserListModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { deleteUser } from 'src/features/users/utils';
+import {
+  deleteUser,
+  requestAdminPasswordReset,
+} from 'src/features/users/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import type { UsersListProps, Group, Role, UserObject } from './types';
 
 const PAGE_SIZE = 25;
+
+// Flask-AppBuilder auth type for database-backed accounts, the only ones
+// with local passwords that password recovery supports.
+const AUTH_DB = 1;
 
 enum ModalType {
   ADD = 'add',
@@ -92,6 +102,13 @@ function UsersList({ user }: UsersListProps) {
   const [currentUser, setCurrentUser] = useState<UserObject | null>(null);
   const [userCurrentlyDeleting, setUserCurrentlyDeleting] =
     useState<UserObject | null>(null);
+  const [userCurrentlyResetting, setUserCurrentlyResetting] =
+    useState<UserObject | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const bootstrapData = getBootstrapData();
+  const passwordRecoveryEnabled =
+    bootstrapData.common.conf.AUTH_TYPE === AUTH_DB &&
+    Boolean(bootstrapData.common.conf.PASSWORD_RECOVERY_ENABLED);
   const [loadingState, setLoadingState] = useState({
     roles: true,
     groups: true,
@@ -157,6 +174,33 @@ function UsersList({ user }: UsersListProps) {
       addSuccessToast(t('Deleted user: %s', username));
     } catch (error) {
       addDangerToast(t('There was an issue deleting %s', username));
+    }
+  };
+
+  const handlePasswordReset = async ({ id, email }: UserObject) => {
+    if (isResettingPassword) {
+      return;
+    }
+    setIsResettingPassword(true);
+    try {
+      await requestAdminPasswordReset(id);
+      setUserCurrentlyResetting(null);
+      addSuccessToast(t('Password reset email sent to %s', email));
+    } catch (error) {
+      let errorMessage = t(
+        'There was an issue sending a password reset email to %s',
+        email,
+      );
+      if (error instanceof Response) {
+        const errorData = await getClientErrorObject(error).catch(() => null);
+        const message = errorData?.message;
+        if (typeof message === 'string' && message) {
+          errorMessage = message;
+        }
+      }
+      addDangerToast(errorMessage);
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -342,6 +386,7 @@ function UsersList({ user }: UsersListProps) {
             openModal(ModalType.EDIT);
           };
           const handleDelete = () => setUserCurrentlyDeleting(original);
+          const handleResetPassword = () => setUserCurrentlyResetting(original);
           const actions = isAdmin
             ? [
                 {
@@ -351,6 +396,17 @@ function UsersList({ user }: UsersListProps) {
                   icon: 'EditOutlined',
                   onClick: handleEdit,
                 },
+                ...(passwordRecoveryEnabled
+                  ? [
+                      {
+                        label: 'user-list-reset-password-action',
+                        tooltip: t('Send password reset email'),
+                        placement: 'bottom',
+                        icon: 'KeyOutlined',
+                        onClick: handleResetPassword,
+                      },
+                    ]
+                  : []),
                 {
                   label: 'role-list-delete-action',
                   tooltip: t('Delete user'),
@@ -370,7 +426,7 @@ function UsersList({ user }: UsersListProps) {
         layout: 'actions',
       },
     ],
-    [isAdmin],
+    [isAdmin, passwordRecoveryEnabled],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -569,6 +625,29 @@ function UsersList({ user }: UsersListProps) {
           open
           title={t('Delete User?')}
         />
+      )}
+
+      {userCurrentlyResetting && (
+        <Modal
+          onHide={() => setUserCurrentlyResetting(null)}
+          onHandledPrimaryAction={() => {
+            if (userCurrentlyResetting) {
+              handlePasswordReset(userCurrentlyResetting);
+            }
+          }}
+          primaryButtonName={t('Send email')}
+          primaryButtonStyle="primary"
+          primaryButtonLoading={isResettingPassword}
+          show
+          title={t('Send password reset email?')}
+          destroyOnHidden
+          centered
+        >
+          {t(
+            'A password reset email will be sent to %s. The user can use the link in the email to choose a new password.',
+            userCurrentlyResetting.email,
+          )}
+        </Modal>
       )}
       <ConfirmStatusChange
         title={t('Please confirm')}

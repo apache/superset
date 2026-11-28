@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -1125,6 +1124,16 @@ msgid "A partition value transform must use the :value placeholder where the eng
 msgstr ""
 
 #, python-format
+msgid "A password reset email will be sent to %s. The user can use the link in the email to choose a new password."
+msgstr ""
+
+msgid "A password reset link has been sent to the user."
+msgstr ""
+
+msgid "A password reset link was sent recently. Please wait a bit before sending another."
+msgstr ""
+
+#, python-format
 msgid "A password reset was requested for the %(app_name)s account \"%(username)s\"."
 msgstr ""
 
@@ -1923,6 +1932,10 @@ msgid "An Error Occurred"
 msgstr ""
 
 #, python-format
+msgid "An administrator requested a password reset for the %(app_name)s account \"%(username)s\"."
+msgstr ""
+
+#, python-format
 msgid "An alert named \"%(name)s\" already exists"
 msgstr ""
 
@@ -2461,10 +2474,7 @@ msgstr ""
 msgid "Archived by"
 msgstr ""
 
-msgid ""
-"Archived charts and dashboards may still depend on this dataset, including "
-"assets you cannot view. Archiving or permanently deleting this dataset can "
-"prevent those assets from working after they are recovered."
+msgid "Archived charts and dashboards may still depend on this dataset, including assets you cannot view. Archiving or permanently deleting this dataset can prevent those assets from working after they are recovered."
 msgstr ""
 
 msgid "Archived items must be recovered before they can be opened."
@@ -8128,6 +8138,9 @@ msgstr ""
 msgid "If you don't save, changes will be lost."
 msgstr ""
 
+msgid "If you were not expecting this reset, contact your administrator; your password will not change unless you use the link above."
+msgstr ""
+
 msgid "Ignore cache when generating report"
 msgstr ""
 
@@ -11054,6 +11067,13 @@ msgstr ""
 msgid "Password must be at least %(min_length)s characters long."
 msgstr ""
 
+msgid "Password recovery is not fully configured; no reset link was sent."
+msgstr ""
+
+#, python-format
+msgid "Password reset email sent to %s"
+msgstr ""
+
 msgid "Password:"
 msgstr ""
 
@@ -13490,6 +13510,15 @@ msgstr ""
 msgid "Send as text"
 msgstr ""
 
+msgid "Send email"
+msgstr ""
+
+msgid "Send password reset email"
+msgstr ""
+
+msgid "Send password reset email?"
+msgstr ""
+
 msgid "Send reset link"
 msgstr ""
 
@@ -15359,6 +15388,9 @@ msgstr ""
 msgid "The password provided when connecting to a database is not valid."
 msgstr ""
 
+msgid "The password reset email could not be sent. Please try again."
+msgstr ""
+
 msgid "The password reset was successful"
 msgstr ""
 
@@ -16069,6 +16101,10 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue sending a password reset email to %s"
+msgstr ""
+
+#, python-format
 msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
 msgstr ""
 
@@ -16118,6 +16154,9 @@ msgid "This Google Sheets connection impersonates the logged-in user, who has no
 msgstr ""
 
 msgid "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters."
+msgstr ""
+
+msgid "This account does not use a local password, so a reset link cannot be sent."
 msgstr ""
 
 #, python-format
@@ -16526,6 +16565,12 @@ msgid "This time range is empty. Choose an end time later than the start time."
 msgstr ""
 
 msgid "This update would change the connection's effective destination (host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint URIs) while reusing the stored credential. Provide the real password (or SSH tunnel credential / OAuth2 client secret) to confirm a connection move."
+msgstr ""
+
+msgid "This user account is not active."
+msgstr ""
+
+msgid "This user has no email address, so a reset link cannot be sent."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -17548,6 +17593,9 @@ msgid "User must select a value before applying the customization"
 msgstr ""
 
 msgid "User must select a value before applying the filter"
+msgstr ""
+
+msgid "User not found."
 msgstr ""
 
 msgid "User query"

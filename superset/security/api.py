@@ -48,9 +48,14 @@ from superset.commands.dashboard.embedded.exceptions import (
 from superset.commands.exceptions import ForbiddenError
 from superset.commands.security.exceptions import (
     PasswordRecoveryFailedError,
+    PasswordRecoveryIneligibleError,
     PasswordRecoveryInvalidTokenError,
+    PasswordRecoveryThrottledError,
+    PasswordRecoveryUserNotFoundError,
 )
 from superset.commands.security.password_recovery import (
+    _send_now,
+    AdminRequestPasswordRecoveryCommand,
     RequestPasswordRecoveryCommand,
     ResetPasswordWithTokenCommand,
 )
@@ -517,6 +522,10 @@ class PasswordRecoveryResetSchema(Schema):
     )
 
 
+class PasswordRecoveryAdminRequestSchema(Schema):
+    user_id = fields.Integer(required=True, validate=validate.Range(min=1))
+
+
 #: Name of the thread that delivers a recovery email.
 RECOVERY_EMAIL_THREAD_NAME = "password-recovery-email"
 
@@ -557,6 +566,17 @@ def _defer_until_response_closed(task: Callable[[], None]) -> None:
         return response
 
 
+def _is_admin_recovery_request() -> bool:
+    """Whether the current request targets the admin recovery endpoint.
+
+    FAB applies a view's ``@limit`` decorators to the whole blueprint, so the
+    self-service limit would otherwise cover the admin endpoint too. The
+    admin endpoint is exempt: its caller is a signed-in admin, and the
+    resend cooldown still stops repeat sends to one address.
+    """
+    return request.endpoint == "PasswordRecoveryRestApi.admin_request_recovery"
+
+
 class PasswordRecoveryRestApi(BaseSupersetApi):
     """Self-service password recovery for ``AUTH_DB`` accounts.
 
@@ -571,16 +591,25 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
     resource_name = "security"
     route_base = "/api/v1/security/password_recovery"
     openapi_spec_tag = "Security"
+    # The admin endpoint is called from the browser UI with the session
+    # cookie; without this, session logins are rejected on API routes.
+    allow_browser_login = True
     openapi_spec_component_schemas = (
         PasswordRecoveryRequestSchema,
         PasswordRecoveryResetSchema,
+        PasswordRecoveryAdminRequestSchema,
     )
 
     request_schema = PasswordRecoveryRequestSchema()
     reset_schema = PasswordRecoveryResetSchema()
+    admin_request_schema = PasswordRecoveryAdminRequestSchema()
 
     @expose("/", methods=("POST",))
-    @limit(password_recovery.rate_limit, methods=["POST"])
+    @limit(
+        password_recovery.rate_limit,
+        methods=["POST"],
+        exempt_when=_is_admin_recovery_request,
+    )
     @safe
     @statsd_metrics
     @requires_json
@@ -636,7 +665,11 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
         )
 
     @expose("/reset/", methods=("POST",))
-    @limit(password_recovery.rate_limit, methods=["POST"])
+    @limit(
+        password_recovery.rate_limit,
+        methods=["POST"],
+        exempt_when=_is_admin_recovery_request,
+    )
     @safe
     @statsd_metrics
     @requires_json
@@ -696,3 +729,93 @@ class PasswordRecoveryRestApi(BaseSupersetApi):
         except PasswordRecoveryFailedError as ex:
             return self.response(500, message=str(ex.message))
         return self.response(200, message=_("Your password has been reset."))
+
+    @expose("/admin/", methods=("POST",))
+    @protect()
+    @permission_name("admin_request_password_recovery")
+    @safe
+    @statsd_metrics
+    @requires_json
+    def admin_request_recovery(self) -> Response:
+        """Send a password reset link to another user.
+        ---
+        post:
+          summary: Send a password reset link to a user
+          description: >-
+            Emails a single-use password reset link to the given user. Only
+            available when password recovery is enabled (``AUTH_DB``
+            accounts), and only to callers with the
+            ``admin_request_password_recovery`` permission on this API, which
+            the Admin role holds. Unlike the self-service endpoints this one
+            is not subject to the per-address rate limit, since the caller is
+            a signed-in admin; the resend cooldown still stops repeat sends
+            to one address. The request is recorded in the security audit log
+            with the requesting user.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PasswordRecoveryAdminRequestSchema'
+          responses:
+            200:
+              description: Reset link sent
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              description: >-
+                The user cannot receive a reset link (no email address, no
+                local password, or an inactive account)
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              description: Password recovery is disabled, or no such user
+            429:
+              description: Too many requests
+        """
+        if not password_recovery.is_enabled():
+            return self.response_404()
+        try:
+            data = self.admin_request_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        requested_by_user_id = get_user_id()
+        if requested_by_user_id is None:
+            return self.response_401()
+
+        try:
+            AdminRequestPasswordRecoveryCommand(
+                data["user_id"],
+                requested_by_user_id,
+                # Unlike the self-service endpoints, the admin endpoint
+                # answers explicit 404s and 400s, so there is nothing to
+                # hide by deferring: send inline and report a failure.
+                dispatch=_send_now,
+            ).run()
+        except PasswordRecoveryUserNotFoundError as ex:
+            return self.response(404, message=str(ex.message))
+        except PasswordRecoveryIneligibleError as ex:
+            return self.response_400(message=str(ex.message))
+        except PasswordRecoveryThrottledError as ex:
+            return self.response(429, message=str(ex.message))
+        except PasswordRecoveryFailedError as ex:
+            return self.response(500, message=str(ex.message))
+        return self.response(
+            200,
+            message=_("A password reset link has been sent to the user."),
+        )

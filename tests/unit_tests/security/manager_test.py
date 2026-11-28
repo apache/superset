@@ -5792,6 +5792,14 @@ def test_gamma_receives_no_semantic_write_pvm() -> None:
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
 
 
+def test_admin_password_recovery_is_admin_only() -> None:
+    sm = _classifier()
+    pvm = _pvm("can_admin_request_password_recovery", "PasswordRecoveryRestApi")
+    assert sm._is_admin_only(pvm)
+    assert not sm._is_alpha_pvm(pvm)
+    assert not sm._is_gamma_pvm(pvm)
+
+
 def test_skip_legacy_fab_password_view_registration_refuses_reset_views(
     app_context: None,
 ) -> None:
