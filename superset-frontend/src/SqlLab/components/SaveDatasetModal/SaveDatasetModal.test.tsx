@@ -25,9 +25,11 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
@@ -54,18 +56,21 @@ const renderModal = (
     initialState: { user },
   });
 
-fetchMock.get('glob:*/api/v1/dataset/?*', {
-  result: mockdatasets,
-  dataset_count: 3,
-});
+const datasetListRoute = 'datasetList';
 
 jest.useFakeTimers({ advanceTimers: true });
 
 beforeEach(() => {
   cleanup();
+  fetchMock.get(
+    'glob:*/api/v1/dataset/?*',
+    { result: mockdatasets, count: mockdatasets.length },
+    { name: datasetListRoute },
+  );
 });
 
 afterEach(() => {
+  fetchMock.clearHistory().removeRoute(datasetListRoute);
   // In-body restores are skipped when an assertion throws, leaking a
   // configured spy into later tests.
   jest.restoreAllMocks();
@@ -86,6 +91,56 @@ jest.mock('src/utils/cachedSupersetGet', () => ({
   ...jest.requireActual('src/utils/cachedSupersetGet'),
   clearDatasetCache: jest.fn(),
 }));
+
+test('loads more editable datasets when scrolling the overwrite picker', async () => {
+  const datasets = Array.from({ length: 104 }, (_, index) => ({
+    id: index + 1,
+    table_name: `Dataset ${String(index + 1).padStart(3, '0')}`,
+    editors: [],
+  }));
+  fetchMock.modifyRoute(datasetListRoute, {
+    response: ({ queryParams }) => {
+      const { page = 0, page_size: pageSize = 20 } = rison.decode(
+        queryParams?.get('q') ?? '()',
+      ) as { page?: number; page_size?: number };
+      const start = page * pageSize;
+      return {
+        count: datasets.length,
+        result: datasets.slice(start, start + pageSize),
+      };
+    },
+  });
+
+  renderModal();
+  await userEvent.click(
+    screen.getByRole('radio', { name: /overwrite existing/i }),
+  );
+  await userEvent.click(
+    screen.getByRole('combobox', { name: /existing dataset/i }),
+  );
+  // Trigger pagination by dispatching a scroll event on the virtual-list container
+  const holder = document.querySelector<HTMLElement>(
+    '.ant-select-dropdown-list-holder',
+  );
+  if (!holder) throw new Error('Dataset dropdown scroll container missing');
+  expect(await within(holder).findByText('Dataset 001')).toBeInTheDocument();
+  Object.defineProperties(holder, {
+    scrollHeight: { value: 10000 },
+    offsetHeight: { value: 256 },
+    scrollTop: { get: () => 10000, set: () => {} },
+  });
+  fireEvent.scroll(holder);
+
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(datasetListRoute)).toHaveLength(2),
+  );
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-suffix .ant-spin')).toBeNull(),
+  );
+  fireEvent.scroll(holder);
+
+  expect(await within(holder).findByText('Dataset 104')).toBeInTheDocument();
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetModal', () => {

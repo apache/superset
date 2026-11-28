@@ -323,38 +323,43 @@ export const SaveDatasetModal = ({
     }
   };
 
-  const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
-    const queryParams = rison.encode({
-      filters: [
-        {
-          col: 'table_name',
-          opr: 'ct',
-          value: input,
-        },
-        {
-          col: 'id',
-          opr: 'is_editable',
-          value: true,
-        },
-      ],
-      order_column: 'changed_on_delta_humanized',
-      order_direction: 'desc',
-    });
+  const loadDatasetOverwriteOptions = useCallback(
+    async (input = '', page: number, pageSize: number) => {
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'table_name',
+            opr: 'ct',
+            value: input,
+          },
+          {
+            col: 'id',
+            opr: 'is_editable',
+            value: true,
+          },
+        ],
+        page,
+        page_size: pageSize,
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+      });
 
-    return SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${queryParams}`,
-    }).then(response => ({
-      data: response.json.result.map(
-        (r: { table_name: string; id: number; editors: Subject[] }) => ({
-          value: r.table_name,
-          label: r.table_name,
-          datasetId: r.id,
-          editors: r.editors,
-        }),
-      ),
-      totalCount: response.json.count,
-    }));
-  }, []);
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset/?q=${queryParams}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (r: { table_name: string; id: number; editors: Subject[] }) => ({
+            value: r.table_name,
+            label: r.table_name,
+            datasetId: r.id,
+            editors: r.editors,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
+    },
+    [],
+  );
 
   const handleSaveInDataset = () => {
     setLoading(true);
@@ -532,7 +537,7 @@ export const SaveDatasetModal = ({
                     placeholder={t('Select or type dataset name')}
                     ariaLabel={t('Existing dataset')}
                     onChange={handleOverwriteDatasetOption}
-                    options={input => loadDatasetOverwriteOptions(input)}
+                    options={loadDatasetOverwriteOptions}
                     value={selectedDatasetToOverwrite}
                     filterOption={filterAutocompleteOption}
                     disabled={newOrOverwrite !== 2}
