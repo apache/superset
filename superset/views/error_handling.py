@@ -37,6 +37,10 @@ from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
 
+from superset.commands.database.exceptions import (
+    DatabaseTestConnectionFailedError,
+    DatabaseTestConnectionUnexpectedError,
+)
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -122,15 +126,28 @@ def log_superset_error_exception(
     ``SupersetErrorException`` keeps its WARNING with a traceback. SQL Lab
     reconstructs serialized errors as ``SupersetErrorsException``; suppress its
     traceback only when the nonempty error list contains nothing but redirects.
+
+    A failed "test connection" (bad credentials, unreachable host, TLS
+    mismatch, etc.) is likewise an expected outcome of the user poking at
+    their own connection settings, not a signal of a Superset-side problem,
+    so it's downgraded the same way.
     """
-    if isinstance(ex, OAuth2RedirectError) or (
-        isinstance(ex, SupersetErrorsException)
-        and ex.errors
-        and all(
-            error.error_type == SupersetErrorType.OAUTH2_REDIRECT for error in ex.errors
+    if (
+        isinstance(
+            ex,
+            (DatabaseTestConnectionFailedError, DatabaseTestConnectionUnexpectedError),
+        )
+        or isinstance(ex, OAuth2RedirectError)
+        or (
+            isinstance(ex, SupersetErrorsException)
+            and ex.errors
+            and all(
+                error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+                for error in ex.errors
+            )
         )
     ):
-        logger.debug("%s: OAuth2 authorization required", type(ex).__name__)
+        logger.debug("%s: %s", type(ex).__name__, message)
         return
     logger.warning(message, exc_info=True)
 
