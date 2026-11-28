@@ -228,6 +228,43 @@ def test_database_parameters_schema_mixin_invalid_type(
         assert err.messages == {"port": ["Not a valid integer."]}  # noqa: PT017
 
 
+def test_database_parameters_schema_mixin_parameters_not_a_mapping(
+    dummy_engine: None,
+    dummy_schema: "Schema",
+) -> None:
+    """
+    A malformed payload where ``parameters`` is a list (instead of a dict)
+    must raise a normal ``ValidationError``, not crash with a ``TypeError``
+    from calling ``list.pop(key, default)``.
+
+    Regression test for SUPERSET-PYTHON-1CKV / SUPERSET-PYTHON-1CKT.
+    """
+    from superset.models.core import ConfigurationMethod
+
+    payload = {
+        "engine": "dummy_engine",
+        "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
+        "parameters": ["username", "password"],
+    }
+    with pytest.raises(ValidationError) as excinfo:
+        dummy_schema.load(payload)
+    assert "parameters" in excinfo.value.messages
+
+
+def test_database_parameters_schema_mixin_payload_not_a_mapping(
+    dummy_schema: "Schema",
+) -> None:
+    """
+    A malformed top-level payload (eg. a JSON list instead of an object)
+    must raise a normal ``ValidationError``, not crash with a ``TypeError``
+    from calling ``list.pop(key, default)``.
+
+    Regression test for SUPERSET-PYTHON-1CKV / SUPERSET-PYTHON-1CKT.
+    """
+    with pytest.raises(ValidationError):
+        dummy_schema.load(["not", "a", "mapping"])
+
+
 def test_rename_encrypted_extra() -> None:
     """
     Test that ``encrypted_extra`` gets renamed to ``masked_encrypted_extra``.

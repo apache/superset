@@ -161,9 +161,15 @@ class RunAsFieldStripMixin:
     @pre_load
     def strip_run_as_fields_if_disabled(
         self,
-        data: dict[str, Any],
+        data: Any,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> Any:
+        if not isinstance(data, dict):
+            # Not a mapping (eg. the client sent a JSON list/string/etc as
+            # the request body). Let marshmallow's own type validation
+            # raise the usual "Invalid input type" error instead of
+            # crashing here with a TypeError.
+            return data
         if not is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR"):
             for key in _RUN_AS_FIELD_KEYS:
                 data.pop(key, None)
@@ -291,9 +297,15 @@ class RetryFieldStripMixin:
     @pre_load
     def strip_retry_fields_if_disabled(
         self,
-        data: dict[str, Any],
+        data: Any,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> Any:
+        if not isinstance(data, dict):
+            # Not a mapping (eg. the client sent a JSON list/string/etc as
+            # the request body). Let marshmallow's own type validation
+            # raise the usual "Invalid input type" error instead of
+            # crashing here with a TypeError.
+            return data
         if not is_feature_enabled("ALERT_REPORTS_RETRY"):
             for key in _RETRY_FIELD_KEYS:
                 data.pop(key, None)

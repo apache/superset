@@ -354,6 +354,26 @@ def test_run_as_fields_validated_when_feature_enabled(
     }
 
 
+@pytest.mark.parametrize(
+    "schema_class", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("enabled", [True, False])
+def test_non_mapping_payload_raises_validation_error(
+    mocker: MockerFixture, schema_class: type, enabled: bool
+) -> None:
+    """
+    A malformed top-level payload (eg. a JSON list instead of an object)
+    must raise a normal ``ValidationError``, not crash with a ``TypeError``
+    from calling ``list.pop(key, default)`` in the retry/run-as
+    pre_load strip mixins.
+
+    Regression test for SUPERSET-PYTHON-1CKV / SUPERSET-PYTHON-1CKT.
+    """
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=enabled)
+    with pytest.raises(ValidationError):
+        schema_class().load(["not", "a", "mapping"])
+
+
 CUSTOM_WIDTH_CONFIG = {
     "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 600,
     "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2400,
