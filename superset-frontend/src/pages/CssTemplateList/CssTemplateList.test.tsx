@@ -92,110 +92,107 @@ const renderCssTemplatesList = (props = {}) =>
     },
   );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('CssTemplatesList', () => {
-  beforeEach(() => {
-    fetchMock.clearHistory();
-  });
-
-  test('renders', async () => {
-    renderCssTemplatesList();
-    expect(await screen.findByText(/css templates/i)).toBeInTheDocument();
-  });
-
-  test('renders a SubMenu', async () => {
-    renderCssTemplatesList();
-    expect(await screen.findByRole('navigation')).toBeInTheDocument();
-  });
-
-  test('renders a ListView', async () => {
-    renderCssTemplatesList();
-    expect(
-      await screen.findByTestId('css-templates-list-view'),
-    ).toBeInTheDocument();
-  });
-
-  test('fetches templates', async () => {
-    renderCssTemplatesList();
-    await waitFor(() => {
-      const calls = fetchMock.callHistory.calls(/css_template\/\?q/);
-      expect(calls).toHaveLength(1);
-      expect(calls[0].url).toContain(
-        'order_column:template_name,order_direction:desc,page:0,page_size:25',
-      );
-    });
-  });
-
-  test('renders Filters', async () => {
-    renderCssTemplatesList();
-    await screen.findByTestId('css-templates-list-view');
-    expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
-  });
-
-  test('searches', async () => {
-    renderCssTemplatesList();
-
-    // Wait for list to load
-    await screen.findByTestId('css-templates-list-view');
-
-    // Find and fill search input
-    const searchInput = screen.getByPlaceholderText(/type a value/i);
-    fireEvent.change(searchInput, { target: { value: 'fooo' } });
-    fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
-
-    // Wait for search API call
-    await waitFor(() => {
-      const calls = fetchMock.callHistory.calls(/css_template\/\?q/);
-      const searchCall = calls.find(call =>
-        call.url.includes('filters:!((col:template_name,opr:ct,value:fooo))'),
-      );
-      expect(searchCall).toBeTruthy();
-    });
-  });
-
-  test('deletes', async () => {
-    renderCssTemplatesList();
-
-    // Wait for list to load
-    await screen.findByTestId('css-templates-list-view');
-
-    // Find and click delete button
-    const deleteButtons = await screen.findAllByTestId('delete-action');
-    fireEvent.click(deleteButtons[0]);
-
-    // Check delete modal content
-    const deleteModal = await screen.findByRole('dialog');
-    expect(deleteModal).toHaveTextContent(/permanently delete the template/i);
-
-    // Type DELETE in confirmation input
-    const deleteInput = await screen.findByTestId('delete-modal-input');
-    fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
-
-    // Click confirm button
-    const confirmButton = await screen.findByTestId('modal-confirm-button');
-    fireEvent.click(confirmButton);
-
-    // Wait for delete request
-    await waitFor(() => {
-      expect(
-        fetchMock.callHistory.calls(/css_template\/0/, { method: 'DELETE' }),
-      ).toHaveLength(1);
-    });
-  });
-
-  test('shows bulk actions when bulk select is clicked', async () => {
-    renderCssTemplatesList();
-
-    // Wait for list to load
-    await screen.findByTestId('css-templates-list-view');
-
-    // Click bulk select toggle
-    const bulkSelectButton = screen.getByRole('button', {
-      name: /bulk select/i,
-    });
-    fireEvent.click(bulkSelectButton);
-
-    // Wait for bulk select mode to be enabled
-    expect(await screen.findByText('0 Selected')).toBeInTheDocument();
-  }, 30000);
+beforeEach(() => {
+  fetchMock.clearHistory();
 });
+
+test('renders', async () => {
+  renderCssTemplatesList();
+  expect(await screen.findByText(/css templates/i)).toBeInTheDocument();
+});
+
+test('renders a SubMenu', async () => {
+  renderCssTemplatesList();
+  expect(await screen.findByRole('navigation')).toBeInTheDocument();
+});
+
+test('renders a ListView', async () => {
+  renderCssTemplatesList();
+  expect(
+    await screen.findByTestId('css-templates-list-view'),
+  ).toBeInTheDocument();
+});
+
+test('fetches templates', async () => {
+  renderCssTemplatesList();
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(/css_template\/\?q/);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toContain(
+      'order_column:template_name,order_direction:desc,page:0,page_size:25',
+    );
+  });
+});
+
+test('renders Filters', async () => {
+  renderCssTemplatesList();
+  await screen.findByTestId('css-templates-list-view');
+  expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
+});
+
+test('searches', async () => {
+  renderCssTemplatesList();
+
+  // Wait for list to load
+  await screen.findByTestId('css-templates-list-view');
+
+  // Find and fill search input
+  const searchInput = screen.getByPlaceholderText(/type a value/i);
+  fireEvent.change(searchInput, { target: { value: 'fooo' } });
+  fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
+
+  // Wait for search API call
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(/css_template\/\?q/);
+    const searchCall = calls.find(call =>
+      call.url.includes('filters:!((col:template_name,opr:ct,value:fooo))'),
+    );
+    expect(searchCall).toBeTruthy();
+  });
+});
+
+test('deletes', async () => {
+  renderCssTemplatesList();
+
+  // Wait for list to load
+  await screen.findByTestId('css-templates-list-view');
+
+  // Find and click delete button
+  const deleteButtons = await screen.findAllByTestId('delete-action');
+  fireEvent.click(deleteButtons[0]);
+
+  // Check delete modal content
+  const deleteModal = await screen.findByRole('dialog');
+  expect(deleteModal).toHaveTextContent(/permanently delete the template/i);
+
+  // Type DELETE in confirmation input
+  const deleteInput = await screen.findByTestId('delete-modal-input');
+  fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+
+  // Click confirm button
+  const confirmButton = await screen.findByTestId('modal-confirm-button');
+  fireEvent.click(confirmButton);
+
+  // Wait for delete request
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(/css_template\/0/, { method: 'DELETE' }),
+    ).toHaveLength(1);
+  });
+});
+
+test('shows bulk actions when bulk select is clicked', async () => {
+  renderCssTemplatesList();
+
+  // Wait for list to load
+  await screen.findByTestId('css-templates-list-view');
+
+  // Click bulk select toggle
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
+  fireEvent.click(bulkSelectButton);
+
+  // Wait for bulk select mode to be enabled
+  expect(await screen.findByText('0 Selected')).toBeInTheDocument();
+}, 30000);

@@ -18,77 +18,74 @@
  */
 import { colorFromBounds } from './colorUtils';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('colorFromBounds', () => {
-  test('should return null when no bounds are provided', () => {
-    expect(colorFromBounds(50)).toBeNull();
-    expect(colorFromBounds(50, undefined)).toBeNull();
-  });
+test('should return null when no bounds are provided', () => {
+  expect(colorFromBounds(50)).toBeNull();
+  expect(colorFromBounds(50, undefined)).toBeNull();
+});
 
-  test('should return null when bounds is empty array', () => {
-    expect(colorFromBounds(50, [])).toBeNull();
-  });
+test('should return null when bounds is empty array', () => {
+  expect(colorFromBounds(50, [])).toBeNull();
+});
 
-  test('should handle min and max bounds with color scale', () => {
-    const result = colorFromBounds(50, [0, 100]);
+test('should handle min and max bounds with color scale', () => {
+  const result = colorFromBounds(50, [0, 100]);
 
-    expect(result).toBeTruthy();
-    expect(typeof result).toBe('string');
-  });
+  expect(result).toBeTruthy();
+  expect(typeof result).toBe('string');
+});
 
-  test('should handle only min bound', () => {
-    const result1 = colorFromBounds(50, [30, null]);
-    const result2 = colorFromBounds(20, [30, null]);
+test('should handle only min bound', () => {
+  const result1 = colorFromBounds(50, [30, null]);
+  const result2 = colorFromBounds(20, [30, null]);
 
-    expect(result1).toBe('#0571b0'); // maxColor when value >= min
-    expect(result2).toBe('#ca0020'); // minColor when value < min
-  });
+  expect(result1).toBe('#0571b0'); // maxColor when value >= min
+  expect(result2).toBe('#ca0020'); // minColor when value < min
+});
 
-  test('should handle only max bound', () => {
-    const result1 = colorFromBounds(50, [null, 70]);
-    const result2 = colorFromBounds(80, [null, 70]);
+test('should handle only max bound', () => {
+  const result1 = colorFromBounds(50, [null, 70]);
+  const result2 = colorFromBounds(80, [null, 70]);
 
-    expect(result1).toBe('#0571b0'); // maxColor when value < max
-    expect(result2).toBe('#ca0020'); // minColor when value >= max
-  });
+  expect(result1).toBe('#0571b0'); // maxColor when value < max
+  expect(result2).toBe('#ca0020'); // minColor when value >= max
+});
 
-  test('should handle null value with min bound', () => {
-    const result = colorFromBounds(null, [30, null]);
-    expect(result).toBe('#ca0020'); // minColor when value is null
-  });
+test('should handle null value with min bound', () => {
+  const result = colorFromBounds(null, [30, null]);
+  expect(result).toBe('#ca0020'); // minColor when value is null
+});
 
-  test('should handle null value with max bound', () => {
-    const result = colorFromBounds(null, [null, 70]);
-    expect(result).toBe('#ca0020'); // minColor when value is null
-  });
+test('should handle null value with max bound', () => {
+  const result = colorFromBounds(null, [null, 70]);
+  expect(result).toBe('#ca0020'); // minColor when value is null
+});
 
-  test('should handle custom color bounds', () => {
-    const customColors = ['#ff0000', '#00ff00'];
-    const result1 = colorFromBounds(50, [30, null], customColors);
-    const result2 = colorFromBounds(20, [30, null], customColors);
+test('should handle custom color bounds', () => {
+  const customColors = ['#ff0000', '#00ff00'];
+  const result1 = colorFromBounds(50, [30, null], customColors);
+  const result2 = colorFromBounds(20, [30, null], customColors);
 
-    expect(result1).toBe('#00ff00'); // custom maxColor
-    expect(result2).toBe('#ff0000'); // custom minColor
-  });
+  expect(result1).toBe('#00ff00'); // custom maxColor
+  expect(result2).toBe('#ff0000'); // custom minColor
+});
 
-  test('should handle edge case with min equals max', () => {
-    const result = colorFromBounds(50, [50, 50]);
+test('should handle edge case with min equals max', () => {
+  const result = colorFromBounds(50, [50, 50]);
 
-    expect(result).toBeTruthy();
-    expect(typeof result).toBe('string');
-  });
+  expect(result).toBeTruthy();
+  expect(typeof result).toBe('string');
+});
 
-  test('should handle value of 0', () => {
-    const result = colorFromBounds(0, [0, 100]);
+test('should handle value of 0', () => {
+  const result = colorFromBounds(0, [0, 100]);
 
-    expect(result).toBeTruthy();
-    expect(typeof result).toBe('string');
-  });
+  expect(result).toBeTruthy();
+  expect(typeof result).toBe('string');
+});
 
-  test('should handle negative values', () => {
-    const result = colorFromBounds(-50, [-100, 0]);
+test('should handle negative values', () => {
+  const result = colorFromBounds(-50, [-100, 0]);
 
-    expect(result).toBeTruthy();
-    expect(typeof result).toBe('string');
-  });
+  expect(result).toBeTruthy();
+  expect(typeof result).toBe('string');
 });
