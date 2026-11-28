@@ -42,6 +42,8 @@ interface GetDetailedComponentWidthParams {
   id?: string | null;
   component?: DashboardComponent;
   components?: DashboardComponentMap;
+  /** Rows already walked. Internal to the recursion; callers omit it. */
+  visited?: Set<string>;
 }
 
 function getTotalChildWidth({
@@ -66,6 +68,7 @@ export default function getDetailedComponentWidth({
   id,
   component: passedComponent,
   components = {},
+  visited = new Set<string>(),
 }: GetDetailedComponentWidthParams): DetailedWidth {
   const result: DetailedWidth = {
     width: undefined,
@@ -82,14 +85,17 @@ export default function getDetailedComponentWidth({
 
   if (component.type === ROW_TYPE) {
     // not all rows have width 12, e
+    // A stored layout can nest a row under its own descendant; stop walking
+    // up at the repeat rather than recursing forever.
+    visited.add(component.id);
+    const parentId = findParentId({
+      childId: component.id,
+      layout: components,
+    });
     result.width =
-      getDetailedComponentWidth({
-        id: findParentId({
-          childId: component.id,
-          layout: components,
-        }),
-        components,
-      }).width || GRID_COLUMN_COUNT;
+      (parentId && !visited.has(parentId)
+        ? getDetailedComponentWidth({ id: parentId, components, visited }).width
+        : undefined) || GRID_COLUMN_COUNT;
     result.occupiedWidth = getTotalChildWidth({ id: component.id, components });
     result.minimumWidth = result.occupiedWidth || GRID_MIN_COLUMN_COUNT;
   } else if (component.type === COLUMN_TYPE) {
