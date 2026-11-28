@@ -122,7 +122,10 @@ test('keyboard, four levels: Tab enters and leaves every nested grid (headers, c
     '0 gridcell ',
     '0 gridcell Q2',
   ]);
-  expect(await walkDeep(2)).toEqual(['0 combobox Page Size:', '0 li 1']);
+  expect(await walkDeep(2)).toEqual([
+    '0 combobox Page Size:',
+    '0 button Page 1',
+  ]);
   parentCell(container, 'row-1', 'queue').focus();
   const back = await walkDeep(24, true);
   expect(back).toEqual(
