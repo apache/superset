@@ -38,7 +38,7 @@ export interface DatasetObject {
 
 export interface DatasetReducerPayloadType {
   name: string;
-  value?: string;
+  value?: string | null;
 }
 
 export type Schema = {

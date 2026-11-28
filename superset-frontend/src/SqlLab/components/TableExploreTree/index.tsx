@@ -27,6 +27,10 @@ import {
 } from 'react';
 import { useSelector, shallowEqual } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import type { SqlLabRootState } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
@@ -39,28 +43,47 @@ import {
   Input,
   Empty,
   Button,
+  Flex,
 } from '@superset-ui/core/components';
-import type { SqlLabRootState } from 'src/SqlLab/types';
-import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
 import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
-import type { TreeNodeData } from './types';
+import { type TreeNodeData, type TableReference, getTableKey } from './types';
+import type { TableMetaData } from 'src/hooks/apiResources';
 import { ErrorMessageWithStackTrace } from 'src/components';
 
-type Props = {
-  queryEditorId: string;
-};
+export interface TableBrowserProps {
+  dbId?: number;
+  supportsSchemas?: boolean;
+  schema?: string;
+  catalog?: string | null;
+  pinnedTables?: Record<string, TableMetaData | undefined>;
+  pinnedTableKeys?: Set<string>;
+  onPinTable?: (table: string, schema: string, catalog: string | null) => void;
+  onUnpinTable?: (
+    table: string,
+    schema: string,
+    catalog: string | null,
+  ) => void;
+  toolbarViewId?: string;
+  existingTableKeys?: Set<string>;
+  selectedTable?: TableReference | null;
+  onPreviewTable?: (table: TableReference) => void;
+}
+
+const EMPTY_PINNED_TABLES = {};
+const EMPTY_PINNED_KEYS = new Set<string>();
+const ignorePin = () => {};
 
 const StyledTreeContainer = styled.div`
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
   .tree-node {
     display: flex;
     align-items: center;
@@ -163,32 +186,22 @@ const savePinnedSchemasToStorage = (
   });
 };
 
-const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
-  const dispatch = useAppDispatch();
+export const TableBrowser = ({
+  dbId,
+  catalog,
+  supportsSchemas,
+  schema,
+  pinnedTables = EMPTY_PINNED_TABLES,
+  pinnedTableKeys = EMPTY_PINNED_KEYS,
+  onPinTable: handlePinTable = ignorePin,
+  onUnpinTable: handleUnpinTable = ignorePin,
+  toolbarViewId,
+  existingTableKeys = EMPTY_PINNED_KEYS,
+  selectedTable,
+  onPreviewTable,
+}: TableBrowserProps) => {
   const theme = useTheme();
   const treeRef = useRef<TreeApi<TreeNodeData>>(null);
-  const tables = useSelector(
-    ({ sqlLab }: SqlLabRootState) => sqlLab.tables,
-    shallowEqual,
-  );
-  const queryEditor = useQueryEditor(queryEditorId, [
-    'dbId',
-    'catalog',
-    'tabViewId',
-  ]);
-  const { dbId, catalog } = queryEditor;
-  const editorId = queryEditor.tabViewId ?? queryEditor.id;
-  const pinnedTables = useMemo(
-    () =>
-      Object.fromEntries(
-        tables.map(({ queryEditorId, dbId, schema, name, persistData }) => [
-          editorId === queryEditorId ? `${dbId}:${schema}:${name}` : '',
-          persistData,
-        ]),
-      ),
-    [tables, editorId],
-  );
-
   // Tree data hook - manages schema/table/column data fetching and tree structure
   const {
     treeData,
@@ -204,45 +217,16 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     dbId,
     catalog,
     pinnedTables,
+    supportsSchemas,
   });
 
-  const pinnedTableKeys = useMemo(
-    () =>
-      new Set(
-        tables
-          .filter(({ queryEditorId: qeId }) => editorId === qeId)
-          .map(({ dbId, schema, name }) => `${dbId}:${schema}:${name}`),
-      ),
-    [tables, editorId],
-  );
-
-  const handlePinTable = useCallback(
-    (tableName: string, schemaName: string, catalogName: string | null) =>
-      dispatch(addTable(queryEditor, tableName, catalogName, schemaName)),
-    [dispatch, queryEditor],
-  );
-
-  const handleUnpinTable = useCallback(
-    (tableName: string, schemaName: string) => {
-      const table = tables.find(
-        t =>
-          t.queryEditorId === editorId &&
-          t.dbId === dbId &&
-          t.schema === schemaName &&
-          t.name === tableName,
-      );
-      if (table) {
-        dispatch(removeTables([table]));
-      }
-    },
-    [dispatch, tables, editorId, dbId],
-  );
   const [pinnedSchemas, setPinnedSchemas] = useState<Set<string>>(() =>
     getPinnedSchemasFromStorage(dbId, catalog),
   );
 
   const previousDbIdRef = useRef<number | undefined>(dbId);
   const previousCatalogRef = useRef<string | null | undefined>(catalog);
+  const selectedTableIdRef = useRef<string | null>(null);
 
   // Single effect handles both loading and persisting pinned schemas.
   // Using refs to detect source changes avoids the race condition where the
@@ -255,6 +239,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     if (dbChanged || catalogChanged) {
       previousDbIdRef.current = dbId;
       previousCatalogRef.current = catalog;
+      selectedTableIdRef.current = null;
       setPinnedSchemas(getPinnedSchemasFromStorage(dbId, catalog));
       return;
     }
@@ -331,6 +316,46 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const manuallyOpenedNodesRef = useRef(manuallyOpenedNodes);
   manuallyOpenedNodesRef.current = manuallyOpenedNodes;
 
+  // Collapse the previously previewed table when a different table is selected.
+  const treeSelectedSchemaRef = useRef<string | undefined>(undefined);
+  const handlePreviewTable = useCallback(
+    (table: TableReference) => {
+      const tableId = `table:${dbId}:${table.schema}:${table.table_name}`;
+      const previousId = selectedTableIdRef.current;
+      if (previousId && previousId !== tableId) {
+        treeRef.current?.close(previousId);
+        setManuallyOpenedNodes(prev =>
+          prev[previousId] ? { ...prev, [previousId]: false } : prev,
+        );
+      }
+      selectedTableIdRef.current = tableId;
+      treeSelectedSchemaRef.current =
+        dbId && table.schema ? `schema:${dbId}:${table.schema}` : undefined;
+      onPreviewTable?.(table);
+    },
+    [dbId, onPreviewTable],
+  );
+  const previewTableHandler = onPreviewTable ? handlePreviewTable : undefined;
+  const selectedTableId =
+    dbId && selectedTable
+      ? `table:${dbId}:${selectedTable.schema}:${selectedTable.table_name}`
+      : undefined;
+
+  useEffect(() => {
+    if (selectedTable === undefined) return;
+    const previousId = selectedTableIdRef.current;
+    if (previousId && previousId !== selectedTableId) {
+      treeRef.current?.close(previousId);
+      setManuallyOpenedNodes(prev =>
+        prev[previousId] ? { ...prev, [previousId]: false } : prev,
+      );
+    }
+    if (!selectedTableId) {
+      treeRef.current?.deselectAll();
+    }
+    selectedTableIdRef.current = selectedTableId ?? null;
+  }, [selectedTable, selectedTableId]);
+
   // When treeData changes (e.g., children arrive after an async fetch),
   // react-arborist may reset the open state of nodes that just received children.
   // Explicitly re-open every node the user has manually opened so children
@@ -340,6 +365,22 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       .filter(([, isOpen]) => isOpen)
       .forEach(([id]) => treeRef.current?.open(id));
   }, [treeData]);
+
+  const revealedSchemaRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const schemaId = dbId && schema ? `schema:${dbId}:${schema}` : undefined;
+    if (revealedSchemaRef.current === schemaId) return;
+    revealedSchemaRef.current = schemaId;
+    const fromTree = treeSelectedSchemaRef.current === schemaId;
+    treeSelectedSchemaRef.current = undefined;
+    if (!fromTree) {
+      setSearchTerm('');
+    }
+    if (!schemaId) return;
+    setManuallyOpenedNodes(previous => ({ ...previous, [schemaId]: true }));
+    handleToggle(schemaId, true);
+    treeRef.current?.open(schemaId);
+  }, [dbId, schema, handleToggle]);
 
   // Custom search match function for react-arborist
   const searchMatch = useCallback(
@@ -409,6 +450,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         refreshTableSchema={refreshTableSchema}
         sortedTables={sortedTables}
         toggleSortColumns={toggleSortColumns}
+        showTablePins={Boolean(toolbarViewId)}
+        existingTableKeys={existingTableKeys}
+        onPreviewTable={previewTableHandler}
       />
     ),
     [
@@ -427,9 +471,35 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       loadingNodes,
       manuallyOpenedNodes,
       deferredSearchTerm,
+      toolbarViewId,
+      existingTableKeys,
+      previewTableHandler,
     ],
   );
 
+  const toolbarActions = (
+    <>
+      <Button
+        color="primary"
+        variant="text"
+        icon={<Icons.MinusSquareOutlined />}
+        onClick={() => {
+          treeRef.current?.closeAll();
+          setManuallyOpenedNodes({});
+          selectedTableIdRef.current = null;
+        }}
+        tooltip={t('Collapse all')}
+      />
+      <Button
+        color="primary"
+        variant="text"
+        icon={<Icons.ReloadOutlined />}
+        onClick={() => refetch()}
+        loading={isFetching}
+        tooltip={t('Force refresh schema list')}
+      />
+    </>
+  );
   return (
     <>
       {/* Negative margin to align toolbar icons with other elements on the screen */}
@@ -438,31 +508,14 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
           margin-left: -${theme.sizeUnit * 2}px;
         `}
       >
-        <PanelToolbar
-          viewId={ViewLocations.sqllab.leftSidebar}
-          defaultPrimaryActions={
-            <>
-              <Button
-                color="primary"
-                variant="text"
-                icon={<Icons.MinusSquareOutlined />}
-                onClick={() => {
-                  treeRef.current?.closeAll();
-                  setManuallyOpenedNodes({});
-                }}
-                tooltip={t('Collapse all')}
-              />
-              <Button
-                color="primary"
-                variant="text"
-                icon={<Icons.ReloadOutlined />}
-                onClick={() => refetch()}
-                loading={isFetching}
-                tooltip={t('Force refresh schema list')}
-              />
-            </>
-          }
-        />
+        {toolbarViewId ? (
+          <PanelToolbar
+            viewId={toolbarViewId}
+            defaultPrimaryActions={toolbarActions}
+          />
+        ) : (
+          <Flex>{toolbarActions}</Flex>
+        )}
       </div>
       <Input
         allowClear
@@ -557,4 +610,88 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   );
 };
 
-export default TableExploreTree;
+export default function TableExploreTree({
+  queryEditorId,
+}: {
+  queryEditorId: string;
+}) {
+  const dispatch = useAppDispatch();
+  const tables = useSelector(
+    ({ sqlLab }: SqlLabRootState) => sqlLab.tables,
+    shallowEqual,
+  );
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'dbId',
+    'catalog',
+    'tabViewId',
+  ]);
+  const { dbId, catalog } = queryEditor;
+  const editorId = queryEditor.tabViewId ?? queryEditor.id;
+  const pinnedTables = useMemo(
+    () =>
+      Object.fromEntries(
+        tables
+          .filter(({ queryEditorId: qeId }) => editorId === qeId)
+          .map(
+            ({
+              dbId: tableDbId,
+              catalog: tableCatalog,
+              schema,
+              name,
+              persistData,
+            }) => [
+              getTableKey(tableDbId, tableCatalog, schema, name),
+              persistData,
+            ],
+          ),
+      ),
+    [tables, editorId],
+  );
+
+  const pinnedTableKeys = useMemo(
+    () =>
+      new Set(
+        tables
+          .filter(({ queryEditorId: qeId }) => editorId === qeId)
+          .map(({ dbId: tableDbId, catalog: tableCatalog, schema, name }) =>
+            getTableKey(tableDbId, tableCatalog, schema, name),
+          ),
+      ),
+    [tables, editorId],
+  );
+
+  const handlePinTable = useCallback(
+    (tableName: string, schemaName: string, catalogName: string | null) =>
+      dispatch(addTable(queryEditor, tableName, catalogName, schemaName)),
+    [dispatch, queryEditor],
+  );
+
+  const handleUnpinTable = useCallback(
+    (tableName: string, schemaName: string, catalogName: string | null) => {
+      const table = tables.find(
+        t =>
+          t.queryEditorId === editorId &&
+          t.dbId === dbId &&
+          (t.catalog ?? null) === catalogName &&
+          t.schema === schemaName &&
+          t.name === tableName,
+      );
+      if (table) {
+        dispatch(removeTables([table]));
+      }
+    },
+    [dispatch, tables, editorId, dbId],
+  );
+
+  return (
+    <TableBrowser
+      dbId={dbId}
+      catalog={catalog}
+      pinnedTables={pinnedTables}
+      pinnedTableKeys={pinnedTableKeys}
+      onPinTable={handlePinTable}
+      onUnpinTable={handleUnpinTable}
+      toolbarViewId={ViewLocations.sqllab.leftSidebar}
+    />
+  );
+}

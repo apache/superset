@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 import { Button, Select } from '../components/core';
 import { gotoWithRetry } from '../helpers/navigation';
 
@@ -33,8 +33,6 @@ export class CreateDatasetPage {
    */
   private static readonly SELECTORS = {
     DATABASE: '[data-test="select-database"]',
-    SCHEMA: '[data-test="Select schema"]',
-    TABLE: '[data-test="Select table or type to search tables"]',
   } as const;
 
   constructor(page: Page) {
@@ -46,20 +44,6 @@ export class CreateDatasetPage {
    */
   getDatabaseSelect(): Select {
     return new Select(this.page, CreateDatasetPage.SELECTORS.DATABASE);
-  }
-
-  /**
-   * Gets the schema selector using data-test attribute
-   */
-  getSchemaSelect(): Select {
-    return new Select(this.page, CreateDatasetPage.SELECTORS.SCHEMA);
-  }
-
-  /**
-   * Gets the table selector using data-test attribute
-   */
-  getTableSelect(): Select {
-    return new Select(this.page, CreateDatasetPage.SELECTORS.TABLE);
   }
 
   /**
@@ -80,27 +64,48 @@ export class CreateDatasetPage {
   }
 
   /**
-   * Select a database from the dropdown
+   * Select a database through the connection/schema popover
    * @param databaseName - The name of the database to select
    */
   async selectDatabase(databaseName: string): Promise<void> {
+    await this.page.getByTestId('database-selector-trigger').click();
     await this.getDatabaseSelect().selectOption(databaseName);
+    const popover = this.page.getByRole('group', {
+      name: 'Select Database and Schema',
+    });
+    await popover.getByRole('button', { name: 'Select', exact: true }).click();
+    await expect(popover).toBeHidden();
   }
 
   /**
-   * Select a schema from the dropdown
+   * Expand a schema in the table browser
    * @param schemaName - The name of the schema to select
    */
   async selectSchema(schemaName: string): Promise<void> {
-    await this.getSchemaSelect().selectOption(schemaName);
+    await this.page.getByTestId('database-selector-trigger').click();
+    const dialog = this.page.getByRole('group', {
+      name: 'Select Database and Schema',
+    });
+    await new Select(
+      this.page,
+      dialog.getByRole('combobox', { name: /^Select schema/ }),
+    ).selectOption(schemaName);
+    await dialog.getByRole('button', { name: 'Select', exact: true }).click();
+    await expect(dialog).toBeHidden();
   }
 
   /**
-   * Select a table from the dropdown
+   * Filter the table browser and select a table
    * @param tableName - The name of the table to select
    */
   async selectTable(tableName: string): Promise<void> {
-    await this.getTableSelect().selectOption(tableName);
+    await this.page
+      .getByPlaceholder('Enter a part of the object name')
+      .fill(tableName);
+    await this.page
+      .getByRole('treeitem')
+      .getByText(tableName, { exact: true })
+      .click();
   }
 
   /**
@@ -134,6 +139,8 @@ export class CreateDatasetPage {
    * Wait for the page to load
    */
   async waitForPageLoad(): Promise<void> {
-    await this.getDatabaseSelect().element.waitFor({ state: 'visible' });
+    await this.page
+      .getByTestId('database-selector-trigger')
+      .waitFor({ state: 'visible' });
   }
 }

@@ -177,6 +177,30 @@ test('dispatches queryEditorSetSchema action on onSchemaChange', () => {
   );
 });
 
+test('dispatches empty string schema when onSchemaChange receives undefined', () => {
+  const store = mockStore(createInitialState());
+  const { result } = renderHook(
+    () => useDatabaseSelector(defaultQueryEditor.id),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    },
+  );
+
+  act(() => {
+    result.current.onSchemaChange(undefined);
+  });
+
+  expect(store.getActions()).toContainEqual(
+    expect.objectContaining({
+      type: 'QUERY_EDITOR_SET_SCHEMA',
+      schema: '',
+    }),
+  );
+});
+
 test('dispatches setDatabases action on getDbList', () => {
   const store = mockStore(createInitialState());
   const { result } = renderHook(

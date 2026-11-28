@@ -23,6 +23,7 @@ export interface TreeNodeData {
   name: string;
   type: 'schema' | 'table' | 'column' | 'empty';
   tableType?: string;
+  schema?: string;
   columnData?: {
     name: string;
     keys?: { type: ColumnKeyTypeType }[];
@@ -38,3 +39,21 @@ export interface FetchLazyTablesParams {
   schema: string;
   forceRefresh: boolean;
 }
+
+export interface TableReference {
+  schema: string;
+  table_name: string;
+}
+
+export const getSchemaKey = (
+  dbId: number | string | undefined,
+  catalog: string | null | undefined,
+  schema: string,
+): string => `${dbId}:${catalog ?? ''}:${schema}`;
+
+export const getTableKey = (
+  dbId: number | string | undefined,
+  catalog: string | null | undefined,
+  schema: string,
+  tableName: string,
+): string => `${getSchemaKey(dbId, catalog, schema)}:${tableName}`;

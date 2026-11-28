@@ -25,10 +25,11 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { EmptyState } from '@superset-ui/core/components';
-import { DatabaseSelector } from '.';
+import { DatabaseSelector, DatabaseSelectorPopover } from '.';
 import type { DatabaseSelectorProps } from './types';
 
 const createProps = (): DatabaseSelectorProps => ({
@@ -528,4 +529,136 @@ test('should include expose_in_sqllab filter when filterBySqlLab is true', async
     const lastCall = calls[calls.length - 1];
     expect(lastCall.url).toContain('expose_in_sqllab');
   });
+});
+
+test('popover keeps schema edits staged and discards them on cancel', async () => {
+  const props = createProps();
+  render(<DatabaseSelectorPopover {...props} />, { useRedux: true, store });
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  const dialog = within(
+    await screen.findByRole('group', { name: 'Select Database and Schema' }),
+  );
+  await userEvent.click(
+    dialog.getByRole('combobox', { name: /^Select schema/ }),
+  );
+  await userEvent.click(
+    await screen.findByText('information_schema', { exact: true }),
+  );
+  expect(props.onSchemaChange).not.toHaveBeenCalled();
+  await userEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
+  expect(props.onDbChange).not.toHaveBeenCalled();
+  expect(props.onSchemaChange).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  expect(
+    await within(
+      await screen.findByRole('group', { name: 'Select Database and Schema' }),
+    ).findByRole('combobox', {
+      name: 'Select schema: public',
+    }),
+  ).toBeInTheDocument();
+});
+
+test('popover applies a new database and its schema only after confirmation', async () => {
+  const props = createProps();
+  render(<DatabaseSelectorPopover {...props} />, { useRedux: true, store });
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  const dialog = within(
+    await screen.findByRole('group', { name: 'Select Database and Schema' }),
+  );
+  await userEvent.click(
+    dialog.getByRole('combobox', {
+      name: /Select database or type to search databases/,
+    }),
+  );
+  await userEvent.click(await screen.findByText('test-mysql', { exact: true }));
+  await userEvent.click(
+    dialog.getByRole('combobox', { name: /^Select schema/ }),
+  );
+  await userEvent.click(await screen.findByRole('option', { name: 'public' }));
+  expect(props.onDbChange).not.toHaveBeenCalled();
+  expect(props.onSchemaChange).not.toHaveBeenCalled();
+  await userEvent.click(dialog.getByRole('button', { name: 'Select' }));
+  expect(props.onDbChange).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 2 }),
+  );
+  expect(props.onSchemaChange).toHaveBeenCalledWith('public');
+  expect(
+    fetchMock.callHistory.calls(databaseApiRoute).at(-1)?.url,
+  ).not.toContain('expose_in_sqllab');
+});
+
+test('confirming an unchanged popover selection preserves the current source', async () => {
+  const props = createProps();
+  render(<DatabaseSelectorPopover {...props} />, { useRedux: true, store });
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  await userEvent.click(
+    within(
+      await screen.findByRole('group', { name: 'Select Database and Schema' }),
+    ).getByRole('button', {
+      name: 'Select',
+    }),
+  );
+  expect(props.onDbChange).not.toHaveBeenCalled();
+  expect(props.onSchemaChange).not.toHaveBeenCalled();
+});
+
+test('clicking outside the popover dismisses the draft without changing the source', async () => {
+  const props = createProps();
+  render(<DatabaseSelectorPopover {...props} />, { useRedux: true, store });
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  const popover = await screen.findByRole('group', {
+    name: 'Select Database and Schema',
+  });
+  await userEvent.click(
+    within(popover).getByRole('combobox', { name: /^Select schema/ }),
+  );
+  await userEvent.click(
+    await screen.findByText('information_schema', { exact: true }),
+  );
+  await userEvent.click(document.body);
+  await waitFor(() => expect(popover).not.toBeVisible());
+  expect(props.onDbChange).not.toHaveBeenCalled();
+  expect(props.onSchemaChange).not.toHaveBeenCalled();
+});
+
+test('an empty selector opens from the keyboard and requires a connection before applying', async () => {
+  const props = createProps();
+  render(
+    <DatabaseSelectorPopover {...props} db={undefined} schema={undefined} />,
+    {
+      useRedux: true,
+      store,
+    },
+  );
+  screen.getByTestId('DatabaseSelector').focus();
+  await userEvent.keyboard('{Enter}');
+  const popover = within(
+    await screen.findByRole('group', { name: 'Select Database and Schema' }),
+  );
+  expect(popover.getByRole('button', { name: 'Select' })).toBeDisabled();
+  await userEvent.click(
+    popover.getByRole('combobox', {
+      name: /Select database or type to search databases/,
+    }),
+  );
+  await userEvent.click(await screen.findByText('test-mysql', { exact: true }));
+  await userEvent.click(popover.getByRole('button', { name: 'Select' }));
+  expect(props.onDbChange).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 2 }),
+  );
+});
+
+test('trigger auto-selects a single schema without opening the popover', async () => {
+  fetchMock.removeRoute(schemaApiRoute);
+  fetchMock.get(schemaApiRoute, {
+    result: ['only_schema'],
+  });
+  const props = createProps();
+  render(<DatabaseSelectorPopover {...props} schema={undefined} />, {
+    useRedux: true,
+    store,
+  });
+  await waitFor(() =>
+    expect(props.onSchemaChange).toHaveBeenCalledWith('only_schema'),
+  );
 });

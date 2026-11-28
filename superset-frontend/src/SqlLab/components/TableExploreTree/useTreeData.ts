@@ -28,8 +28,8 @@ import {
   useLazyTableMetadataQuery,
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
-import { addDangerToast } from 'src/SqlLab/actions/sqlLab';
-import type { TreeNodeData } from './types';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { getSchemaKey, getTableKey, type TreeNodeData } from './types';
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 
 export const EMPTY_NODE_ID_PREFIX = 'empty:';
@@ -118,6 +118,7 @@ function treeDataReducer(
 
 interface UseTreeDataParams {
   dbId: number | undefined;
+  supportsSchemas?: boolean;
   catalog: string | null | undefined;
   pinnedTables: Record<string, TableMetaData | undefined>;
 }
@@ -148,11 +149,12 @@ const useTreeData = ({
   dbId,
   catalog,
   pinnedTables,
+  supportsSchemas = true,
 }: UseTreeDataParams): UseTreeDataResult => {
   const reduxDispatch = useAppDispatch();
   // Schema data from API
   const {
-    currentData: schemaData,
+    currentData: schemaOptions,
     isFetching,
     refetch,
   } = useSchemas({ dbId, catalog: catalog || undefined });
@@ -235,7 +237,7 @@ const useTreeData = ({
       const parts = id.split(':');
       const [, databaseId, schema, table] = parts;
       const parsedDbId = Number(databaseId);
-      const tableKey = `${parsedDbId}:${schema}:${table}`;
+      const tableKey = getTableKey(parsedDbId, catalog, schema, table);
 
       dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
@@ -294,7 +296,7 @@ const useTreeData = ({
       const parsedDbId = Number(databaseId);
 
       if (identifier === 'schema') {
-        const schemaKey = `${parsedDbId}:${schema}`;
+        const schemaKey = getSchemaKey(parsedDbId, catalog, schema);
         if (!tableData?.[schemaKey]) {
           dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
@@ -331,7 +333,7 @@ const useTreeData = ({
       }
 
       if (identifier === 'table') {
-        const tableKey = `${parsedDbId}:${schema}:${table}`;
+        const tableKey = getTableKey(parsedDbId, catalog, schema, table);
 
         // Check pinnedTables first (it's stable)
         if (pinnedTables[tableKey]) return;
@@ -362,7 +364,7 @@ const useTreeData = ({
       catalog: string | null | undefined;
       schema: string;
     }) => {
-      const schemaKey = `${refreshDbId}:${schema}`;
+      const schemaKey = getSchemaKey(refreshDbId, refreshCatalog, schema);
       const nodeId = `schema:${refreshDbId}:${schema}`;
 
       dispatch({ type: 'SET_LOADING_NODE', nodeId, loading: true });
@@ -405,8 +407,12 @@ const useTreeData = ({
 
   // Build tree data
   const treeData = useMemo((): TreeNodeData[] => {
-    const data = schemaData?.map(schema => {
-      const schemaKey = `${dbId}:${schema.value}`;
+    const schemas =
+      !supportsSchemas && dbId
+        ? [{ value: '', label: t('Tables') }]
+        : schemaOptions;
+    const data = schemas?.map(schema => {
+      const schemaKey = getSchemaKey(dbId, catalog, schema.value);
       const schemaId = `schema:${dbId}:${schema.value}`;
       const tablesData = tableData?.[schemaKey];
       const tables = tablesData?.options;
@@ -419,7 +425,7 @@ const useTreeData = ({
       } else if (tables && tables.length > 0) {
         // Has tables
         schemaChildren = tables.map(({ value: tableName, type: tableType }) => {
-          const tableKey = `${dbId}:${schema.value}:${tableName}`;
+          const tableKey = getTableKey(dbId, catalog, schema.value, tableName);
           const tableId = `table:${dbId}:${schema.value}:${tableName}`;
           const columnsData =
             tableSchemaData[tableKey] ?? pinnedTables[tableKey];
@@ -446,6 +452,7 @@ const useTreeData = ({
           return {
             id: tableId,
             name: tableName,
+            schema: schema.value,
             type: 'table' as const,
             tableType,
             children: tableChildren,
@@ -460,6 +467,7 @@ const useTreeData = ({
       return {
         id: schemaId,
         name: schema.label,
+        schema: schema.value,
         type: 'schema' as const,
         children: schemaChildren,
         disableCheckbox: !tablesData,
@@ -467,7 +475,15 @@ const useTreeData = ({
     });
 
     return data ?? [];
-  }, [dbId, schemaData, tableData, tableSchemaData, pinnedTables]);
+  }, [
+    catalog,
+    dbId,
+    schemaOptions,
+    supportsSchemas,
+    tableData,
+    tableSchemaData,
+    pinnedTables,
+  ]);
 
   // Map of tableKey -> selectStar SQL from table metadata
   const selectStarMap = useMemo(() => {
