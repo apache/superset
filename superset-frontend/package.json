@@ -386,6 +386,9 @@
     "node": "^24.22.3",
     "npm": "^11.19.1"
   },
+  "allowScripts": {
+    "@scarf/scarf@1.4.0": true
+  },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
     "allowTopLevel": true
