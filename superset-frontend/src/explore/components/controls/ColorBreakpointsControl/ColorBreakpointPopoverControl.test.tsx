@@ -50,264 +50,261 @@ const renderComponent = (
   props: Partial<ColorBreakpointsPopoverControlProps> = {},
 ) => render(<ColorBreakpointPopoverControl {...createProps()} {...props} />);
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ColorBreakpointPopoverControl', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
-  test('should render with default props', () => {
-    renderComponent();
+test('should render with default props', () => {
+  renderComponent();
 
-    expect(screen.getByText('Color for breakpoint')).toBeInTheDocument();
-    expect(screen.getByText('Min value')).toBeInTheDocument();
-    expect(screen.getByText('Max value')).toBeInTheDocument();
-  });
+  expect(screen.getByText('Color for breakpoint')).toBeInTheDocument();
+  expect(screen.getByText('Min value')).toBeInTheDocument();
+  expect(screen.getByText('Max value')).toBeInTheDocument();
+});
 
-  test('should render close and save buttons', () => {
-    renderComponent();
+test('should render close and save buttons', () => {
+  renderComponent();
 
-    expect(screen.getByTestId('close-button')).toBeInTheDocument();
-    expect(screen.getByTestId('save-button')).toBeInTheDocument();
-  });
+  expect(screen.getByTestId('close-button')).toBeInTheDocument();
+  expect(screen.getByTestId('save-button')).toBeInTheDocument();
+});
 
-  test('should render with existing breakpoint values', () => {
-    renderComponent();
+test('should render with existing breakpoint values', () => {
+  renderComponent();
 
-    expect(screen.getByDisplayValue('0')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('100')).toBeInTheDocument();
-  });
+  expect(screen.getByDisplayValue('0')).toBeInTheDocument();
+  expect(screen.getByDisplayValue('100')).toBeInTheDocument();
+});
 
-  test('should call onClose when close button is clicked', async () => {
-    const onClose = jest.fn();
-    renderComponent({ onClose });
+test('should call onClose when close button is clicked', async () => {
+  const onClose = jest.fn();
+  renderComponent({ onClose });
 
-    const closeButton = screen.getByTestId('close-button');
-    await userEvent.click(closeButton);
+  const closeButton = screen.getByTestId('close-button');
+  await userEvent.click(closeButton);
 
-    expect(onClose).toHaveBeenCalled();
-  });
+  expect(onClose).toHaveBeenCalled();
+});
 
-  test('should disable save button when form is incomplete', () => {
-    renderComponent({ value: undefined });
+test('should disable save button when form is incomplete', () => {
+  renderComponent({ value: undefined });
 
+  const saveButton = screen.getByTestId('save-button');
+  expect(saveButton).toBeDisabled();
+});
+
+test('should enable save button when form is complete', async () => {
+  renderComponent({ value: mockEmptyBreakpoint });
+
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
+
+  await userEvent.type(minInput, '10');
+  await userEvent.type(maxInput, '90');
+
+  await waitFor(() => {
     const saveButton = screen.getByTestId('save-button');
-    expect(saveButton).toBeDisabled();
+    expect(saveButton).toBeEnabled();
+  });
+});
+
+test('should call onSave with correct values when save button is clicked', async () => {
+  const onSave = jest.fn();
+  const onClose = jest.fn();
+
+  renderComponent({
+    onSave,
+    onClose,
+    value: mockEmptyBreakpoint,
   });
 
-  test('should enable save button when form is complete', async () => {
-    renderComponent({ value: mockEmptyBreakpoint });
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
 
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
+  await userEvent.type(minInput, '10');
+  await userEvent.type(maxInput, '90');
 
-    await userEvent.type(minInput, '10');
-    await userEvent.type(maxInput, '90');
-
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
-  });
-
-  test('should call onSave with correct values when save button is clicked', async () => {
-    const onSave = jest.fn();
-    const onClose = jest.fn();
-
-    renderComponent({
-      onSave,
-      onClose,
-      value: mockEmptyBreakpoint,
-    });
-
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
-
-    await userEvent.type(minInput, '10');
-    await userEvent.type(maxInput, '90');
-
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
-
+  await waitFor(() => {
     const saveButton = screen.getByTestId('save-button');
-    await userEvent.click(saveButton);
+    expect(saveButton).toBeEnabled();
+  });
 
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        minValue: 10,
-        maxValue: 90,
-        color: expect.objectContaining({
-          r: expect.any(Number),
-          g: expect.any(Number),
-          b: expect.any(Number),
-          a: expect.any(Number),
-        }),
+  const saveButton = screen.getByTestId('save-button');
+  await userEvent.click(saveButton);
+
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({
+      minValue: 10,
+      maxValue: 90,
+      color: expect.objectContaining({
+        r: expect.any(Number),
+        g: expect.any(Number),
+        b: expect.any(Number),
+        a: expect.any(Number),
       }),
-    );
-    expect(onClose).toHaveBeenCalled();
+    }),
+  );
+  expect(onClose).toHaveBeenCalled();
+});
+
+test('should disable save button when min value >= max value', async () => {
+  renderComponent({ value: undefined });
+
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
+
+  await userEvent.type(minInput, '100');
+  await userEvent.type(maxInput, '50');
+
+  const saveButton = screen.getByTestId('save-button');
+  expect(saveButton).toBeDisabled();
+});
+
+test('should disable save button when breakpoint overlaps with existing ones', async () => {
+  const existingBreakpoints: ColorBreakpointType[] = [
+    {
+      id: 0,
+      color: { r: 255, g: 0, b: 0, a: 100 },
+      minValue: 0,
+      maxValue: 50,
+    },
+    {
+      id: 1,
+      color: { r: 0, g: 255, b: 0, a: 100 },
+      minValue: 100,
+      maxValue: 200,
+    },
+  ];
+
+  renderComponent({
+    colorBreakpoints: existingBreakpoints,
+    value: undefined,
   });
 
-  test('should disable save button when min value >= max value', async () => {
-    renderComponent({ value: undefined });
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
 
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
+  await userEvent.type(minInput, '25');
+  await userEvent.type(maxInput, '75');
 
-    await userEvent.type(minInput, '100');
-    await userEvent.type(maxInput, '50');
+  const saveButton = screen.getByTestId('save-button');
+  expect(saveButton).toBeDisabled();
+});
 
+test('should handle non-numeric input validation', async () => {
+  renderComponent({ value: undefined });
+
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
+
+  await userEvent.type(minInput, 'abc');
+  await userEvent.type(maxInput, '100');
+
+  await waitFor(() => {
     const saveButton = screen.getByTestId('save-button');
     expect(saveButton).toBeDisabled();
   });
+});
 
-  test('should disable save button when breakpoint overlaps with existing ones', async () => {
-    const existingBreakpoints: ColorBreakpointType[] = [
-      {
-        id: 0,
-        color: { r: 255, g: 0, b: 0, a: 100 },
-        minValue: 0,
-        maxValue: 50,
-      },
-      {
-        id: 1,
-        color: { r: 0, g: 255, b: 0, a: 100 },
-        minValue: 100,
-        maxValue: 200,
-      },
-    ];
+test('should update min value when input changes', async () => {
+  renderComponent();
 
-    renderComponent({
-      colorBreakpoints: existingBreakpoints,
-      value: undefined,
-    });
+  const minInput = screen.getByDisplayValue('0');
+  await userEvent.clear(minInput);
+  await userEvent.type(minInput, '20');
 
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
+  expect(screen.getByDisplayValue('20')).toBeInTheDocument();
+});
 
-    await userEvent.type(minInput, '25');
-    await userEvent.type(maxInput, '75');
+test('should update max value when input changes', async () => {
+  renderComponent();
 
+  const maxInput = screen.getByDisplayValue('100');
+  await userEvent.clear(maxInput);
+  await userEvent.type(maxInput, '200');
+
+  expect(screen.getByDisplayValue('200')).toBeInTheDocument();
+});
+
+test('should handle zero values correctly', async () => {
+  renderComponent({
+    value: mockEmptyBreakpoint,
+  });
+
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
+
+  await userEvent.type(minInput, '0');
+  await userEvent.type(maxInput, '10');
+
+  await waitFor(() => {
     const saveButton = screen.getByTestId('save-button');
-    expect(saveButton).toBeDisabled();
+    expect(saveButton).toBeEnabled();
+  });
+});
+
+test('should handle negative values correctly', async () => {
+  renderComponent({
+    value: mockEmptyBreakpoint,
   });
 
-  test('should handle non-numeric input validation', async () => {
-    renderComponent({ value: undefined });
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
 
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
+  await userEvent.type(minInput, '-10');
+  await userEvent.type(maxInput, '10');
 
-    await userEvent.type(minInput, 'abc');
-    await userEvent.type(maxInput, '100');
+  await waitFor(() => {
+    const saveButton = screen.getByTestId('save-button');
+    expect(saveButton).toBeEnabled();
+  });
+});
 
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeDisabled();
-    });
+test('should handle decimal values correctly', async () => {
+  renderComponent({
+    value: mockEmptyBreakpoint,
   });
 
-  test('should update min value when input changes', async () => {
-    renderComponent();
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
 
-    const minInput = screen.getByDisplayValue('0');
-    await userEvent.clear(minInput);
-    await userEvent.type(minInput, '20');
+  await userEvent.type(minInput, '0.5');
+  await userEvent.type(maxInput, '99.9');
 
-    expect(screen.getByDisplayValue('20')).toBeInTheDocument();
+  await waitFor(() => {
+    const saveButton = screen.getByTestId('save-button');
+    expect(saveButton).toBeEnabled();
+  });
+});
+
+test('should not show overlap error when editing existing breakpoint', async () => {
+  const existingBreakpoints: ColorBreakpointType[] = [
+    {
+      id: 0,
+      color: { r: 255, g: 0, b: 0, a: 100 },
+      minValue: 0,
+      maxValue: 50,
+    },
+    {
+      id: 1,
+      color: { r: 0, g: 255, b: 0, a: 100 },
+      minValue: 100,
+      maxValue: 200,
+    },
+  ];
+
+  const editingBreakpoint = existingBreakpoints[0];
+  renderComponent({
+    colorBreakpoints: existingBreakpoints,
+    value: editingBreakpoint,
   });
 
-  test('should update max value when input changes', async () => {
-    renderComponent();
+  const minInput = screen.getByDisplayValue('0');
+  await userEvent.clear(minInput);
+  await userEvent.type(minInput, '10');
 
-    const maxInput = screen.getByDisplayValue('100');
-    await userEvent.clear(maxInput);
-    await userEvent.type(maxInput, '200');
-
-    expect(screen.getByDisplayValue('200')).toBeInTheDocument();
-  });
-
-  test('should handle zero values correctly', async () => {
-    renderComponent({
-      value: mockEmptyBreakpoint,
-    });
-
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
-
-    await userEvent.type(minInput, '0');
-    await userEvent.type(maxInput, '10');
-
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
-  });
-
-  test('should handle negative values correctly', async () => {
-    renderComponent({
-      value: mockEmptyBreakpoint,
-    });
-
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
-
-    await userEvent.type(minInput, '-10');
-    await userEvent.type(maxInput, '10');
-
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
-  });
-
-  test('should handle decimal values correctly', async () => {
-    renderComponent({
-      value: mockEmptyBreakpoint,
-    });
-
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
-
-    await userEvent.type(minInput, '0.5');
-    await userEvent.type(maxInput, '99.9');
-
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
-  });
-
-  test('should not show overlap error when editing existing breakpoint', async () => {
-    const existingBreakpoints: ColorBreakpointType[] = [
-      {
-        id: 0,
-        color: { r: 255, g: 0, b: 0, a: 100 },
-        minValue: 0,
-        maxValue: 50,
-      },
-      {
-        id: 1,
-        color: { r: 0, g: 255, b: 0, a: 100 },
-        minValue: 100,
-        maxValue: 200,
-      },
-    ];
-
-    const editingBreakpoint = existingBreakpoints[0];
-    renderComponent({
-      colorBreakpoints: existingBreakpoints,
-      value: editingBreakpoint,
-    });
-
-    const minInput = screen.getByDisplayValue('0');
-    await userEvent.clear(minInput);
-    await userEvent.type(minInput, '10');
-
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
+  await waitFor(() => {
+    const saveButton = screen.getByTestId('save-button');
+    expect(saveButton).toBeEnabled();
   });
 });

@@ -18,77 +18,74 @@
  */
 import { controlPanel as controlPanelConfig } from './controlPanel';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('TimeTable Control Panel', () => {
-  test('should have required control panel structure', () => {
-    expect(controlPanelConfig).toBeDefined();
-    expect(controlPanelConfig.controlPanelSections).toBeDefined();
-    expect(Array.isArray(controlPanelConfig.controlPanelSections)).toBe(true);
-  });
+test('should have required control panel structure', () => {
+  expect(controlPanelConfig).toBeDefined();
+  expect(controlPanelConfig.controlPanelSections).toBeDefined();
+  expect(Array.isArray(controlPanelConfig.controlPanelSections)).toBe(true);
+});
 
-  test('should have time series time section', () => {
-    const sections = controlPanelConfig.controlPanelSections;
+test('should have time series time section', () => {
+  const sections = controlPanelConfig.controlPanelSections;
 
-    expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0]).toBeDefined();
-  });
+  expect(sections.length).toBeGreaterThan(0);
+  expect(sections[0]).toBeDefined();
+});
 
-  test('should have query section with required controls', () => {
-    const querySection = controlPanelConfig.controlPanelSections[1];
-    const { controlSetRows } = querySection!;
+test('should have query section with required controls', () => {
+  const querySection = controlPanelConfig.controlPanelSections[1];
+  const { controlSetRows } = querySection!;
 
-    expect(querySection).toBeDefined();
-    expect(querySection!.label).toBe('Query');
-    expect(querySection!.expanded).toBe(true);
-    expect(querySection!.controlSetRows).toBeDefined();
-    expect(controlSetRows).toContainEqual(['metrics']);
-    expect(controlSetRows).toContainEqual(['adhoc_filters']);
-    expect(controlSetRows).toContainEqual(['groupby']);
-    expect(controlSetRows).toContainEqual(['limit']);
-    expect(controlSetRows).toContainEqual(['row_limit']);
-  });
+  expect(querySection).toBeDefined();
+  expect(querySection!.label).toBe('Query');
+  expect(querySection!.expanded).toBe(true);
+  expect(querySection!.controlSetRows).toBeDefined();
+  expect(controlSetRows).toContainEqual(['metrics']);
+  expect(controlSetRows).toContainEqual(['adhoc_filters']);
+  expect(controlSetRows).toContainEqual(['groupby']);
+  expect(controlSetRows).toContainEqual(['limit']);
+  expect(controlSetRows).toContainEqual(['row_limit']);
+});
 
-  test('should have column collection control', () => {
-    const querySection = controlPanelConfig.controlPanelSections[1];
-    const columnCollectionRow = querySection!.controlSetRows.find(
-      (row: any) =>
-        Array.isArray(row) &&
-        row.length === 1 &&
-        row[0].name === 'column_collection',
-    );
+test('should have column collection control', () => {
+  const querySection = controlPanelConfig.controlPanelSections[1];
+  const columnCollectionRow = querySection!.controlSetRows.find(
+    (row: any) =>
+      Array.isArray(row) &&
+      row.length === 1 &&
+      row[0].name === 'column_collection',
+  );
 
-    expect(columnCollectionRow).toBeDefined();
-    expect((columnCollectionRow as any)![0].config.type).toBe(
-      'CollectionControl',
-    );
-    expect((columnCollectionRow as any)![0].config.label).toBe(
-      'Time series columns',
-    );
-    expect((columnCollectionRow as any)![0].config.controlName).toBe(
-      'TimeSeriesColumnControl',
-    );
-  });
+  expect(columnCollectionRow).toBeDefined();
+  expect((columnCollectionRow as any)![0].config.type).toBe(
+    'CollectionControl',
+  );
+  expect((columnCollectionRow as any)![0].config.label).toBe(
+    'Time series columns',
+  );
+  expect((columnCollectionRow as any)![0].config.controlName).toBe(
+    'TimeSeriesColumnControl',
+  );
+});
 
-  test('should have URL control', () => {
-    const querySection = controlPanelConfig.controlPanelSections[1];
-    const urlRow = querySection!.controlSetRows.find(
-      (row: any) =>
-        Array.isArray(row) && row.length === 1 && row[0].name === 'url',
-    );
+test('should have URL control', () => {
+  const querySection = controlPanelConfig.controlPanelSections[1];
+  const urlRow = querySection!.controlSetRows.find(
+    (row: any) =>
+      Array.isArray(row) && row.length === 1 && row[0].name === 'url',
+  );
 
-    expect(urlRow).toBeDefined();
-    expect((urlRow as any)![0].config.type).toBe('TextControl');
-    expect((urlRow as any)![0].config.label).toBe('URL');
-  });
+  expect(urlRow).toBeDefined();
+  expect((urlRow as any)![0].config.type).toBe('TextControl');
+  expect((urlRow as any)![0].config.label).toBe('URL');
+});
 
-  test('should have control overrides for groupby', () => {
-    expect(controlPanelConfig.controlOverrides).toBeDefined();
-    expect(controlPanelConfig.controlOverrides!.groupby).toBeDefined();
-    expect(controlPanelConfig.controlOverrides!.groupby!.multiple).toBe(false);
-  });
+test('should have control overrides for groupby', () => {
+  expect(controlPanelConfig.controlOverrides).toBeDefined();
+  expect(controlPanelConfig.controlOverrides!.groupby).toBeDefined();
+  expect(controlPanelConfig.controlOverrides!.groupby!.multiple).toBe(false);
+});
 
-  test('should have form data overrides function', () => {
-    expect(controlPanelConfig.formDataOverrides).toBeDefined();
-    expect(typeof controlPanelConfig.formDataOverrides).toBe('function');
-  });
+test('should have form data overrides function', () => {
+  expect(controlPanelConfig.formDataOverrides).toBeDefined();
+  expect(typeof controlPanelConfig.formDataOverrides).toBe('function');
 });
