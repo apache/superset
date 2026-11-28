@@ -48,6 +48,24 @@ type FilterFormInput =
 
 type NativeFilterFormOrSaved = NativeFiltersFormItem | Filter;
 
+/**
+ * `requiredFirst` is persisted as `true` or left unset. Older dashboards may
+ * hold a non-boolean in its place: the checkbox change event the config form
+ * used to store, e.g. `{ nativeEvent: {...}, target: { checked: false, ... } }`,
+ * or the empty form object `{}` that was saved verbatim for filters without a
+ * dataset. This reads such an event by its `checked` flag and treats anything
+ * else that is not `true` as unset. It is used for saved filters that are
+ * re-sent without their form being loaded.
+ */
+export function normalizeRequiredFirst(value: unknown): true | undefined {
+  if (value === true) {
+    return true;
+  }
+  const checked = (value as { target?: { checked?: unknown } } | null)?.target
+    ?.checked;
+  return checked === true ? true : undefined;
+}
+
 function isCustomizationType(
   formInputs: FilterFormInput,
 ): formInputs is
@@ -98,6 +116,25 @@ function buildFilterTarget(
   return buildNativeFilterTarget(formInputs);
 }
 
+/**
+ * Whether one entry of the form's `requiredFirst` map is on. The checkbox
+ * handler writes booleans; any other value was seeded from a stored legacy
+ * `requiredFirst` (see `normalizeRequiredFirst`), so fall back to the
+ * control's own checkbox value, which is what the user sees in the form.
+ */
+function isRequiredFirstControlOn(
+  value: unknown,
+  controlValue: unknown,
+): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (value === undefined || value === null) {
+    return false;
+  }
+  return controlValue === true;
+}
+
 function transformFormInput(
   id: string,
   formInputs: NativeFiltersFormItem,
@@ -125,8 +162,14 @@ function transformFormInput(
     time_range: formInputs.time_range,
     granularity_sqla: formInputs.granularity_sqla,
     sortMetric: formInputs.sortMetric,
-    requiredFirst: formInputs.requiredFirst
-      ? Object.values(formInputs.requiredFirst).find(rf => rf)
+    requiredFirst: Object.entries(formInputs.requiredFirst ?? {}).some(
+      ([controlName, value]) =>
+        isRequiredFirstControlOn(
+          value,
+          formInputs.controlValues?.[controlName],
+        ),
+    )
+      ? true
       : undefined,
   };
 
@@ -138,11 +181,17 @@ function transformFormInput(
 }
 
 function transformSavedFilter(id: string, filter: Filter): Filter {
-  return {
+  const saved: Filter = {
     ...filter,
     id,
     description: (filter.description || '').trim(),
   };
+  // Reached for filters marked modified without their form being loaded,
+  // e.g. when cascade-parent cleanup rewrites them.
+  if ('requiredFirst' in filter) {
+    saved.requiredFirst = normalizeRequiredFirst(filter.requiredFirst);
+  }
+  return saved;
 }
 
 function transformFilter(

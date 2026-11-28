@@ -212,7 +212,7 @@ export default function getControlItemsMap({
               >
                 <Checkbox
                   disabled={controlItem.config.affectsDataMask && disabled}
-                  onChange={checked => {
+                  onChange={({ target: { checked } }) => {
                     if (controlItem.config.requiredFirst) {
                       setNativeFilterFieldValues(form, filterId, {
                         requiredFirst: {
