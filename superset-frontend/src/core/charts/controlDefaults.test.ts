@@ -28,6 +28,7 @@
  * one.
  */
 import { getChartControlPanelRegistry, JsonObject } from '@superset-ui/core';
+import { sharedControls } from '@superset-ui/chart-controls';
 import { charts } from 'src/core/charts';
 
 const fakePluginControls: JsonObject = {
@@ -154,5 +155,47 @@ test('a default is the one Explore writes, overrides and shared controls include
   expect(charts.controlDefaults('control_defaults_overridden')).toMatchObject({
     row_limit: 100,
     adhoc_filters: [],
+  });
+});
+
+test('a mutable default is handed out as a copy of the live config', () => {
+  getChartControlPanelRegistry().registerValue('control_defaults_mutable', {
+    controlPanelSections: [
+      {
+        label: 'Query',
+        expanded: true,
+        controlSetRows: [
+          ['adhoc_filters'],
+          [
+            {
+              // Nested, so a shallow copy would not be enough: the inner
+              // object would still be the registry's own.
+              name: 'nested_default',
+              config: {
+                type: 'CollectionControl',
+                label: 'Nested',
+                default: [{ operator: 'AND', clauses: ['a'] }],
+              },
+            },
+          ],
+        ],
+      },
+    ],
+  });
+
+  const handed = charts.controlDefaults('control_defaults_mutable');
+  (handed.adhoc_filters as unknown[]).push({ expressionType: 'SQL' });
+  (
+    (handed.nested_default as { clauses: string[] }[])[0].clauses as string[]
+  ).push('b');
+
+  // `sharedControls.adhoc_filters.default` is one module-level array, shared
+  // by every visualization that lists the control. Handing it out live meant
+  // a caller appending to what it was given changed what Explore defaults to
+  // for every chart in the app, in a way nothing would attribute back here.
+  expect(sharedControls.adhoc_filters.default).toEqual([]);
+  expect(charts.controlDefaults('control_defaults_mutable')).toMatchObject({
+    adhoc_filters: [],
+    nested_default: [{ operator: 'AND', clauses: ['a'] }],
   });
 });

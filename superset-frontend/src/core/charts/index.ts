@@ -26,6 +26,7 @@
  */
 
 import type { charts as chartsApi } from '@apache-superset/core';
+import { cloneDeep } from 'lodash-es';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import {
   type ControlPanelConfig,
@@ -185,7 +186,13 @@ function controlDefaults(vizType: string): Record<string, unknown> {
         config.default !== undefined &&
         typeof config.default !== 'function'
       ) {
-        defaults[name] = config.default;
+        // Copied, not handed out live. A shared control's `default` is one
+        // module-level value -- `sharedControls.adhoc_filters.default` is a
+        // single `[]` that every visualization listing the control defaults
+        // from -- so a caller appending to what it was given would change
+        // what Explore writes for every chart in the app. Deeply, because a
+        // default can nest and a shallow copy would still share the inside.
+        defaults[name] = cloneDeep(config.default);
       }
     }
     return defaults;
