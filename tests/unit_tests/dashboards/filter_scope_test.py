@@ -15,13 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from superset.dashboards.filter_scope import (
+    build_chart_layout_items,
     derive_json_metadata,
     derive_metadata_scopes,
     derive_scopes,
+    get_chart_ids_in_scope,
 )
 from superset.utils import json
 
@@ -231,3 +236,104 @@ def test_derive_json_metadata_passes_through_unparsable_metadata() -> None:
 
     assert derive_json_metadata(dashboard, "not json") == "not json"  # type: ignore[arg-type]
     assert derive_json_metadata(dashboard, "[]") == "[]"  # type: ignore[arg-type]
+
+
+def test_derive_scopes_when_layout_is_not_a_mapping(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Valid JSON that is not an object yields empty scopes instead of raising.
+
+    ``Dashboard.position`` hands back whatever ``position_json`` parses to, so a
+    layout stored as a JSON string or array reaches the derivation as-is.
+    """
+    caplog.set_level(logging.WARNING, logger="superset.dashboards.filter_scope")
+    metadata = {
+        "native_filter_configuration": [
+            {
+                "id": "NATIVE_FILTER-1",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                "chartsInScope": [1, 2],
+                "tabsInScope": ["TAB-1"],
+            }
+        ],
+    }
+
+    position_data: Any
+    for position_data in ("not a layout", [], None):
+        assert build_chart_layout_items(position_data) == {}
+        derived = derive_scopes(metadata, position_data, CHART_IDS)
+        native_filter = derived["native_filter_configuration"][0]
+        assert native_filter["chartsInScope"] == []
+        assert native_filter["tabsInScope"] == []
+
+    assert caplog.text.count("layout is not a mapping") == 6
+
+
+def test_derive_json_metadata_when_layout_is_not_a_mapping() -> None:
+    """The ``GET /api/v1/dashboard/{id}`` path for a string ``position_json``."""
+    dashboard = SimpleNamespace(
+        position=json.loads(json.dumps("not a layout")),
+        slices=[SimpleNamespace(id=1)],
+    )
+    stored = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "chartsInScope": [1],
+                }
+            ]
+        }
+    )
+
+    derived = json.loads(derive_json_metadata(dashboard, stored))  # type: ignore[arg-type]
+
+    assert derived["native_filter_configuration"][0]["chartsInScope"] == []
+
+
+def test_chart_configuration_is_kept_when_layout_is_not_a_mapping() -> None:
+    """With no readable layout, chart configuration is left exactly as stored."""
+    chart_configuration = {
+        "1": {"id": 1, "crossFilters": {"scope": "global", "chartsInScope": [17]}},
+        "84": {"id": 84, "crossFilters": {"scope": "global", "chartsInScope": [7]}},
+    }
+    metadata = {"chart_configuration": chart_configuration}
+
+    position_data: Any
+    for position_data in ("not a layout", [], None):
+        derived = derive_scopes(metadata, position_data, CHART_IDS)
+        assert derived["chart_configuration"] == chart_configuration
+
+
+def test_chart_configuration_still_drops_missing_charts_when_layout_parses() -> None:
+    """A readable layout that omits a chart still discards that chart's config."""
+    metadata = {
+        "chart_configuration": {
+            "1": {"id": 1, "crossFilters": {"scope": "global", "chartsInScope": [17]}},
+            "84": {"id": 84, "crossFilters": {"scope": "global", "chartsInScope": [7]}},
+        }
+    }
+
+    derived = derive_scopes(metadata, POSITION_DATA, CHART_IDS)
+
+    assert list(derived["chart_configuration"]) == ["1"]
+
+
+def test_selected_layers_ignore_charts_missing_from_the_layout() -> None:
+    scope = {
+        "rootPath": ["ROOT_ID"],
+        "excluded": [],
+        "selectedLayers": ["chart-1-layer-0"],
+    }
+
+    assert get_chart_ids_in_scope(scope, CHART_IDS, {}) == []
+    assert get_chart_ids_in_scope(
+        scope, CHART_IDS, build_chart_layout_items(POSITION_DATA)
+    ) == [1, 2, 3]
+    # Chart 9 has a layer selection but is not in the layout.
+    scope["selectedLayers"] = ["chart-9-layer-0"]
+    assert (
+        get_chart_ids_in_scope(scope, [9], build_chart_layout_items(POSITION_DATA))
+        == []
+    )
