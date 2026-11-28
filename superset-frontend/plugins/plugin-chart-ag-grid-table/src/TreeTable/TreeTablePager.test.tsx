@@ -43,9 +43,6 @@ function renderPager(extra: Partial<TreeTablePagerProps> = {}) {
   return { ...view, onPageChange, onPageSizeChange };
 }
 
-/** The focusable control inside a pager item, found by its accessible name. */
-const control = (name: string) => screen.getByRole('button', { name });
-
 /** The accessible name or text of the focused element, as the tests read it. */
 const focusName = () => {
   const element = document.activeElement as HTMLElement;
@@ -111,34 +108,43 @@ test('Tab order: select, then page numbers, the jump and Next; disabled Previous
     'Page 26',
     'Next Page',
   ]);
-  expect(control('Previous Page')).toHaveAttribute('aria-disabled', 'true');
-  expect(control('Previous Page')).toHaveAttribute('tabindex', '-1');
+  expect(screen.getByRole('button', { name: 'Previous Page' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('button', { name: 'Previous Page' })).toHaveAttribute(
+    'tabindex',
+    '-1',
+  );
 });
 
 test('Enter on a page number, the jump, Next and Previous changes the page once each', async () => {
   const { onPageChange } = renderPager({ currentPage: 1 });
-  control('Page 3').focus();
+  screen.getByRole('button', { name: 'Page 3' }).focus();
   await userEvent.keyboard('{Enter}');
-  control('Next Page').focus();
+  screen.getByRole('button', { name: 'Next Page' }).focus();
   await userEvent.keyboard('{Enter}');
-  control('Previous Page').focus();
+  screen.getByRole('button', { name: 'Previous Page' }).focus();
   await userEvent.keyboard('{Enter}');
-  control('Next 3 Pages').focus();
+  screen.getByRole('button', { name: 'Next 3 Pages' }).focus();
   await userEvent.keyboard('{Enter}');
   expect(onPageChange.mock.calls).toEqual([[2], [2], [0], [4]]);
 });
 
 test('Space on a page number changes the page once, like Enter (button semantics)', async () => {
   const { onPageChange } = renderPager();
-  control('Page 2').focus();
+  screen.getByRole('button', { name: 'Page 2' }).focus();
   await userEvent.keyboard(' ');
   expect(onPageChange.mock.calls).toEqual([[1]]);
 });
 
 test('the last page is reached through its number; Next is disabled there', async () => {
   const { onPageChange } = renderPager({ currentPage: 25 });
-  expect(control('Next Page')).toHaveAttribute('aria-disabled', 'true');
-  control('Page 1').focus();
+  expect(screen.getByRole('button', { name: 'Next Page' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  screen.getByRole('button', { name: 'Page 1' }).focus();
   await userEvent.keyboard('{Enter}');
   expect(onPageChange).toHaveBeenCalledWith(0);
 });
@@ -178,33 +184,39 @@ function Controlled({ total }: { total: number }) {
 
 test('RB8: after a keyboard page change focus stays on the page control used', async () => {
   render(<Controlled total={1284} />);
-  const two = control('Page 2');
+  const two = screen.getByRole('button', { name: 'Page 2' });
   two.focus();
   await userEvent.keyboard('{Enter}');
   await waitFor(() =>
     expect(screen.getByTitle('2')).toHaveClass('ant-pagination-item-active'),
   );
   await act(() => new Promise(resolve => setTimeout(resolve, 30)));
-  expect(document.activeElement).toBe(control('Page 2'));
+  expect(document.activeElement).toBe(
+    screen.getByRole('button', { name: 'Page 2' }),
+  );
 });
 
 test('RB8: when the control used goes away (Next on the last page turns disabled), the new current page takes focus', async () => {
   render(<Controlled total={120} />);
-  control('Next Page').focus();
+  screen.getByRole('button', { name: 'Next Page' }).focus();
   await userEvent.keyboard('{Enter}');
   await waitFor(() =>
     expect(screen.getByTitle('2')).toHaveClass('ant-pagination-item-active'),
   );
-  control('Next Page').focus();
+  screen.getByRole('button', { name: 'Next Page' }).focus();
   await userEvent.keyboard('{Enter}');
   await waitFor(() =>
     expect(screen.getByTitle('3')).toHaveClass('ant-pagination-item-active'),
   );
   // jsdom keeps focus on a control that lost its tab stop; a browser drops it
   // to the page, which blur() stands in for.
-  const next = control('Next Page');
+  const next = screen.getByRole('button', { name: 'Next Page' });
   expect(document.activeElement).toBe(next);
   next.setAttribute('tabindex', '0');
   act(() => next.blur());
-  await waitFor(() => expect(document.activeElement).toBe(control('Page 3')));
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Page 3' }),
+    ),
+  );
 });
