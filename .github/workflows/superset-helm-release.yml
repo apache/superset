@@ -71,7 +71,7 @@ jobs:
 
       - name: Set pages branch name
         id: vars
-        run: echo "branch_name=helm-publish" >> $GITHUB_ENV
+        run: echo "branch_name=helm-publish" >> "$GITHUB_ENV"
 
       - name: Force recreate branch from gh-pages
         env:

@@ -36,15 +36,6 @@ jobs:
         with:
           node-version-file: "./superset-frontend/.nvmrc"
 
-      - name: Install Dependencies
-        # Versions are pinned to avoid ad-hoc, unpinned package installs.
-        # Bump deliberately when upgrading.
-        # zizmor: ignore[adhoc-packages] - @action-validator is a global CLI tool installed to validate the repo's workflows; a global CLI install has no application manifest/lockfile context, and the versions are pinned above
-        run: npm install -g @action-validator/core@0.6.0 @action-validator/cli@0.6.0
-
-      - name: Run Script
-        run: bash .github/workflows/github-action-validator.sh
-
       - name: Test branch freshness gate
         run: bash .github/workflows/scripts/check-branch-freshness.test.sh
 
@@ -59,6 +50,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: .github/workflows/scripts/check-code-scanning-available.sh
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+
+      - name: Install kjanat/actionlint
+        run: go install actionlint.kjanat.dev/cmd/actionlint@v1.17.1
+
+      - name: Static check for GHA workflows
+        run: actionlint -ignore='runtime "node12" is no longer bundled with current GitHub Actions runners. update runs.using in local action "(Pull Request Linter|Cached Dependencies)" to a current runtime'
 
       - name: Check for security issues on GHA workflows
         uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1

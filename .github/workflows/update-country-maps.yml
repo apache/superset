@@ -130,8 +130,8 @@ jobs:
       - name: Check for drift
         id: diff
         run: |
-          PATHS="superset-frontend/plugins/plugin-chart-country-map/src/countries superset-frontend/plugins/plugin-chart-country-map/src/countries.ts docs/data/countries.json"
-          if git diff --quiet -- $PATHS; then
+          PATHS=(superset-frontend/plugins/plugin-chart-country-map/src/countries superset-frontend/plugins/plugin-chart-country-map/src/countries.ts docs/data/countries.json)
+          if git diff --quiet -- "${PATHS[@]}"; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
             echo "has_changes=true" >> "$GITHUB_OUTPUT"

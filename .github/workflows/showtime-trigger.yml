@@ -159,9 +159,9 @@ jobs:
 
           # Run sync check-only with optional SHA override
           if [[ -n "${INPUT_SHA}" ]]; then
-            OUTPUT=$(python -m showtime sync $PR_NUM --check-only --sha "${INPUT_SHA}")
+            OUTPUT=$(python -m showtime sync "$PR_NUM" --check-only --sha "${INPUT_SHA}")
           else
-            OUTPUT=$(python -m showtime sync $PR_NUM --check-only)
+            OUTPUT=$(python -m showtime sync "$PR_NUM" --check-only)
           fi
           echo "$OUTPUT"
 
@@ -171,10 +171,12 @@ jobs:
           PR_NUM_OUT=$(echo "$OUTPUT" | grep "pr_number=" | cut -d'=' -f2)
           TARGET_SHA=$(echo "$OUTPUT" | grep "target_sha=" | cut -d'=' -f2)
 
-          echo "build_needed=$BUILD" >> $GITHUB_OUTPUT
-          echo "sync_needed=$SYNC" >> $GITHUB_OUTPUT
-          echo "pr_number=$PR_NUM_OUT" >> $GITHUB_OUTPUT
-          echo "target_sha=$TARGET_SHA" >> $GITHUB_OUTPUT
+          {
+            echo "build_needed=$BUILD"
+            echo "sync_needed=$SYNC"
+            echo "pr_number=$PR_NUM_OUT"
+            echo "target_sha=$TARGET_SHA"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Checkout PR code (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
@@ -210,7 +212,7 @@ jobs:
           PR_NUM="$CHECK_PR_NUMBER"
           TARGET_SHA="$CHECK_TARGET_SHA"
           if [[ -n "$TARGET_SHA" ]]; then
-            python -m showtime sync $PR_NUM --sha "$TARGET_SHA"
+            python -m showtime sync "$PR_NUM" --sha "$TARGET_SHA"
           else
-            python -m showtime sync $PR_NUM
+            python -m showtime sync "$PR_NUM"
           fi

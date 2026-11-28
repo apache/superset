@@ -95,8 +95,8 @@ jobs:
       - id: set_matrix
         run: |
           MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "py311", "py312"]'; fi)
-          echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
-          echo $GITHUB_OUTPUT
+          echo "matrix_config=${MATRIX_CONFIG}" >> "$GITHUB_OUTPUT"
+          echo "$GITHUB_OUTPUT"
 
   # Runs unconditionally (no dependency on `changes`, and no build-preset
   # matrix restriction) so regressions in the assembled Supersetbot command
@@ -176,11 +176,14 @@ jobs:
             # controlled only by docker-build-extra-flags.sh, mirroring the
             # docker-build job. assert_supersetbot_exports_cache_with_token
             # below covers the unhidden case.
-            DOCKERHUB_TOKEN= supersetbot_dry_run \
-              --preset "$preset" \
-              --platform linux/amd64 \
-              "$@" \
-              --extra-flags "$extra_flags"
+            (
+              unset DOCKERHUB_TOKEN
+              supersetbot_dry_run \
+                --preset "$preset" \
+                --platform linux/amd64 \
+                "$@" \
+                --extra-flags "$extra_flags"
+            )
           }
           docker_command_with_token() {
             local preset="$1" extra_flags="$2"
@@ -211,11 +214,14 @@ jobs:
             local preset="$1" extra_flags="$2" platform="$3"
             shift 3
             # Through supersetbot_dry_run so these calls get its 5xx retry.
-            DOCKERHUB_TOKEN= supersetbot_dry_run \
+            (
+              unset DOCKERHUB_TOKEN
+              supersetbot_dry_run \
               --preset "$preset" \
               --platform "$platform" \
               "$@" \
               --extra-flags "$extra_flags"
+            )
           }
           # One master publish job per platform (docker.yml's docker-build and
           # docker-build-arm64) asks the plan for its own platform.
@@ -261,9 +267,13 @@ jobs:
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag ci)"
             amd_cmd="$(docker_command_for_platform "$preset" "$extra_flags" linux/amd64 --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
             arm_cmd="$(docker_command_for_platform "$preset" "$extra_flags" linux/arm64 --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
-            for tag in $(grep -oE -- '-t apache/superset:[^[:space:]\\]+' <<<"$amd_cmd" | cut -d' ' -f2); do
-              case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*) sha_tag="$tag"; break ;; esac
-            done
+            while read -r tag; do
+              case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*)
+                sha_tag="$tag"
+                break
+                ;;
+              esac
+            done < <(grep -oE -- '-t apache/superset:[^[:space:]\\]+' <<<"$amd_cmd" | cut -d' ' -f2)
             if [ -z "$sha_tag" ]; then
               echo "::error::preset '$preset' on linux/amd64 has no full-sha tag (full command: $amd_cmd)"
               exit 1
@@ -584,7 +594,8 @@ jobs:
           EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG" ci "$BUILD_PLATFORM")"
 
           for attempt in 1 2 3; do
-            if DOCKERHUB_TOKEN= supersetbot docker \
+            # shellcheck disable=SC2086 # PUSH_OR_LOAD and PLATFORM_ARG are flag lists that must word-split
+            if env -u DOCKERHUB_TOKEN supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
               --context "$BUILD_CONTEXT" \
@@ -742,7 +753,8 @@ jobs:
           eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
           EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG" ci "$BUILD_PLATFORM")"
           # Neither --push nor --load: buildx keeps the result in its cache only.
-          DOCKERHUB_TOKEN= supersetbot docker \
+          # shellcheck disable=SC2086 # PLATFORM_ARG are flag lists that must word-split
+          env -u DOCKERHUB_TOKEN supersetbot docker \
             --preset "$BUILD_PRESET" \
             --context "$BUILD_CONTEXT" \
             --context-ref "$BUILD_CONTEXT_REF" \
@@ -771,7 +783,7 @@ jobs:
           fi
           eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
           mapfile -t tags < <(
-            DOCKERHUB_TOKEN= supersetbot docker \
+            env -u DOCKERHUB_TOKEN supersetbot docker \
               --preset "$BUILD_PRESET" \
               --context "$BUILD_CONTEXT" \
               --context-ref "$BUILD_CONTEXT_REF" \
@@ -813,6 +825,7 @@ jobs:
           done
           found=""
           for attempt in 1 2 3; do
+            echo "Attempt $attempt getting details about ${sha_tag}-arm"
             if docker buildx imagetools inspect "${sha_tag}-arm" > /dev/null; then found=1; break; fi
             sleep 10
           done
@@ -861,7 +874,8 @@ jobs:
             # Docker auth was already configured above; hide the token from
             # Supersetbot so release branches and PRs cannot write registry
             # cache while using --load validation builds.
-            if DOCKERHUB_TOKEN= supersetbot docker \
+            # shellcheck disable=SC2086 # PUSH_OR_LOAD and PLATFORM_ARG are flag lists that must word-split
+            if env -u DOCKERHUB_TOKEN supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
               --context "$BUILD_CONTEXT" \
@@ -935,7 +949,7 @@ jobs:
           github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           for i in 1 2 3; do
-            docker pull $IMAGE_TAG && break
+            docker pull "$IMAGE_TAG" && break
             [ $i -lt 3 ] && sleep 30
           done
 
@@ -944,8 +958,8 @@ jobs:
         run: |
           echo "SHA: ${{ github.sha }}"
           echo "IMAGE: $IMAGE_TAG"
-          docker images $IMAGE_TAG
-          docker history $IMAGE_TAG
+          docker images "$IMAGE_TAG"
+          docker history "$IMAGE_TAG"
 
       # Scan the built image for known vulnerabilities and publish results
       # to the Security tab. Trivy did this until #38780 removed it: both

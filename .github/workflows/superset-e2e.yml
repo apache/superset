@@ -325,7 +325,7 @@ jobs:
           APP_ROOT: ${{ matrix.app_root }}
         run: |
           SAFE_APP_ROOT=${APP_ROOT//\//_}
-          echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
+          echo "safe_app_root=$SAFE_APP_ROOT" >> "$GITHUB_OUTPUT"
       - name: Upload Playwright Artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
@@ -539,7 +539,7 @@ jobs:
           APP_ROOT: ${{ matrix.app_root }}
         run: |
           SAFE_APP_ROOT=${APP_ROOT//\//_}
-          echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
+          echo "safe_app_root=$SAFE_APP_ROOT" >> "$GITHUB_OUTPUT"
       - name: Upload Playwright Artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
