@@ -40,6 +40,7 @@ from flask_login import current_user
 from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
+from werkzeug.exceptions import BadRequest
 
 from superset import is_feature_enabled
 from superset.exceptions import InvalidPayloadFormatError
@@ -764,6 +765,26 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         duration, response = time_function(super().delete_headless, pk)
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
+
+    def _sanitize_page_args(self, page: int, page_size: int) -> tuple[int, int]:
+        """
+        Reject a negative ``page`` before it reaches
+        ``DataModel.apply_pagination``, which computes a SQL ``OFFSET`` as
+        ``page * page_size``. FAB's base implementation
+        (``flask_appbuilder.api.BaseModelApi._sanitize_page_args``) clamps
+        ``page_size``'s bounds but never validates ``page`` itself, so a
+        client-supplied negative page (e.g. ``q=(page:-1)``) flows straight
+        into the query and Postgres raises
+        ``InvalidRowCountInResultOffsetClause`` ("OFFSET must not be
+        negative"), surfacing as an unhandled 500
+        (SUPERSET-PYTHON-1CKR) instead of a 400. Overriding here covers
+        every endpoint that calls ``_handle_page_args``/``_sanitize_page_args``
+        (``get_list``, ``related``, ``distinct``) for all REST API
+        subclasses, not just charts.
+        """
+        if page < 0:
+            raise BadRequest(f"Page number must not be negative, got page={page}")
+        return super()._sanitize_page_args(page, page_size)
 
     def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
         """Restrict access-list related fields to users with write access."""

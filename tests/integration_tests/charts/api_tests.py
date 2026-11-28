@@ -1889,6 +1889,49 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 33
 
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice",
+        "load_birth_names_dashboard_with_slices",
+        "load_unicode_dashboard_with_slice",
+        "load_world_bank_dashboard_with_slices",
+    )
+    def test_get_charts_negative_page_returns_400(self):
+        """
+        Chart API: Test get charts with a negative page returns 400, not 500
+
+        Regression test for SUPERSET-PYTHON-1CKR: a negative ``page`` in the
+        rison query arg used to flow straight into the SQL ``OFFSET`` clause
+        (``page * page_size``), which Postgres rejects with
+        ``InvalidRowCountInResultOffsetClause``, surfacing as an unhandled
+        500 instead of a client error.
+        """
+        self.login(ADMIN_USERNAME)
+        arguments = {"page": -1, "page_size": 10}
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "error" in data or "errors" in data
+
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice",
+        "load_birth_names_dashboard_with_slices",
+        "load_unicode_dashboard_with_slice",
+        "load_world_bank_dashboard_with_slices",
+    )
+    def test_get_charts_valid_pagination_unaffected(self):
+        """
+        Chart API: Test valid pagination still works after the negative-page fix
+        """
+        self.login(ADMIN_USERNAME)
+        arguments = {"page": 0, "page_size": 10}
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 33
+        assert len(data["result"]) == 10
+
     @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
     def test_get_charts_dashboards(self):
         """
