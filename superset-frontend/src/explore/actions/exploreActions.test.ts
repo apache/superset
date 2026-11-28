@@ -81,48 +81,33 @@ const METRICS = [
   },
 ];
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('reducers', () => {
-  test('Does not set a control value if control does not exist', () => {
-    const newState = exploreReducer(
-      defaultState as unknown as ExploreState,
-      actions.setControlValue('NEW_FIELD', 'x', []) as AnyAction,
-    );
-    expect(newState.controls.NEW_FIELD).toBeUndefined();
-  });
-  test('setControlValue works as expected with a Select control', () => {
-    const newState = exploreReducer(
-      defaultState as unknown as ExploreState,
-      actions.setControlValue('y_axis_format', '$,.2f', []) as AnyAction,
-    );
-    expect(newState.controls.y_axis_format.value).toBe('$,.2f');
-    expect(newState.form_data.y_axis_format).toBe('$,.2f');
-  });
-  test('Keeps the column config when metric column positions are swapped', () => {
-    const mockedState = {
-      ...defaultState,
-      controls: {
-        ...defaultState.controls,
-        metrics: {
-          ...defaultState.controls.metrics,
-          value: METRICS,
-        },
-        column_config: {
-          ...defaultState.controls.column_config,
-          value: {
-            'AVG(b)': {
-              currencyFormat: {
-                symbolPosition: 'prefix',
-                symbol: 'USD',
-              },
-            },
-          },
-        },
+test('Does not set a control value if control does not exist', () => {
+  const newState = exploreReducer(
+    defaultState as unknown as ExploreState,
+    actions.setControlValue('NEW_FIELD', 'x', []) as AnyAction,
+  );
+  expect(newState.controls.NEW_FIELD).toBeUndefined();
+});
+test('setControlValue works as expected with a Select control', () => {
+  const newState = exploreReducer(
+    defaultState as unknown as ExploreState,
+    actions.setControlValue('y_axis_format', '$,.2f', []) as AnyAction,
+  );
+  expect(newState.controls.y_axis_format.value).toBe('$,.2f');
+  expect(newState.form_data.y_axis_format).toBe('$,.2f');
+});
+test('Keeps the column config when metric column positions are swapped', () => {
+  const mockedState = {
+    ...defaultState,
+    controls: {
+      ...defaultState.controls,
+      metrics: {
+        ...defaultState.controls.metrics,
+        value: METRICS,
       },
-      form_data: {
-        ...defaultState.form_data,
-        metrics: METRICS,
-        column_config: {
+      column_config: {
+        ...defaultState.controls.column_config,
+        value: {
           'AVG(b)': {
             currencyFormat: {
               symbolPosition: 'prefix',
@@ -131,58 +116,56 @@ describe('reducers', () => {
           },
         },
       },
-    };
-
-    const swappedMetrics = [METRICS[1], METRICS[0]];
-    const newState = exploreReducer(
-      mockedState as unknown as ExploreState,
-      actions.setControlValue('metrics', swappedMetrics, []) as AnyAction,
-    );
-
-    const expectedColumnConfig = {
-      'AVG(b)': {
-        currencyFormat: {
-          symbolPosition: 'prefix',
-          symbol: 'USD',
-        },
-      },
-    };
-
-    expect(newState.controls.metrics.value).toStrictEqual(swappedMetrics);
-    expect(newState.form_data.metrics).toStrictEqual(swappedMetrics);
-    expect(newState.controls.column_config.value).toStrictEqual(
-      expectedColumnConfig,
-    );
-    expect(newState.form_data.column_config).toStrictEqual(
-      expectedColumnConfig,
-    );
-  });
-
-  test('Keeps the column config when metric column name is updated', () => {
-    const mockedState = {
-      ...defaultState,
-      controls: {
-        ...defaultState.controls,
-        metrics: {
-          ...defaultState.controls.metrics,
-          value: METRICS,
-        },
-        column_config: {
-          ...defaultState.controls.column_config,
-          value: {
-            'AVG(b)': {
-              currencyFormat: {
-                symbolPosition: 'prefix',
-                symbol: 'USD',
-              },
-            },
+    },
+    form_data: {
+      ...defaultState.form_data,
+      metrics: METRICS,
+      column_config: {
+        'AVG(b)': {
+          currencyFormat: {
+            symbolPosition: 'prefix',
+            symbol: 'USD',
           },
         },
       },
-      form_data: {
-        ...defaultState.form_data,
-        metrics: METRICS,
-        column_config: {
+    },
+  };
+
+  const swappedMetrics = [METRICS[1], METRICS[0]];
+  const newState = exploreReducer(
+    mockedState as unknown as ExploreState,
+    actions.setControlValue('metrics', swappedMetrics, []) as AnyAction,
+  );
+
+  const expectedColumnConfig = {
+    'AVG(b)': {
+      currencyFormat: {
+        symbolPosition: 'prefix',
+        symbol: 'USD',
+      },
+    },
+  };
+
+  expect(newState.controls.metrics.value).toStrictEqual(swappedMetrics);
+  expect(newState.form_data.metrics).toStrictEqual(swappedMetrics);
+  expect(newState.controls.column_config.value).toStrictEqual(
+    expectedColumnConfig,
+  );
+  expect(newState.form_data.column_config).toStrictEqual(expectedColumnConfig);
+});
+
+test('Keeps the column config when metric column name is updated', () => {
+  const mockedState = {
+    ...defaultState,
+    controls: {
+      ...defaultState.controls,
+      metrics: {
+        ...defaultState.controls.metrics,
+        value: METRICS,
+      },
+      column_config: {
+        ...defaultState.controls.column_config,
+        value: {
           'AVG(b)': {
             currencyFormat: {
               symbolPosition: 'prefix',
@@ -191,55 +174,65 @@ describe('reducers', () => {
           },
         },
       },
-    };
-
-    const updatedMetrics = [
-      METRICS[0],
-      {
-        ...METRICS[1],
-        hasCustomLabel: true,
-        label: 'AVG of b',
-      },
-    ];
-
-    const newState = exploreReducer(
-      mockedState as unknown as ExploreState,
-      actions.setControlValue('metrics', updatedMetrics, []) as AnyAction,
-    );
-
-    const expectedColumnConfig = {
-      'AVG of b': {
-        currencyFormat: {
-          symbolPosition: 'prefix',
-          symbol: 'USD',
+    },
+    form_data: {
+      ...defaultState.form_data,
+      metrics: METRICS,
+      column_config: {
+        'AVG(b)': {
+          currencyFormat: {
+            symbolPosition: 'prefix',
+            symbol: 'USD',
+          },
         },
       },
-    };
-    expect(newState.controls.metrics.value).toStrictEqual(updatedMetrics);
-    expect(newState.form_data.metrics).toStrictEqual(updatedMetrics);
-    expect(newState.form_data.column_config).toStrictEqual(
-      expectedColumnConfig,
-    );
-  });
+    },
+  };
 
-  test('setStashFormData works as expected with fieldNames', () => {
-    const newState = exploreReducer(
-      defaultState as unknown as ExploreState,
-      actions.setStashFormData(true, ['y_axis_format']) as AnyAction,
-    );
-    expect(newState.hiddenFormData).toEqual({
-      y_axis_format: defaultState.form_data.y_axis_format,
-    });
-    expect(newState.form_data.y_axis_format).toBeFalsy();
-    const updatedState = exploreReducer(
-      newState,
-      actions.setStashFormData(false, ['y_axis_format']) as AnyAction,
-    );
-    expect(updatedState.hiddenFormData!.y_axis_format).toBeFalsy();
-    expect(updatedState.form_data.y_axis_format).toEqual(
-      defaultState.form_data.y_axis_format,
-    );
+  const updatedMetrics = [
+    METRICS[0],
+    {
+      ...METRICS[1],
+      hasCustomLabel: true,
+      label: 'AVG of b',
+    },
+  ];
+
+  const newState = exploreReducer(
+    mockedState as unknown as ExploreState,
+    actions.setControlValue('metrics', updatedMetrics, []) as AnyAction,
+  );
+
+  const expectedColumnConfig = {
+    'AVG of b': {
+      currencyFormat: {
+        symbolPosition: 'prefix',
+        symbol: 'USD',
+      },
+    },
+  };
+  expect(newState.controls.metrics.value).toStrictEqual(updatedMetrics);
+  expect(newState.form_data.metrics).toStrictEqual(updatedMetrics);
+  expect(newState.form_data.column_config).toStrictEqual(expectedColumnConfig);
+});
+
+test('setStashFormData works as expected with fieldNames', () => {
+  const newState = exploreReducer(
+    defaultState as unknown as ExploreState,
+    actions.setStashFormData(true, ['y_axis_format']) as AnyAction,
+  );
+  expect(newState.hiddenFormData).toEqual({
+    y_axis_format: defaultState.form_data.y_axis_format,
   });
+  expect(newState.form_data.y_axis_format).toBeFalsy();
+  const updatedState = exploreReducer(
+    newState,
+    actions.setStashFormData(false, ['y_axis_format']) as AnyAction,
+  );
+  expect(updatedState.hiddenFormData!.y_axis_format).toBeFalsy();
+  expect(updatedState.form_data.y_axis_format).toEqual(
+    defaultState.form_data.y_axis_format,
+  );
 });
 
 type CompatibilityResponse = {

@@ -17,6 +17,11 @@
  * under the License.
  */
 import { QueryFormMetric, QueryObject } from '@superset-ui/core';
+import type {
+  ControlPanelState,
+  ControlPanelsContainerProps,
+  ControlStateMapping,
+} from '@superset-ui/chart-controls';
 import buildQuery from '../../src/plugin/buildQuery';
 import controlPanel from '../../src/plugin/controlPanel';
 import buildGroupbyCombinations from '../../src/plugin/utilities';
@@ -95,6 +100,60 @@ test.each([
 ])('%s is not a renderTrigger control, so toggling it re-queries', name => {
   expect(findControlConfig(name).renderTrigger).toBeFalsy();
 });
+
+test.each([
+  {
+    name: 'defaultRowExpansionDepth',
+    transpose: true,
+    groupbyRows: ['territory'],
+    groupbyColumns: ['year', 'quarter', 'month'],
+    visible: true,
+  },
+  {
+    name: 'defaultColExpansionDepth',
+    transpose: true,
+    groupbyRows: ['year', 'quarter', 'month'],
+    groupbyColumns: ['territory'],
+    visible: true,
+  },
+  {
+    name: 'defaultRowExpansionDepth',
+    transpose: true,
+    groupbyRows: ['year', 'quarter', 'month'],
+    groupbyColumns: ['territory'],
+    visible: false,
+  },
+  {
+    name: 'defaultColExpansionDepth',
+    transpose: false,
+    groupbyRows: ['territory'],
+    groupbyColumns: ['year', 'quarter', 'month'],
+    visible: true,
+  },
+])(
+  '$name uses the displayed axis (transposed: $transpose, visible: $visible)',
+  ({ name, transpose, groupbyRows, groupbyColumns, visible }) => {
+    const controls: ControlStateMapping = {
+      transposePivot: { type: 'CheckboxControl', value: transpose },
+      groupbyRows: { type: 'SelectControl', value: groupbyRows },
+      groupbyColumns: { type: 'SelectControl', value: groupbyColumns },
+      rowSubTotals: { type: 'CheckboxControl', value: true },
+      colSubTotals: { type: 'CheckboxControl', value: true },
+    };
+    const config = findControlConfig(name);
+    const expanded = [0, 'Fully expanded'];
+    const choices = visible
+      ? [expanded, [1, 'Expand 1 level(s)'], [2, 'Expand 2 level(s)']]
+      : [expanded];
+
+    expect(
+      config.mapStateToProps?.({ controls } as ControlPanelState, config),
+    ).toEqual({ choices });
+    expect(
+      config.visibility?.({ controls } as ControlPanelsContainerProps, {}),
+    ).toBe(visible);
+  },
+);
 
 // With metrics on rows, the renderer's row hierarchy is [metric, ...rowDims],
 // so the level with every row dimension collapsed is the per-metric group

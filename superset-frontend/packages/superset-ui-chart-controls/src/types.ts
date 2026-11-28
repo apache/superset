@@ -228,6 +228,7 @@ export type InternalControlType =
   | 'HeaderGroupsControl'
   | 'HiddenControl'
   | 'JSEditorControl'
+  | 'LevelsControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
   | 'SliderControl'

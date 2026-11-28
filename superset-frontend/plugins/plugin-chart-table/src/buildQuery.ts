@@ -355,6 +355,12 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
 
     const calculationMode = formData.percent_metric_calculation || 'row_limit';
 
+    // The summary row is a display feature: a file download skips its query so a plain
+    // export is one file (several queries are bundled into a zip). The all-records query
+    // stays: the backend uses it as the denominator for the percent metrics, so skipping it
+    // would compute the exported percentages over only the exported rows.
+    const isFileExport = ['csv', 'xlsx'].includes(formData.result_format ?? '');
+
     if (
       calculationMode === 'all_records' &&
       percentMetrics &&
@@ -375,6 +381,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     if (
       metrics?.length &&
       formData.show_totals &&
+      !isFileExport &&
       queryMode === QueryMode.Aggregate
     ) {
       const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);

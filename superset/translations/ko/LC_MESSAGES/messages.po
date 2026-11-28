@@ -219,22 +219,22 @@ msgid "% calculation"
 msgstr "시각화 유형 선택"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% / 전체 대비"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "열 대비 %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "열 합계 대비 %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "총합계 대비 %"
 
@@ -245,7 +245,7 @@ msgid "% of parent"
 msgstr "상위 항목의 %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "행 합계 대비 %"
 
@@ -18790,7 +18790,7 @@ msgid "Optional warning about use of this metric"
 msgstr "이 측정 항목 사용에 대한 선택적 경고"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -31435,7 +31435,7 @@ msgid "Value transform"
 msgstr "값 변환"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -31446,7 +31446,7 @@ msgstr ""
 " '열의 %'를 사용할 수 없습니다. 기존 백분율 규칙은 서버 페이지네이션이 활성화된 동안 자동 데이터 범위를 사용합니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
