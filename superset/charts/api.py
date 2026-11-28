@@ -165,7 +165,10 @@ from superset.views.base_api import (
     statsd_metrics,
     validate_feature_flags,
 )
-from superset.views.error_handling import command_exception_response
+from superset.views.error_handling import (
+    command_exception_response,
+    handle_api_exception,
+)
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
@@ -478,6 +481,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
+    @handle_api_exception
     def get(self, id_or_uuid: str) -> Response:
         """Gets a chart
         ---

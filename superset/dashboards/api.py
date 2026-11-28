@@ -752,6 +752,7 @@ class DashboardRestApi(
     @remember_view_access
     @with_dashboard
     @event_logger.log_this_with_extra_payload
+    @handle_api_exception
     # pylint: disable=arguments-differ,arguments-renamed
     def get(
         self,
@@ -1014,6 +1015,7 @@ class DashboardRestApi(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
         log_to_statsd=False,
     )
+    @handle_api_exception
     def get_charts(self, id_or_slug: str) -> Response:
         """Get a dashboard's chart definitions.
         ---
