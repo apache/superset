@@ -264,10 +264,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 250,
-      "description_chars": 3667,
+      "description_chars": 3738,
       "entry_bytes": {
-        "structured": 26509,
-        "text_only": 6135
+        "structured": 26585,
+        "text_only": 6211
       },
       "input_schema_bytes": 2037,
       "output_schema_bytes": 20358
@@ -378,11 +378,11 @@
       "compact_description_chars": 240,
       "description_chars": 553,
       "entry_bytes": {
-        "structured": 9342,
+        "structured": 9482,
         "text_only": 3595
       },
       "input_schema_bytes": 2793,
-      "output_schema_bytes": 5731
+      "output_schema_bytes": 5871
     },
     "get_chart_sql": {
       "annotations": {
@@ -408,10 +408,10 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 261,
-      "description_chars": 703,
+      "description_chars": 714,
       "entry_bytes": {
-        "structured": 1544,
-        "text_only": 1142
+        "structured": 1555,
+        "text_only": 1153
       },
       "input_schema_bytes": 171,
       "output_schema_bytes": 386
@@ -1112,10 +1112,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 146,
-      "description_chars": 1853,
+      "description_chars": 1567,
       "entry_bytes": {
-        "structured": 15584,
-        "text_only": 13253
+        "structured": 15293,
+        "text_only": 12962
       },
       "input_schema_bytes": 11075,
       "output_schema_bytes": 2315
@@ -1331,11 +1331,11 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 561398,
-      "text_only": 232050
+      "structured": 561334,
+      "text_only": 231846
     },
     "compact_catalog_bytes": {
-      "structured": 502689,
+      "structured": 502829,
       "text_only": 173341
     },
     "largest_entry": {
@@ -1344,7 +1344,7 @@
         "name": "update_chart"
       },
       "text_only": {
-        "bytes": 13253,
+        "bytes": 12962,
         "name": "manage_native_filters"
       }
     },
