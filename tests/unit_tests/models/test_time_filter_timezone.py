@@ -218,6 +218,39 @@ def test_get_time_filter_epoch_column_uses_utc_regardless_of_server_tz(
     assert str(expected_epoch) in str(clause)
 
 
+def test_get_time_filter_epoch_ms_column_compares_milliseconds(
+    app: Flask,
+) -> None:
+    """Epoch milliseconds are used only when the column format is ``epoch_ms``."""
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    time_col = TableColumn(
+        column_name="start_time",
+        is_dttm=1,
+        type="LONGINTEGER",
+        python_date_format="epoch_ms",
+    )
+    table = SqlaTable(
+        table_name="project_management",
+        columns=[time_col],
+        main_dttm_col="start_time",
+        database=database,
+    )
+
+    with app.app_context():
+        clause = table.get_time_filter(
+            time_col=time_col,
+            start_dttm=datetime(2003, 10, 1),
+            end_dttm=datetime(2004, 1, 1),
+        )
+
+    sql = str(clause)
+    start_ms = int(datetime(2003, 10, 1, tzinfo=dt_timezone.utc).timestamp()) * 1000
+    end_ms = int(datetime(2004, 1, 1, tzinfo=dt_timezone.utc).timestamp()) * 1000
+    assert str(start_ms) in sql
+    assert str(end_ms) in sql
+    assert "2003-10-01" not in sql
+
+
 def _date_table(
     extra: str | None,
     sqlalchemy_uri: str = "sqlite://",
