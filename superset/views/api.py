@@ -19,7 +19,7 @@ from __future__ import annotations
 import inspect
 from typing import Any, TYPE_CHECKING
 
-from flask import request
+from flask import current_app, request
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access_api
@@ -133,6 +133,8 @@ class Api(BaseSupersetView):
             rv = []
             for time_range in time_ranges:
                 since, until = get_since_until(
+                    relative_start=current_app.config["DEFAULT_RELATIVE_START_TIME"],
+                    relative_end=current_app.config["DEFAULT_RELATIVE_END_TIME"],
                     time_range=time_range["timeRange"],
                     time_shift=time_range.get("shift"),
                 )
