@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import ImageTile from 'ol/ImageTile';
+import { get as getProjection } from 'ol/proj';
 import { WfsLayerConf, WmsLayerConf, XyzLayerConf } from '../../src/types';
 import {
   createLayer,
@@ -60,9 +62,37 @@ describe('layerUtil', () => {
         '(c) OSM &lt;img src=x onerror=alert(1)&gt;',
       ]);
     });
+
+    test('requests tiles with CORS so the map canvas stays exportable', () => {
+      const wmsLayerConf: WmsLayerConf = {
+        title: 'wms',
+        type: 'WMS',
+        url: 'https://ows-demo.terrestris.de/geoserver/osm/wms',
+        version: '1.3.0',
+        layersParam: 'osm:osm-fuel',
+      };
+      const layer = createWmsLayer(wmsLayerConf);
+      const tile = layer
+        .getSource()!
+        .getTile(0, 0, 0, 1, getProjection('EPSG:3857')!) as ImageTile;
+      expect(tile.getCrossOrigin()).toEqual('anonymous');
+    });
   });
 
   describe('createXyzLayer', () => {
+    test('requests tiles with CORS so the map canvas stays exportable', () => {
+      const xyzLayerConf: XyzLayerConf = {
+        title: 'osm',
+        type: 'XYZ',
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      };
+      const layer = createXyzLayer(xyzLayerConf);
+      const tile = layer
+        .getSource()!
+        .getTile(0, 0, 0, 1, getProjection('EPSG:3857')!) as ImageTile;
+      expect(tile.getCrossOrigin()).toEqual('anonymous');
+    });
+
     test('escapes HTML in the layer attribution', () => {
       const xyzLayerConf: XyzLayerConf = {
         title: 'osm',
