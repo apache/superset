@@ -1,0 +1,24 @@
+{
+  "name": "@superset-ui/plugin-chart-top-banner",
+  "version": "0.1.0",
+  "description": "Configurable Apache Superset top banner with title, subtitle, icon, and live clock",
+  "license": "Apache-2.0",
+  "files": [
+    "lib"
+  ],
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
+    "build": "tsc --build",
+    "prebuild": "npm run clean"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "*"
+  }
+}

@@ -33,7 +33,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -67,7 +67,7 @@ msgid ""
 "                This filter was inherited from the dashboard's context.\n"
 "                It won't be saved when saving the chart.\n"
 "              "
-msgstr ""
+m
 
 #, python-format
 msgid ""
@@ -1262,6 +1262,9 @@ msgid "Aborting"
 msgstr ""
 
 msgid "About"
+msgstr ""
+
+msgid "Accent color"
 msgstr ""
 
 msgid "Accept"
@@ -2718,10 +2721,16 @@ msgstr ""
 msgid "Background Color"
 msgstr ""
 
+msgid "Background color"
+msgstr ""
+
 msgid "Backward values"
 msgstr ""
 
 msgid "Bad formula."
+msgstr ""
+
+msgid "Banner content"
 msgstr ""
 
 msgid "Bar"
@@ -2815,6 +2824,9 @@ msgid "Border"
 msgstr ""
 
 msgid "Border color"
+msgstr ""
+
+msgid "Border radius"
 msgstr ""
 
 msgid "Border width"
@@ -3804,6 +3816,18 @@ msgstr ""
 msgid "Client Secret"
 msgstr ""
 
+msgid "Clock color"
+msgstr ""
+
+msgid "Clock font size"
+msgstr ""
+
+msgid "Clock position"
+msgstr ""
+
+msgid "Clock settings"
+msgstr ""
+
 msgid "Cloned"
 msgstr ""
 
@@ -4200,6 +4224,9 @@ msgid "Confidence interval"
 msgstr ""
 
 msgid "Confidence interval must be between 0 and 1 (exclusive)"
+msgstr ""
+
+msgid "Configurable dashboard banner with title, subtitle, icon, and a live clock"
 msgstr ""
 
 msgid "Configuration"
@@ -5263,6 +5290,9 @@ msgid "Date format"
 msgstr ""
 
 msgid "Date format string"
+msgstr ""
+
+msgid "Date pattern"
 msgstr ""
 
 msgid "Date/Time"
@@ -6800,6 +6830,9 @@ msgstr ""
 msgid "Example export does not support charts or filters using semantic views."
 msgstr ""
 
+msgid "Example:smiley, rocket, or short text, Hi"
+msgstr ""
+
 msgid "Examples"
 msgstr ""
 
@@ -7728,6 +7761,9 @@ msgstr ""
 msgid "From date cannot be larger than to date"
 msgstr ""
 
+msgid "Full"
+msgstr ""
+
 msgid "Full name"
 msgstr ""
 
@@ -8023,6 +8059,9 @@ msgstr ""
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+msgid "Horizontal padding"
+msgstr ""
+
 #. i18n: hostname of the database server, as it appears in the user's own
 #. database tooling
 msgid "Host"
@@ -8068,6 +8107,7 @@ msgstr ""
 msgid "Huge"
 msgstr ""
 
+msgid "IANA time zone"
 msgid "ID column"
 msgstr ""
 
@@ -8081,6 +8121,12 @@ msgid "ISO suffix / abbreviation"
 msgstr ""
 
 msgid "Icon URL"
+msgstr ""
+
+msgid "Icon font size"
+msgstr ""
+
+msgid "Icon or short label"
 msgstr ""
 
 msgid "Icon size"
@@ -8464,6 +8510,9 @@ msgid "Invalid input"
 msgstr ""
 
 msgid "Invalid lat/long configuration."
+msgstr ""
+
+msgid "Invalid locale or time zone."
 msgstr ""
 
 msgid "Invalid longitude/latitude"
@@ -8878,6 +8927,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave blank to use the dashboard theme color"
+msgstr ""
+
 msgid "Leave empty, or keep every column selected, to let viewers group by any groupable column, including columns added to the dataset later."
 msgstr ""
 
@@ -9192,6 +9244,9 @@ msgstr ""
 msgid "Local theme set to \"%s\""
 msgstr ""
 
+msgid "Locale"
+msgstr ""
+
 msgid "Locate the chart"
 msgstr ""
 
@@ -9234,6 +9289,9 @@ msgid "Logs"
 msgstr ""
 
 msgid "Lon"
+msgstr ""
+
+msgid "Long"
 msgstr ""
 
 msgid "Long dashed"
@@ -13653,6 +13711,9 @@ msgstr ""
 msgid "Shift start date"
 msgstr ""
 
+msgid "Short"
+msgstr ""
+
 msgid "Short description must be unique for this layer"
 msgstr ""
 
@@ -13750,6 +13811,9 @@ msgstr ""
 msgid "Show a summary row of total aggregations: the selected metrics in aggregate mode, or an aggregation of numeric columns in raw records mode. Note that row limit does not apply to the result."
 msgstr ""
 
+msgid "Show accent bottom border"
+msgstr ""
+
 msgid "Show all"
 msgstr ""
 
@@ -13771,6 +13835,9 @@ msgstr ""
 msgid "Show chart query timestamps"
 msgstr ""
 
+msgid "Show clock"
+msgstr ""
+
 msgid "Show column headers"
 msgstr ""
 
@@ -13778,6 +13845,9 @@ msgid "Show column summaries"
 msgstr ""
 
 msgid "Show columns subtotal"
+msgstr ""
+
+msgid "Show date"
 msgstr ""
 
 msgid "Show empty columns"
@@ -13793,6 +13863,9 @@ msgid "Show full range for time shift"
 msgstr ""
 
 msgid "Show hierarchical relationships of data, with the value represented by area, showing proportion and contribution to the whole."
+msgstr ""
+
+msgid "Show icon"
 msgstr ""
 
 msgid "Show info tooltip"
@@ -13856,6 +13929,9 @@ msgid "Show row summaries"
 msgstr ""
 
 msgid "Show rows subtotal"
+msgstr ""
+
+msgid "Show seconds"
 msgstr ""
 
 msgid "Show series values on the chart"
@@ -14441,6 +14517,12 @@ msgid "Subscribers"
 msgstr ""
 
 msgid "Subtitle"
+msgstr ""
+
+msgid "Subtitle color"
+msgstr ""
+
+msgid "Subtitle font size"
 msgstr ""
 
 msgid "Subtotal"
@@ -16768,6 +16850,12 @@ msgstr ""
 msgid "Title Column"
 msgstr ""
 
+msgid "Title color"
+msgstr ""
+
+msgid "Title font size"
+msgstr ""
+
 msgid "Title is required"
 msgstr ""
 
@@ -16849,6 +16937,9 @@ msgid "Tooltip time format"
 msgstr ""
 
 msgid "Top"
+msgstr ""
+
+msgid "Top Banner"
 msgstr ""
 
 msgid "Top left"
@@ -17050,6 +17141,9 @@ msgid "Type to search (starts with)..."
 msgstr ""
 
 msgid "Type to search all of them."
+msgstr ""
+
+msgid "Typography and spacing"
 msgstr ""
 
 msgid "UI Configuration"
@@ -17442,6 +17536,9 @@ msgstr ""
 msgid "Use 0 or leave empty to allow any schedule."
 msgstr ""
 
+msgid "Use 24-hour format"
+msgstr ""
+
 msgid "Use :value for the filter bound."
 msgstr ""
 
@@ -17705,6 +17802,9 @@ msgstr ""
 msgid "Vertical (Left)"
 msgstr ""
 
+msgid "Vertical padding"
+msgstr ""
+
 msgid "View"
 msgstr ""
 
@@ -17938,6 +18038,9 @@ msgid "Week starting Monday"
 msgstr ""
 
 msgid "Week starting Sunday"
+msgstr ""
+
+msgid "Weekday and numeric date"
 msgstr ""
 
 msgid "Weekly Report"
