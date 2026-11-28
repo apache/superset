@@ -287,3 +287,123 @@ test('formatColumnValue with small number format and currency', () => {
   expect(result).toContain('€');
   expect(result).toContain('0.5000');
 });
+
+test('formatColumnValue supports bigint values without throwing', () => {
+  // Original #44007 repro: integers > Number.MAX_SAFE_INTEGER parsed as native
+  // BigInt must not throw "Cannot convert a BigInt value to a number".
+  // Normalized to Number before any formatter, matching echarts (#42594).
+  // Precision loss beyond MAX_SAFE_INTEGER is an accepted trade-off.
+  const formatter = getNumberFormatter(',d');
+  const column: DataColumnMeta = {
+    key: 'big_val',
+    label: 'Big Value',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  // bigint is a valid DataRecordValue (see QueryResponse.ts)
+  const bigValue = BigInt('1425300509404304697');
+  expect(() => formatColumnValue(column, bigValue)).not.toThrow();
+  const [, result] = formatColumnValue(column, bigValue);
+  // Number(BigInt('1425300509404304697')) loses precision beyond MAX_SAFE_INTEGER
+  // (same trade-off as echarts). The cell renders without crashing.
+  expect(result).toBe('1,425,300,509,404,304,600');
+});
+
+test('regression #44079: large-integer STRING values format without throwing', () => {
+  // After fixing #44079, parseResponse.ts emits large integers as decimal
+  // strings instead of native bigint. The formatter must handle these
+  // the same way — normalize to Number before passing to any formatter.
+  const formatter = getNumberFormatter(',d');
+  const column: DataColumnMeta = {
+    key: 'big_str_val',
+    label: 'Big String Value',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  const largeIntString = '1425300509404304697';
+  expect(() => formatColumnValue(column, largeIntString)).not.toThrow();
+  const [, result] = formatColumnValue(column, largeIntString);
+  // Same precision-loss trade-off as the bigint path.
+  expect(result).toBe('1,425,300,509,404,304,600');
+});
+
+test('regression #44079: MEMORY_BINARY formatter with large-integer string does not crash', () => {
+  // The MEMORY_BINARY formatter was the original crash vector in #44007.
+  // Confirm it still works with the new string form from parseResponse.ts.
+  const formatter = getNumberFormatter('MEMORY_BINARY');
+  const column: DataColumnMeta = {
+    key: 'mem',
+    label: 'Memory',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  expect(() => formatColumnValue(column, '1425300509404304697')).not.toThrow();
+});
+
+test('formatColumnValue: floats are not affected by the integer-string guard', () => {
+  // The /^-?\d+$/ regex rejects float strings, so they flow through to the
+  // formatter as-is. Pass values as strings to actually exercise the regex
+  // rejection path (passing numbers bypasses the string guard entirely).
+  const formatter = getNumberFormatter(',.4f');
+  const column: DataColumnMeta = {
+    key: 'flt',
+    label: 'Float',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  // Float strings: /^-?\d+$/ rejects these, so they reach formatter as strings
+  // and NumberFormatter's own parseFloat handles them.
+  expect(formatColumnValue(column, '3.14159')[1]).toBe('3.1416');
+  expect(formatColumnValue(column, '-0.001')[1]).toBe('-0.0010');
+  // Scientific notation string: also rejected by /^-?\d+$/ regex
+  expect(formatColumnValue(column, '1.5e10')[1]).toBe('15,000,000,000.0000');
+});
+
+test('formatColumnValue: NaN and Infinity are not affected by the integer-string guard', () => {
+  // NaN and Infinity must never be coerced by /^-?\d+$/ — they flow through
+  // as-is so NumberFormatter can handle them with its own special-case logic.
+  const formatter = getNumberFormatter(',d');
+  const column: DataColumnMeta = {
+    key: 'val',
+    label: 'Value',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  expect(() => formatColumnValue(column, NaN)).not.toThrow();
+  expect(formatColumnValue(column, NaN)[1]).toBe('NaN');
+  expect(() => formatColumnValue(column, Infinity)).not.toThrow();
+  expect(formatColumnValue(column, Infinity)[1]).toBe('∞');
+  expect(() => formatColumnValue(column, -Infinity)).not.toThrow();
+  expect(formatColumnValue(column, -Infinity)[1]).toBe('-∞');
+});
+
+test('formatColumnValue: normal small integers are not affected', () => {
+  // Small integers arrive as regular JS numbers; the bigint/string guard must
+  // not change their behavior in any way.
+  const formatter = getNumberFormatter(',d');
+  const column: DataColumnMeta = {
+    key: 'n',
+    label: 'Number',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  expect(formatColumnValue(column, 0)[1]).toBe('0');
+  expect(formatColumnValue(column, 42)[1]).toBe('42');
+  expect(formatColumnValue(column, -1000)[1]).toBe('-1,000');
+  // Number.MAX_SAFE_INTEGER — exactly at the boundary, still a regular number
+  expect(formatColumnValue(column, 9007199254740991)[1]).toBe(
+    '9,007,199,254,740,991',
+  );
+});
