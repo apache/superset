@@ -16,103 +16,100 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, DataMaskStateWithId } from '@superset-ui/core';
-import { DashboardLayout, LayoutItem } from 'src/dashboard/types';
-import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import { Behavior, DataMaskStateWithId } from "@superset-ui/core";
+import { DashboardLayout, LayoutItem } from "src/dashboard/types";
+import { CHART_TYPE } from "src/dashboard/util/componentTypes";
+import { createChartLayoutItemMap } from "src/dashboard/util/getChartIdsInFilterScope";
 import {
   nativeFilterGate,
   findTabsWithChartsInScope,
   getExtraFormData,
   getFormData,
   mergeExtraFormData,
-} from './utils';
+} from "./utils";
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('nativeFilterGate', () => {
-  test('should return true for regular chart', () => {
-    expect(nativeFilterGate([])).toEqual(true);
-  });
-
-  test('should return true for cross filter chart', () => {
-    expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
-  });
-
-  test('should return true for native filter chart with cross filter support', () => {
-    expect(
-      nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
-    ).toEqual(true);
-  });
-
-  test('should return false for native filter behavior', () => {
-    expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
-  });
+test("should return true for regular chart", () => {
+  expect(nativeFilterGate([])).toEqual(true);
 });
 
-test('findTabsWithChartsInScope should handle a recursive layout structure', () => {
+test("should return true for cross filter chart", () => {
+  expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
+});
+
+test("should return true for native filter chart with cross filter support", () => {
+  expect(
+    nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
+  ).toEqual(true);
+});
+
+test("should return false for native filter behavior", () => {
+  expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
+});
+
+test("findTabsWithChartsInScope should handle a recursive layout structure", () => {
   const dashboardLayout = {
-    DASHBOARD_VERSION_KEY: 'v2',
+    DASHBOARD_VERSION_KEY: "v2",
     ROOT_ID: {
-      children: ['GRID_ID'],
-      id: 'ROOT_ID',
-      type: 'ROOT',
+      children: ["GRID_ID"],
+      id: "ROOT_ID",
+      type: "ROOT",
     },
     GRID_ID: {
-      children: ['TAB-LrujeuD5Qn', 'TABS-kN7tw6vFif'],
-      id: 'GRID_ID',
-      parents: ['ROOT_ID'],
-      type: 'GRID',
+      children: ["TAB-LrujeuD5Qn", "TABS-kN7tw6vFif"],
+      id: "GRID_ID",
+      parents: ["ROOT_ID"],
+      type: "GRID",
     },
-    'TAB-LrujeuD5Qn': {
-      children: ['TABS-kN7tw6vFif'],
-      id: 'TAB-LrujeuD5Qn',
+    "TAB-LrujeuD5Qn": {
+      children: ["TABS-kN7tw6vFif"],
+      id: "TAB-LrujeuD5Qn",
       meta: {
-        text: 'View by Totals',
+        text: "View by Totals",
       },
-      parents: ['ROOT_ID'],
-      type: 'TAB',
+      parents: ["ROOT_ID"],
+      type: "TAB",
     },
-    'TABS-kN7tw6vFif': {
-      children: ['TAB-LrujeuD5Qn', 'TAB--7BUkKkNl'],
-      id: 'TABS-kN7tw6vFif',
+    "TABS-kN7tw6vFif": {
+      children: ["TAB-LrujeuD5Qn", "TAB--7BUkKkNl"],
+      id: "TABS-kN7tw6vFif",
       meta: {},
-      parents: ['ROOT_ID'],
-      type: 'TABS',
+      parents: ["ROOT_ID"],
+      type: "TABS",
     },
   } as any as DashboardLayout;
 
   const chartLayoutItems = Object.values(dashboardLayout).filter(
-    item => item.type === CHART_TYPE,
+    (item) => item.type === CHART_TYPE,
   );
   expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
 });
 
-test('findTabsWithChartsInScope includes tabs from duplicate chart holders', () => {
+test("findTabsWithChartsInScope includes tabs from duplicate chart holders", () => {
   const chartLayoutItems: LayoutItem[] = [
     {
-      id: 'CHART-7-first',
+      id: "CHART-7-first",
       type: CHART_TYPE,
       children: [],
-      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-first'],
+      parents: ["ROOT_ID", "TAB-parent", "TABS-nested", "TAB-first"],
       meta: {
         chartId: 7,
         height: 100,
         width: 100,
-        uuid: 'test-uuid-CHART-7-first',
+        uuid: "test-uuid-CHART-7-first",
       },
     },
     {
-      id: 'CHART-7-second',
+      id: "CHART-7-second",
       type: CHART_TYPE,
       children: [],
-      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-second'],
+      parents: ["ROOT_ID", "TAB-parent", "TABS-nested", "TAB-second"],
       meta: {
         chartId: 7,
         height: 100,
         width: 100,
-        uuid: 'test-uuid-CHART-7-second',
+        uuid: "test-uuid-CHART-7-second",
       },
     },
   ];
@@ -120,34 +117,34 @@ test('findTabsWithChartsInScope includes tabs from duplicate chart holders', () 
 
   expect(
     Array.from(findTabsWithChartsInScope(chartLayoutItemMap, [7])),
-  ).toEqual(['TAB-parent', 'TAB-first', 'TAB-second']);
+  ).toEqual(["TAB-parent", "TAB-first", "TAB-second"]);
 });
 
-test('getFormData should include persisted time_grains for time grain filters', () => {
+test("getFormData should include persisted time_grains for time grain filters", () => {
   const formData = getFormData({
     dashboardId: 10,
-    id: 'NATIVE_FILTER-1',
-    filterType: 'filter_timegrain',
-    type: 'NATIVE_FILTER' as any,
+    id: "NATIVE_FILTER-1",
+    filterType: "filter_timegrain",
+    type: "NATIVE_FILTER" as any,
     controlValues: {},
     defaultDataMask: {},
     datasetId: 11,
-    time_grains: ['PT1H', 'P1D', 'P1W'],
+    time_grains: ["PT1H", "P1D", "P1W"],
   });
 
-  expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
+  expect((formData as any).time_grains).toEqual(["PT1H", "P1D", "P1W"]);
 });
 
 test.each([false, true])(
-  'merging current and legacy member filters remains unversioned in either order (%s)',
-  reverse => {
+  "merging current and legacy member filters remains unversioned in either order (%s)",
+  (reverse) => {
     const legacy = {
-      filters: [{ col: 'Orders.b', op: 'IN' as const, val: ['x'] }],
+      filters: [{ col: "Orders.b", op: "IN" as const, val: ["x"] }],
     };
     const current = {
       ...legacy,
       semantic_selection_sources: [
-        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+        { datasource: "7__semantic_view", version: "cube-member-id-v1" },
       ],
     };
     const merged = reverse
@@ -155,55 +152,55 @@ test.each([false, true])(
       : mergeExtraFormData(legacy, current);
     expect(merged.filters).toHaveLength(2);
     expect(merged.semantic_selection_sources).toContainEqual({
-      datasource: '',
+      datasource: "",
       version: null,
     });
     expect(merged.semantic_selection_sources).toContainEqual({
-      datasource: '7__semantic_view',
-      version: 'cube-member-id-v1',
+      datasource: "7__semantic_view",
+      version: "cube-member-id-v1",
     });
   },
 );
-test('getFormData passes controlValues.displayFormat through to the filter plugin formData', () => {
+test("getFormData passes controlValues.displayFormat through to the filter plugin formData", () => {
   const formData = getFormData({
     dashboardId: 10,
-    id: 'NATIVE_FILTER-1',
-    filterType: 'filter_time',
-    type: 'NATIVE_FILTER' as any,
-    controlValues: { displayFormat: '%d-%m-%Y' },
+    id: "NATIVE_FILTER-1",
+    filterType: "filter_time",
+    type: "NATIVE_FILTER" as any,
+    controlValues: { displayFormat: "%d-%m-%Y" },
     defaultDataMask: {},
   });
 
-  expect((formData as any).displayFormat).toBe('%d-%m-%Y');
+  expect((formData as any).displayFormat).toBe("%d-%m-%Y");
 });
 
-test('only a typed grain control drops its unneeded provenance before merging', () => {
-  const unmarked = [{ datasource: '7__semantic_view', version: null }];
-  const filters = [{ col: 'Orders.status', op: 'IN' as const, val: ['Open'] }];
+test("only a typed grain control drops its unneeded provenance before merging", () => {
+  const unmarked = [{ datasource: "7__semantic_view", version: null }];
+  const filters = [{ col: "Orders.status", op: "IN" as const, val: ["Open"] }];
   const certified = [
-    { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+    { datasource: "7__semantic_view", version: "cube-member-id-v1" },
   ];
   const dataMask: DataMaskStateWithId = {
     grain: {
-      id: 'grain',
+      id: "grain",
       extraFormData: {
-        time_grain_sqla: 'P1Y',
+        time_grain_sqla: "P1Y",
         semantic_selection_sources: unmarked,
       },
     },
     member: {
-      id: 'member',
+      id: "member",
       extraFormData: { filters, semantic_selection_sources: certified },
     },
   };
   expect(
-    getExtraFormData(dataMask, ['grain', 'member'], {
-      grain: 'filter_timegrain',
-      member: 'filter_select',
+    getExtraFormData(dataMask, ["grain", "member"], {
+      grain: "filter_timegrain",
+      member: "filter_select",
     }).semantic_selection_sources,
   ).toEqual(certified);
   // Untyped, the merged sources keep the unmarked grain stamp.
   expect(
-    getExtraFormData(dataMask, ['grain', 'member']).semantic_selection_sources,
+    getExtraFormData(dataMask, ["grain", "member"]).semantic_selection_sources,
   ).toEqual([...unmarked, ...certified]);
 });

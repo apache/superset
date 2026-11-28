@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
-import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
+import { fireEvent, render } from "spec/helpers/testing-library";
+import FiltersConfigModal from "src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal";
 
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: jest.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -33,23 +33,23 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+jest.mock("@superset-ui/core", () => ({
+  ...jest.requireActual("@superset-ui/core"),
   getChartMetadataRegistry: () => ({
     items: {
       filter_select: {
         value: {
           datasourceCount: 1,
-          behaviors: ['NATIVE_FILTER'],
+          behaviors: ["NATIVE_FILTER"],
           supportsCascadeDependencies: true,
         },
       },
     },
     get: (key: string) =>
-      key === 'filter_select'
+      key === "filter_select"
         ? {
             datasourceCount: 1,
-            behaviors: ['NATIVE_FILTER'],
+            behaviors: ["NATIVE_FILTER"],
             supportsCascadeDependencies: true,
           }
         : undefined,
@@ -58,7 +58,7 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedProps = {
   isOpen: true,
-  initialFilterId: 'NATIVE_FILTER-1',
+  initialFilterId: "NATIVE_FILTER-1",
   createNewOnOpen: true,
   onCancel: jest.fn(),
   onSave: jest.fn(),
@@ -77,18 +77,18 @@ function setup(overridesProps?: any) {
   });
 }
 
-test('should be a valid react element', () => {
+test("should be a valid react element", () => {
   const { container } = setup();
   expect(container).toBeInTheDocument();
 });
 
-test('the form validates required fields', async () => {
+test("the form validates required fields", async () => {
   const onSave = jest.fn();
   const { getByRole } = setup({ save: onSave });
-  fireEvent.change(getByRole('textbox', { name: 'Description' }), {
-    target: { value: 'test name' },
+  fireEvent.change(getByRole("textbox", { name: "Description" }), {
+    target: { value: "test name" },
   });
-  const saveButton = getByRole('button', { name: 'Save' });
+  const saveButton = getByRole("button", { name: "Save" });
   fireEvent.click(saveButton);
   expect(onSave).toHaveBeenCalledTimes(0);
 });
@@ -97,42 +97,39 @@ async function openDropdownAndAddFilter(
   getByTestId: (id: string) => HTMLElement,
   findByRole: (role: string, opts: { name: RegExp }) => Promise<HTMLElement>,
 ) {
-  fireEvent.mouseEnter(getByTestId('new-item-dropdown-button'));
-  fireEvent.click(await findByRole('menuitem', { name: /add filter/i }));
+  fireEvent.mouseEnter(getByTestId("new-item-dropdown-button"));
+  fireEvent.click(await findByRole("menuitem", { name: /add filter/i }));
 }
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('createNewOnOpen', () => {
-  test('does not show alert when there is no unsaved filters', async () => {
-    const onCancel = jest.fn();
-    const { getByRole } = setup({ onCancel, createNewOnOpen: false });
-    fireEvent.click(getByRole('button', { name: 'Cancel' }));
-    expect(onCancel).toHaveBeenCalledTimes(1);
-  });
+test("does not show alert when there is no unsaved filters", async () => {
+  const onCancel = jest.fn();
+  const { getByRole } = setup({ onCancel, createNewOnOpen: false });
+  fireEvent.click(getByRole("button", { name: "Cancel" }));
+  expect(onCancel).toHaveBeenCalledTimes(1);
+});
 
-  test('shows correct alert message for unsaved filters', async () => {
-    const onCancel = jest.fn();
-    const { getByRole, getByTestId, findByRole } = setup({
-      onCancel,
-      createNewOnOpen: false,
-    });
-    await openDropdownAndAddFilter(getByTestId, findByRole);
-    fireEvent.click(getByRole('button', { name: 'Cancel' }));
-    expect(onCancel).toHaveBeenCalledTimes(0);
-    expect(getByRole('alert')).toBeInTheDocument();
-    expect(getByRole('alert')).toHaveTextContent('There are unsaved changes.');
+test("shows correct alert message for unsaved filters", async () => {
+  const onCancel = jest.fn();
+  const { getByRole, getByTestId, findByRole } = setup({
+    onCancel,
+    createNewOnOpen: false,
   });
+  await openDropdownAndAddFilter(getByTestId, findByRole);
+  fireEvent.click(getByRole("button", { name: "Cancel" }));
+  expect(onCancel).toHaveBeenCalledTimes(0);
+  expect(getByRole("alert")).toBeInTheDocument();
+  expect(getByRole("alert")).toHaveTextContent("There are unsaved changes.");
+});
 
-  test('confirm-cancel button proceeds with cancel after the unsaved alert', async () => {
-    const onCancel = jest.fn();
-    const { getByRole, getByTestId, findByRole } = setup({
-      onCancel,
-      createNewOnOpen: false,
-    });
-    await openDropdownAndAddFilter(getByTestId, findByRole);
-    fireEvent.click(getByRole('button', { name: 'Cancel' }));
-    expect(getByRole('alert')).toBeInTheDocument();
-    fireEvent.click(getByTestId('native-filter-modal-confirm-cancel-button'));
-    expect(onCancel).toHaveBeenCalledTimes(1);
+test("confirm-cancel button proceeds with cancel after the unsaved alert", async () => {
+  const onCancel = jest.fn();
+  const { getByRole, getByTestId, findByRole } = setup({
+    onCancel,
+    createNewOnOpen: false,
   });
+  await openDropdownAndAddFilter(getByTestId, findByRole);
+  fireEvent.click(getByRole("button", { name: "Cancel" }));
+  expect(getByRole("alert")).toBeInTheDocument();
+  fireEvent.click(getByTestId("native-filter-modal-confirm-cancel-button"));
+  expect(onCancel).toHaveBeenCalledTimes(1);
 });

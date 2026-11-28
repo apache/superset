@@ -17,158 +17,155 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
-import { SubjectType } from 'src/types/Subject';
-import AllEntitiesTable from './AllEntitiesTable';
+import { render, screen } from "spec/helpers/testing-library";
+import { SubjectType } from "src/types/Subject";
+import AllEntitiesTable from "./AllEntitiesTable";
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('AllEntitiesTable', () => {
-  const mockSetShowTagModal = jest.fn();
+const mockSetShowTagModal = jest.fn();
 
+const mockObjects = {
+  dashboard: [],
+  chart: [],
+  query: [],
+};
+const johnEditor = { id: 1, label: "John Doe", type: SubjectType.User };
+const janeEditor = { id: 2, label: "Jane Smith", type: SubjectType.User };
+const aliceEditor = { id: 3, label: "Alice Brown", type: SubjectType.User };
+
+const mockObjectsWithTags = {
+  dashboard: [
+    {
+      id: 1,
+      type: "dashboard",
+      name: "Sales Dashboard",
+      url: "/dashboard/1",
+      changed_on: "2023-11-20T12:34:56Z",
+      created_by: 1,
+      creator: "John Doe",
+      editors: [johnEditor],
+      tags: [
+        { id: 101, name: "Sales", type: "TagType.custom" },
+        { id: 42, name: "Current Tag", type: "TagType.custom" },
+      ],
+    },
+  ],
+  chart: [
+    {
+      id: 2,
+      type: "chart",
+      name: "Monthly Revenue",
+      url: "/chart/2",
+      changed_on: "2023-11-19T12:00:00Z",
+      created_by: 2,
+      creator: "Jane Smith",
+      editors: [janeEditor],
+      tags: [
+        { id: 102, name: "Revenue", type: "TagType.custom" },
+        { id: 42, name: "Current Tag", type: "TagType.custom" },
+      ],
+    },
+  ],
+  query: [
+    {
+      id: 3,
+      type: "query",
+      name: "User Engagement",
+      url: "/query/3",
+      changed_on: "2023-11-18T09:30:00Z",
+      created_by: 3,
+      creator: "Alice Brown",
+      editors: [aliceEditor],
+      tags: [
+        { id: 103, name: "Engagement", type: "TagType.custom" },
+        { id: 42, name: "Current Tag", type: "TagType.custom" },
+      ],
+    },
+  ],
+};
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+test("renders when empty with button to tag if user has perm", () => {
+  render(
+    <AllEntitiesTable
+      search=""
+      setShowTagModal={mockSetShowTagModal}
+      objects={mockObjects}
+      canEditTag
+    />,
+    { useRouter: true },
+  );
+
+  expect(
+    screen.getByText("No entities have this tag currently assigned"),
+  ).toBeInTheDocument();
+
+  expect(screen.getByText("Add tag to entities")).toBeInTheDocument();
+});
+
+test("renders when empty without button to tag if user does not have perm", () => {
+  render(
+    <AllEntitiesTable
+      search=""
+      setShowTagModal={mockSetShowTagModal}
+      objects={mockObjects}
+      canEditTag={false}
+    />,
+    { useRouter: true },
+  );
+
+  expect(
+    screen.getByText("No entities have this tag currently assigned"),
+  ).toBeInTheDocument();
+
+  expect(screen.queryByText("Add tag to entities")).not.toBeInTheDocument();
+});
+
+test("renders the correct tags for each object type", () => {
+  render(
+    <AllEntitiesTable
+      search=""
+      setShowTagModal={mockSetShowTagModal}
+      objects={mockObjectsWithTags}
+      canEditTag
+    />,
+    { useRouter: true },
+  );
+
+  expect(screen.getByText("Dashboards")).toBeInTheDocument();
+  expect(screen.getByText("Sales Dashboard")).toBeInTheDocument();
+  expect(screen.getByText("Sales")).toBeInTheDocument();
+
+  expect(screen.getByText("Charts")).toBeInTheDocument();
+  expect(screen.getByText("Monthly Revenue")).toBeInTheDocument();
+  expect(screen.getByText("Revenue")).toBeInTheDocument();
+
+  expect(screen.getByText("Queries")).toBeInTheDocument();
+  expect(screen.getByText("User Engagement")).toBeInTheDocument();
+  expect(screen.getByText("Engagement")).toBeInTheDocument();
+});
+
+test("Only list asset types that have entities", () => {
   const mockObjects = {
     dashboard: [],
-    chart: [],
+    chart: [mockObjectsWithTags.chart[0]],
     query: [],
   };
-  const johnEditor = { id: 1, label: 'John Doe', type: SubjectType.User };
-  const janeEditor = { id: 2, label: 'Jane Smith', type: SubjectType.User };
-  const aliceEditor = { id: 3, label: 'Alice Brown', type: SubjectType.User };
 
-  const mockObjectsWithTags = {
-    dashboard: [
-      {
-        id: 1,
-        type: 'dashboard',
-        name: 'Sales Dashboard',
-        url: '/dashboard/1',
-        changed_on: '2023-11-20T12:34:56Z',
-        created_by: 1,
-        creator: 'John Doe',
-        editors: [johnEditor],
-        tags: [
-          { id: 101, name: 'Sales', type: 'TagType.custom' },
-          { id: 42, name: 'Current Tag', type: 'TagType.custom' },
-        ],
-      },
-    ],
-    chart: [
-      {
-        id: 2,
-        type: 'chart',
-        name: 'Monthly Revenue',
-        url: '/chart/2',
-        changed_on: '2023-11-19T12:00:00Z',
-        created_by: 2,
-        creator: 'Jane Smith',
-        editors: [janeEditor],
-        tags: [
-          { id: 102, name: 'Revenue', type: 'TagType.custom' },
-          { id: 42, name: 'Current Tag', type: 'TagType.custom' },
-        ],
-      },
-    ],
-    query: [
-      {
-        id: 3,
-        type: 'query',
-        name: 'User Engagement',
-        url: '/query/3',
-        changed_on: '2023-11-18T09:30:00Z',
-        created_by: 3,
-        creator: 'Alice Brown',
-        editors: [aliceEditor],
-        tags: [
-          { id: 103, name: 'Engagement', type: 'TagType.custom' },
-          { id: 42, name: 'Current Tag', type: 'TagType.custom' },
-        ],
-      },
-    ],
-  };
+  render(
+    <AllEntitiesTable
+      search=""
+      setShowTagModal={mockSetShowTagModal}
+      objects={mockObjects}
+      canEditTag
+    />,
+    { useRouter: true },
+  );
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  test('renders when empty with button to tag if user has perm', () => {
-    render(
-      <AllEntitiesTable
-        search=""
-        setShowTagModal={mockSetShowTagModal}
-        objects={mockObjects}
-        canEditTag
-      />,
-      { useRouter: true },
-    );
-
-    expect(
-      screen.getByText('No entities have this tag currently assigned'),
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
-  });
-
-  test('renders when empty without button to tag if user does not have perm', () => {
-    render(
-      <AllEntitiesTable
-        search=""
-        setShowTagModal={mockSetShowTagModal}
-        objects={mockObjects}
-        canEditTag={false}
-      />,
-      { useRouter: true },
-    );
-
-    expect(
-      screen.getByText('No entities have this tag currently assigned'),
-    ).toBeInTheDocument();
-
-    expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
-  });
-
-  test('renders the correct tags for each object type', () => {
-    render(
-      <AllEntitiesTable
-        search=""
-        setShowTagModal={mockSetShowTagModal}
-        objects={mockObjectsWithTags}
-        canEditTag
-      />,
-      { useRouter: true },
-    );
-
-    expect(screen.getByText('Dashboards')).toBeInTheDocument();
-    expect(screen.getByText('Sales Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Sales')).toBeInTheDocument();
-
-    expect(screen.getByText('Charts')).toBeInTheDocument();
-    expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
-    expect(screen.getByText('Revenue')).toBeInTheDocument();
-
-    expect(screen.getByText('Queries')).toBeInTheDocument();
-    expect(screen.getByText('User Engagement')).toBeInTheDocument();
-    expect(screen.getByText('Engagement')).toBeInTheDocument();
-  });
-
-  test('Only list asset types that have entities', () => {
-    const mockObjects = {
-      dashboard: [],
-      chart: [mockObjectsWithTags.chart[0]],
-      query: [],
-    };
-
-    render(
-      <AllEntitiesTable
-        search=""
-        setShowTagModal={mockSetShowTagModal}
-        objects={mockObjects}
-        canEditTag
-      />,
-      { useRouter: true },
-    );
-
-    expect(screen.queryByText('Dashboards')).not.toBeInTheDocument();
-    expect(screen.getByText('Charts')).toBeInTheDocument();
-    expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
-    expect(screen.queryByText('Queries')).not.toBeInTheDocument();
-  });
+  expect(screen.queryByText("Dashboards")).not.toBeInTheDocument();
+  expect(screen.getByText("Charts")).toBeInTheDocument();
+  expect(screen.getByText("Monthly Revenue")).toBeInTheDocument();
+  expect(screen.queryByText("Queries")).not.toBeInTheDocument();
 });

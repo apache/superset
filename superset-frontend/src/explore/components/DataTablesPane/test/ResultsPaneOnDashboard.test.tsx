@@ -16,30 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from 'fetch-mock';
+import fetchMock from "fetch-mock";
 import {
   screen,
   render,
   act,
   waitForElementToBeRemoved,
   waitFor,
-} from 'spec/helpers/testing-library';
-import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
-import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
-import Tabs from '@superset-ui/core/components/Tabs';
-import { ResultsPaneOnDashboard } from '../components';
-import { useResultsPane } from '../components/useResultsPane';
-import { createResultsPaneOnDashboardProps } from './fixture';
+} from "spec/helpers/testing-library";
+import { ChartMetadata, ChartPlugin, VizType } from "@superset-ui/core";
+import { setupAGGridModules } from "@superset-ui/core/components/ThemedAgGridReact";
+import Tabs from "@superset-ui/core/components/Tabs";
+import { ResultsPaneOnDashboard } from "../components";
+import { useResultsPane } from "../components/useResultsPane";
+import { createResultsPaneOnDashboardProps } from "./fixture";
 
-jest.mock('@superset-ui/core/components/Tabs', () => {
-  const actual = jest.requireActual('@superset-ui/core/components/Tabs');
+jest.mock("@superset-ui/core/components/Tabs", () => {
+  const actual = jest.requireActual("@superset-ui/core/components/Tabs");
   return { __esModule: true, ...actual, default: jest.fn(actual.default) };
 });
 
 // Wraps the real hook; only overridden below to avoid mounting a second
 // real AG Grid instance, which jsdom doesn't support.
-jest.mock('../components/useResultsPane', () => {
-  const actual = jest.requireActual('../components/useResultsPane');
+jest.mock("../components/useResultsPane", () => {
+  const actual = jest.requireActual("../components/useResultsPane");
   return {
     __esModule: true,
     useResultsPane: jest.fn(actual.useResultsPane),
@@ -47,237 +47,225 @@ jest.mock('../components/useResultsPane', () => {
 });
 
 const actualUseResultsPane = jest.requireActual(
-  '../components/useResultsPane',
+  "../components/useResultsPane",
 ).useResultsPane;
 
 beforeAll(() => {
   setupAGGridModules();
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ResultsPaneOnDashboard', () => {
-  // render and render errorMessage
-  fetchMock.post(
-    'end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A121%7D',
-    {
-      result: [],
-    },
-  );
+// render and render errorMessage
+fetchMock.post("end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A121%7D", {
+  result: [],
+});
 
-  // force query, render and search
-  fetchMock.post(
-    'end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A144%7D&force=true',
-    {
-      result: [
-        {
-          data: [
-            { __timestamp: 1230768000000, genre: 'Action' },
-            { __timestamp: 1230768000010, genre: 'Horror' },
-          ],
-          colnames: ['__timestamp', 'genre'],
-          coltypes: [2, 1],
-          rowcount: 2,
-          sql_rowcount: 2,
-        },
-      ],
-    },
-  );
-
-  // error response
-  fetchMock.post(
-    'end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A169%7D',
-    400,
-  );
-
-  // multiple results pane
-  fetchMock.post(
-    'end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A196%7D',
-    {
-      result: [
-        {
-          data: [
-            { __timestamp: 1230768000000 },
-            { __timestamp: 1230768000010 },
-          ],
-          colnames: ['__timestamp'],
-          coltypes: [2],
-        },
-        {
-          data: [{ genre: 'Action' }, { genre: 'Horror' }],
-          colnames: ['genre'],
-          coltypes: [1],
-          rowcount: 2,
-          sql_rowcount: 2,
-        },
-      ],
-    },
-  );
-
-  const setForceQuery = jest.fn();
-
-  afterEach(() => {
-    (useResultsPane as jest.Mock).mockImplementation(actualUseResultsPane);
-  });
-
-  afterAll(() => {
-    fetchMock.clearHistory().removeRoutes();
-    jest.resetAllMocks();
-  });
-
-  test('render', async () => {
-    const props = createResultsPaneOnDashboardProps({ sliceId: 121 });
-    const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
-      useRedux: true,
-    });
-    expect(
-      await findByText('No results were returned for this query'),
-    ).toBeVisible();
-    const tabsMock = Tabs as unknown as jest.Mock;
-    const [tabsProps] = tabsMock.mock.calls[tabsMock.mock.calls.length - 1];
-    expect(tabsProps).toEqual(expect.objectContaining({ fullHeight: true }));
-  });
-
-  test('render errorMessage', async () => {
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 121,
-      errorMessage: <p>error</p>,
-    });
-    const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
-      useRedux: true,
-    });
-    expect(await findByText('Run a query to display results')).toBeVisible();
-  });
-
-  test('error response', async () => {
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 169,
-    });
-    const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
-      useRedux: true,
-    });
-    expect(await findByText('0 rows')).toBeVisible();
-    expect(await findByText('Bad request')).toBeVisible();
-  });
-
-  test('force query, render', async () => {
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 144,
-      queryForce: true,
-    });
-    const { queryByText } = render(
-      <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
+// force query, render and search
+fetchMock.post(
+  "end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A144%7D&force=true",
+  {
+    result: [
       {
-        useRedux: true,
+        data: [
+          { __timestamp: 1230768000000, genre: "Action" },
+          { __timestamp: 1230768000010, genre: "Horror" },
+        ],
+        colnames: ["__timestamp", "genre"],
+        coltypes: [2, 1],
+        rowcount: 2,
+        sql_rowcount: 2,
       },
-    );
+    ],
+  },
+);
 
-    await waitFor(() => {
-      expect(setForceQuery).toHaveBeenCalledTimes(1);
-    });
-    expect(queryByText('2 rows')).toBeVisible();
-    expect(queryByText('Action')).toBeVisible();
-    expect(queryByText('Horror')).toBeVisible();
+// error response
+fetchMock.post(
+  "end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A169%7D",
+  400,
+);
+
+// multiple results pane
+fetchMock.post("end:/api/v1/chart/data?form_data=%7B%22slice_id%22%3A196%7D", {
+  result: [
+    {
+      data: [{ __timestamp: 1230768000000 }, { __timestamp: 1230768000010 }],
+      colnames: ["__timestamp"],
+      coltypes: [2],
+    },
+    {
+      data: [{ genre: "Action" }, { genre: "Horror" }],
+      colnames: ["genre"],
+      coltypes: [1],
+      rowcount: 2,
+      sql_rowcount: 2,
+    },
+  ],
+});
+
+const setForceQuery = jest.fn();
+
+afterEach(() => {
+  (useResultsPane as jest.Mock).mockImplementation(actualUseResultsPane);
+});
+
+afterAll(() => {
+  fetchMock.clearHistory().removeRoutes();
+  jest.resetAllMocks();
+});
+
+test("render", async () => {
+  const props = createResultsPaneOnDashboardProps({ sliceId: 121 });
+  const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
+    useRedux: true,
+  });
+  expect(
+    await findByText("No results were returned for this query"),
+  ).toBeVisible();
+  const tabsMock = Tabs as unknown as jest.Mock;
+  const [tabsProps] = tabsMock.mock.calls[tabsMock.mock.calls.length - 1];
+  expect(tabsProps).toEqual(expect.objectContaining({ fullHeight: true }));
+});
+
+test("render errorMessage", async () => {
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 121,
+    errorMessage: <p>error</p>,
+  });
+  const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
+    useRedux: true,
+  });
+  expect(await findByText("Run a query to display results")).toBeVisible();
+});
+
+test("error response", async () => {
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 169,
+  });
+  const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
+    useRedux: true,
+  });
+  expect(await findByText("0 rows")).toBeVisible();
+  expect(await findByText("Bad request")).toBeVisible();
+});
+
+test("force query, render", async () => {
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 144,
+    queryForce: true,
+  });
+  const { queryByText } = render(
+    <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
+    {
+      useRedux: true,
+    },
+  );
+
+  await waitFor(() => {
+    expect(setForceQuery).toHaveBeenCalledTimes(1);
+  });
+  expect(queryByText("2 rows")).toBeVisible();
+  expect(queryByText("Action")).toBeVisible();
+  expect(queryByText("Horror")).toBeVisible();
+});
+
+test("multiple results pane", async () => {
+  const FakeChart = () => <span>test</span>;
+  const metadata = new ChartMetadata({
+    name: "test-chart",
+    thumbnail: "",
+    queryObjectCount: 2,
   });
 
-  test('multiple results pane', async () => {
-    const FakeChart = () => <span>test</span>;
-    const metadata = new ChartMetadata({
-      name: 'test-chart',
-      thumbnail: '',
-      queryObjectCount: 2,
-    });
+  const plugin = new ChartPlugin({
+    metadata,
+    Chart: FakeChart,
+  });
+  plugin.configure({ key: VizType.MixedTimeseries }).register();
 
-    const plugin = new ChartPlugin({
-      metadata,
-      Chart: FakeChart,
-    });
-    plugin.configure({ key: VizType.MixedTimeseries }).register();
-
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 196,
-      vizType: VizType.MixedTimeseries,
-    });
-
-    render(<ResultsPaneOnDashboard {...props} />, {
-      useRedux: true,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('status', { name: 'Loading' }),
-    );
-
-    const tab1 = document.querySelector('[data-node-key="results"]');
-    const tab2 = document.querySelector('[data-node-key="results 2"]');
-
-    expect(tab1).toBeVisible();
-    expect(tab2).toBeVisible();
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 196,
+    vizType: VizType.MixedTimeseries,
   });
 
-  test('dynamic number of results pane', async () => {
-    const FakeChart = () => <span>test</span>;
-    const metadata = new ChartMetadata({
-      name: 'test-chart',
-      thumbnail: '',
-      dynamicQueryObjectCount: true,
-    });
-
-    const plugin = new ChartPlugin({
-      metadata,
-      Chart: FakeChart,
-    });
-    plugin.configure({ key: VizType.MixedTimeseries }).register();
-
-    const props = createResultsPaneOnDashboardProps({
-      sliceId: 196,
-      vizType: VizType.MixedTimeseries,
-    });
-
-    render(<ResultsPaneOnDashboard {...props} />, {
-      useRedux: true,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('status', { name: 'Loading' }),
-    );
-
-    const tab1 = document.querySelector('[data-node-key="results"]');
-    const tab2 = document.querySelector('[data-node-key="results 2"]');
-    const tab3 = document.querySelector('[data-node-key="results 3"]');
-
-    expect(tab1).toBeVisible();
-    expect(tab2).toBeVisible();
-    expect(tab3).toBeNull();
+  render(<ResultsPaneOnDashboard {...props} />, {
+    useRedux: true,
   });
 
-  test('falls back to the first results tab when the active one disappears', async () => {
-    const mockedUseResultsPane = useResultsPane as jest.Mock;
-    mockedUseResultsPane.mockReturnValue([<div key="a" />, <div key="b" />]);
+  await waitForElementToBeRemoved(() =>
+    screen.queryByRole("status", { name: "Loading" }),
+  );
 
-    const props = createResultsPaneOnDashboardProps({ sliceId: 999 });
-    const { rerender } = render(<ResultsPaneOnDashboard {...props} />, {
-      useRedux: true,
-    });
+  const tab1 = document.querySelector('[data-node-key="results"]');
+  const tab2 = document.querySelector('[data-node-key="results 2"]');
 
-    const latestTabsProps = () => {
-      const { calls } = (Tabs as unknown as jest.Mock).mock;
-      return calls[calls.length - 1][0];
-    };
-    expect(latestTabsProps().items.map((i: { key: string }) => i.key)).toEqual([
-      'results',
-      'results 2',
-    ]);
+  expect(tab1).toBeVisible();
+  expect(tab2).toBeVisible();
+});
 
-    act(() => {
-      latestTabsProps().onChange('results 2');
-    });
-    expect(latestTabsProps().activeKey).toBe('results 2');
+test("dynamic number of results pane", async () => {
+  const FakeChart = () => <span>test</span>;
+  const metadata = new ChartMetadata({
+    name: "test-chart",
+    thumbnail: "",
+    dynamicQueryObjectCount: true,
+  });
 
-    // A mixed chart dropped from two query results to one, removing "results 2"
-    mockedUseResultsPane.mockReturnValue([<div key="a" />]);
-    rerender(<ResultsPaneOnDashboard {...props} />);
+  const plugin = new ChartPlugin({
+    metadata,
+    Chart: FakeChart,
+  });
+  plugin.configure({ key: VizType.MixedTimeseries }).register();
 
-    await waitFor(() => {
-      expect(latestTabsProps().activeKey).toBe('results');
-    });
+  const props = createResultsPaneOnDashboardProps({
+    sliceId: 196,
+    vizType: VizType.MixedTimeseries,
+  });
+
+  render(<ResultsPaneOnDashboard {...props} />, {
+    useRedux: true,
+  });
+
+  await waitForElementToBeRemoved(() =>
+    screen.queryByRole("status", { name: "Loading" }),
+  );
+
+  const tab1 = document.querySelector('[data-node-key="results"]');
+  const tab2 = document.querySelector('[data-node-key="results 2"]');
+  const tab3 = document.querySelector('[data-node-key="results 3"]');
+
+  expect(tab1).toBeVisible();
+  expect(tab2).toBeVisible();
+  expect(tab3).toBeNull();
+});
+
+test("falls back to the first results tab when the active one disappears", async () => {
+  const mockedUseResultsPane = useResultsPane as jest.Mock;
+  mockedUseResultsPane.mockReturnValue([<div key="a" />, <div key="b" />]);
+
+  const props = createResultsPaneOnDashboardProps({ sliceId: 999 });
+  const { rerender } = render(<ResultsPaneOnDashboard {...props} />, {
+    useRedux: true,
+  });
+
+  const latestTabsProps = () => {
+    const { calls } = (Tabs as unknown as jest.Mock).mock;
+    return calls[calls.length - 1][0];
+  };
+  expect(latestTabsProps().items.map((i: { key: string }) => i.key)).toEqual([
+    "results",
+    "results 2",
+  ]);
+
+  act(() => {
+    latestTabsProps().onChange("results 2");
+  });
+  expect(latestTabsProps().activeKey).toBe("results 2");
+
+  // A mixed chart dropped from two query results to one, removing "results 2"
+  mockedUseResultsPane.mockReturnValue([<div key="a" />]);
+  rerender(<ResultsPaneOnDashboard {...props} />);
+
+  await waitFor(() => {
+    expect(latestTabsProps().activeKey).toBe("results");
   });
 });

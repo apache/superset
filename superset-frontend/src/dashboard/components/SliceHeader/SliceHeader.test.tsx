@@ -389,22 +389,10 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
   expect(history.location.pathname).toMatch('/superset/dashboard');
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('mobile consumption mode', () => {
-  let restoreMatchMedia: () => void;
-  let restoreFlag: () => void;
-
-  beforeEach(() => {
-    restoreMatchMedia = mockMobileMatchMedia();
-    restoreFlag = enableMobileConsumptionFlag();
-  });
-
-  afterEach(() => {
-    restoreMatchMedia();
-    restoreFlag();
-  });
-
-  test('Should not render click to edit prompt or SliceHeaderControls on mobile', async () => {
+test('Should not render click to edit prompt or SliceHeaderControls on mobile', async () => {
+  const restoreMatchMedia = mockMobileMatchMedia();
+  const restoreFlag = enableMobileConsumptionFlag();
+  try {
     const props = createProps();
     const history = createMemoryHistory({
       initialEntries: ['/superset/dashboard/1/'],
@@ -424,7 +412,10 @@ describe('mobile consumption mode', () => {
     expect(history.location.pathname).toMatch('/superset/dashboard');
 
     expect(screen.queryByTestId('SliceHeaderControls')).not.toBeInTheDocument();
-  });
+  } finally {
+    restoreMatchMedia();
+    restoreFlag();
+  }
 });
 
 test('Should render "annotationsLoading"', () => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, type ComponentProps } from 'react';
+import { act, type ComponentProps } from "react";
 import {
   cleanup,
   createStore,
@@ -25,19 +25,19 @@ import {
   screen,
   userEvent,
   waitFor,
-} from 'spec/helpers/testing-library';
-import reducerIndex from 'spec/helpers/reducerIndex';
-import fetchMock from 'fetch-mock';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { createDatasource } from 'src/SqlLab/actions/sqlLab';
-import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
-import { FeatureFlag, SupersetClient } from '@superset-ui/core';
+} from "spec/helpers/testing-library";
+import reducerIndex from "spec/helpers/reducerIndex";
+import fetchMock from "fetch-mock";
+import { SaveDatasetModal } from "src/SqlLab/components/SaveDatasetModal";
+import { createDatasource } from "src/SqlLab/actions/sqlLab";
+import { user, testQuery, mockdatasets } from "src/SqlLab/fixtures";
+import { FeatureFlag, SupersetClient } from "@superset-ui/core";
 
 const mockedProps = {
   visible: true,
   onHide: () => {},
-  buttonTextOnSave: 'Save',
-  buttonTextOnOverwrite: 'Overwrite',
+  buttonTextOnSave: "Save",
+  buttonTextOnOverwrite: "Overwrite",
   datasource: testQuery,
 };
 
@@ -54,7 +54,7 @@ const renderModal = (
     initialState: { user },
   });
 
-fetchMock.get('glob:*/api/v1/dataset/?*', {
+fetchMock.get("glob:*/api/v1/dataset/?*", {
   result: mockdatasets,
   dataset_count: 3,
 });
@@ -76,493 +76,490 @@ afterEach(() => {
 // getDefaultMiddleware), so dispatch(createDatasource(...)) properly unwraps
 // the thunk and the production code's .then((data) => clearDatasetCache(data.id))
 // chain receives `{ id: 123 }`. Individual tests can override per-call as needed.
-jest.mock('src/SqlLab/actions/sqlLab', () => ({
+jest.mock("src/SqlLab/actions/sqlLab", () => ({
   createDatasource: jest.fn(() => () => Promise.resolve({ id: 123 })),
 }));
-jest.mock('src/explore/exploreUtils/formData', () => ({
+jest.mock("src/explore/exploreUtils/formData", () => ({
   postFormData: jest.fn(),
 }));
-jest.mock('src/utils/cachedSupersetGet', () => ({
-  ...jest.requireActual('src/utils/cachedSupersetGet'),
+jest.mock("src/utils/cachedSupersetGet", () => ({
+  ...jest.requireActual("src/utils/cachedSupersetGet"),
   clearDatasetCache: jest.fn(),
 }));
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('SaveDatasetModal', () => {
-  test('renders a "Save as new" field', () => {
-    renderModal();
+test('renders a "Save as new" field', () => {
+  renderModal();
 
-    const saveRadioBtn = screen.getByRole('radio', {
-      name: /save as new/i,
-    });
-
-    const fieldLabel = screen.getByText(/save as new/i);
-    const inputField = screen.getByRole('textbox');
-    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
-
-    expect(saveRadioBtn).toBeInTheDocument();
-    expect(fieldLabel).toBeInTheDocument();
-    expect(inputField).toBeInTheDocument();
-    expect(inputFieldText).toBeInTheDocument();
+  const saveRadioBtn = screen.getByRole("radio", {
+    name: /save as new/i,
   });
 
-  test('renders an "Overwrite existing" field', () => {
-    renderModal();
+  const fieldLabel = screen.getByText(/save as new/i);
+  const inputField = screen.getByRole("textbox");
+  const inputFieldText = screen.getByDisplayValue(/unimportant/i);
 
-    const overwriteRadioBtn = screen.getByRole('radio', {
-      name: /overwrite existing/i,
-    });
-    const fieldLabel = screen.getByText(/overwrite existing/i);
-    const inputField = screen.getByRole('combobox');
-    const placeholderText = screen.getByText(/select or type dataset name/i);
+  expect(saveRadioBtn).toBeInTheDocument();
+  expect(fieldLabel).toBeInTheDocument();
+  expect(inputField).toBeInTheDocument();
+  expect(inputFieldText).toBeInTheDocument();
+});
 
-    expect(overwriteRadioBtn).toBeInTheDocument();
-    expect(fieldLabel).toBeInTheDocument();
-    expect(inputField).toBeInTheDocument();
-    expect(placeholderText).toBeInTheDocument();
+test('renders an "Overwrite existing" field', () => {
+  renderModal();
+
+  const overwriteRadioBtn = screen.getByRole("radio", {
+    name: /overwrite existing/i,
+  });
+  const fieldLabel = screen.getByText(/overwrite existing/i);
+  const inputField = screen.getByRole("combobox");
+  const placeholderText = screen.getByText(/select or type dataset name/i);
+
+  expect(overwriteRadioBtn).toBeInTheDocument();
+  expect(fieldLabel).toBeInTheDocument();
+  expect(inputField).toBeInTheDocument();
+  expect(placeholderText).toBeInTheDocument();
+});
+
+test("renders a close button", () => {
+  renderModal();
+
+  expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
+});
+
+test('renders a save button when "Save as new" is selected', () => {
+  renderModal();
+
+  // "Save as new" is selected when the modal opens by default
+  expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
+});
+
+test("disables the save button when the dataset name is empty or whitespace-only", async () => {
+  renderModal();
+
+  const nameInput = screen.getByRole("textbox");
+  const saveBtn = screen.getByRole("button", { name: /save/i });
+
+  // Default name is present, so save starts enabled
+  expect(saveBtn).toBeEnabled();
+
+  // Clearing the name disables save
+  await userEvent.clear(nameInput);
+  await waitFor(() => expect(saveBtn).toBeDisabled());
+
+  // Whitespace-only name keeps save disabled
+  await userEvent.type(nameInput, "   ");
+  await waitFor(() => expect(saveBtn).toBeDisabled());
+
+  // A non-empty name re-enables save
+  await userEvent.type(nameInput, "My dataset");
+  await waitFor(() => expect(saveBtn).toBeEnabled());
+});
+
+test('renders an overwrite button when "Overwrite existing" is selected', async () => {
+  renderModal();
+
+  // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
+  const overwriteRadioBtn = screen.getByRole("radio", {
+    name: /overwrite existing/i,
+  });
+  await userEvent.click(overwriteRadioBtn);
+
+  expect(
+    screen.getByRole("button", { name: /overwrite/i }),
+  ).toBeInTheDocument();
+});
+
+test("renders the overwrite button as disabled until an existing dataset is selected", async () => {
+  renderModal();
+
+  // Click the overwrite radio button
+  const overwriteRadioBtn = screen.getByRole("radio", {
+    name: /overwrite existing/i,
+  });
+  await userEvent.click(overwriteRadioBtn);
+
+  // Overwrite confirmation button should be disabled at this point
+  const overwriteConfirmationBtn = screen.getByRole("button", {
+    name: /overwrite/i,
+  });
+  expect(overwriteConfirmationBtn).toBeDisabled();
+
+  // Click the overwrite select component
+  const select = screen.getByRole("combobox", { name: /existing dataset/i })!;
+  await userEvent.click(select);
+
+  // Advance timers to flush debounced fetches in AsyncSelect
+  await act(async () => {
+    jest.runAllTimers();
   });
 
-  test('renders a close button', () => {
-    renderModal();
-
-    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  await waitFor(() => {
+    const loading = screen.queryByText("Loading...");
+    expect(loading === null || !loading.checkVisibility()).toBe(true);
   });
 
-  test('renders a save button when "Save as new" is selected', () => {
-    renderModal();
+  // Select the first "existing dataset" from the listbox
+  const option = screen.getAllByText("coolest table 0")[1];
+  await userEvent.click(option);
 
-    // "Save as new" is selected when the modal opens by default
-    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+  // Overwrite button should now be enabled
+  expect(overwriteConfirmationBtn).toBeEnabled();
+});
+
+test("renders a confirm overwrite screen when overwrite is clicked", async () => {
+  renderModal();
+
+  // Click the overwrite radio button
+  const overwriteRadioBtn = screen.getByRole("radio", {
+    name: /overwrite existing/i,
+  });
+  await userEvent.click(overwriteRadioBtn);
+
+  // Click the overwrite select component
+  const select = screen.getByRole("combobox", { name: /existing dataset/i });
+  await userEvent.click(select);
+
+  // Advance timers to flush debounced fetches in AsyncSelect
+  await act(async () => {
+    jest.runAllTimers();
   });
 
-  test('disables the save button when the dataset name is empty or whitespace-only', async () => {
-    renderModal();
-
-    const nameInput = screen.getByRole('textbox');
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-
-    // Default name is present, so save starts enabled
-    expect(saveBtn).toBeEnabled();
-
-    // Clearing the name disables save
-    await userEvent.clear(nameInput);
-    await waitFor(() => expect(saveBtn).toBeDisabled());
-
-    // Whitespace-only name keeps save disabled
-    await userEvent.type(nameInput, '   ');
-    await waitFor(() => expect(saveBtn).toBeDisabled());
-
-    // A non-empty name re-enables save
-    await userEvent.type(nameInput, 'My dataset');
-    await waitFor(() => expect(saveBtn).toBeEnabled());
+  await waitFor(() => {
+    const loading = screen.queryByText("Loading...");
+    expect(loading === null || !loading.checkVisibility()).toBe(true);
   });
 
-  test('renders an overwrite button when "Overwrite existing" is selected', async () => {
-    renderModal();
+  // Select the first "existing dataset" from the listbox
+  const option = screen.getAllByText("coolest table 0")[1];
+  await userEvent.click(option);
 
-    // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
-    const overwriteRadioBtn = screen.getByRole('radio', {
-      name: /overwrite existing/i,
-    });
-    await userEvent.click(overwriteRadioBtn);
+  // Click the overwrite button to access the confirmation screen
+  const overwriteConfirmationBtn = screen.getByRole("button", {
+    name: /overwrite/i,
+  });
+  await userEvent.click(overwriteConfirmationBtn);
 
-    expect(
-      screen.getByRole('button', { name: /overwrite/i }),
-    ).toBeInTheDocument();
+  // Overwrite screen text
+  expect(screen.getByText(/save or overwrite dataset/i)).toBeInTheDocument();
+  expect(
+    screen.getByText(/are you sure you want to overwrite this dataset\?/i),
+  ).toBeInTheDocument();
+  // Overwrite screen buttons
+  expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: /overwrite/i }),
+  ).toBeInTheDocument();
+});
+
+test("sends the schema when creating the dataset", async () => {
+  renderModal();
+
+  const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+  fireEvent.change(inputFieldText, { target: { value: "my dataset" } });
+
+  const saveConfirmationBtn = screen.getByRole("button", {
+    name: /save/i,
+  });
+  await userEvent.click(saveConfirmationBtn);
+
+  expect(createDatasource).toHaveBeenCalledWith({
+    datasourceName: "my dataset",
+    dbId: 1,
+    catalog: null,
+    schema: "main",
+    sql: "SELECT *",
+    templateParams: undefined,
+  });
+});
+
+test("trims surrounding whitespace from the dataset name on save", async () => {
+  renderModal();
+
+  const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+  fireEvent.change(inputFieldText, { target: { value: "  my dataset  " } });
+
+  const saveConfirmationBtn = screen.getByRole("button", {
+    name: /save/i,
+  });
+  await userEvent.click(saveConfirmationBtn);
+
+  expect(createDatasource).toHaveBeenCalledWith(
+    expect.objectContaining({ datasourceName: "my dataset" }),
+  );
+});
+
+test("sends the catalog when creating the dataset", async () => {
+  renderModal({
+    datasource: { ...mockedProps.datasource, catalog: "public" },
   });
 
-  test('renders the overwrite button as disabled until an existing dataset is selected', async () => {
-    renderModal();
+  const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+  fireEvent.change(inputFieldText, { target: { value: "my dataset" } });
 
-    // Click the overwrite radio button
-    const overwriteRadioBtn = screen.getByRole('radio', {
-      name: /overwrite existing/i,
-    });
-    await userEvent.click(overwriteRadioBtn);
-
-    // Overwrite confirmation button should be disabled at this point
-    const overwriteConfirmationBtn = screen.getByRole('button', {
-      name: /overwrite/i,
-    });
-    expect(overwriteConfirmationBtn).toBeDisabled();
-
-    // Click the overwrite select component
-    const select = screen.getByRole('combobox', { name: /existing dataset/i })!;
-    await userEvent.click(select);
-
-    // Advance timers to flush debounced fetches in AsyncSelect
-    await act(async () => {
-      jest.runAllTimers();
-    });
-
-    await waitFor(() => {
-      const loading = screen.queryByText('Loading...');
-      expect(loading === null || !loading.checkVisibility()).toBe(true);
-    });
-
-    // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
-    await userEvent.click(option);
-
-    // Overwrite button should now be enabled
-    expect(overwriteConfirmationBtn).toBeEnabled();
+  const saveConfirmationBtn = screen.getByRole("button", {
+    name: /save/i,
   });
+  await userEvent.click(saveConfirmationBtn);
 
-  test('renders a confirm overwrite screen when overwrite is clicked', async () => {
-    renderModal();
-
-    // Click the overwrite radio button
-    const overwriteRadioBtn = screen.getByRole('radio', {
-      name: /overwrite existing/i,
-    });
-    await userEvent.click(overwriteRadioBtn);
-
-    // Click the overwrite select component
-    const select = screen.getByRole('combobox', { name: /existing dataset/i });
-    await userEvent.click(select);
-
-    // Advance timers to flush debounced fetches in AsyncSelect
-    await act(async () => {
-      jest.runAllTimers();
-    });
-
-    await waitFor(() => {
-      const loading = screen.queryByText('Loading...');
-      expect(loading === null || !loading.checkVisibility()).toBe(true);
-    });
-
-    // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
-    await userEvent.click(option);
-
-    // Click the overwrite button to access the confirmation screen
-    const overwriteConfirmationBtn = screen.getByRole('button', {
-      name: /overwrite/i,
-    });
-    await userEvent.click(overwriteConfirmationBtn);
-
-    // Overwrite screen text
-    expect(screen.getByText(/save or overwrite dataset/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/are you sure you want to overwrite this dataset\?/i),
-    ).toBeInTheDocument();
-    // Overwrite screen buttons
-    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /overwrite/i }),
-    ).toBeInTheDocument();
+  expect(createDatasource).toHaveBeenCalledWith({
+    datasourceName: "my dataset",
+    dbId: 1,
+    catalog: "public",
+    schema: "main",
+    sql: "SELECT *",
+    templateParams: undefined,
   });
+});
 
-  test('sends the schema when creating the dataset', async () => {
-    renderModal();
+test("does not renders a checkbox button when template processing is disabled", () => {
+  renderModal();
+  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+});
 
-    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
-    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+test("renders a checkbox button when template processing is enabled", () => {
+  // @ts-expect-error
+  global.featureFlags = {
+    [FeatureFlag.EnableTemplateProcessing]: true,
+  };
+  renderModal();
+  expect(screen.getByRole("checkbox")).toBeInTheDocument();
+});
 
-    const saveConfirmationBtn = screen.getByRole('button', {
-      name: /save/i,
-    });
-    await userEvent.click(saveConfirmationBtn);
-
-    expect(createDatasource).toHaveBeenCalledWith({
-      datasourceName: 'my dataset',
-      dbId: 1,
-      catalog: null,
-      schema: 'main',
-      sql: 'SELECT *',
-      templateParams: undefined,
-    });
-  });
-
-  test('trims surrounding whitespace from the dataset name on save', async () => {
-    renderModal();
-
-    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
-    fireEvent.change(inputFieldText, { target: { value: '  my dataset  ' } });
-
-    const saveConfirmationBtn = screen.getByRole('button', {
-      name: /save/i,
-    });
-    await userEvent.click(saveConfirmationBtn);
-
-    expect(createDatasource).toHaveBeenCalledWith(
-      expect.objectContaining({ datasourceName: 'my dataset' }),
-    );
-  });
-
-  test('sends the catalog when creating the dataset', async () => {
-    renderModal({
-      datasource: { ...mockedProps.datasource, catalog: 'public' },
-    });
-
-    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
-    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
-
-    const saveConfirmationBtn = screen.getByRole('button', {
-      name: /save/i,
-    });
-    await userEvent.click(saveConfirmationBtn);
-
-    expect(createDatasource).toHaveBeenCalledWith({
-      datasourceName: 'my dataset',
-      dbId: 1,
-      catalog: 'public',
-      schema: 'main',
-      sql: 'SELECT *',
-      templateParams: undefined,
-    });
-  });
-
-  test('does not renders a checkbox button when template processing is disabled', () => {
-    renderModal();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-  });
-
-  test('renders a checkbox button when template processing is enabled', () => {
-    // @ts-expect-error
-    global.featureFlags = {
-      [FeatureFlag.EnableTemplateProcessing]: true,
-    };
-    renderModal();
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
-  });
-
-  test('correctly includes template parameters when template processing is enabled', async () => {
-    // @ts-expect-error
-    global.featureFlags = {
-      [FeatureFlag.EnableTemplateProcessing]: true,
-    };
-    renderModal({
-      datasource: {
-        ...testQuery,
-        templateParams: JSON.stringify({ my_param: 12 }),
-      },
-    });
-    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
-    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
-
-    await userEvent.click(screen.getByRole('checkbox'));
-
-    const saveConfirmationBtn = screen.getByRole('button', {
-      name: /save/i,
-    });
-    await userEvent.click(saveConfirmationBtn);
-
-    expect(createDatasource).toHaveBeenCalledWith({
-      datasourceName: 'my dataset',
-      dbId: 1,
-      catalog: null,
-      schema: 'main',
-      sql: 'SELECT *',
+test("correctly includes template parameters when template processing is enabled", async () => {
+  // @ts-expect-error
+  global.featureFlags = {
+    [FeatureFlag.EnableTemplateProcessing]: true,
+  };
+  renderModal({
+    datasource: {
+      ...testQuery,
       templateParams: JSON.stringify({ my_param: 12 }),
-    });
+    },
   });
+  const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+  fireEvent.change(inputFieldText, { target: { value: "my dataset" } });
 
-  test('correctly excludes template parameters when template processing is enabled', async () => {
-    // @ts-expect-error
-    global.featureFlags = {
-      [FeatureFlag.EnableTemplateProcessing]: true,
-    };
-    renderModal({
-      datasource: {
-        ...testQuery,
-        templateParams: JSON.stringify({ my_param: 12 }),
-      },
-    });
-    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
-    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+  await userEvent.click(screen.getByRole("checkbox"));
 
-    await userEvent.click(screen.getByRole('checkbox'));
-
-    const saveConfirmationBtn = screen.getByRole('button', {
-      name: /save/i,
-    });
-    await userEvent.click(saveConfirmationBtn);
-
-    expect(createDatasource).toHaveBeenCalledWith({
-      datasourceName: 'my dataset',
-      dbId: 1,
-      catalog: null,
-      schema: 'main',
-      sql: 'SELECT *',
-      templateParams: undefined,
-    });
+  const saveConfirmationBtn = screen.getByRole("button", {
+    name: /save/i,
   });
+  await userEvent.click(saveConfirmationBtn);
 
-  const setupOverwriteFlow = async () => {
-    // Select the "Overwrite existing" radio
-    await userEvent.click(
-      screen.getByRole('radio', { name: /overwrite existing/i }),
-    );
-    // Open the select to load existing-dataset options
-    await userEvent.click(
-      screen.getByRole('combobox', { name: /existing dataset/i }),
-    );
-    // Advance timers to flush debounced fetches in AsyncSelect
-    await act(async () => {
-      jest.runAllTimers();
-    });
-    // Wait for the loading indicator to clear
-    await waitFor(() => {
-      const loading = screen.queryByText('Loading...');
-      expect(loading === null || !loading.checkVisibility()).toBe(true);
-    });
-    // Pick an existing dataset (use the listbox item, not the input mirror)
-    const options = await screen.findAllByText('coolest table 0');
-    await userEvent.click(options[1]);
-    // First overwrite click → confirmation screen
-    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
-    // Wait for the confirmation screen to render
-    await screen.findByText(/are you sure you want to overwrite this dataset/i);
-    // Second overwrite click → triggers the PUT
-    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+  expect(createDatasource).toHaveBeenCalledWith({
+    datasourceName: "my dataset",
+    dbId: 1,
+    catalog: null,
+    schema: "main",
+    sql: "SELECT *",
+    templateParams: JSON.stringify({ my_param: 12 }),
+  });
+});
+
+test("correctly excludes template parameters when template processing is enabled", async () => {
+  // @ts-expect-error
+  global.featureFlags = {
+    [FeatureFlag.EnableTemplateProcessing]: true,
+  };
+  renderModal({
+    datasource: {
+      ...testQuery,
+      templateParams: JSON.stringify({ my_param: 12 }),
+    },
+  });
+  const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+  fireEvent.change(inputFieldText, { target: { value: "my dataset" } });
+
+  await userEvent.click(screen.getByRole("checkbox"));
+
+  const saveConfirmationBtn = screen.getByRole("button", {
+    name: /save/i,
+  });
+  await userEvent.click(saveConfirmationBtn);
+
+  expect(createDatasource).toHaveBeenCalledWith({
+    datasourceName: "my dataset",
+    dbId: 1,
+    catalog: null,
+    schema: "main",
+    sql: "SELECT *",
+    templateParams: undefined,
+  });
+});
+
+const setupOverwriteFlow = async () => {
+  // Select the "Overwrite existing" radio
+  await userEvent.click(
+    screen.getByRole("radio", { name: /overwrite existing/i }),
+  );
+  // Open the select to load existing-dataset options
+  await userEvent.click(
+    screen.getByRole("combobox", { name: /existing dataset/i }),
+  );
+  // Advance timers to flush debounced fetches in AsyncSelect
+  await act(async () => {
+    jest.runAllTimers();
+  });
+  // Wait for the loading indicator to clear
+  await waitFor(() => {
+    const loading = screen.queryByText("Loading...");
+    expect(loading === null || !loading.checkVisibility()).toBe(true);
+  });
+  // Pick an existing dataset (use the listbox item, not the input mirror)
+  const options = await screen.findAllByText("coolest table 0");
+  await userEvent.click(options[1]);
+  // First overwrite click → confirmation screen
+  await userEvent.click(screen.getByRole("button", { name: /overwrite/i }));
+  // Wait for the confirmation screen to render
+  await screen.findByText(/are you sure you want to overwrite this dataset/i);
+  // Second overwrite click → triggers the PUT
+  await userEvent.click(screen.getByRole("button", { name: /overwrite/i }));
+};
+
+test("sends template_params when overwriting a dataset with include template parameters checked", async () => {
+  // @ts-expect-error
+  global.featureFlags = {
+    [FeatureFlag.EnableTemplateProcessing]: true,
   };
 
-  test('sends template_params when overwriting a dataset with include template parameters checked', async () => {
-    // @ts-expect-error
-    global.featureFlags = {
-      [FeatureFlag.EnableTemplateProcessing]: true,
-    };
+  const putSpy = jest
+    .spyOn(SupersetClient, "put")
+    .mockResolvedValue({ json: { result: { id: 0 } } } as any);
 
-    const putSpy = jest
-      .spyOn(SupersetClient, 'put')
-      .mockResolvedValue({ json: { result: { id: 0 } } } as any);
-
-    renderModal({
-      datasource: {
-        ...testQuery,
-        templateParams: JSON.stringify({ my_param: 12, _filters: 'foo' }),
-      },
-    });
-
-    // Check the "Include Template Parameters" checkbox
-    await userEvent.click(screen.getByRole('checkbox'));
-
-    await setupOverwriteFlow();
-
-    await waitFor(() => {
-      expect(
-        putSpy.mock.calls.some(([req]) =>
-          req.endpoint?.includes('api/v1/dataset/'),
-        ),
-      ).toBe(true);
-    });
-
-    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
-      req.endpoint?.includes('api/v1/dataset/'),
-    )!;
-    const [req] = datasetPutCall;
-    expect(req.endpoint).toContain('override_columns=true');
-    const body = JSON.parse(req.body as string);
-    // _filters should be stripped, but my_param should be preserved
-    expect(body.template_params).toEqual(JSON.stringify({ my_param: 12 }));
-
-    putSpy.mockRestore();
+  renderModal({
+    datasource: {
+      ...testQuery,
+      templateParams: JSON.stringify({ my_param: 12, _filters: "foo" }),
+    },
   });
 
-  test('does not send template_params when overwriting a dataset with include template parameters unchecked', async () => {
-    // @ts-expect-error
-    global.featureFlags = {
-      [FeatureFlag.EnableTemplateProcessing]: true,
-    };
+  // Check the "Include Template Parameters" checkbox
+  await userEvent.click(screen.getByRole("checkbox"));
 
-    const putSpy = jest
-      .spyOn(SupersetClient, 'put')
-      .mockResolvedValue({ json: { result: { id: 0 } } } as any);
+  await setupOverwriteFlow();
 
-    renderModal({
-      datasource: {
-        ...testQuery,
-        templateParams: JSON.stringify({ my_param: 12 }),
-      },
-    });
-
-    // Do NOT check the "Include Template Parameters" checkbox
-    await setupOverwriteFlow();
-
-    await waitFor(() => {
-      expect(
-        putSpy.mock.calls.some(([req]) =>
-          req.endpoint?.includes('api/v1/dataset/'),
-        ),
-      ).toBe(true);
-    });
-
-    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
-      req.endpoint?.includes('api/v1/dataset/'),
-    )!;
-    const [req] = datasetPutCall;
-    const body = JSON.parse(req.body as string);
-    expect(body.template_params).toBeUndefined();
-
-    putSpy.mockRestore();
+  await waitFor(() => {
+    expect(
+      putSpy.mock.calls.some(([req]) =>
+        req.endpoint?.includes("api/v1/dataset/"),
+      ),
+    ).toBe(true);
   });
 
-  test('clears dataset cache when creating new dataset', async () => {
-    const clearDatasetCache = jest.spyOn(
-      require('src/utils/cachedSupersetGet'),
-      'clearDatasetCache',
-    );
-    const postFormData = jest.spyOn(
-      require('src/explore/exploreUtils/formData'),
-      'postFormData',
-    );
+  const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+    req.endpoint?.includes("api/v1/dataset/"),
+  )!;
+  const [req] = datasetPutCall;
+  expect(req.endpoint).toContain("override_columns=true");
+  const body = JSON.parse(req.body as string);
+  // _filters should be stripped, but my_param should be preserved
+  expect(body.template_params).toEqual(JSON.stringify({ my_param: 12 }));
 
-    postFormData.mockResolvedValue('chart_key_123');
+  putSpy.mockRestore();
+});
 
-    renderModal();
+test("does not send template_params when overwriting a dataset with include template parameters unchecked", async () => {
+  // @ts-expect-error
+  global.featureFlags = {
+    [FeatureFlag.EnableTemplateProcessing]: true,
+  };
 
-    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
-    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+  const putSpy = jest
+    .spyOn(SupersetClient, "put")
+    .mockResolvedValue({ json: { result: { id: 0 } } } as any);
 
-    const saveConfirmationBtn = screen.getByRole('button', {
-      name: /save/i,
-    });
-    await userEvent.click(saveConfirmationBtn);
-
-    await waitFor(() => {
-      expect(clearDatasetCache).toHaveBeenCalledWith(123);
-    });
+  renderModal({
+    datasource: {
+      ...testQuery,
+      templateParams: JSON.stringify({ my_param: 12 }),
+    },
   });
 
-  test('surfaces the error and keeps the modal open when saving fails', async () => {
-    // The chart-payload step's toast was built but never dispatched, so a
-    // failure there was silent.
-    const postFormData = jest.spyOn(
-      require('src/explore/exploreUtils/formData'),
-      'postFormData',
-    );
-    postFormData.mockRejectedValue(new Error('Boom'));
-    const onHide = jest.fn();
-    const store = createStore({ user }, reducerIndex);
+  // Do NOT check the "Include Template Parameters" checkbox
+  await setupOverwriteFlow();
 
-    render(<SaveDatasetModal {...mockedProps} onHide={onHide} />, { store });
-
-    fireEvent.change(screen.getByDisplayValue(/unimportant/i), {
-      target: { value: 'my dataset' },
-    });
-    await userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    // `createStore` builds its reducer map at runtime, so state isn't typed.
-    const toasts = () =>
-      (
-        store.getState() as unknown as {
-          messageToasts: { toastType: string }[];
-        }
-      ).messageToasts;
-
-    await waitFor(() => {
-      expect(toasts()).toHaveLength(1);
-    });
-    expect(toasts()[0].toastType).toBe('DANGER_TOAST');
-    expect(onHide).not.toHaveBeenCalled();
+  await waitFor(() => {
+    expect(
+      putSpy.mock.calls.some(([req]) =>
+        req.endpoint?.includes("api/v1/dataset/"),
+      ),
+    ).toBe(true);
   });
 
-  test('clearDatasetCache is imported and available', () => {
-    const { clearDatasetCache } = require('src/utils/cachedSupersetGet');
+  const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+    req.endpoint?.includes("api/v1/dataset/"),
+  )!;
+  const [req] = datasetPutCall;
+  const body = JSON.parse(req.body as string);
+  expect(body.template_params).toBeUndefined();
 
-    expect(clearDatasetCache).toBeDefined();
-    expect(typeof clearDatasetCache).toBe('function');
+  putSpy.mockRestore();
+});
+
+test("clears dataset cache when creating new dataset", async () => {
+  const clearDatasetCache = jest.spyOn(
+    require("src/utils/cachedSupersetGet"),
+    "clearDatasetCache",
+  );
+  const postFormData = jest.spyOn(
+    require("src/explore/exploreUtils/formData"),
+    "postFormData",
+  );
+
+  postFormData.mockResolvedValue("chart_key_123");
+
+  renderModal();
+
+  const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+  fireEvent.change(inputFieldText, { target: { value: "my dataset" } });
+
+  const saveConfirmationBtn = screen.getByRole("button", {
+    name: /save/i,
   });
+  await userEvent.click(saveConfirmationBtn);
+
+  await waitFor(() => {
+    expect(clearDatasetCache).toHaveBeenCalledWith(123);
+  });
+});
+
+test("surfaces the error and keeps the modal open when saving fails", async () => {
+  // The chart-payload step's toast was built but never dispatched, so a
+  // failure there was silent.
+  const postFormData = jest.spyOn(
+    require("src/explore/exploreUtils/formData"),
+    "postFormData",
+  );
+  postFormData.mockRejectedValue(new Error("Boom"));
+  const onHide = jest.fn();
+  const store = createStore({ user }, reducerIndex);
+
+  render(<SaveDatasetModal {...mockedProps} onHide={onHide} />, { store });
+
+  fireEvent.change(screen.getByDisplayValue(/unimportant/i), {
+    target: { value: "my dataset" },
+  });
+  await userEvent.click(screen.getByRole("button", { name: /save/i }));
+
+  // `createStore` builds its reducer map at runtime, so state isn't typed.
+  const toasts = () =>
+    (
+      store.getState() as unknown as {
+        messageToasts: { toastType: string }[];
+      }
+    ).messageToasts;
+
+  await waitFor(() => {
+    expect(toasts()).toHaveLength(1);
+  });
+  expect(toasts()[0].toastType).toBe("DANGER_TOAST");
+  expect(onHide).not.toHaveBeenCalled();
+});
+
+test("clearDatasetCache is imported and available", () => {
+  const { clearDatasetCache } = require("src/utils/cachedSupersetGet");
+
+  expect(clearDatasetCache).toBeDefined();
+  expect(typeof clearDatasetCache).toBe("function");
 });

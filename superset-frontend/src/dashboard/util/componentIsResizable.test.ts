@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import componentIsResizable from 'src/dashboard/util/componentIsResizable';
+import componentIsResizable from "src/dashboard/util/componentIsResizable";
 import {
   CHART_TYPE,
   COLUMN_TYPE,
@@ -28,7 +28,7 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
-} from 'src/dashboard/util/componentTypes';
+} from "src/dashboard/util/componentTypes";
 
 const notResizable = [
   DASHBOARD_GRID_TYPE,
@@ -42,17 +42,14 @@ const notResizable = [
 
 const resizable = [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE];
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('componentIsResizable', () => {
-  resizable.forEach(type => {
-    test(`should return true for ${type}`, () => {
-      expect(componentIsResizable({ type })).toBe(true);
-    });
+resizable.forEach((type) => {
+  test(`should return true for ${type}`, () => {
+    expect(componentIsResizable({ type })).toBe(true);
   });
+});
 
-  notResizable.forEach(type => {
-    test(`should return false for ${type}`, () => {
-      expect(componentIsResizable({ type })).toBe(false);
-    });
+notResizable.forEach((type) => {
+  test(`should return false for ${type}`, () => {
+    expect(componentIsResizable({ type })).toBe(false);
   });
 });

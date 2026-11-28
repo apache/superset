@@ -16,46 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React from "react";
 import {
   act,
   fireEvent,
   render,
   RenderResult,
   screen,
-} from 'spec/helpers/testing-library';
+} from "spec/helpers/testing-library";
 
-import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
+import { DASHBOARD_GRID_ID } from "src/dashboard/util/constants";
 import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
-} from 'src/dashboard/constants';
-import { getMockStore } from 'spec/fixtures/mockStore';
-import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
-import { initialState } from 'src/SqlLab/fixtures';
-import Row from './Row';
+} from "src/dashboard/constants";
+import { getMockStore } from "spec/fixtures/mockStore";
+import { dashboardLayout as mockLayout } from "spec/fixtures/mockDashboardLayout";
+import { initialState } from "src/SqlLab/fixtures";
+import Row from "./Row";
 
 interface MockIntersectionObserverEntry {
   isIntersecting: boolean;
 }
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+jest.mock("@superset-ui/core", () => ({
+  ...jest.requireActual("@superset-ui/core"),
   isFeatureEnabled: jest.fn(() => true),
   FeatureFlag: {
-    DashboardVirtualization: 'DASHBOARD_VIRTUALIZATION',
+    DashboardVirtualization: "DASHBOARD_VIRTUALIZATION",
   },
 }));
 
-jest.mock('src/utils/isBot', () => ({
+jest.mock("src/utils/isBot", () => ({
   isCurrentUserBot: jest.fn(() => false),
 }));
 
-jest.mock('src/dashboard/util/isEmbedded', () => ({
+jest.mock("src/dashboard/util/isEmbedded", () => ({
   isEmbedded: jest.fn(() => false),
 }));
 
-jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+jest.mock("src/dashboard/components/dnd/DragDroppable", () => ({
   Draggable: ({
     children,
   }: {
@@ -85,7 +85,7 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
 }));
 
 jest.mock(
-  'src/dashboard/containers/DashboardComponent',
+  "src/dashboard/containers/DashboardComponent",
   () =>
     ({
       availableColumnCount,
@@ -101,7 +101,7 @@ jest.mock(
 );
 
 jest.mock(
-  'src/dashboard/components/menu/WithPopoverMenu',
+  "src/dashboard/components/menu/WithPopoverMenu",
   () =>
     ({ children }: { children: React.ReactNode }) => (
       <div data-test="mock-with-popover-menu">{children}</div>
@@ -109,7 +109,7 @@ jest.mock(
 );
 
 jest.mock(
-  'src/dashboard/components/DeleteComponentButton',
+  "src/dashboard/components/DeleteComponentButton",
   () =>
     ({ onDelete }: { onDelete: () => void }) => (
       <button
@@ -149,7 +149,7 @@ interface RowTestProps {
 }
 
 const props: RowTestProps = {
-  id: 'ROW_ID',
+  id: "ROW_ID",
   parentId: DASHBOARD_GRID_ID,
   component: mockLayout.present.ROW_ID,
   parentComponent: mockLayout.present[DASHBOARD_GRID_ID],
@@ -184,106 +184,106 @@ function setup(overrideProps: Partial<RowTestProps> = {}): RenderResult {
   });
 }
 
-test('should render a Draggable', () => {
+test("should render a Draggable", () => {
   // don't count child DragDroppables
   const { getByTestId, queryByTestId } = setup({
     component: rowWithoutChildren,
   });
 
-  expect(getByTestId('mock-draggable')).toBeInTheDocument();
-  expect(queryByTestId('mock-droppable')).not.toBeInTheDocument();
+  expect(getByTestId("mock-draggable")).toBeInTheDocument();
+  expect(queryByTestId("mock-droppable")).not.toBeInTheDocument();
 });
 
-test('should skip rendering HoverMenu and DeleteComponentButton when not in editMode', () => {
+test("should skip rendering HoverMenu and DeleteComponentButton when not in editMode", () => {
   const { container, queryByTestId } = setup({
     component: rowWithoutChildren,
   });
-  expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
-  expect(queryByTestId('mock-delete-component-button')).not.toBeInTheDocument();
+  expect(container.querySelector(".hover-menu")).not.toBeInTheDocument();
+  expect(queryByTestId("mock-delete-component-button")).not.toBeInTheDocument();
 });
 
-test('should render a WithPopoverMenu', () => {
+test("should render a WithPopoverMenu", () => {
   // don't count child DragDroppables
   const { getByTestId } = setup({ component: rowWithoutChildren });
-  expect(getByTestId('mock-with-popover-menu')).toBeInTheDocument();
+  expect(getByTestId("mock-with-popover-menu")).toBeInTheDocument();
 });
 
-test('should render a HoverMenu in editMode', () => {
+test("should render a HoverMenu in editMode", () => {
   const { container, getAllByTestId, getByTestId } = setup({
     component: rowWithoutChildren,
     editMode: true,
   });
-  expect(container.querySelector('.hover-menu')).toBeInTheDocument();
+  expect(container.querySelector(".hover-menu")).toBeInTheDocument();
 
   // Droppable area enabled in editMode
-  expect(getAllByTestId('mock-droppable').length).toBe(1);
+  expect(getAllByTestId("mock-droppable").length).toBe(1);
 
   // pass the same depth of its droppable area
-  expect(getByTestId('mock-droppable')).toHaveAttribute(
-    'data-depth',
+  expect(getByTestId("mock-droppable")).toHaveAttribute(
+    "data-depth",
     `${props.depth}`,
   );
 });
 
-test('should render a DeleteComponentButton in editMode', () => {
+test("should render a DeleteComponentButton in editMode", () => {
   const { getByTestId } = setup({
     component: rowWithoutChildren,
     editMode: true,
   });
-  expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
+  expect(getByTestId("mock-delete-component-button")).toBeInTheDocument();
 });
 
 /* oxlint-disable-next-line jest/no-disabled-tests */
-test.skip('should render a BackgroundStyleDropdown when focused', () => {
+test.skip("should render a BackgroundStyleDropdown when focused", () => {
   const { rerender } = setup({ component: rowWithoutChildren });
-  expect(screen.queryByTestId('background-style-dropdown')).toBeFalsy();
+  expect(screen.queryByTestId("background-style-dropdown")).toBeFalsy();
 
   // we cannot set props on the Row because of the WithDragDropContext wrapper
   rerender(<Row {...props} component={rowWithoutChildren} editMode />);
-  const buttons = screen.getAllByRole('button');
+  const buttons = screen.getAllByRole("button");
   const settingsButton = buttons[1];
   fireEvent.click(settingsButton);
 
-  expect(screen.queryByTestId('background-style-dropdown')).toBeTruthy();
+  expect(screen.queryByTestId("background-style-dropdown")).toBeTruthy();
 });
 
-test('should call deleteComponent when deleted', () => {
+test("should call deleteComponent when deleted", () => {
   const deleteComponent = jest.fn();
   const { getByTestId } = setup({ editMode: true, deleteComponent });
-  fireEvent.click(getByTestId('mock-delete-component-button'));
+  fireEvent.click(getByTestId("mock-delete-component-button"));
   expect(deleteComponent).toHaveBeenCalledTimes(1);
 });
 
-test('settings IconButton exposes an accessible name without visible label text', () => {
+test("settings IconButton exposes an accessible name without visible label text", () => {
   setup({ component: rowWithoutChildren, editMode: true });
 
   expect(
-    screen.getByRole('button', { name: 'Row settings' }),
+    screen.getByRole("button", { name: "Row settings" }),
   ).toBeInTheDocument();
-  expect(screen.queryByText('Row settings')).not.toBeInTheDocument();
+  expect(screen.queryByText("Row settings")).not.toBeInTheDocument();
 });
 
-test('should pass appropriate availableColumnCount to children', () => {
+test("should pass appropriate availableColumnCount to children", () => {
   const { getByTestId } = setup();
-  expect(getByTestId('mock-dashboard-component')).toHaveTextContent(
+  expect(getByTestId("mock-dashboard-component")).toHaveTextContent(
     `${props.availableColumnCount - props.occupiedColumnCount}`,
   );
 });
 
-test('should increment the depth of its children', () => {
+test("should increment the depth of its children", () => {
   const { getByTestId } = setup();
-  expect(getByTestId('mock-dashboard-component')).toHaveAttribute(
-    'data-depth',
+  expect(getByTestId("mock-dashboard-component")).toHaveAttribute(
+    "data-depth",
     `${props.depth + 1}`,
   );
 });
 
-test('row droptargets size via CSS instead of a measured pixel height that can only grow (regression for #37644)', () => {
+test("row droptargets size via CSS instead of a measured pixel height that can only grow (regression for #37644)", () => {
   const { container } = setup({ editMode: true });
   const getDroptargetHeights = () =>
     Array.from(
-      container.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
-    ).map(el => el.style.height);
+      container.querySelectorAll<HTMLElement>(".empty-droptarget--vertical"),
+    ).map((el) => el.style.height);
 
   // The leading droptarget (index 0) is absolutely positioned, so a
   // percentage height resolves fine and stretches it to the row via CSS
@@ -294,147 +294,144 @@ test('row droptargets size via CSS instead of a measured pixel height that can o
   // resolves to `auto`/is ignored per the flexbox spec (defeating the
   // `align-self: stretch` CSS already declares for it) -- it gets an
   // explicit `auto` instead, letting that stretch actually apply.
-  expect(getDroptargetHeights()).toEqual(['100%', 'auto']);
+  expect(getDroptargetHeights()).toEqual(["100%", "auto"]);
 });
 
-test('trailing droptarget also gets a CSS-driven height when the row is full (regression for #37644)', () => {
+test("trailing droptarget also gets a CSS-driven height when the row is full (regression for #37644)", () => {
   const { container } = setup({ editMode: true, occupiedColumnCount: 12 });
   const getDroptargetHeights = () =>
     Array.from(
-      container.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
-    ).map(el => el.style.height);
+      container.querySelectorAll<HTMLElement>(".empty-droptarget--vertical"),
+    ).map((el) => el.style.height);
 
   // With no remaining columns, the droptarget after the last chart is
   // treated as a side target too (isTrailingSideTarget), so it takes the
   // same '100%' CSS height as the leading one instead of 'auto'.
-  expect(getDroptargetHeights()).toEqual(['100%', '100%']);
+  expect(getDroptargetHeights()).toEqual(["100%", "100%"]);
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('visibility handling for intersection observers', () => {
-  const mockIntersectionObserver = jest.fn();
-  const mockObserve = jest.fn();
-  const mockDisconnect = jest.fn();
+const mockIntersectionObserver = jest.fn();
+const mockObserve = jest.fn();
+const mockDisconnect = jest.fn();
 
-  beforeAll(() => {
-    mockIntersectionObserver.mockReturnValue({
-      observe: mockObserve,
-      unobserve: jest.fn(),
-      disconnect: mockDisconnect,
-    });
-    window.IntersectionObserver = mockIntersectionObserver;
+beforeAll(() => {
+  mockIntersectionObserver.mockReturnValue({
+    observe: mockObserve,
+    unobserve: jest.fn(),
+    disconnect: mockDisconnect,
+  });
+  window.IntersectionObserver = mockIntersectionObserver;
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+afterAll(() => {
+  delete (window as any).IntersectionObserver;
+});
+
+test("should handle visibility prop changes without crashing", () => {
+  const { rerender } = setup({ isComponentVisible: true });
+
+  expect(setup).not.toThrow();
+
+  expect(() => {
+    rerender(<Row {...props} isComponentVisible={false} />);
+  }).not.toThrow();
+
+  expect(() => {
+    rerender(<Row {...props} isComponentVisible />);
+  }).not.toThrow();
+});
+
+test("should create intersection observers when feature is enabled", () => {
+  setup({ isComponentVisible: true });
+
+  expect(mockIntersectionObserver).toHaveBeenCalledWith(
+    expect.any(Function),
+    expect.objectContaining({ rootMargin: expect.any(String) }),
+  );
+});
+
+test("should not create intersection observers when feature is disabled", () => {
+  const coreMock = jest.requireMock("@superset-ui/core");
+  coreMock.isFeatureEnabled.mockReturnValue(false);
+
+  jest.clearAllMocks();
+  setup({ isComponentVisible: true });
+
+  expect(mockIntersectionObserver).not.toHaveBeenCalled();
+
+  coreMock.isFeatureEnabled.mockReturnValue(true);
+});
+
+test("intersection observer callbacks handle entries without errors", () => {
+  const callback = ([entry]: [MockIntersectionObserverEntry]) => {
+    if (entry.isIntersecting) return true;
+
+    return false;
+  };
+
+  const intersectingEntry = { isIntersecting: true };
+  expect(() => callback([intersectingEntry])).not.toThrow();
+  expect(callback([intersectingEntry])).toBe(true);
+
+  const nonIntersectingEntry = { isIntersecting: false };
+  expect(() => callback([nonIntersectingEntry])).not.toThrow();
+  expect(callback([nonIntersectingEntry])).toBe(false);
+});
+
+test("force-in-view event with no detail disconnects the observers for every row", () => {
+  setup({ isComponentVisible: true });
+
+  act(() => {
+    window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
   });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+  expect(mockDisconnect).toHaveBeenCalled();
+});
 
-  afterAll(() => {
-    delete (window as any).IntersectionObserver;
-  });
+test("force-in-view event scoped to other rowIds does not disconnect this row", () => {
+  setup({ isComponentVisible: true });
 
-  test('should handle visibility prop changes without crashing', () => {
-    const { rerender } = setup({ isComponentVisible: true });
-
-    expect(setup).not.toThrow();
-
-    expect(() => {
-      rerender(<Row {...props} isComponentVisible={false} />);
-    }).not.toThrow();
-
-    expect(() => {
-      rerender(<Row {...props} isComponentVisible />);
-    }).not.toThrow();
-  });
-
-  test('should create intersection observers when feature is enabled', () => {
-    setup({ isComponentVisible: true });
-
-    expect(mockIntersectionObserver).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({ rootMargin: expect.any(String) }),
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent(FORCE_IN_VIEW_EVENT, {
+        detail: { rowIds: ["SOME_OTHER_ROW_ID"] },
+      }),
     );
   });
 
-  test('should not create intersection observers when feature is disabled', () => {
-    const coreMock = jest.requireMock('@superset-ui/core');
-    coreMock.isFeatureEnabled.mockReturnValue(false);
+  expect(mockDisconnect).not.toHaveBeenCalled();
+});
 
-    jest.clearAllMocks();
-    setup({ isComponentVisible: true });
+test("force-in-view event scoped to this rowId disconnects the observers", () => {
+  setup({ isComponentVisible: true });
 
-    expect(mockIntersectionObserver).not.toHaveBeenCalled();
-
-    coreMock.isFeatureEnabled.mockReturnValue(true);
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent(FORCE_IN_VIEW_EVENT, {
+        detail: { rowIds: [props.id] },
+      }),
+    );
   });
 
-  test('intersection observer callbacks handle entries without errors', () => {
-    const callback = ([entry]: [MockIntersectionObserverEntry]) => {
-      if (entry.isIntersecting) return true;
+  expect(mockDisconnect).toHaveBeenCalled();
+});
 
-      return false;
-    };
+test("restore-virtualization event re-observes after a force-in-view", () => {
+  setup({ isComponentVisible: true });
+  expect(mockObserve).toHaveBeenCalledTimes(2);
 
-    const intersectingEntry = { isIntersecting: true };
-    expect(() => callback([intersectingEntry])).not.toThrow();
-    expect(callback([intersectingEntry])).toBe(true);
-
-    const nonIntersectingEntry = { isIntersecting: false };
-    expect(() => callback([nonIntersectingEntry])).not.toThrow();
-    expect(callback([nonIntersectingEntry])).toBe(false);
+  act(() => {
+    window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
+  });
+  act(() => {
+    window.dispatchEvent(new Event(RESTORE_VIRTUALIZATION_EVENT));
   });
 
-  test('force-in-view event with no detail disconnects the observers for every row', () => {
-    setup({ isComponentVisible: true });
-
-    act(() => {
-      window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
-    });
-
-    expect(mockDisconnect).toHaveBeenCalled();
-  });
-
-  test('force-in-view event scoped to other rowIds does not disconnect this row', () => {
-    setup({ isComponentVisible: true });
-
-    act(() => {
-      window.dispatchEvent(
-        new CustomEvent(FORCE_IN_VIEW_EVENT, {
-          detail: { rowIds: ['SOME_OTHER_ROW_ID'] },
-        }),
-      );
-    });
-
-    expect(mockDisconnect).not.toHaveBeenCalled();
-  });
-
-  test('force-in-view event scoped to this rowId disconnects the observers', () => {
-    setup({ isComponentVisible: true });
-
-    act(() => {
-      window.dispatchEvent(
-        new CustomEvent(FORCE_IN_VIEW_EVENT, {
-          detail: { rowIds: [props.id] },
-        }),
-      );
-    });
-
-    expect(mockDisconnect).toHaveBeenCalled();
-  });
-
-  test('restore-virtualization event re-observes after a force-in-view', () => {
-    setup({ isComponentVisible: true });
-    expect(mockObserve).toHaveBeenCalledTimes(2);
-
-    act(() => {
-      window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
-    });
-    act(() => {
-      window.dispatchEvent(new Event(RESTORE_VIRTUALIZATION_EVENT));
-    });
-
-    // The initial mount observes twice (enabler + disabler); restoring
-    // after a force-in-view re-observes both again.
-    expect(mockObserve).toHaveBeenCalledTimes(4);
-  });
+  // The initial mount observes twice (enabler + disabler); restoring
+  // after a force-in-view re-observes both again.
+  expect(mockObserve).toHaveBeenCalledTimes(4);
 });

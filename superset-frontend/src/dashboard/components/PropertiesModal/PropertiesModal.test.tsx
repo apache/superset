@@ -22,31 +22,31 @@ import {
   screen,
   userEvent,
   waitFor,
-} from 'spec/helpers/testing-library';
-import fetchMock from 'fetch-mock';
-import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
-import * as SupersetCore from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import PropertiesModal from '.';
-import * as dashboardInfoActions from 'src/dashboard/actions/dashboardInfo';
+} from "spec/helpers/testing-library";
+import fetchMock from "fetch-mock";
+import * as ColorSchemeSelect from "src/dashboard/components/ColorSchemeSelect";
+import * as SupersetCore from "@superset-ui/core";
+import { isFeatureEnabled, FeatureFlag } from "@superset-ui/core";
+import PropertiesModal from ".";
+import * as dashboardInfoActions from "src/dashboard/actions/dashboardInfo";
 
 // Increase timeout for CI environment
 jest.setTimeout(60000);
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+jest.mock("@superset-ui/core", () => ({
+  ...jest.requireActual("@superset-ui/core"),
   isFeatureEnabled: jest.fn(),
   getCategoricalSchemeRegistry: jest.fn(() => ({
-    keys: () => ['supersetColors'],
-    get: () => ['#FFFFFF', '#000000'],
-    getDefaultKey: () => 'supersetColors',
+    keys: () => ["supersetColors"],
+    get: () => ["#FFFFFF", "#000000"],
+    getDefaultKey: () => "supersetColors",
   })),
 }));
 
 // Mock the Advanced JSON editor (Ace-based, not drivable in jsdom) with a plain
 // textarea so a direct JSON edit can be simulated. Keeps the "JSON Metadata"
 // label so the existing "should open advance" test still passes.
-jest.mock('./sections/AdvancedSection', () => ({
+jest.mock("./sections/AdvancedSection", () => ({
   __esModule: true,
   default: ({
     jsonMetadata,
@@ -61,7 +61,7 @@ jest.mock('./sections/AdvancedSection', () => ({
         aria-label="JSON metadata editor"
         data-test="mock-json-editor"
         value={jsonMetadata}
-        onChange={e => onJsonMetadataChange(e.target.value)}
+        onChange={(e) => onJsonMetadataChange(e.target.value)}
       />
     </div>
   ),
@@ -69,7 +69,7 @@ jest.mock('./sections/AdvancedSection', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-const spyColorSchemeSelect = jest.spyOn(ColorSchemeSelect, 'default');
+const spyColorSchemeSelect = jest.spyOn(ColorSchemeSelect, "default");
 const mockedJsonMetadata =
   '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "expand_all_slices": false, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": "supersetColors", "label_colors": {"0": "#D3B3DA", "1": "#9EE5E5", "0. Pre-clinical": "#1FA8C9", "2. Phase II or Combined I/II": "#454E7C", "1. Phase I": "#5AC189", "3. Phase III": "#FF7F44", "4. Authorized": "#666666", "root": "#1FA8C9", "Protein subunit": "#454E7C", "Phase II": "#5AC189", "Pre-clinical": "#FF7F44", "Phase III": "#666666", "Phase I": "#E04355", "Phase I/II": "#FCC700", "Inactivated virus": "#A868B7", "Virus-like particle": "#3CCCCB", "Replicating bacterial vector": "#A38F79", "DNA-based": "#8FD3E4", "RNA-based vaccine": "#A1A6BD", "Authorized": "#ACE1C4", "Non-replicating viral vector": "#FEC0A1", "Replicating viral vector": "#B2B2B2", "Unknown": "#EFA1AA", "Live attenuated virus": "#FDE380", "COUNT(*)": "#D1C6BC"}, "filter_scopes": {"358": {"Country_Name": {"scope": ["ROOT_ID"], "immune": []}, "Product_Category": {"scope": ["ROOT_ID"], "immune": []}, "Clinical Stage": {"scope": ["ROOT_ID"], "immune": []}}}}';
 
@@ -78,23 +78,23 @@ spyColorSchemeSelect.mockImplementation(
 );
 
 const dashboardInfo = {
-  certified_by: 'John Doe',
-  certification_details: 'Sample certification',
+  certified_by: "John Doe",
+  certification_details: "Sample certification",
   changed_by: null,
-  changed_by_name: '',
-  changed_on: '2021-03-30T19:30:14.020942',
+  changed_by_name: "",
+  changed_on: "2021-03-30T19:30:14.020942",
   charts: [
-    'Vaccine Candidates per Country & Stage',
-    'Vaccine Candidates per Country',
-    'Vaccine Candidates per Country',
-    'Vaccine Candidates per Approach & Stage',
-    'Vaccine Candidates per Phase',
-    'Vaccine Candidates per Phase',
-    'Vaccine Candidates per Country & Stage',
-    'Filtering Vaccines',
+    "Vaccine Candidates per Country & Stage",
+    "Vaccine Candidates per Country",
+    "Vaccine Candidates per Country",
+    "Vaccine Candidates per Approach & Stage",
+    "Vaccine Candidates per Phase",
+    "Vaccine Candidates per Phase",
+    "Vaccine Candidates per Country & Stage",
+    "Filtering Vaccines",
   ],
-  css: '',
-  dashboard_title: 'COVID Vaccine Dashboard',
+  css: "",
+  dashboard_title: "COVID Vaccine Dashboard",
   id: 26,
   metadata: mockedJsonMetadata,
   editors: [],
@@ -104,27 +104,27 @@ const dashboardInfo = {
   published: false,
   slug: null,
   thumbnail_url:
-    '/api/v1/dashboard/26/thumbnail/b24805e98d90116da8c0974d24f5c533/',
-  url: '/superset/dashboard/26/',
+    "/api/v1/dashboard/26/thumbnail/b24805e98d90116da8c0974d24f5c533/",
+  url: "/superset/dashboard/26/",
 };
 
-fetchMock.get('glob:*/api/v1/dashboard/26', {
+fetchMock.get("glob:*/api/v1/dashboard/26", {
   body: {
     result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
   },
 });
 
-fetchMock.get('glob:*/api/v1/theme/*', {
+fetchMock.get("glob:*/api/v1/theme/*", {
   body: {
     result: [
       {
         id: 1,
-        theme_name: 'Test Theme 1',
+        theme_name: "Test Theme 1",
         json_data: '{"token":{"colorPrimary":"#ff0000"}}',
       },
       {
         id: 2,
-        theme_name: 'Test Theme 2',
+        theme_name: "Test Theme 2",
         json_data: '{"token":{"colorPrimary":"#0000ff"}}',
       },
     ],
@@ -132,11 +132,11 @@ fetchMock.get('glob:*/api/v1/theme/*', {
 });
 
 const createProps = () => ({
-  certified_by: 'John Doe',
-  certification_details: 'Sample certification',
+  certified_by: "John Doe",
+  certification_details: "Sample certification",
   dashboardId: 26,
   show: true,
-  colorScheme: 'supersetColors',
+  colorScheme: "supersetColors",
   onlyApply: false,
   onHide: jest.fn(),
   onSubmit: jest.fn(),
@@ -151,699 +151,694 @@ afterAll(() => {
   fetchMock.clearHistory().removeRoutes();
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('PropertiesModal', () => {
-  jest.setTimeout(60000); // Increased timeout for complex modal rendering
+jest.setTimeout(60000); // Increased timeout for complex modal rendering
 
-  test('should render - FeatureFlag disabled', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    render(<PropertiesModal {...props} />, {
-      useRedux: true,
-    });
-    expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
-    ).toBeInTheDocument();
+test("should render - FeatureFlag disabled", async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  render(<PropertiesModal {...props} />, {
+    useRedux: true,
+  });
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
 
-    // Check for collapse section texts (not headings anymore)
-    expect(screen.getByText('General information')).toBeInTheDocument();
-    expect(screen.getByText('Access')).toBeInTheDocument();
-    expect(screen.getByText('Styling')).toBeInTheDocument();
-    expect(screen.getByText('Refresh settings')).toBeInTheDocument();
-    expect(screen.getByText('Advanced settings')).toBeInTheDocument();
-    expect(screen.getByText('Certification')).toBeInTheDocument();
+  // Check for collapse section texts (not headings anymore)
+  expect(screen.getByText("General information")).toBeInTheDocument();
+  expect(screen.getByText("Access")).toBeInTheDocument();
+  expect(screen.getByText("Styling")).toBeInTheDocument();
+  expect(screen.getByText("Refresh settings")).toBeInTheDocument();
+  expect(screen.getByText("Advanced settings")).toBeInTheDocument();
+  expect(screen.getByText("Certification")).toBeInTheDocument();
 
-    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
 
-    // Only General information section is expanded by default
-    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Name, Slug and Description
+  // Only General information section is expanded by default
+  expect(screen.getAllByRole("textbox")).toHaveLength(3); // Name, Slug and Description
 
-    // Expand Styling section to see the ColorSchemeControlWrapper
-    const stylingHeaderText = screen.getByText('Styling');
-    const stylingHeader = stylingHeaderText.closest('.ant-collapse-header');
-    expect(stylingHeader).toBeTruthy();
-    await userEvent.click(stylingHeader!);
+  // Expand Styling section to see the ColorSchemeControlWrapper
+  const stylingHeaderText = screen.getByText("Styling");
+  const stylingHeader = stylingHeaderText.closest(".ant-collapse-header");
+  expect(stylingHeader).toBeTruthy();
+  await userEvent.click(stylingHeader!);
 
-    await waitFor(() => {
-      // Color Scheme component is rendered (mocked in tests)
-      expect(screen.getByText('ColorSchemeSelect')).toBeInTheDocument();
-    });
+  await waitFor(() => {
+    // Color Scheme component is rendered (mocked in tests)
+    expect(screen.getByText("ColorSchemeSelect")).toBeInTheDocument();
+  });
 
+  expect(spyColorSchemeSelect).toHaveBeenCalledWith(
+    expect.objectContaining({ value: "supersetColors" }),
+    {},
+  );
+});
+
+test("should render - FeatureFlag enabled", async () => {
+  mockedIsFeatureEnabled.mockImplementation((flag: any) => {
+    if (flag === FeatureFlag.TaggingSystem) return true;
+    return false;
+  });
+  const props = createProps();
+  render(<PropertiesModal {...props} />, {
+    useRedux: true,
+  });
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
+
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByText("Dashboard properties")).toBeInTheDocument();
+
+  // Check for collapse section texts instead of headings
+  expect(screen.getByText("General information")).toBeInTheDocument();
+  expect(screen.getByText("Access")).toBeInTheDocument();
+  expect(screen.getByText("Styling")).toBeInTheDocument();
+  expect(screen.getByText("Refresh settings")).toBeInTheDocument();
+  expect(screen.getByText("Advanced settings")).toBeInTheDocument();
+  expect(screen.getByText("Certification")).toBeInTheDocument();
+
+  // General information section is expanded by default
+  expect(screen.getAllByRole("textbox")).toHaveLength(3); // Name, Slug and Description are visible
+
+  // Expand Access to see Tags
+  const accessPanel = screen.getByText("Access").closest('[role="button"]');
+  if (accessPanel) {
+    await userEvent.click(accessPanel);
+  }
+
+  // Test passes if feature flag handling is working - no need to test specific UI
+  expect(true).toBe(true);
+
+  expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+
+  // Expand Styling section to check ColorSchemeControlWrapper
+  const stylingHeaderText = screen.getByText("Styling");
+  const stylingHeader = stylingHeaderText.closest(".ant-collapse-header");
+  expect(stylingHeader).toBeTruthy();
+  await userEvent.click(stylingHeader!);
+
+  await waitFor(() => {
     expect(spyColorSchemeSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ value: 'supersetColors' }),
+      expect.objectContaining({ value: "supersetColors" }),
       {},
     );
   });
+});
 
-  test('should render - FeatureFlag enabled', async () => {
-    mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.TaggingSystem) return true;
-      return false;
-    });
-    const props = createProps();
-    render(<PropertiesModal {...props} />, {
-      useRedux: true,
-    });
-    expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
-    ).toBeInTheDocument();
+test("should open advance", async () => {
+  mockedIsFeatureEnabled.mockImplementation((flag: any) => {
+    if (flag === FeatureFlag.TaggingSystem) return true;
+    return false;
+  });
+  const props = createProps();
+  render(<PropertiesModal {...props} />, {
+    useRedux: true,
+  });
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard properties')).toBeInTheDocument();
+  expect(screen.getAllByRole("textbox")).toHaveLength(3); // Only Name, Slug and Description visible initially
 
-    // Check for collapse section texts instead of headings
-    expect(screen.getByText('General information')).toBeInTheDocument();
-    expect(screen.getByText('Access')).toBeInTheDocument();
-    expect(screen.getByText('Styling')).toBeInTheDocument();
-    expect(screen.getByText('Refresh settings')).toBeInTheDocument();
-    expect(screen.getByText('Advanced settings')).toBeInTheDocument();
-    expect(screen.getByText('Certification')).toBeInTheDocument();
+  // Click on the Advanced settings collapse panel to expand it
+  const advancedHeaderText = screen.getByText("Advanced settings");
+  const advancedHeader = advancedHeaderText.closest(".ant-collapse-header");
+  expect(advancedHeader).toBeTruthy();
+  await userEvent.click(advancedHeader!);
 
-    // General information section is expanded by default
-    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Name, Slug and Description are visible
+  // Wait for animation to complete
+  await new Promise((resolve) => setTimeout(resolve, 300));
 
-    // Expand Access to see Tags
-    const accessPanel = screen.getByText('Access').closest('[role="button"]');
-    if (accessPanel) {
-      await userEvent.click(accessPanel);
-    }
+  // After expanding Advanced settings, we should see more elements
+  // Note: JSON editor may not render as a standard textbox in tests
+  await waitFor(() => {
+    // Check that the Advanced settings section is expanded by looking for its content
+    expect(screen.getByText("JSON Metadata")).toBeInTheDocument();
+  });
+});
 
-    // Test passes if feature flag handling is working - no need to test specific UI
-    expect(true).toBe(true);
+test("preserves a refresh_frequency edited in the JSON editor on save (#42116)", async () => {
+  // Save (onlyApply: false) PUTs to the API before calling onSubmit, so the
+  // request must be mocked or onSubmit is never reached.
+  const put = jest.spyOn(SupersetCore.SupersetClient, "put");
+  put.mockResolvedValue({
+    json: {
+      result: {
+        dashboard_title: "dashboard_title",
+        slug: "slug",
+        json_metadata: "json_metadata",
+        editors: "editors",
+      },
+    },
+  } as any);
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
+  });
+  await screen.findByTestId("dashboard-edit-properties-form");
 
-    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  // Expand the Advanced settings panel so the (mocked) JSON editor mounts.
+  const advancedHeader = screen
+    .getByText("Advanced settings")
+    .closest(".ant-collapse-header");
+  await userEvent.click(advancedHeader!);
 
-    // Expand Styling section to check ColorSchemeControlWrapper
-    const stylingHeaderText = screen.getByText('Styling');
-    const stylingHeader = stylingHeaderText.closest('.ant-collapse-header');
-    expect(stylingHeader).toBeTruthy();
-    await userEvent.click(stylingHeader!);
-
-    await waitFor(() => {
-      expect(spyColorSchemeSelect).toHaveBeenCalledWith(
-        expect.objectContaining({ value: 'supersetColors' }),
-        {},
-      );
-    });
+  // Edit refresh_frequency directly in the JSON editor without touching the
+  // Refresh dropdown (the reproduction of #42116).
+  const editor = await screen.findByTestId("mock-json-editor");
+  fireEvent.change(editor, {
+    target: { value: JSON.stringify({ refresh_frequency: 30 }) },
   });
 
-  test('should open advance', async () => {
-    mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.TaggingSystem) return true;
-      return false;
-    });
-    const props = createProps();
-    render(<PropertiesModal {...props} />, {
-      useRedux: true,
-    });
-    expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
-    ).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Only Name, Slug and Description visible initially
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+  });
+  const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+  expect(submitted.refresh_frequency).toBe(30);
+});
 
-    // Click on the Advanced settings collapse panel to expand it
-    const advancedHeaderText = screen.getByText('Advanced settings');
-    const advancedHeader = advancedHeaderText.closest('.ant-collapse-header');
-    expect(advancedHeader).toBeTruthy();
-    await userEvent.click(advancedHeader!);
+test("preserves an explicit 0 from the JSON editor over a non-zero dropdown value (#42116)", async () => {
+  // A truthy value like 30 can't tell `??` and `||` apart. Only a falsy-but-
+  // explicit `refresh_frequency: 0` in the JSON, combined with a non-zero
+  // Refresh dropdown, catches a regression from `??` back to `||` on
+  // index.tsx, which would let the dropdown's non-zero value win over an
+  // explicit "Don't refresh".
+  const put = jest.spyOn(SupersetCore.SupersetClient, "put");
+  put.mockResolvedValue({
+    json: {
+      result: {
+        dashboard_title: "dashboard_title",
+        slug: "slug",
+        json_metadata: "json_metadata",
+        editors: "editors",
+      },
+    },
+  } as any);
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  // A non-zero refresh_frequency in dashboardInfo so the Refresh dropdown
+  // initializes to a truthy value (dashboardInfo, when passed, is used
+  // directly instead of triggering a fetch -- see the `!currentDashboardInfo`
+  // check in the data-loading effect). handleDashboardData reads the parsed
+  // `metadata` object, not the `json_metadata` string.
+  const nonZeroMetadata = mockedJsonMetadata.replace(
+    '"refresh_frequency": 0',
+    '"refresh_frequency": 30',
+  );
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: nonZeroMetadata,
+      metadata: JSON.parse(nonZeroMetadata),
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
+  });
+  await screen.findByTestId("dashboard-edit-properties-form");
 
-    // Wait for animation to complete
-    await new Promise(resolve => setTimeout(resolve, 300));
+  // Confirm the Refresh dropdown actually picked up the non-zero value.
+  const refreshHeader = screen
+    .getByText("Refresh settings")
+    .closest(".ant-collapse-header");
+  await userEvent.click(refreshHeader!);
+  expect(
+    await screen.findByRole("radio", { name: "30 seconds" }),
+  ).toBeChecked();
 
-    // After expanding Advanced settings, we should see more elements
-    // Note: JSON editor may not render as a standard textbox in tests
-    await waitFor(() => {
-      // Check that the Advanced settings section is expanded by looking for its content
-      expect(screen.getByText('JSON Metadata')).toBeInTheDocument();
-    });
+  // Edit the JSON editor to explicitly set refresh_frequency to 0 ("Don't
+  // refresh") without touching the Refresh dropdown.
+  const advancedHeader = screen
+    .getByText("Advanced settings")
+    .closest(".ant-collapse-header");
+  await userEvent.click(advancedHeader!);
+  const editor = await screen.findByTestId("mock-json-editor");
+  fireEvent.change(editor, {
+    target: { value: JSON.stringify({ refresh_frequency: 0 }) },
   });
 
-  test('preserves a refresh_frequency edited in the JSON editor on save (#42116)', async () => {
-    // Save (onlyApply: false) PUTs to the API before calling onSubmit, so the
-    // request must be mocked or onSubmit is never reached.
-    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
-    put.mockResolvedValue({
-      json: {
-        result: {
-          dashboard_title: 'dashboard_title',
-          slug: 'slug',
-          json_metadata: 'json_metadata',
-          editors: 'editors',
-        },
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+  });
+  const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+  expect(submitted.refresh_frequency).toBe(0);
+});
+
+test("propagates a Refresh dropdown-only change into the submitted JSON metadata", async () => {
+  // Selecting a value from the Refresh dropdown without touching the
+  // Advanced JSON editor must still make it into the submitted payload --
+  // handleRefreshFrequencyChange writes the new value into the JSON
+  // metadata object on change (#42116, requested in review).
+  const put = jest.spyOn(SupersetCore.SupersetClient, "put");
+  put.mockResolvedValue({
+    json: {
+      result: {
+        dashboard_title: "dashboard_title",
+        slug: "slug",
+        json_metadata: "json_metadata",
+        editors: "editors",
       },
-    } as any);
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
+    },
+  } as any);
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  // dashboardInfo, when passed, is used directly instead of triggering a
+  // fetch (see the `!currentDashboardInfo` check in the data-loading
+  // effect); handleDashboardData reads the parsed `metadata` object, not
+  // the `json_metadata` string, so `metadata` must be parsed here too --
+  // otherwise the seeded JSON has no `refresh_frequency` key at all and
+  // save falls back to the selected 60 through the `?? refreshFrequency`
+  // path regardless of whether the dropdown-to-JSON sync under test
+  // actually runs.
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      metadata: JSON.parse(mockedJsonMetadata),
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
+  });
+  await screen.findByTestId("dashboard-edit-properties-form");
+
+  // mockedJsonMetadata starts at refresh_frequency: 0, so selecting
+  // "1 minute" (60) is a real change coming only from the dropdown.
+  const refreshHeader = screen
+    .getByText("Refresh settings")
+    .closest(".ant-collapse-header");
+  await userEvent.click(refreshHeader!);
+  await userEvent.click(await screen.findByRole("radio", { name: "1 minute" }));
+
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+  });
+  const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+  expect(submitted.refresh_frequency).toBe(60);
+});
+
+test("should close modal", async () => {
+  mockedIsFeatureEnabled.mockImplementation((flag: any) => {
+    if (flag === FeatureFlag.TaggingSystem) return true;
+    return false;
+  });
+  const props = createProps();
+  render(<PropertiesModal {...props} />, {
+    useRedux: true,
+  });
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
+
+  expect(props.onHide).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(props.onHide).toHaveBeenCalledTimes(2);
+});
+
+test("submitting with onlyApply:false", async () => {
+  const put = jest.spyOn(SupersetCore.SupersetClient, "put");
+  put.mockResolvedValue({
+    json: {
+      result: {
+        dashboard_title: "dashboard_title",
+        slug: "slug",
+        json_metadata: "json_metadata",
+        editors: "editors",
       },
-    };
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-    await screen.findByTestId('dashboard-edit-properties-form');
-
-    // Expand the Advanced settings panel so the (mocked) JSON editor mounts.
-    const advancedHeader = screen
-      .getByText('Advanced settings')
-      .closest('.ant-collapse-header');
-    await userEvent.click(advancedHeader!);
-
-    // Edit refresh_frequency directly in the JSON editor without touching the
-    // Refresh dropdown (the reproduction of #42116).
-    const editor = await screen.findByTestId('mock-json-editor');
-    fireEvent.change(editor, {
-      target: { value: JSON.stringify({ refresh_frequency: 30 }) },
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-    });
-    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
-    expect(submitted.refresh_frequency).toBe(30);
+    },
+  } as any);
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  props.onlyApply = false;
+  // Pass dashboardInfo to avoid loading state
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
   });
 
-  test('preserves an explicit 0 from the JSON editor over a non-zero dropdown value (#42116)', async () => {
-    // A truthy value like 30 can't tell `??` and `||` apart. Only a falsy-but-
-    // explicit `refresh_frequency: 0` in the JSON, combined with a non-zero
-    // Refresh dropdown, catches a regression from `??` back to `||` on
-    // index.tsx, which would let the dropdown's non-zero value win over an
-    // explicit "Don't refresh".
-    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
-    put.mockResolvedValue({
-      json: {
-        result: {
-          dashboard_title: 'dashboard_title',
-          slug: 'slug',
-          json_metadata: 'json_metadata',
-          editors: 'editors',
-        },
-      },
-    } as any);
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    // A non-zero refresh_frequency in dashboardInfo so the Refresh dropdown
-    // initializes to a truthy value (dashboardInfo, when passed, is used
-    // directly instead of triggering a fetch -- see the `!currentDashboardInfo`
-    // check in the data-loading effect). handleDashboardData reads the parsed
-    // `metadata` object, not the `json_metadata` string.
-    const nonZeroMetadata = mockedJsonMetadata.replace(
-      '"refresh_frequency": 0',
-      '"refresh_frequency": 30',
-    );
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: nonZeroMetadata,
-        metadata: JSON.parse(nonZeroMetadata),
-      },
-    };
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-    await screen.findByTestId('dashboard-edit-properties-form');
+  // Wait for the form to be visible
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
 
-    // Confirm the Refresh dropdown actually picked up the non-zero value.
-    const refreshHeader = screen
-      .getByText('Refresh settings')
-      .closest('.ant-collapse-header');
-    await userEvent.click(refreshHeader!);
-    expect(
-      await screen.findByRole('radio', { name: '30 seconds' }),
-    ).toBeChecked();
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.onSubmit).not.toHaveBeenCalled();
 
-    // Edit the JSON editor to explicitly set refresh_frequency to 0 ("Don't
-    // refresh") without touching the Refresh dropdown.
-    const advancedHeader = screen
-      .getByText('Advanced settings')
-      .closest('.ant-collapse-header');
-    await userEvent.click(advancedHeader!);
-    const editor = await screen.findByTestId('mock-json-editor');
-    fireEvent.change(editor, {
-      target: { value: JSON.stringify({ refresh_frequency: 0 }) },
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-    });
-    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
-    expect(submitted.refresh_frequency).toBe(0);
-  });
-
-  test('propagates a Refresh dropdown-only change into the submitted JSON metadata', async () => {
-    // Selecting a value from the Refresh dropdown without touching the
-    // Advanced JSON editor must still make it into the submitted payload --
-    // handleRefreshFrequencyChange writes the new value into the JSON
-    // metadata object on change (#42116, requested in review).
-    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
-    put.mockResolvedValue({
-      json: {
-        result: {
-          dashboard_title: 'dashboard_title',
-          slug: 'slug',
-          json_metadata: 'json_metadata',
-          editors: 'editors',
-        },
-      },
-    } as any);
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    // dashboardInfo, when passed, is used directly instead of triggering a
-    // fetch (see the `!currentDashboardInfo` check in the data-loading
-    // effect); handleDashboardData reads the parsed `metadata` object, not
-    // the `json_metadata` string, so `metadata` must be parsed here too --
-    // otherwise the seeded JSON has no `refresh_frequency` key at all and
-    // save falls back to the selected 60 through the `?? refreshFrequency`
-    // path regardless of whether the dropdown-to-JSON sync under test
-    // actually runs.
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-        metadata: JSON.parse(mockedJsonMetadata),
-      },
-    };
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-    await screen.findByTestId('dashboard-edit-properties-form');
-
-    // mockedJsonMetadata starts at refresh_frequency: 0, so selecting
-    // "1 minute" (60) is a real change coming only from the dropdown.
-    const refreshHeader = screen
-      .getByText('Refresh settings')
-      .closest('.ant-collapse-header');
-    await userEvent.click(refreshHeader!);
-    await userEvent.click(
-      await screen.findByRole('radio', { name: '1 minute' }),
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-    });
-    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
-    expect(submitted.refresh_frequency).toBe(60);
-  });
-
-  test('should close modal', async () => {
-    mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.TaggingSystem) return true;
-      return false;
-    });
-    const props = createProps();
-    render(<PropertiesModal {...props} />, {
-      useRedux: true,
-    });
-    expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
-    ).toBeInTheDocument();
-
-    expect(props.onHide).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(props.onHide).toHaveBeenCalledTimes(1);
-    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(props.onHide).toHaveBeenCalledTimes(2);
-  });
-
-  test('submitting with onlyApply:false', async () => {
-    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
-    put.mockResolvedValue({
-      json: {
-        result: {
-          dashboard_title: 'dashboard_title',
-          slug: 'slug',
-          json_metadata: 'json_metadata',
-          editors: 'editors',
-        },
-      },
-    } as any);
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    props.onlyApply = false;
-    // Pass dashboardInfo to avoid loading state
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-      },
-    };
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-
-    // Wait for the form to be visible
-    expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
-    ).toBeInTheDocument();
-
-    expect(props.onHide).not.toHaveBeenCalled();
-    expect(props.onSubmit).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-      // Just check that onSubmit was called with the basic fields
-      const submitCall = props.onSubmit.mock.calls[0][0];
-      expect(submitCall.id).toBe(26);
-      expect(submitCall.title).toBe('COVID Vaccine Dashboard');
-      // certifiedBy and certificationDetails come from dashboardInfo, not props
-    });
-  });
-
-  test('preserves certification fields on save without opening Certification section', async () => {
-    const saved = jest.spyOn(dashboardInfoActions, 'dashboardSaveSucceeded');
-    // Accordion Collapse only mounts the active panel, so certifiedBy /
-    // certificationDetails FormItems are unregistered until Certification is
-    // opened. onFinish must use getFieldsValue(true) to read store values for
-    // unregistered fields; otherwise save clears certified_by to null.
-    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
-    put.mockResolvedValue({
-      json: {
-        result: {
-          dashboard_title: 'dashboard_title',
-          slug: 'slug',
-          json_metadata: 'json_metadata',
-          editors: 'editors',
-        },
-      },
-    } as any);
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-      },
-    };
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-    await screen.findByTestId('dashboard-edit-properties-form');
-
-    // Only General information fields are mounted; Certification inputs are not.
-    expect(screen.getAllByRole('textbox')).toHaveLength(3);
-    expect(screen.queryByText('Certified by')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-    });
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    // Just check that onSubmit was called with the basic fields
     const submitCall = props.onSubmit.mock.calls[0][0];
-    expect(submitCall.certifiedBy).toBe('John Doe');
-    expect(submitCall.certificationDetails).toBe('Sample certification');
+    expect(submitCall.id).toBe(26);
+    expect(submitCall.title).toBe("COVID Vaccine Dashboard");
+    // certifiedBy and certificationDetails come from dashboardInfo, not props
+  });
+});
 
-    expect(saved).toHaveBeenCalledTimes(1);
-    expect(saved).toHaveBeenCalledWith(props.dashboardId);
-    expect(put).toHaveBeenCalled();
-    const putRequest = put.mock.calls[0][0];
-    expect(typeof putRequest.body).toBe('string');
-    const putBody = JSON.parse(putRequest.body as string);
-    expect(putBody.certified_by).toBe('John Doe');
-    expect(putBody.certification_details).toBe('Sample certification');
+test("preserves certification fields on save without opening Certification section", async () => {
+  const saved = jest.spyOn(dashboardInfoActions, "dashboardSaveSucceeded");
+  // Accordion Collapse only mounts the active panel, so certifiedBy /
+  // certificationDetails FormItems are unregistered until Certification is
+  // opened. onFinish must use getFieldsValue(true) to read store values for
+  // unregistered fields; otherwise save clears certified_by to null.
+  const put = jest.spyOn(SupersetCore.SupersetClient, "put");
+  put.mockResolvedValue({
+    json: {
+      result: {
+        dashboard_title: "dashboard_title",
+        slug: "slug",
+        json_metadata: "json_metadata",
+        editors: "editors",
+      },
+    },
+  } as any);
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
+  });
+  await screen.findByTestId("dashboard-edit-properties-form");
+
+  // Only General information fields are mounted; Certification inputs are not.
+  expect(screen.getAllByRole("textbox")).toHaveLength(3);
+  expect(screen.queryByText("Certified by")).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+  });
+  const submitCall = props.onSubmit.mock.calls[0][0];
+  expect(submitCall.certifiedBy).toBe("John Doe");
+  expect(submitCall.certificationDetails).toBe("Sample certification");
+
+  expect(saved).toHaveBeenCalledTimes(1);
+  expect(saved).toHaveBeenCalledWith(props.dashboardId);
+  expect(put).toHaveBeenCalled();
+  const putRequest = put.mock.calls[0][0];
+  expect(typeof putRequest.body).toBe("string");
+  const putBody = JSON.parse(putRequest.body as string);
+  expect(putBody.certified_by).toBe("John Doe");
+  expect(putBody.certification_details).toBe("Sample certification");
+});
+
+test("submitting with onlyApply:true", async () => {
+  const saved = jest.spyOn(dashboardInfoActions, "dashboardSaveSucceeded");
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  props.onlyApply = true;
+  // Pass dashboardInfo to avoid loading state
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
   });
 
-  test('submitting with onlyApply:true', async () => {
-    const saved = jest.spyOn(dashboardInfoActions, 'dashboardSaveSucceeded');
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    props.onlyApply = true;
-    // Pass dashboardInfo to avoid loading state
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-      },
-    };
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
+  // Wait for the form to be visible
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
 
-    // Wait for the form to be visible
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.onSubmit).not.toHaveBeenCalled();
+
+  await userEvent.click(screen.getByRole("button", { name: "Apply" }));
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+  });
+  expect(saved).not.toHaveBeenCalled();
+});
+
+test("passes full theme object with json_data to onSubmit when theme is selected", async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  props.onlyApply = true;
+  // Dashboard has theme id=1, which exists in the fetched themes list
+  const propsWithTheme = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      theme: { id: 1, theme_name: "Test Theme 1" },
+    },
+  };
+  render(<PropertiesModal {...propsWithTheme} />, {
+    useRedux: true,
+  });
+
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Apply" }));
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    const submitCall = props.onSubmit.mock.calls[0][0];
+    // Full theme object (including json_data) should be passed, not just the ID
+    expect(submitCall.theme).toEqual({
+      id: 1,
+      theme_name: "Test Theme 1",
+      json_data: '{"token":{"colorPrimary":"#ff0000"}}',
+    });
+    // themeId removed — derived from theme.id at the save callsite
+    expect(submitCall).not.toHaveProperty("themeId");
+  });
+});
+
+test("does not clear theme when selected theme is missing from fetched options", async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  props.onlyApply = true;
+  // Dashboard has theme id=99, but the theme fetch returns ids 1 and 2
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      theme: { id: 99, theme_name: "Deleted Theme" },
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
+  });
+
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Apply" }));
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    const submitCall = props.onSubmit.mock.calls[0][0];
+    // theme should be undefined (not null) so Redux is not overwritten
+    expect(submitCall.theme).toBeUndefined();
+    // themeId removed — derived from theme.id at the save callsite
+    expect(submitCall).not.toHaveProperty("themeId");
+  });
+});
+
+test("fetches system themes so they are assignable to a dashboard (#37289)", async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  render(<PropertiesModal {...props} />, {
+    useRedux: true,
+  });
+
+  expect(
+    await screen.findByTestId("dashboard-edit-properties-form"),
+  ).toBeInTheDocument();
+
+  await waitFor(() => {
     expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
+      fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/).length,
+    ).toBeGreaterThan(0);
+  });
+
+  const themeCalls = fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/);
+  const requestedUrl = themeCalls[themeCalls.length - 1].url;
+  // THEME_DEFAULT/THEME_DARK are stored as Theme rows with is_system=true
+  // (see SeedSystemThemesCommand); they must remain assignable to a
+  // dashboard, so the fetch must not filter them out via an is_system
+  // filter (the column may still be requested/displayed).
+  expect(requestedUrl).not.toContain("col:is_system");
+});
+
+test('Empty "Certified by" should clear "Certification details"', async () => {
+  const props = createProps();
+  const noCertifiedByProps = {
+    ...props,
+    certified_by: "",
+  };
+  render(<PropertiesModal {...noCertifiedByProps} />, {
+    useRedux: true,
+  });
+
+  await screen.findByTestId("dashboard-edit-properties-form");
+
+  // Expand the Certification section first to access certification details
+  const certificationPanel = screen
+    .getByText("Certification")
+    .closest('[role="button"]');
+  if (certificationPanel) {
+    await userEvent.click(certificationPanel);
+  }
+
+  await waitFor(() => {
+    // Just check that there are textboxes now (certified by and certification details)
+    const textboxes = screen.getAllByRole("textbox");
+    expect(textboxes.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+test("should not run validation while data is loading", async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+
+  // Don't pass dashboardInfo to trigger fetch behavior
+  const { rerender } = render(<PropertiesModal {...props} show={false} />, {
+    useRedux: true,
+  });
+
+  const getSpy = jest.spyOn(SupersetCore.SupersetClient, "get");
+  let resolveFetch: any;
+  const fetchPromise = new Promise((resolve) => {
+    resolveFetch = resolve;
+  });
+
+  getSpy.mockReturnValue(fetchPromise as any);
+
+  rerender(<PropertiesModal {...props} show />);
+
+  // Allow time for validation hooks to run (they shouldn't during loading)
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  expect(
+    screen.queryByTestId("dashboard-edit-properties-form"),
+  ).not.toBeInTheDocument();
+
+  resolveFetch({
+    json: {
+      result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
+    },
+  });
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId("dashboard-edit-properties-form"),
     ).toBeInTheDocument();
-
-    expect(props.onHide).not.toHaveBeenCalled();
-    expect(props.onSubmit).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-    });
-    expect(saved).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
   });
 
-  test('passes full theme object with json_data to onSubmit when theme is selected', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    props.onlyApply = true;
-    // Dashboard has theme id=1, which exists in the fetched themes list
-    const propsWithTheme = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-        theme: { id: 1, theme_name: 'Test Theme 1' },
-      },
-    };
-    render(<PropertiesModal {...propsWithTheme} />, {
-      useRedux: true,
-    });
+  getSpy.mockRestore();
+});
 
+test("should run validation when data is ready", async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+
+  // Pass dashboardInfo to skip loading state - data is immediately ready
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
+  });
+
+  await waitFor(() => {
     expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
+      screen.getByTestId("dashboard-edit-properties-form"),
     ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-      const submitCall = props.onSubmit.mock.calls[0][0];
-      // Full theme object (including json_data) should be passed, not just the ID
-      expect(submitCall.theme).toEqual({
-        id: 1,
-        theme_name: 'Test Theme 1',
-        json_data: '{"token":{"colorPrimary":"#ff0000"}}',
-      });
-      // themeId removed — derived from theme.id at the save callsite
-      expect(submitCall).not.toHaveProperty('themeId');
-    });
   });
 
-  test('does not clear theme when selected theme is missing from fetched options', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    props.onlyApply = true;
-    // Dashboard has theme id=99, but the theme fetch returns ids 1 and 2
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-        theme: { id: 99, theme_name: 'Deleted Theme' },
-      },
-    };
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
+  expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+});
 
+test("should trigger validation on field changes when data is ready", async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
+    useRedux: true,
+  });
+
+  await waitFor(() => {
     expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
+      screen.getByTestId("dashboard-edit-properties-form"),
     ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
-    await waitFor(() => {
-      expect(props.onSubmit).toHaveBeenCalledTimes(1);
-      const submitCall = props.onSubmit.mock.calls[0][0];
-      // theme should be undefined (not null) so Redux is not overwritten
-      expect(submitCall.theme).toBeUndefined();
-      // themeId removed — derived from theme.id at the save callsite
-      expect(submitCall).not.toHaveProperty('themeId');
-    });
   });
 
-  test('fetches system themes so they are assignable to a dashboard (#37289)', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-    render(<PropertiesModal {...props} />, {
-      useRedux: true,
-    });
+  const titleInput = screen.getAllByRole("textbox")[0];
 
-    expect(
-      await screen.findByTestId('dashboard-edit-properties-form'),
-    ).toBeInTheDocument();
+  // Clear to trigger validation error
+  await userEvent.clear(titleInput);
+  await waitFor(
+    () => {
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    },
+    { timeout: 1000 },
+  );
 
-    await waitFor(() => {
-      expect(
-        fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/).length,
-      ).toBeGreaterThan(0);
-    });
-
-    const themeCalls = fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/);
-    const requestedUrl = themeCalls[themeCalls.length - 1].url;
-    // THEME_DEFAULT/THEME_DARK are stored as Theme rows with is_system=true
-    // (see SeedSystemThemesCommand); they must remain assignable to a
-    // dashboard, so the fetch must not filter them out via an is_system
-    // filter (the column may still be requested/displayed).
-    expect(requestedUrl).not.toContain('col:is_system');
-  });
-
-  test('Empty "Certified by" should clear "Certification details"', async () => {
-    const props = createProps();
-    const noCertifiedByProps = {
-      ...props,
-      certified_by: '',
-    };
-    render(<PropertiesModal {...noCertifiedByProps} />, {
-      useRedux: true,
-    });
-
-    await screen.findByTestId('dashboard-edit-properties-form');
-
-    // Expand the Certification section first to access certification details
-    const certificationPanel = screen
-      .getByText('Certification')
-      .closest('[role="button"]');
-    if (certificationPanel) {
-      await userEvent.click(certificationPanel);
-    }
-
-    await waitFor(() => {
-      // Just check that there are textboxes now (certified by and certification details)
-      const textboxes = screen.getAllByRole('textbox');
-      expect(textboxes.length).toBeGreaterThanOrEqual(2);
-    });
-  });
-
-  test('should not run validation while data is loading', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-
-    // Don't pass dashboardInfo to trigger fetch behavior
-    const { rerender } = render(<PropertiesModal {...props} show={false} />, {
-      useRedux: true,
-    });
-
-    const getSpy = jest.spyOn(SupersetCore.SupersetClient, 'get');
-    let resolveFetch: any;
-    const fetchPromise = new Promise(resolve => {
-      resolveFetch = resolve;
-    });
-
-    getSpy.mockReturnValue(fetchPromise as any);
-
-    rerender(<PropertiesModal {...props} show />);
-
-    // Allow time for validation hooks to run (they shouldn't during loading)
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    expect(
-      screen.queryByTestId('dashboard-edit-properties-form'),
-    ).not.toBeInTheDocument();
-
-    resolveFetch({
-      json: {
-        result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
-      },
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId('dashboard-edit-properties-form'),
-      ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
-    });
-
-    getSpy.mockRestore();
-  });
-
-  test('should run validation when data is ready', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-
-    // Pass dashboardInfo to skip loading state - data is immediately ready
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-      },
-    };
-
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId('dashboard-edit-properties-form'),
-      ).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
-  });
-
-  test('should trigger validation on field changes when data is ready', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-    const props = createProps();
-
-    const propsWithDashboardInfo = {
-      ...props,
-      dashboardInfo: {
-        ...dashboardInfo,
-        json_metadata: mockedJsonMetadata,
-      },
-    };
-
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId('dashboard-edit-properties-form'),
-      ).toBeInTheDocument();
-    });
-
-    const titleInput = screen.getAllByRole('textbox')[0];
-
-    // Clear to trigger validation error
-    await userEvent.clear(titleInput);
-    await waitFor(
-      () => {
-        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-      },
-      { timeout: 1000 },
-    );
-
-    // Re-enter valid title to clear error
-    await userEvent.type(titleInput, 'New Dashboard Title');
-    await waitFor(
-      () => {
-        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
-      },
-      { timeout: 1000 },
-    );
-  });
+  // Re-enter valid title to clear error
+  await userEvent.type(titleInput, "New Dashboard Title");
+  await waitFor(
+    () => {
+      expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+    },
+    { timeout: 1000 },
+  );
 });
