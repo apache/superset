@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from "spec/helpers/testing-library";
-import Header, { DEFAULT_TITLE } from "src/features/datasets/AddDataset/Header";
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import Header, { DEFAULT_TITLE } from 'src/features/datasets/AddDataset/Header';
 
 const mockSetDataset = jest.fn();
 
 const waitForRender = (props?: any) =>
   waitFor(() => render(<Header setDataset={mockSetDataset} {...props} />));
 
-test("renders a blank state Header", async () => {
+test('renders a blank state Header', async () => {
   await waitForRender();
 
   const datasetName = screen.getByText(/new dataset/i);
@@ -39,11 +39,11 @@ test('displays "New dataset" when a table is not selected', async () => {
   expect(datasetName.innerHTML).toBe(DEFAULT_TITLE);
 });
 
-test("displays table name when a table is selected", async () => {
+test('displays table name when a table is selected', async () => {
   // The schema and table name are passed in through props once selected
-  await waitForRender({ schema: "testSchema", title: "testTable" });
+  await waitForRender({ schema: 'testSchema', title: 'testTable' });
 
   const datasetName = screen.getByText(/testtable/i);
 
-  expect(datasetName.innerHTML).toBe("testTable");
+  expect(datasetName.innerHTML).toBe('testTable');
 });

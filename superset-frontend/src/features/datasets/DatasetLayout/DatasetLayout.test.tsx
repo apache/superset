@@ -16,28 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from "spec/helpers/testing-library";
-import DatasetLayout from "src/features/datasets/DatasetLayout";
-import Header from "src/features/datasets/AddDataset/Header";
-import LeftPanel from "src/features/datasets/AddDataset/LeftPanel";
-import DatasetPanel from "src/features/datasets/AddDataset/DatasetPanel";
-import DatasetPanelComponent from "src/features/datasets/AddDataset/DatasetPanel/DatasetPanel";
-import RightPanel from "src/features/datasets/AddDataset/RightPanel";
-import Footer from "src/features/datasets/AddDataset/Footer";
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import DatasetLayout from 'src/features/datasets/DatasetLayout';
+import Header from 'src/features/datasets/AddDataset/Header';
+import LeftPanel from 'src/features/datasets/AddDataset/LeftPanel';
+import DatasetPanel from 'src/features/datasets/AddDataset/DatasetPanel';
+import DatasetPanelComponent from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
+import RightPanel from 'src/features/datasets/AddDataset/RightPanel';
+import Footer from 'src/features/datasets/AddDataset/Footer';
 
 const mockHistoryPush = jest.fn();
-jest.mock("react-router-dom", () => ({
-  ...jest.requireActual("react-router-dom"),
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
   useHistory: () => ({
     push: mockHistoryPush,
   }),
 }));
 
-test("renders nothing when no components are passed in", () => {
+test('renders nothing when no components are passed in', () => {
   render(<DatasetLayout />, { useRouter: true });
-  const layoutWrapper = screen.getByTestId("dataset-layout-wrapper");
+  const layoutWrapper = screen.getByTestId('dataset-layout-wrapper');
 
-  expect(layoutWrapper).toHaveTextContent("");
+  expect(layoutWrapper).toHaveTextContent('');
 });
 
 const mockSetDataset = jest.fn();
@@ -45,13 +45,13 @@ const mockSetDataset = jest.fn();
 const waitForRender = () =>
   waitFor(() => render(<Header setDataset={mockSetDataset} />));
 
-test("renders a Header when passed in", async () => {
+test('renders a Header when passed in', async () => {
   await waitForRender();
 
   expect(screen.getByText(/new dataset/i)).toBeVisible();
 });
 
-test("renders a LeftPanel when passed in", async () => {
+test('renders a LeftPanel when passed in', async () => {
   render(<DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />, {
     useRedux: true,
     useRouter: true,
@@ -63,25 +63,25 @@ test("renders a LeftPanel when passed in", async () => {
   expect(LeftPanel).toBeTruthy();
 });
 
-test("renders a DatasetPanel when passed in", () => {
+test('renders a DatasetPanel when passed in', () => {
   render(<DatasetLayout datasetPanel={<DatasetPanel />} />, {
     useRouter: true,
   });
 
-  const blankDatasetImg = screen.getByRole("img", { name: /empty/i });
+  const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
   const blankDatasetTitle = screen.getByText(/select dataset source/i);
 
   expect(blankDatasetImg).toBeVisible();
   expect(blankDatasetTitle).toBeVisible();
 });
 
-test("renders a RightPanel when passed in", () => {
+test('renders a RightPanel when passed in', () => {
   render(<DatasetLayout rightPanel={RightPanel()} />, { useRouter: true });
 
   expect(screen.getByText(/right panel/i)).toBeVisible();
 });
 
-test("renders a Footer when passed in", () => {
+test('renders a Footer when passed in', () => {
   render(<DatasetLayout footer={<Footer url="" />} />, {
     useRedux: true,
     useRouter: true,
@@ -90,7 +90,7 @@ test("renders a Footer when passed in", () => {
   expect(screen.getByText(/Cancel/i)).toBeVisible();
 });
 
-test("layout has proper flex constraints to prevent viewport overflow", () => {
+test('layout has proper flex constraints to prevent viewport overflow', () => {
   const { container } = render(
     <DatasetLayout
       leftPanel={<LeftPanel setDataset={() => null} />}
@@ -115,17 +115,17 @@ test("layout has proper flex constraints to prevent viewport overflow", () => {
   if (outerRow) {
     const styles = window.getComputedStyle(outerRow);
     // Verify the critical flex properties that prevent viewport overflow
-    expect(styles.flexGrow).toBe("1");
-    expect(styles.minHeight).toBe("0");
-    expect(styles.display).toBe("flex");
-    expect(styles.flexDirection).toBe("row");
+    expect(styles.flexGrow).toBe('1');
+    expect(styles.minHeight).toBe('0');
+    expect(styles.display).toBe('flex');
+    expect(styles.flexDirection).toBe('row');
   }
 });
 
-test("layout maintains viewport constraints with large content", () => {
+test('layout maintains viewport constraints with large content', () => {
   const manyColumns = Array.from({ length: 100 }, (_, i) => ({
     name: `column_${i}`,
-    type: "VARCHAR",
+    type: 'VARCHAR',
   }));
 
   const { container } = render(

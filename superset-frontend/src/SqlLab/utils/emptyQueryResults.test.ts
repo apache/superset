@@ -16,39 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { QueryResponse } from "@superset-ui/core";
+import type { QueryResponse } from '@superset-ui/core';
 import {
   emptyQueryResults,
   clearQueryEditors,
-} from "src/SqlLab/utils/reduxStateToLocalStorageHelper";
+} from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
 import {
   KB_STORAGE,
   BYTES_PER_CHAR,
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
   LOCALSTORAGE_MAX_QUERY_RESULTS_KB,
-} from "src/SqlLab/constants";
-import { queries, defaultQueryEditor } from "../fixtures";
+} from 'src/SqlLab/constants';
+import { queries, defaultQueryEditor } from '../fixtures';
 
 const queriesObj: Record<string, any> = {};
 beforeEach(() => {
-  queries.forEach((q) => {
+  queries.forEach(q => {
     queriesObj[q.id] = q;
   });
 });
 
-test("should empty query.results if query.startDttm is > LOCALSTORAGE_MAX_QUERY_AGE_MS", () => {
+test('should empty query.results if query.startDttm is > LOCALSTORAGE_MAX_QUERY_AGE_MS', () => {
   // make sure sample data contains old query
   const oldQuery = queries[0];
   const { id, startDttm } = oldQuery;
   expect(Date.now() - startDttm).toBeGreaterThan(LOCALSTORAGE_MAX_QUERY_AGE_MS);
-  expect(Object.keys(oldQuery.results || {})).toContain("data");
+  expect(Object.keys(oldQuery.results || {})).toContain('data');
 
   const emptiedQuery = emptyQueryResults(queriesObj);
   expect(emptiedQuery[id].startDttm).toBe(startDttm);
   expect(emptiedQuery[id].results).toEqual({});
 });
 
-test("should empty query.results if query,.results size is greater than LOCALSTORAGE_MAX_QUERY_RESULTS_KB", () => {
+test('should empty query.results if query,.results size is greater than LOCALSTORAGE_MAX_QUERY_RESULTS_KB', () => {
   const reasonableSizeQuery = {
     ...queries[0],
     startDttm: Date.now(),
@@ -60,14 +60,14 @@ test("should empty query.results if query,.results size is greater than LOCALSTO
     results: {
       data: [
         {
-          jsonValue: `{"str":"${"0".repeat(
+          jsonValue: `{"str":"${'0'.repeat(
             (LOCALSTORAGE_MAX_QUERY_RESULTS_KB / BYTES_PER_CHAR) * KB_STORAGE,
           )}"}`,
         },
       ],
     },
   } as unknown as QueryResponse;
-  expect(Object.keys(largeQuery.results)).toContain("data");
+  expect(Object.keys(largeQuery.results)).toContain('data');
   const emptiedQuery = emptyQueryResults({
     [reasonableSizeQuery.id]: reasonableSizeQuery,
     [largeQuery.id]: largeQuery,
@@ -78,11 +78,11 @@ test("should empty query.results if query,.results size is greater than LOCALSTO
   );
 });
 
-test("should only return selected keys for query editor", () => {
-  const queryEditors = [{ ...defaultQueryEditor, dummy: "value" }];
-  expect(Object.keys(queryEditors[0])).toContain("dummy");
+test('should only return selected keys for query editor', () => {
+  const queryEditors = [{ ...defaultQueryEditor, dummy: 'value' }];
+  expect(Object.keys(queryEditors[0])).toContain('dummy');
 
   const clearedQueryEditors = clearQueryEditors(queryEditors);
-  expect(Object.keys(clearedQueryEditors[0])).toContain("version");
-  expect(Object.keys(clearedQueryEditors[0])).not.toContain("dummy");
+  expect(Object.keys(clearedQueryEditors[0])).toContain('version');
+  expect(Object.keys(clearedQueryEditors[0])).not.toContain('dummy');
 });

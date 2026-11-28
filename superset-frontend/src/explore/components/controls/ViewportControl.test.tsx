@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import ViewportControl from "src/explore/components/controls/ViewportControl";
-import { render, screen, userEvent } from "spec/helpers/testing-library";
+import ViewportControl from 'src/explore/components/controls/ViewportControl';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 
 const defaultProps = {
   value: {
@@ -27,26 +27,26 @@ const defaultProps = {
     bearing: 0,
     pitch: 0,
   },
-  name: "foo",
-  label: "bar",
+  name: 'foo',
+  label: 'bar',
 };
-const renderedCoordinate = "6° 51' 08.5017\" | 31° 13' 21.5646\"";
+const renderedCoordinate = '6° 51\' 08.5017" | 31° 13\' 21.5646"';
 
 beforeEach(() => {
   render(<ViewportControl {...defaultProps} />);
 });
 
-test("renders a OverlayTrigger if clicked", async () => {
-  expect(screen.getByTestId("foo-header")).toBeInTheDocument(); // Presence of ControlHeader
+test('renders a OverlayTrigger if clicked', async () => {
+  expect(screen.getByTestId('foo-header')).toBeInTheDocument(); // Presence of ControlHeader
   await userEvent.click(screen.getByText(renderedCoordinate));
-  expect(screen.getByText("Viewport")).toBeInTheDocument(); // Presence of Popover
+  expect(screen.getByText('Viewport')).toBeInTheDocument(); // Presence of Popover
 });
 
-test("renders a Popover with 5 TextControl if clicked", async () => {
+test('renders a Popover with 5 TextControl if clicked', async () => {
   await userEvent.click(screen.getByText(renderedCoordinate));
-  expect(screen.queryAllByTestId("inline-name")).toHaveLength(5);
+  expect(screen.queryAllByTestId('inline-name')).toHaveLength(5);
 });
 
-test("renders a summary in the label", () => {
+test('renders a summary in the label', () => {
   expect(screen.getByText(renderedCoordinate)).toBeInTheDocument();
 });

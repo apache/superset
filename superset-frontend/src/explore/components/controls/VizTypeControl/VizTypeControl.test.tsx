@@ -23,8 +23,8 @@ import {
   ChartPlugin,
   Preset,
   VizType,
-} from "@superset-ui/core";
-import { supersetTheme } from "@apache-superset/core/theme";
+} from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   render,
   cleanup,
@@ -32,11 +32,11 @@ import {
   userEvent,
   within,
   waitFor,
-} from "spec/helpers/testing-library";
-import { stateWithoutNativeFilters } from "spec/fixtures/mockStore";
-import { DynamicPluginProvider } from "src/components";
-import { testWithId } from "src/utils/testUtils";
-import TimeTableChartPlugin from "src/visualizations/TimeTable";
+} from 'spec/helpers/testing-library';
+import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
+import { DynamicPluginProvider } from 'src/components';
+import { testWithId } from 'src/utils/testUtils';
+import TimeTableChartPlugin from 'src/visualizations/TimeTable';
 import {
   BigNumberTotalChartPlugin,
   EchartsAreaChartPlugin,
@@ -45,13 +45,13 @@ import {
   EchartsTimeseriesBarChartPlugin,
   EchartsTimeseriesChartPlugin,
   EchartsTimeseriesLineChartPlugin,
-} from "../../../../../plugins/plugin-chart-echarts/src";
-import TableChartPlugin from "../../../../../plugins/plugin-chart-table/src";
-import { MultiChartPlugin } from "../../../../../plugins/preset-chart-deckgl/src";
-import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from "./index";
+} from '../../../../../plugins/plugin-chart-echarts/src';
+import TableChartPlugin from '../../../../../plugins/plugin-chart-table/src';
+import { MultiChartPlugin } from '../../../../../plugins/preset-chart-deckgl/src';
+import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 // Mock scrollIntoView to avoid errors in test environment
-jest.mock("scroll-into-view-if-needed", () => jest.fn());
+jest.mock('scroll-into-view-if-needed', () => jest.fn());
 
 jest.useFakeTimers({ advanceTimers: true });
 
@@ -61,10 +61,10 @@ class FeaturedTestChartPlugin extends ChartPlugin {
   constructor() {
     super({
       metadata: new ChartMetadata({
-        name: "Featured Test Chart",
-        thumbnail: "",
+        name: 'Featured Test Chart',
+        thumbnail: '',
         label: ChartLabel.Featured,
-        tags: ["Featured"],
+        tags: ['Featured'],
       }),
       Chart: () => null,
     });
@@ -74,11 +74,11 @@ class FeaturedTestChartPlugin extends ChartPlugin {
 class MainPreset extends Preset {
   constructor() {
     super({
-      name: "Legacy charts",
+      name: 'Legacy charts',
       plugins: [
         new TableChartPlugin().configure({ key: VizType.Table }),
         new FeaturedTestChartPlugin().configure({
-          key: "featured_test_chart",
+          key: 'featured_test_chart',
         }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,
@@ -100,7 +100,7 @@ class MainPreset extends Preset {
         new EchartsMixedTimeseriesChartPlugin().configure({
           key: VizType.MixedTimeseries,
         }),
-        new MultiChartPlugin().configure({ key: "deck_multi" }),
+        new MultiChartPlugin().configure({ key: 'deck_multi' }),
       ],
     });
   }
@@ -117,11 +117,11 @@ const getTestId = testWithId<string>(VIZ_TYPE_CONTROL_TEST_ID, true);
 
 new MainPreset().register();
 const defaultProps = {
-  description: "",
-  label: "",
-  name: "",
-  value: "",
-  labelType: "primary",
+  description: '',
+  label: '',
+  name: '',
+  value: '',
+  labelType: 'primary',
   onChange: jest.fn(),
   isModalOpenInit: true,
 };
@@ -144,83 +144,83 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test("Fast viz switcher tiles render", async () => {
+test('Fast viz switcher tiles render', async () => {
   const props = {
     ...defaultProps,
     value: VizType.Line,
     isModalOpenInit: false,
   };
   await waitForRenderWrapper(props);
-  expect(screen.getByLabelText("table")).toBeVisible();
-  expect(screen.getByLabelText("big-number-chart-tile")).toBeVisible();
-  expect(screen.getByLabelText("pie-chart")).toBeVisible();
-  expect(screen.getByLabelText("bar-chart")).toBeVisible();
-  expect(screen.getByLabelText("area-chart")).toBeVisible();
-  expect(screen.queryByLabelText("Chart")).not.toBeInTheDocument();
-  expect(screen.queryByLabelText("check-square")).not.toBeInTheDocument();
+  expect(screen.getByLabelText('table')).toBeVisible();
+  expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
+  expect(screen.getByLabelText('pie-chart')).toBeVisible();
+  expect(screen.getByLabelText('bar-chart')).toBeVisible();
+  expect(screen.getByLabelText('area-chart')).toBeVisible();
+  expect(screen.queryByLabelText('Chart')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
   // Multi Chart should NOT appear when other charts are selected
-  expect(screen.queryByLabelText("multiple")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('multiple')).not.toBeInTheDocument();
 
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Line Chart"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Table"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Table'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Big Number"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Big Number'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Pie Chart"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Pie Chart'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Bar Chart"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Bar Chart'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Area Chart"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Area Chart'),
   ).toBeInTheDocument();
   // Multi Chart text should NOT appear when Line Chart is selected
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).queryByText(
-      "deck.gl Multiple Layers",
+    within(screen.getByTestId('fast-viz-switcher')).queryByText(
+      'deck.gl Multiple Layers',
     ),
   ).not.toBeInTheDocument();
 });
 
-test("Multi Chart appears with custom icon when selected", async () => {
+test('Multi Chart appears with custom icon when selected', async () => {
   const props = {
     ...defaultProps,
-    value: "deck_multi",
+    value: 'deck_multi',
     isModalOpenInit: false,
   };
   await waitForRenderWrapper(props);
 
   // Multi Chart icon should be visible when deck_multi is selected
-  expect(screen.getByLabelText("multiple")).toBeVisible();
+  expect(screen.getByLabelText('multiple')).toBeVisible();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText(
-      "deck.gl Multiple Layers",
+    within(screen.getByTestId('fast-viz-switcher')).getByText(
+      'deck.gl Multiple Layers',
     ),
   ).toBeInTheDocument();
   // Should not show the generic check-square icon
-  expect(screen.queryByLabelText("check-square")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
 });
 
-test("Render viz tiles when non-featured chart is selected", async () => {
+test('Render viz tiles when non-featured chart is selected', async () => {
   const props = {
     ...defaultProps,
-    value: "line",
+    value: 'line',
     isModalOpenInit: false,
   };
   await waitForRenderWrapper(props);
 
-  expect(screen.getByLabelText("Chart")).toBeVisible();
+  expect(screen.getByLabelText('Chart')).toBeVisible();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Line Chart"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
   ).toBeVisible();
 });
 
-test("Render viz tiles when non-featured is rendered", async () => {
+test('Render viz tiles when non-featured is rendered', async () => {
   const props = {
     ...defaultProps,
     value: VizType.Sankey,
@@ -241,13 +241,13 @@ test("Render viz tiles when non-featured is rendered", async () => {
     },
   };
   await waitForRenderWrapper(props, state);
-  expect(screen.getByLabelText("check-square")).toBeVisible();
+  expect(screen.getByLabelText('check-square')).toBeVisible();
   expect(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Line Chart"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
   ).toBeVisible();
 });
 
-test("Change viz type on click", async () => {
+test('Change viz type on click', async () => {
   const props = {
     ...defaultProps,
     value: VizType.Line,
@@ -255,104 +255,104 @@ test("Change viz type on click", async () => {
   };
   await waitForRenderWrapper(props);
   await userEvent.click(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Line Chart"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
   );
   expect(props.onChange).not.toHaveBeenCalled();
   await userEvent.click(
-    within(screen.getByTestId("fast-viz-switcher")).getByText("Table"),
+    within(screen.getByTestId('fast-viz-switcher')).getByText('Table'),
   );
-  expect(props.onChange).toHaveBeenCalledWith("table");
+  expect(props.onChange).toHaveBeenCalledWith('table');
 });
 
 test('Open viz gallery modal on "View all charts" click', async () => {
   await waitForRenderWrapper({ ...defaultProps, isModalOpenInit: false });
   expect(
-    screen.queryByText("Select a visualization type"),
+    screen.queryByText('Select a visualization type'),
   ).not.toBeInTheDocument();
-  await userEvent.click(screen.getByText("View all charts"));
+  await userEvent.click(screen.getByText('View all charts'));
   expect(
-    await screen.findByText("Select a visualization type"),
+    await screen.findByText('Select a visualization type'),
   ).toBeInTheDocument();
 });
 
-test("Search visualization type", async () => {
+test('Search visualization type', async () => {
   await waitForRenderWrapper();
 
-  const visualizations = screen.getByTestId(getTestId("viz-row"));
+  const visualizations = screen.getByTestId(getTestId('viz-row'));
 
-  await userEvent.click(screen.getByRole("tab", { name: "All charts" }));
+  await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
   expect(
-    await within(visualizations).findByText("Line Chart"),
+    await within(visualizations).findByText('Line Chart'),
   ).toBeInTheDocument();
 
   // search
   await userEvent.type(
-    screen.getByTestId(getTestId("search-input")),
-    "time series",
+    screen.getByTestId(getTestId('search-input')),
+    'time series',
   );
   expect(
-    await within(visualizations).findByText("Time-series Table"),
+    await within(visualizations).findByText('Time-series Table'),
   ).toBeInTheDocument();
-  expect(within(visualizations).queryByText("Table")).not.toBeInTheDocument();
+  expect(within(visualizations).queryByText('Table')).not.toBeInTheDocument();
   expect(
-    within(visualizations).queryByText("Big Number"),
+    within(visualizations).queryByText('Big Number'),
   ).not.toBeInTheDocument();
   expect(
-    within(visualizations).queryByText("Pie Chart"),
+    within(visualizations).queryByText('Pie Chart'),
   ).not.toBeInTheDocument();
 });
 
-test("anchors the Featured badge to the bottom-right of the thumbnail image", async () => {
+test('anchors the Featured badge to the bottom-right of the thumbnail image', async () => {
   // The badge is positioned relative to the thumbnail image only (not the
   // whole tile), so it must hang off the image's bottom-right corner
   // rather than its top edge.
   await waitForRenderWrapper();
-  await userEvent.click(screen.getByRole("tab", { name: "All charts" }));
+  await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
-  const visualizations = screen.getByTestId(getTestId("viz-row"));
+  const visualizations = screen.getByTestId(getTestId('viz-row'));
   const image = await within(visualizations).findByAltText(
-    "Featured Test Chart",
+    'Featured Test Chart',
   );
   const badgeWrapper = image.nextElementSibling as HTMLElement;
 
-  expect(badgeWrapper).toHaveStyleRule("bottom", "4px");
-  expect(badgeWrapper).toHaveStyleRule("right", "4px");
-  expect(badgeWrapper).not.toHaveStyleRule("top", expect.anything());
-  expect(within(badgeWrapper).getByText("FEATURED")).toBeInTheDocument();
+  expect(badgeWrapper).toHaveStyleRule('bottom', '4px');
+  expect(badgeWrapper).toHaveStyleRule('right', '4px');
+  expect(badgeWrapper).not.toHaveStyleRule('top', expect.anything());
+  expect(within(badgeWrapper).getByText('FEATURED')).toBeInTheDocument();
 });
 
-test("Thumbnail labels expose the full chart name via a title tooltip", async () => {
+test('Thumbnail labels expose the full chart name via a title tooltip', async () => {
   // Labels are clamped to a fixed two-line block so every tile is the same
   // height; the full (possibly truncated) name must stay discoverable through
   // the title attribute.
   await waitForRenderWrapper();
-  await userEvent.click(screen.getByRole("tab", { name: "All charts" }));
+  await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
-  const visualizations = screen.getByTestId(getTestId("viz-row"));
+  const visualizations = screen.getByTestId(getTestId('viz-row'));
   const labels = await within(visualizations).findAllByTestId(
-    getTestId("viztype-label"),
+    getTestId('viztype-label'),
   );
 
   expect(labels.length).toBeGreaterThan(0);
-  labels.forEach((label) => {
-    expect(label).toHaveAttribute("title", label.textContent ?? "");
+  labels.forEach(label => {
+    expect(label).toHaveAttribute('title', label.textContent ?? '');
   });
 });
 
-test("Submit on viz type double-click", async () => {
+test('Submit on viz type double-click', async () => {
   await waitForRenderWrapper();
-  await userEvent.click(screen.getByRole("tab", { name: "All charts" }));
-  const visualizations = screen.getByTestId(getTestId("viz-row"));
-  await userEvent.click(within(visualizations).getByText("Bar Chart"));
+  await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+  const visualizations = screen.getByTestId(getTestId('viz-row'));
+  await userEvent.click(within(visualizations).getByText('Bar Chart'));
 
   expect(defaultProps.onChange).not.toHaveBeenCalled();
-  await userEvent.dblClick(within(visualizations).getByText("Line Chart"));
+  await userEvent.dblClick(within(visualizations).getByText('Line Chart'));
 
   expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.Line);
 });
 
-test("Search input is focused when modal opens", async () => {
+test('Search input is focused when modal opens', async () => {
   // Mock the focus method to track if it was called
   const focusSpy = jest.fn();
   const originalFocus = HTMLInputElement.prototype.focus;
@@ -360,7 +360,7 @@ test("Search input is focused when modal opens", async () => {
 
   await waitForRenderWrapper();
 
-  const searchInput = screen.getByTestId(getTestId("search-input"));
+  const searchInput = screen.getByTestId(getTestId('search-input'));
 
   // Verify that focus() was called on the search input
   expect(focusSpy).toHaveBeenCalled();
@@ -370,27 +370,27 @@ test("Search input is focused when modal opens", async () => {
   HTMLInputElement.prototype.focus = originalFocus;
 });
 
-test("Navigate categories and select visualization type", async () => {
+test('Navigate categories and select visualization type', async () => {
   await waitForRenderWrapper();
 
-  const visualizations = screen.getByTestId(getTestId("viz-row"));
+  const visualizations = screen.getByTestId(getTestId('viz-row'));
 
   // Click on the "KPI" category button as per the original Cypress test
-  const kpiTab = screen.getByRole("tab", { name: "KPI" });
+  const kpiTab = screen.getByRole('tab', { name: 'KPI' });
   expect(kpiTab).toBeInTheDocument();
   await userEvent.click(kpiTab);
 
   // Verify KPI category charts are shown
   await waitFor(() => {
-    expect(within(visualizations).getByText("Big Number")).toBeInTheDocument();
+    expect(within(visualizations).getByText('Big Number')).toBeInTheDocument();
   });
 
   // Select Big Number chart type as per original Cypress test
-  const bigNumberChart = within(visualizations).getByText("Big Number");
+  const bigNumberChart = within(visualizations).getByText('Big Number');
   await userEvent.click(bigNumberChart);
 
   // Click the Select button to confirm selection
-  const selectButton = screen.getByText("Select");
+  const selectButton = screen.getByText('Select');
   expect(selectButton).toBeInTheDocument();
   await userEvent.click(selectButton);
 
@@ -398,41 +398,41 @@ test("Navigate categories and select visualization type", async () => {
   expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.BigNumberTotal);
 });
 
-test("Handle category switching between different chart types", async () => {
+test('Handle category switching between different chart types', async () => {
   await waitForRenderWrapper();
 
-  const visualizations = screen.getByTestId(getTestId("viz-row"));
+  const visualizations = screen.getByTestId(getTestId('viz-row'));
 
   // Start with All charts
-  await userEvent.click(screen.getByRole("tab", { name: "All charts" }));
+  await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
   await waitFor(() => {
-    expect(within(visualizations).getByText("Line Chart")).toBeInTheDocument();
+    expect(within(visualizations).getByText('Line Chart')).toBeInTheDocument();
   });
 
   // Switch to KPI category
-  await userEvent.click(screen.getByRole("tab", { name: "KPI" }));
+  await userEvent.click(screen.getByRole('tab', { name: 'KPI' }));
   await waitFor(() => {
-    expect(within(visualizations).getByText("Big Number")).toBeInTheDocument();
+    expect(within(visualizations).getByText('Big Number')).toBeInTheDocument();
     // Line Chart should not be visible in KPI category
     expect(
-      within(visualizations).queryByText("Line Chart"),
+      within(visualizations).queryByText('Line Chart'),
     ).not.toBeInTheDocument();
   });
 
   // Switch back to All charts
-  await userEvent.click(screen.getByRole("tab", { name: "All charts" }));
+  await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
   await waitFor(() => {
-    expect(within(visualizations).getByText("Line Chart")).toBeInTheDocument();
+    expect(within(visualizations).getByText('Line Chart')).toBeInTheDocument();
     // Should still see Big Number since it's part of all charts
-    expect(within(visualizations).getByText("Big Number")).toBeInTheDocument();
+    expect(within(visualizations).getByText('Big Number')).toBeInTheDocument();
   });
 });
 
-test("Category tabs show a visible keyboard focus ring", async () => {
+test('Category tabs show a visible keyboard focus ring', async () => {
   await waitForRenderWrapper();
-  expect(screen.getByRole("tab", { name: "All charts" })).toHaveStyleRule(
-    "outline",
+  expect(screen.getByRole('tab', { name: 'All charts' })).toHaveStyleRule(
+    'outline',
     `2px solid ${supersetTheme.colorPrimary}`,
-    { target: ":focus-visible" },
+    { target: ':focus-visible' },
   );
 });

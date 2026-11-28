@@ -21,14 +21,14 @@ import {
   render,
   waitFor,
   userEvent,
-} from "spec/helpers/testing-library";
-import { setupAGGridModules } from "@superset-ui/core/components/ThemedAgGridReact";
-import { getChartDataRequest } from "src/components/Chart/chartAction";
-import { ResultsPaneOnDashboard } from "../components";
-import { createResultsPaneOnDashboardProps } from "./fixture";
+} from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { ResultsPaneOnDashboard } from '../components';
+import { createResultsPaneOnDashboardProps } from './fixture';
 
 // Mocked so each test can assert whether the results branch hit the network.
-jest.mock("src/components/Chart/chartAction", () => ({
+jest.mock('src/components/Chart/chartAction', () => ({
   getChartDataRequest: jest.fn(),
 }));
 
@@ -42,14 +42,14 @@ beforeEach(() => {
   mockedGetChartDataRequest.mockReset();
 });
 
-test("reuses queriesResponse from Redux and skips the results API call (v1 charts)", async () => {
+test('reuses queriesResponse from Redux and skips the results API call (v1 charts)', async () => {
   const props = createResultsPaneOnDashboardProps({
     sliceId: 201,
     queriesResponse: [
       {
-        colnames: ["genre"],
+        colnames: ['genre'],
         coltypes: [1],
-        data: [{ genre: "Action" }, { genre: "Horror" }],
+        data: [{ genre: 'Action' }, { genre: 'Horror' }],
         rowcount: 2,
       },
     ],
@@ -57,19 +57,19 @@ test("reuses queriesResponse from Redux and skips the results API call (v1 chart
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  expect(await screen.findByText("Action")).toBeVisible();
-  expect(screen.getByText("Horror")).toBeVisible();
+  expect(await screen.findByText('Action')).toBeVisible();
+  expect(screen.getByText('Horror')).toBeVisible();
   expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
 });
 
-test("falls back to the results API for legacy charts without a typed queriesResponse", async () => {
+test('falls back to the results API for legacy charts without a typed queriesResponse', async () => {
   mockedGetChartDataRequest.mockResolvedValue({
     json: {
       result: [
         {
-          colnames: ["genre"],
+          colnames: ['genre'],
           coltypes: [1],
-          data: [{ genre: "Drama" }],
+          data: [{ genre: 'Drama' }],
           rowcount: 1,
         },
       ],
@@ -79,18 +79,18 @@ test("falls back to the results API for legacy charts without a typed queriesRes
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  expect(await screen.findByText("Drama")).toBeVisible();
+  expect(await screen.findByText('Drama')).toBeVisible();
   expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
 });
 
-test("falls back to the results API when queriesResponse has no colnames", async () => {
+test('falls back to the results API when queriesResponse has no colnames', async () => {
   mockedGetChartDataRequest.mockResolvedValue({
     json: {
       result: [
         {
-          colnames: ["genre"],
+          colnames: ['genre'],
           coltypes: [1],
-          data: [{ genre: "Thriller" }],
+          data: [{ genre: 'Thriller' }],
           rowcount: 1,
         },
       ],
@@ -98,23 +98,23 @@ test("falls back to the results API when queriesResponse has no colnames", async
   });
   const props = createResultsPaneOnDashboardProps({
     sliceId: 203,
-    queriesResponse: [{ data: [{ genre: "ignored" }] }],
+    queriesResponse: [{ data: [{ genre: 'ignored' }] }],
   });
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  expect(await screen.findByText("Thriller")).toBeVisible();
+  expect(await screen.findByText('Thriller')).toBeVisible();
   expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
 });
 
-test("falls back to the API when queriesResponse has colnames but not the full v1 shape", async () => {
+test('falls back to the API when queriesResponse has colnames but not the full v1 shape', async () => {
   mockedGetChartDataRequest.mockResolvedValue({
     json: {
       result: [
         {
-          colnames: ["genre"],
+          colnames: ['genre'],
           coltypes: [1],
-          data: [{ genre: "Indie" }],
+          data: [{ genre: 'Indie' }],
           rowcount: 1,
         },
       ],
@@ -123,29 +123,29 @@ test("falls back to the API when queriesResponse has colnames but not the full v
   const props = createResultsPaneOnDashboardProps({
     sliceId: 207,
     // colnames present but coltypes/data missing: not a real v1 result
-    queriesResponse: [{ colnames: ["genre"] }],
+    queriesResponse: [{ colnames: ['genre'] }],
   });
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  expect(await screen.findByText("Indie")).toBeVisible();
+  expect(await screen.findByText('Indie')).toBeVisible();
   expect(mockedGetChartDataRequest).toHaveBeenCalledTimes(1);
 });
 
-test("reuse path honors the effective row limit (slices Redux data, no extra query)", async () => {
+test('reuse path honors the effective row limit (slices Redux data, no extra query)', async () => {
   const props = createResultsPaneOnDashboardProps({
     sliceId: 204,
     rowLimit: 2,
     queriesResponse: [
       {
-        colnames: ["genre"],
+        colnames: ['genre'],
         coltypes: [1],
         data: [
-          { genre: "Action" },
-          { genre: "Horror" },
-          { genre: "Comedy" },
-          { genre: "Drama" },
-          { genre: "Sci-Fi" },
+          { genre: 'Action' },
+          { genre: 'Horror' },
+          { genre: 'Comedy' },
+          { genre: 'Drama' },
+          { genre: 'Sci-Fi' },
         ],
         rowcount: 5,
       },
@@ -154,16 +154,16 @@ test("reuse path honors the effective row limit (slices Redux data, no extra que
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  expect(await screen.findByText("Action")).toBeVisible();
-  expect(screen.getByText("Horror")).toBeVisible();
-  expect(screen.queryByText("Comedy")).not.toBeInTheDocument();
-  expect(screen.queryByText("Sci-Fi")).not.toBeInTheDocument();
-  expect(screen.getByText("2 rows")).toBeVisible();
+  expect(await screen.findByText('Action')).toBeVisible();
+  expect(screen.getByText('Horror')).toBeVisible();
+  expect(screen.queryByText('Comedy')).not.toBeInTheDocument();
+  expect(screen.queryByText('Sci-Fi')).not.toBeInTheDocument();
+  expect(screen.getByText('2 rows')).toBeVisible();
   expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
 
-  await userEvent.hover(screen.getByText("2 rows"));
-  expect(await screen.findByRole("tooltip")).toHaveTextContent(
-    "The row limit set for the chart was reached",
+  await userEvent.hover(screen.getByText('2 rows'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    'The row limit set for the chart was reached',
   );
 });
 
@@ -175,7 +175,7 @@ test("warns about this pane's own row limit, not the chart's, when the pane's se
     rowLimit: 2000,
     queriesResponse: [
       {
-        colnames: ["genre"],
+        colnames: ['genre'],
         coltypes: [1],
         data: Array.from({ length: 1500 }, (_, i) => ({
           genre: `genre-${i}`,
@@ -187,40 +187,40 @@ test("warns about this pane's own row limit, not the chart's, when the pane's se
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  const rowCountLabel = await screen.findByTestId("row-count-label");
-  expect(rowCountLabel).toHaveTextContent("1k rows");
+  const rowCountLabel = await screen.findByTestId('row-count-label');
+  expect(rowCountLabel).toHaveTextContent('1k rows');
 
   await userEvent.hover(rowCountLabel);
-  const tooltip = await screen.findByRole("tooltip");
+  const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent(
-    "The row limit selected for this pane was reached",
+    'The row limit selected for this pane was reached',
   );
-  expect(tooltip).not.toHaveTextContent("for the chart");
+  expect(tooltip).not.toHaveTextContent('for the chart');
 });
 
-test("renders an empty (0 rows) result from reused data without an API call", async () => {
+test('renders an empty (0 rows) result from reused data without an API call', async () => {
   const props = createResultsPaneOnDashboardProps({
     sliceId: 205,
     queriesResponse: [
-      { colnames: ["genre"], coltypes: [1], data: [], rowcount: 0 },
+      { colnames: ['genre'], coltypes: [1], data: [], rowcount: 0 },
     ],
   });
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  expect(await screen.findByText("0 rows")).toBeVisible();
+  expect(await screen.findByText('0 rows')).toBeVisible();
   expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
 });
 
-test("clears the force-query flag when reusing Redux data", async () => {
+test('clears the force-query flag when reusing Redux data', async () => {
   const props = createResultsPaneOnDashboardProps({
     sliceId: 206,
     queryForce: true,
     queriesResponse: [
       {
-        colnames: ["genre"],
+        colnames: ['genre'],
         coltypes: [1],
-        data: [{ genre: "Action" }],
+        data: [{ genre: 'Action' }],
         rowcount: 1,
       },
     ],
@@ -235,20 +235,20 @@ test("clears the force-query flag when reusing Redux data", async () => {
   expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
 });
 
-test("preserves multiline formatting in results errors", async () => {
+test('preserves multiline formatting in results errors', async () => {
   mockedGetChartDataRequest.mockRejectedValue(
-    new Error("Query failed\nCheck the datasource"),
+    new Error('Query failed\nCheck the datasource'),
   );
   const props = createResultsPaneOnDashboardProps({ sliceId: 208 });
 
   render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
 
-  expect(await screen.findByText("Failed to load results")).toBeVisible();
+  expect(await screen.findByText('Failed to load results')).toBeVisible();
   const errorDescription = screen.getByText(
-    "Query failed Check the datasource",
+    'Query failed Check the datasource',
   );
   expect(errorDescription.textContent).toBe(
-    "Query failed\nCheck the datasource",
+    'Query failed\nCheck the datasource',
   );
-  expect(errorDescription).toHaveStyle({ whiteSpace: "pre-wrap" });
+  expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
 });

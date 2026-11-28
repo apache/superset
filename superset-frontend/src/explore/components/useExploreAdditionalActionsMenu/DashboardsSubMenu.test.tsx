@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from "spec/helpers/testing-library";
-import type { MenuItemType } from "@superset-ui/core/components";
-import { useDashboardsMenuItems } from "./DashboardsSubMenu";
-import { SEARCH_THRESHOLD } from "./index";
+import { render, screen } from 'spec/helpers/testing-library';
+import type { MenuItemType } from '@superset-ui/core/components';
+import { useDashboardsMenuItems } from './DashboardsSubMenu';
+import { SEARCH_THRESHOLD } from './index';
 
 const TestDashboardsMenuItems = ({
   chartId,
@@ -37,7 +37,7 @@ const TestDashboardsMenuItems = ({
   }) as MenuItemType[];
   return (
     <div data-test="menu-items">
-      {menuItems.map((item) => (
+      {menuItems.map(item => (
         <div key={item.key} data-test={`menu-item-${item!.key}`}>
           {item!.label}
           {item!.disabled && <span data-test="disabled">disabled</span>}
@@ -55,11 +55,11 @@ const createDashboards = (numberOfItems: number) => {
   return dashboards;
 };
 
-test("exports SEARCH_THRESHOLD constant", () => {
+test('exports SEARCH_THRESHOLD constant', () => {
   expect(SEARCH_THRESHOLD).toBe(10);
 });
 
-test("renders menu items for dashboards", () => {
+test('renders menu items for dashboards', () => {
   const dashboards = createDashboards(3);
   render(
     <TestDashboardsMenuItems
@@ -70,12 +70,12 @@ test("renders menu items for dashboards", () => {
     { useRouter: true },
   );
 
-  expect(screen.getByTestId("menu-item-1")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-2")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-3")).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-1')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-2')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-3')).toBeInTheDocument();
 });
 
-test("filters dashboards based on search term", () => {
+test('filters dashboards based on search term', () => {
   const dashboards = createDashboards(20);
   render(
     <TestDashboardsMenuItems
@@ -87,13 +87,13 @@ test("filters dashboards based on search term", () => {
   );
 
   // Should show Dashboard 2, Dashboard 12, and Dashboard 20
-  expect(screen.getByTestId("menu-item-2")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-12")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-20")).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-2')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-12')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-20')).toBeInTheDocument();
 
   // Should not show Dashboard 1
-  expect(screen.queryByTestId("menu-item-1")).not.toBeInTheDocument();
-  expect(screen.queryByTestId("menu-item-3")).not.toBeInTheDocument();
+  expect(screen.queryByTestId('menu-item-1')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('menu-item-3')).not.toBeInTheDocument();
 });
 
 test('returns "No results found" when search has no matches', () => {
@@ -107,9 +107,9 @@ test('returns "No results found" when search has no matches', () => {
     { useRouter: true },
   );
 
-  expect(screen.getByTestId("menu-item-no-results")).toBeInTheDocument();
-  expect(screen.getByText("No results found")).toBeInTheDocument();
-  expect(screen.getByTestId("disabled")).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-no-results')).toBeInTheDocument();
+  expect(screen.getByText('No results found')).toBeInTheDocument();
+  expect(screen.getByTestId('disabled')).toBeInTheDocument();
 });
 
 test('returns "None" when no dashboards provided', () => {
@@ -118,25 +118,25 @@ test('returns "None" when no dashboards provided', () => {
     { useRouter: true },
   );
 
-  expect(screen.getByTestId("menu-item-no-dashboards")).toBeInTheDocument();
-  expect(screen.getByText("None")).toBeInTheDocument();
-  expect(screen.getByTestId("disabled")).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-no-dashboards')).toBeInTheDocument();
+  expect(screen.getByText('None')).toBeInTheDocument();
+  expect(screen.getByTestId('disabled')).toBeInTheDocument();
 });
 
-test("handles missing chart ID gracefully", () => {
+test('handles missing chart ID gracefully', () => {
   const dashboards = createDashboards(1);
   render(<TestDashboardsMenuItems dashboards={dashboards} searchTerm="" />, {
     useRouter: true,
   });
 
-  expect(screen.getByTestId("menu-item-1")).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-1')).toBeInTheDocument();
 });
 
-test("case-insensitive search filtering", () => {
+test('case-insensitive search filtering', () => {
   const dashboards = [
-    { id: 1, dashboard_title: "Sales Dashboard" },
-    { id: 2, dashboard_title: "Marketing Dashboard" },
-    { id: 3, dashboard_title: "Analytics Dashboard" },
+    { id: 1, dashboard_title: 'Sales Dashboard' },
+    { id: 2, dashboard_title: 'Marketing Dashboard' },
+    { id: 3, dashboard_title: 'Analytics Dashboard' },
   ];
 
   render(
@@ -148,12 +148,12 @@ test("case-insensitive search filtering", () => {
     { useRouter: true },
   );
 
-  expect(screen.getByTestId("menu-item-1")).toBeInTheDocument();
-  expect(screen.queryByTestId("menu-item-2")).not.toBeInTheDocument();
-  expect(screen.queryByTestId("menu-item-3")).not.toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-1')).toBeInTheDocument();
+  expect(screen.queryByTestId('menu-item-2')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('menu-item-3')).not.toBeInTheDocument();
 });
 
-test("empty search term shows all dashboards", () => {
+test('empty search term shows all dashboards', () => {
   const dashboards = createDashboards(5);
   render(
     <TestDashboardsMenuItems
@@ -164,19 +164,19 @@ test("empty search term shows all dashboards", () => {
     { useRouter: true },
   );
 
-  expect(screen.getByTestId("menu-item-1")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-2")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-3")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-4")).toBeInTheDocument();
-  expect(screen.getByTestId("menu-item-5")).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-1')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-2')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-3')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-4')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-5')).toBeInTheDocument();
 });
 
-test("renders SPA-relative dashboard links without the /superset/ prefix", () => {
+test('renders SPA-relative dashboard links without the /superset/ prefix', () => {
   // Regression: prior to the route_base="" alignment, this menu emitted
   // `to="/superset/dashboard/<id>"` which, combined with the React Router
   // `basename={applicationRoot()}`, produced a doubled `/superset/superset/`
   // path on subdirectory deployments and a backend 404.
-  const dashboards = [{ id: 9, dashboard_title: "Sales Dashboard" }];
+  const dashboards = [{ id: 9, dashboard_title: 'Sales Dashboard' }];
   render(
     <TestDashboardsMenuItems
       chartId={102}
@@ -186,25 +186,25 @@ test("renders SPA-relative dashboard links without the /superset/ prefix", () =>
     { useRouter: true },
   );
 
-  const link = screen.getByRole("link", { name: /Sales Dashboard/ });
-  expect(link).toHaveAttribute("href", "/dashboard/9?focused_chart=102");
+  const link = screen.getByRole('link', { name: /Sales Dashboard/ });
+  expect(link).toHaveAttribute('href', '/dashboard/9?focused_chart=102');
 });
 
-test("omits the focused_chart query when chartId is undefined", () => {
-  const dashboards = [{ id: 9, dashboard_title: "Sales Dashboard" }];
+test('omits the focused_chart query when chartId is undefined', () => {
+  const dashboards = [{ id: 9, dashboard_title: 'Sales Dashboard' }];
   render(<TestDashboardsMenuItems dashboards={dashboards} searchTerm="" />, {
     useRouter: true,
   });
 
-  const link = screen.getByRole("link", { name: /Sales Dashboard/ });
-  expect(link).toHaveAttribute("href", "/dashboard/9");
+  const link = screen.getByRole('link', { name: /Sales Dashboard/ });
+  expect(link).toHaveAttribute('href', '/dashboard/9');
 });
 
-test("partial string search works correctly", () => {
+test('partial string search works correctly', () => {
   const dashboards = [
-    { id: 1, dashboard_title: "Revenue Report" },
-    { id: 2, dashboard_title: "User Engagement" },
-    { id: 3, dashboard_title: "Product Performance" },
+    { id: 1, dashboard_title: 'Revenue Report' },
+    { id: 2, dashboard_title: 'User Engagement' },
+    { id: 3, dashboard_title: 'Product Performance' },
   ];
 
   render(
@@ -216,7 +216,7 @@ test("partial string search works correctly", () => {
     { useRouter: true },
   );
 
-  expect(screen.getByTestId("menu-item-1")).toBeInTheDocument(); // Revenue Report
-  expect(screen.queryByTestId("menu-item-2")).not.toBeInTheDocument();
-  expect(screen.queryByTestId("menu-item-3")).not.toBeInTheDocument();
+  expect(screen.getByTestId('menu-item-1')).toBeInTheDocument(); // Revenue Report
+  expect(screen.queryByTestId('menu-item-2')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('menu-item-3')).not.toBeInTheDocument();
 });

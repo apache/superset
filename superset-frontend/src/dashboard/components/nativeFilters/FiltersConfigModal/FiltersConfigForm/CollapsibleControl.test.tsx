@@ -16,60 +16,60 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from "spec/helpers/testing-library";
-import userEvent from "@testing-library/user-event";
-import "@testing-library/jest-dom";
-import { CollapsibleControl } from "./CollapsibleControl";
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import { CollapsibleControl } from './CollapsibleControl';
 
 const defaultProps = {
-  title: "Test Control",
+  title: 'Test Control',
   children: <div data-test="child-content">Child Content</div>,
 };
 
 const renderCollapsibleControl = (props = {}) =>
   render(<CollapsibleControl {...defaultProps} {...props} />);
 
-test("renders title correctly", () => {
+test('renders title correctly', () => {
   const { getByRole } = renderCollapsibleControl();
-  expect(getByRole("checkbox", { name: /test control/i })).toBeInTheDocument();
+  expect(getByRole('checkbox', { name: /test control/i })).toBeInTheDocument();
 });
 
-test("renders tooltip when provided", () => {
-  const tooltipText = "Test tooltip";
+test('renders tooltip when provided', () => {
+  const tooltipText = 'Test tooltip';
   renderCollapsibleControl({ tooltip: tooltipText });
 
-  const tooltip = screen.getByRole("button", { name: "Show info tooltip" });
+  const tooltip = screen.getByRole('button', { name: 'Show info tooltip' });
   expect(tooltip).toBeInTheDocument();
 });
 
-test("starts collapsed when initialValue is false", () => {
+test('starts collapsed when initialValue is false', () => {
   renderCollapsibleControl({ initialValue: false });
-  expect(screen.queryByTestId("child-content")).not.toBeInTheDocument();
+  expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
 });
 
-test("starts expanded when initialValue is true", () => {
+test('starts expanded when initialValue is true', () => {
   renderCollapsibleControl({ initialValue: true });
 
-  expect(screen.getByTestId("child-content")).toBeInTheDocument();
+  expect(screen.getByTestId('child-content')).toBeInTheDocument();
 });
 
-test("toggles content when clicked", async () => {
+test('toggles content when clicked', async () => {
   renderCollapsibleControl();
-  const checkbox = screen.getByRole("checkbox", { name: /Test Control/i });
+  const checkbox = screen.getByRole('checkbox', { name: /Test Control/i });
 
-  expect(screen.queryByTestId("child-content")).not.toBeInTheDocument();
-
-  await userEvent.click(checkbox);
-  expect(screen.getByTestId("child-content")).toBeInTheDocument();
+  expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
 
   await userEvent.click(checkbox);
-  expect(screen.queryByTestId("child-content")).not.toBeInTheDocument();
+  expect(screen.getByTestId('child-content')).toBeInTheDocument();
+
+  await userEvent.click(checkbox);
+  expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
 });
 
-test("calls onChange handler when toggled", async () => {
+test('calls onChange handler when toggled', async () => {
   const onChangeMock = jest.fn();
   renderCollapsibleControl({ onChange: onChangeMock });
-  const checkbox = screen.getByRole("checkbox", { name: /Test Control/i });
+  const checkbox = screen.getByRole('checkbox', { name: /Test Control/i });
 
   await userEvent.click(checkbox);
   expect(onChangeMock).toHaveBeenCalledWith(true);
@@ -78,14 +78,14 @@ test("calls onChange handler when toggled", async () => {
   expect(onChangeMock).toHaveBeenCalledWith(false);
 });
 
-test("respects disabled prop", async () => {
+test('respects disabled prop', async () => {
   const onChangeMock = jest.fn();
   renderCollapsibleControl({
     disabled: true,
     onChange: onChangeMock,
   });
 
-  const checkbox = screen.getByRole("checkbox", { name: /Test Control/i });
+  const checkbox = screen.getByRole('checkbox', { name: /Test Control/i });
   expect(checkbox).toBeDisabled();
 
   // The checkbox is disabled via `pointer-events: none`, so a real user
@@ -95,23 +95,23 @@ test("respects disabled prop", async () => {
   expect(onChangeMock).not.toHaveBeenCalled();
 });
 
-test("updates when controlled checked prop changes", () => {
+test('updates when controlled checked prop changes', () => {
   const { rerender } = renderCollapsibleControl({ checked: false });
-  expect(screen.queryByTestId("child-content")).not.toBeInTheDocument();
+  expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
 
   rerender(<CollapsibleControl {...defaultProps} checked />);
-  expect(screen.getByTestId("child-content")).toBeInTheDocument();
+  expect(screen.getByTestId('child-content')).toBeInTheDocument();
 });
 
-test("maintains local state when in uncontrolled mode", async () => {
+test('maintains local state when in uncontrolled mode', async () => {
   renderCollapsibleControl({ initialValue: false });
-  const checkbox = screen.getByRole("checkbox", { name: /Test Control/i });
+  const checkbox = screen.getByRole('checkbox', { name: /Test Control/i });
 
-  expect(screen.queryByTestId("child-content")).not.toBeInTheDocument();
-
-  await userEvent.click(checkbox);
-  expect(screen.getByTestId("child-content")).toBeInTheDocument();
+  expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
 
   await userEvent.click(checkbox);
-  expect(screen.queryByTestId("child-content")).not.toBeInTheDocument();
+  expect(screen.getByTestId('child-content')).toBeInTheDocument();
+
+  await userEvent.click(checkbox);
+  expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
 });

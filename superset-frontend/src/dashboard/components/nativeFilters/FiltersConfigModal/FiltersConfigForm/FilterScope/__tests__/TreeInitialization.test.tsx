@@ -22,9 +22,9 @@ import {
   fireEvent,
   waitFor,
   cleanup,
-} from "spec/helpers/testing-library";
-import type { FormInstance } from "@superset-ui/core/components";
-import { createMockModal } from "./utils";
+} from 'spec/helpers/testing-library';
+import type { FormInstance } from '@superset-ui/core/components';
+import { createMockModal } from './utils';
 
 let formRef: { current: FormInstance | null };
 
@@ -39,10 +39,10 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-test("correct init tree with values", async () => {
+test('correct init tree with values', async () => {
   const { MockModalComponent } = createMockModal({
     scope: {
-      rootPath: ["TAB_ID"],
+      rootPath: ['TAB_ID'],
       excluded: [],
     },
     formRef,
@@ -50,14 +50,14 @@ test("correct init tree with values", async () => {
 
   const modal = render(<MockModalComponent />);
 
-  const scopingTab = await screen.findByRole("tab", { name: "Scoping" });
+  const scopingTab = await screen.findByRole('tab', { name: 'Scoping' });
   fireEvent.click(scopingTab);
 
   jest.runAllTimers();
 
   await waitFor(
     () => {
-      expect(screen.getByRole("tree")).toBeInTheDocument();
+      expect(screen.getByRole('tree')).toBeInTheDocument();
     },
     { timeout: 10000 },
   );
@@ -67,7 +67,7 @@ test("correct init tree with values", async () => {
   await waitFor(
     () => {
       const checkedNodes = document.querySelectorAll(
-        ".ant-tree-checkbox-checked",
+        '.ant-tree-checkbox-checked',
       );
       expect(checkedNodes.length).toBe(1);
     },

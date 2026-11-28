@@ -17,25 +17,25 @@
  * under the License.
  */
 
-import { defaultQueryEditor } from "src/SqlLab/fixtures";
-import { newQueryTabName } from "./newQueryTabName";
+import { defaultQueryEditor } from 'src/SqlLab/fixtures';
+import { newQueryTabName } from './newQueryTabName';
 
 const emptyEditor = {
   ...defaultQueryEditor,
-  title: "",
-  schema: "",
+  title: '',
+  schema: '',
   autorun: false,
-  sql: "",
+  sql: '',
   remoteId: null,
 };
 
 test("should return default title if queryEditor's length is 0", () => {
-  const defaultTitle = "default title";
+  const defaultTitle = 'default title';
   const title = newQueryTabName([], defaultTitle);
   expect(title).toEqual(defaultTitle);
 });
-test("should return next available number if there are unsaved editors", () => {
-  const untitledQueryText = "Untitled Query";
+test('should return next available number if there are unsaved editors', () => {
+  const untitledQueryText = 'Untitled Query';
   const unsavedEditors = [
     { ...emptyEditor, name: `${untitledQueryText} 1` },
     { ...emptyEditor, name: `${untitledQueryText} 2` },

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from "fetch-mock";
-import { act, render, screen, userEvent } from "spec/helpers/testing-library";
-import { FeatureFlag, isFeatureEnabled } from "@superset-ui/core";
-import { Menu, MenuItem } from "@superset-ui/core/components/Menu";
-import { useHeaderReportMenuItems, HeaderReportProps } from "./index";
+import fetchMock from 'fetch-mock';
+import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import { useHeaderReportMenuItems, HeaderReportProps } from './index';
 
 const createProps = () => ({
   dashboardId: 1,
@@ -31,63 +31,63 @@ const createProps = () => ({
 
 const stateWithOnlyUser = {
   user: {
-    email: "admin@test.com",
-    firstName: "admin",
+    email: 'admin@test.com',
+    firstName: 'admin',
     isActive: true,
-    lastName: "admin",
+    lastName: 'admin',
     permissions: {},
-    createdOn: "2022-01-12T10:17:37.801361",
-    roles: { Admin: [["menu_access", "Manage"]] },
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Admin: [['menu_access', 'Manage']] },
     userId: 1,
-    username: "admin",
+    username: 'admin',
   },
   reports: {},
 };
 
 const stateWithNonAdminUser = {
   user: {
-    email: "nonadmin@test.com",
-    firstName: "nonadmin",
+    email: 'nonadmin@test.com',
+    firstName: 'nonadmin',
     isActive: true,
-    lastName: "nonadmin",
+    lastName: 'nonadmin',
     permissions: {},
-    createdOn: "2022-01-12T10:17:37.801361",
+    createdOn: '2022-01-12T10:17:37.801361',
     roles: {
-      Gamme: [["no_menu_access", "Manage"]],
-      OtherRole: [["menu_access", "Manage"]],
+      Gamme: [['no_menu_access', 'Manage']],
+      OtherRole: [['menu_access', 'Manage']],
     },
     userId: 1,
-    username: "nonadmin",
+    username: 'nonadmin',
   },
   reports: {},
 };
 
 const stateWithNonMenuAccessOnManage = {
   user: {
-    email: "nonaccess@test.com",
-    firstName: "nonaccess",
+    email: 'nonaccess@test.com',
+    firstName: 'nonaccess',
     isActive: true,
-    lastName: "nonaccess",
+    lastName: 'nonaccess',
     permissions: {},
-    createdOn: "2022-01-12T10:17:37.801361",
-    roles: { Gamma: [["no_menu_access", "Manage"]] },
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Gamma: [['no_menu_access', 'Manage']] },
     userId: 1,
-    username: "nonaccess",
+    username: 'nonaccess',
   },
   reports: {},
 };
 
 const stateWithUserAndReport = {
   user: {
-    email: "admin@test.com",
-    firstName: "admin",
+    email: 'admin@test.com',
+    firstName: 'admin',
     isActive: true,
-    lastName: "admin",
+    lastName: 'admin',
     permissions: {},
-    createdOn: "2022-01-12T10:17:37.801361",
-    roles: { Admin: [["menu_access", "Manage"]] },
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Admin: [['menu_access', 'Manage']] },
     userId: 1,
-    username: "admin",
+    username: 'admin',
   },
   reports: {
     dashboards: {
@@ -95,20 +95,20 @@ const stateWithUserAndReport = {
         id: 1,
         result: {
           active: true,
-          creation_method: "dashboards",
-          crontab: "0 12 * * 1",
+          creation_method: 'dashboards',
+          crontab: '0 12 * * 1',
           dashboard: 1,
-          name: "Weekly Report",
+          name: 'Weekly Report',
           editors: [1],
           recipients: [
             {
               recipient_config_json: {
-                target: "admin@test.com",
+                target: 'admin@test.com',
               },
-              type: "Email",
+              type: 'Email',
             },
           ],
-          type: "Report",
+          type: 'Report',
         },
       },
     },
@@ -125,8 +125,8 @@ function setup(props: HeaderReportProps, initialState = {}) {
   render(<MenuWrapper {...props} />, { useRedux: true, initialState });
 }
 
-jest.mock("@superset-ui/core", () => ({
-  ...jest.requireActual("@superset-ui/core"),
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
 
@@ -146,57 +146,57 @@ afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
 });
 
-test("switches to the manage menu once the existing report is fetched", async () => {
+test('switches to the manage menu once the existing report is fetched', async () => {
   const mockedProps = createProps();
-  fetchMock.get("glob:*/api/v1/report/?q=*", {
+  fetchMock.get('glob:*/api/v1/report/?q=*', {
     count: 1,
     result: [
       {
         active: true,
-        creation_method: "dashboards",
-        crontab: "0 12 * * 1",
+        creation_method: 'dashboards',
+        crontab: '0 12 * * 1',
         dashboard_id: 1,
         chart_id: null,
         id: 5,
-        name: "Weekly Report",
-        report_format: "PNG",
-        type: "Report",
+        name: 'Weekly Report',
+        report_format: 'PNG',
+        type: 'Report',
       },
     ],
   });
   act(() => {
     setup(mockedProps, stateWithOnlyUser);
   });
-  expect(await screen.findByText("Email reports active")).toBeInTheDocument();
-  expect(screen.getByText("Edit email report")).toBeInTheDocument();
-  expect(screen.getByText("Delete email report")).toBeInTheDocument();
+  expect(await screen.findByText('Email reports active')).toBeInTheDocument();
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  expect(screen.getByText('Delete email report')).toBeInTheDocument();
 });
 
-test("renders correctly", () => {
+test('renders correctly', () => {
   const mockedProps = createProps();
   act(() => {
     setup(mockedProps, stateWithUserAndReport);
   });
-  expect(screen.getAllByRole("menuitem")[0]).toBeInTheDocument();
+  expect(screen.getAllByRole('menuitem')[0]).toBeInTheDocument();
 });
 
-test("renders the dropdown correctly", async () => {
+test('renders the dropdown correctly', async () => {
   const mockedProps = createProps();
   act(() => {
     setup(mockedProps, stateWithUserAndReport);
   });
-  expect(await screen.findByText("Email reports active")).toBeInTheDocument();
-  expect(screen.getByText("Edit email report")).toBeInTheDocument();
-  expect(screen.getByText("Delete email report")).toBeInTheDocument();
+  expect(await screen.findByText('Email reports active')).toBeInTheDocument();
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  expect(screen.getByText('Delete email report')).toBeInTheDocument();
 });
 
-test("opens an edit modal", async () => {
+test('opens an edit modal', async () => {
   const mockedProps = createProps();
   mockedProps.showReportModal = jest.fn();
   act(() => {
     setup(mockedProps, stateWithUserAndReport);
   });
-  const editModal = await screen.findByText("Edit email report");
+  const editModal = await screen.findByText('Edit email report');
   // forceSubMenuRender keeps the menu item in the DOM for querying even
   // though the submenu popup is visually closed (pointer-events: none), so
   // bypass user-event's pointer events check to click it directly.
@@ -204,53 +204,53 @@ test("opens an edit modal", async () => {
   expect(mockedProps.showReportModal).toHaveBeenCalled();
 });
 
-test("opens a delete modal", async () => {
+test('opens a delete modal', async () => {
   const mockedProps = createProps();
   mockedProps.setCurrentReportDeleting = jest.fn();
   act(() => {
     setup(mockedProps, stateWithUserAndReport);
   });
-  const deleteModal = await screen.findByText("Delete email report");
+  const deleteModal = await screen.findByText('Delete email report');
   // See forceSubMenuRender note above.
   await userEvent.click(deleteModal, { pointerEventsCheck: 0 });
   expect(mockedProps.setCurrentReportDeleting).toHaveBeenCalled();
 });
 
-test("renders Manage Email Reports Menu if there is a report", async () => {
+test('renders Manage Email Reports Menu if there is a report', async () => {
   const mockedProps = createProps();
   act(() => {
     setup(mockedProps, stateWithUserAndReport);
   });
-  expect(await screen.findByText("Email reports active")).toBeInTheDocument();
-  expect(screen.getByText("Edit email report")).toBeInTheDocument();
-  expect(screen.getByText("Delete email report")).toBeInTheDocument();
+  expect(await screen.findByText('Email reports active')).toBeInTheDocument();
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  expect(screen.getByText('Delete email report')).toBeInTheDocument();
 });
 
-test("renders Schedule Email Reports if there is a report", async () => {
+test('renders Schedule Email Reports if there is a report', async () => {
   const mockedProps = createProps();
 
   act(() => {
     setup(mockedProps, stateWithOnlyUser);
   });
-  expect(await screen.findByText("Set up an email report")).toBeInTheDocument();
+  expect(await screen.findByText('Set up an email report')).toBeInTheDocument();
 });
 
-test("renders Schedule Email Reports as long as user has permission through any role", async () => {
+test('renders Schedule Email Reports as long as user has permission through any role', async () => {
   const mockedProps = createProps();
   act(() => {
     setup(mockedProps, stateWithNonAdminUser);
   });
-  await userEvent.click(screen.getByRole("menuitem"));
-  expect(await screen.findByText("Set up an email report")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('menuitem'));
+  expect(await screen.findByText('Set up an email report')).toBeInTheDocument();
 });
 
-test("do not render Schedule Email Reports if user no permission", async () => {
+test('do not render Schedule Email Reports if user no permission', async () => {
   const mockedProps = createProps();
 
   act(() => {
     setup(mockedProps, stateWithNonMenuAccessOnManage);
   });
 
-  await userEvent.click(screen.getByRole("menu"));
-  expect(screen.queryByText("Set up an email report")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('menu'));
+  expect(screen.queryByText('Set up an email report')).not.toBeInTheDocument();
 });

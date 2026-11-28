@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from "fetch-mock";
-import { render, waitFor } from "spec/helpers/testing-library";
-import { setupAGGridModules } from "@superset-ui/core/components/ThemedAgGridReact";
-import { SamplesPane } from "../components";
-import { createSamplesPaneProps } from "./fixture";
+import fetchMock from 'fetch-mock';
+import { render, waitFor } from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { SamplesPane } from '../components';
+import { createSamplesPaneProps } from './fixture';
 
 beforeAll(() => {
   setupAGGridModules();
 });
 
 fetchMock.post(
-  "end:/datasource/samples?force=false&datasource_type=table&datasource_id=34&per_page=100&page=1",
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34&per_page=100&page=1',
   {
     result: {
       data: [],
@@ -38,14 +38,14 @@ fetchMock.post(
 );
 
 fetchMock.post(
-  "end:/datasource/samples?force=true&datasource_type=table&datasource_id=35&per_page=100&page=1",
+  'end:/datasource/samples?force=true&datasource_type=table&datasource_id=35&per_page=100&page=1',
   {
     result: {
       data: [
-        { __timestamp: 1230768000000, genre: "Action" },
-        { __timestamp: 1230768000010, genre: "Horror" },
+        { __timestamp: 1230768000000, genre: 'Action' },
+        { __timestamp: 1230768000010, genre: 'Horror' },
       ],
-      colnames: ["__timestamp", "genre"],
+      colnames: ['__timestamp', 'genre'],
       coltypes: [2, 1],
       rowcount: 2,
       sql_rowcount: 2,
@@ -54,37 +54,37 @@ fetchMock.post(
 );
 
 fetchMock.post(
-  "end:/datasource/samples?force=false&datasource_type=table&datasource_id=36&per_page=100&page=1",
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=36&per_page=100&page=1',
   400,
 );
 
 fetchMock.post(
-  "end:/datasource/samples?force=false&datasource_type=table&datasource_id=40&per_page=100&page=1",
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=40&per_page=100&page=1',
   {
     status: 400,
     body: {
       message:
-        "Hive requires a partition filter for this table. Add a filter and try again.",
+        'Hive requires a partition filter for this table. Add a filter and try again.',
     },
   },
 );
 
 // A 200 response that carries no `result` payload, as reported in #36840.
 fetchMock.post(
-  "end:/datasource/samples?force=false&datasource_type=table&datasource_id=37&per_page=100&page=1",
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=37&per_page=100&page=1',
   {},
 );
 
 // A 200 whose result carries rows but omits `rowcount`.
 fetchMock.post(
-  "end:/datasource/samples?force=false&datasource_type=table&datasource_id=38&per_page=100&page=1",
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=38&per_page=100&page=1',
   {
     result: {
       data: [
-        { __timestamp: 1230768000000, genre: "Action" },
-        { __timestamp: 1230768000010, genre: "Horror" },
+        { __timestamp: 1230768000000, genre: 'Action' },
+        { __timestamp: 1230768000010, genre: 'Horror' },
       ],
-      colnames: ["__timestamp", "genre"],
+      colnames: ['__timestamp', 'genre'],
       coltypes: [2, 1],
     },
   },
@@ -93,14 +93,14 @@ fetchMock.post(
 // A partitioned dataset: the backend skipped COUNT(*) and reports that rows
 // exist past this page instead of an exact total.
 fetchMock.post(
-  "end:/datasource/samples?force=false&datasource_type=table&datasource_id=39&per_page=100&page=1",
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=39&per_page=100&page=1',
   {
     result: {
       data: [
-        { __timestamp: 1230768000000, genre: "Action" },
-        { __timestamp: 1230768000010, genre: "Horror" },
+        { __timestamp: 1230768000000, genre: 'Action' },
+        { __timestamp: 1230768000010, genre: 'Horror' },
       ],
-      colnames: ["__timestamp", "genre"],
+      colnames: ['__timestamp', 'genre'],
       coltypes: [2, 1],
       rowcount: 2,
       total_count: 2,
@@ -116,20 +116,20 @@ afterAll(() => {
   jest.resetAllMocks();
 });
 
-test("render", async () => {
+test('render', async () => {
   const props = createSamplesPaneProps({ datasourceId: 34 });
   const { findByText } = render(
     <SamplesPane {...props} setForceQuery={setForceQuery} />,
   );
   expect(
-    await findByText("No samples were returned for this dataset"),
+    await findByText('No samples were returned for this dataset'),
   ).toBeVisible();
   await waitFor(() => {
     expect(setForceQuery).toHaveBeenCalledTimes(0);
   });
 });
 
-test("error response", async () => {
+test('error response', async () => {
   const props = createSamplesPaneProps({
     datasourceId: 36,
   });
@@ -139,24 +139,24 @@ test("error response", async () => {
 
   // The error is now rendered inside an Alert component, with a clear
   // headline message and the raw error text as the description.
-  expect(await findByRole("alert")).toBeVisible();
-  expect(await findByText("Failed to load samples")).toBeVisible();
-  const errorDescription = await findByText("Error: Bad request");
-  expect(errorDescription).toHaveStyle({ whiteSpace: "pre-wrap" });
+  expect(await findByRole('alert')).toBeVisible();
+  expect(await findByText('Failed to load samples')).toBeVisible();
+  const errorDescription = await findByText('Error: Bad request');
+  expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
 });
 
-test("Samples renders a readable Hive strict-mode error", async () => {
+test('Samples renders a readable Hive strict-mode error', async () => {
   const { findByRole, queryByText } = render(
     <SamplesPane {...createSamplesPaneProps({ datasourceId: 40 })} />,
     { useRedux: true },
   );
-  expect(await findByRole("alert")).toHaveTextContent(
-    "Hive requires a partition filter",
+  expect(await findByRole('alert')).toHaveTextContent(
+    'Hive requires a partition filter',
   );
   expect(queryByText(/TExecuteStatementResp/)).not.toBeInTheDocument();
 });
 
-test("force query, render", async () => {
+test('force query, render', async () => {
   const props = createSamplesPaneProps({
     datasourceId: 35,
     queryForce: true,
@@ -171,43 +171,43 @@ test("force query, render", async () => {
   await waitFor(() => {
     expect(setForceQuery).toHaveBeenCalledTimes(1);
   });
-  expect(queryByText("2 rows")).toBeVisible();
-  expect(queryByText("Action")).toBeVisible();
-  expect(queryByText("Horror")).toBeVisible();
+  expect(queryByText('2 rows')).toBeVisible();
+  expect(queryByText('Action')).toBeVisible();
+  expect(queryByText('Horror')).toBeVisible();
 });
 
-test("renders the empty state when the response carries no result payload", async () => {
+test('renders the empty state when the response carries no result payload', async () => {
   const props = createSamplesPaneProps({ datasourceId: 37 });
   const { findByText, queryByRole } = render(<SamplesPane {...props} />, {
     useRedux: true,
   });
 
   expect(
-    await findByText("No samples were returned for this dataset"),
+    await findByText('No samples were returned for this dataset'),
   ).toBeVisible();
   // The pane should not leak an internal TypeError through the error alert.
-  expect(queryByRole("alert")).not.toBeInTheDocument();
+  expect(queryByRole('alert')).not.toBeInTheDocument();
 });
 
-test("counts the returned rows when the response omits rowcount", async () => {
+test('counts the returned rows when the response omits rowcount', async () => {
   const props = createSamplesPaneProps({ datasourceId: 38 });
   const { findByText, queryByText } = render(<SamplesPane {...props} />, {
     useRedux: true,
   });
 
-  expect(await findByText("Action")).toBeVisible();
+  expect(await findByText('Action')).toBeVisible();
   // Falling back to 0 here would label a populated table as "0 rows".
-  expect(queryByText("0 rows")).not.toBeInTheDocument();
-  expect(queryByText("2 rows")).toBeVisible();
+  expect(queryByText('0 rows')).not.toBeInTheDocument();
+  expect(queryByText('2 rows')).toBeVisible();
 });
 
-test("labels the row count as a lower bound when the total is not exact", async () => {
+test('labels the row count as a lower bound when the total is not exact', async () => {
   const props = createSamplesPaneProps({ datasourceId: 39 });
   const { findByText, queryByText } = render(<SamplesPane {...props} />, {
     useRedux: true,
   });
 
-  expect(await findByText("Action")).toBeVisible();
-  expect(queryByText("2+ rows")).toBeVisible();
-  expect(queryByText("2 rows")).not.toBeInTheDocument();
+  expect(await findByText('Action')).toBeVisible();
+  expect(queryByText('2+ rows')).toBeVisible();
+  expect(queryByText('2 rows')).not.toBeInTheDocument();
 });

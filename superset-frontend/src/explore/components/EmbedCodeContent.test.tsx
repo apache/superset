@@ -16,27 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement } from "react";
-import fetchMock from "fetch-mock";
-import { render, screen } from "spec/helpers/testing-library";
-import EmbedCodeContent from "src/explore/components/EmbedCodeContent";
+import { isValidElement } from 'react';
+import fetchMock from 'fetch-mock';
+import { render, screen } from 'spec/helpers/testing-library';
+import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
 
-const url = "http://localhost/explore/p/100";
-fetchMock.post("glob:*/api/v1/explore/permalink", { url });
+const url = 'http://localhost/explore/p/100';
+fetchMock.post('glob:*/api/v1/explore/permalink', { url });
 
 const mockFormData = {
-  datasource: "table__1",
-  viz_type: "table",
+  datasource: 'table__1',
+  viz_type: 'table',
 };
 
-test("renders", () => {
+test('renders', () => {
   expect(isValidElement(<EmbedCodeContent />)).toBe(true);
 });
 
-test("returns correct embed code", async () => {
+test('returns correct embed code', async () => {
   render(<EmbedCodeContent formData={mockFormData} />, { useRedux: true });
-  expect(await screen.findByText("iframe", { exact: false })).toBeVisible();
-  expect(await screen.findByText("/iframe", { exact: false })).toBeVisible();
+  expect(await screen.findByText('iframe', { exact: false })).toBeVisible();
+  expect(await screen.findByText('/iframe', { exact: false })).toBeVisible();
   expect(
     await screen.findByText('width="600"', { exact: false }),
   ).toBeVisible();
@@ -50,8 +50,8 @@ test("returns correct embed code", async () => {
   ).toBeVisible();
 });
 
-test("height and width inputs have accessible names", async () => {
+test('height and width inputs have accessible names', async () => {
   render(<EmbedCodeContent formData={mockFormData} />, { useRedux: true });
-  expect(await screen.findByLabelText("Chart height")).toBeVisible();
-  expect(await screen.findByLabelText("Chart width")).toBeVisible();
+  expect(await screen.findByLabelText('Chart height')).toBeVisible();
+  expect(await screen.findByLabelText('Chart width')).toBeVisible();
 });

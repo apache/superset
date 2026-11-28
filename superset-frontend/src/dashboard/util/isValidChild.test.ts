@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isValidChild from "src/dashboard/util/isValidChild";
+import isValidChild from 'src/dashboard/util/isValidChild';
 
 import {
   CHART_TYPE as CHART,
@@ -29,12 +29,12 @@ import {
   ROW_TYPE as ROW,
   TABS_TYPE as TABS,
   TAB_TYPE as TAB,
-} from "src/dashboard/util/componentTypes";
+} from 'src/dashboard/util/componentTypes';
 
 const getIndentation = (depth: number) =>
   Array(depth * 3)
-    .fill("")
-    .join("-");
+    .fill('')
+    .join('-');
 
 // these are representations of nested structures for easy testing
 //  [ROOT (depth 0) > GRID (depth 1) > HEADER (depth 2)]
@@ -137,8 +137,8 @@ invalidExamples.forEach((example, exampleIdx) => {
       const parentDepth = childDepth - 1;
       const parentType = example[i - 1];
 
-      if (typeof parentType !== "string")
-        throw new TypeError("parent must be string");
+      if (typeof parentType !== 'string')
+        throw new TypeError('parent must be string');
 
       test(`(${exampleIdx})${getIndentation(
         childDepth,

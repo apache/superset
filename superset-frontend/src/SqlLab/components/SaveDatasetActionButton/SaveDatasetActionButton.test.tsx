@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from "spec/helpers/testing-library";
-import SaveDatasetActionButton from "src/SqlLab/components/SaveDatasetActionButton";
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
-test("renders a split save button", async () => {
+test('renders a split save button', async () => {
   const onSaveAsExplore = jest.fn();
   render(
     <SaveDatasetActionButton
@@ -29,19 +29,19 @@ test("renders a split save button", async () => {
     />,
   );
 
-  const saveBtn = screen.getByRole("button", { name: "Save" });
-  const saveDatasetBtn = screen.getByRole("button", {
+  const saveBtn = screen.getByRole('button', { name: 'Save' });
+  const saveDatasetBtn = screen.getByRole('button', {
     name: /save dataset/i,
   });
 
   expect(
-    await screen.findByRole("button", { name: "Save" }),
+    await screen.findByRole('button', { name: 'Save' }),
   ).toBeInTheDocument();
   expect(saveBtn).toBeVisible();
   expect(saveDatasetBtn).toBeVisible();
 });
 
-test("disables only the dataset button when canSaveDataset is false", () => {
+test('disables only the dataset button when canSaveDataset is false', () => {
   const onSaveAsExplore = jest.fn();
   render(
     <SaveDatasetActionButton
@@ -52,11 +52,11 @@ test("disables only the dataset button when canSaveDataset is false", () => {
   );
 
   // Saving the query needs no results.
-  expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
-  expect(screen.getByRole("button", { name: /save dataset/i })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: /save dataset/i })).toBeDisabled();
 });
 
-test("disables the save dataset button when the query did not run successfully", async () => {
+test('disables the save dataset button when the query did not run successfully', async () => {
   render(
     <SaveDatasetActionButton
       setShowSave={() => true}
@@ -65,7 +65,7 @@ test("disables the save dataset button when the query did not run successfully",
     />,
   );
 
-  const saveDatasetBtn = screen.getByRole("button", {
+  const saveDatasetBtn = screen.getByRole('button', {
     name: /save dataset/i,
   });
   expect(saveDatasetBtn).toBeDisabled();
@@ -73,8 +73,8 @@ test("disables the save dataset button when the query did not run successfully",
   // the disabled button is wrapped in a span so the tooltip still triggers
   await userEvent.hover(saveDatasetBtn.parentElement as HTMLElement);
   expect(
-    await screen.findByRole("tooltip", {
-      name: "You must run the query successfully first",
+    await screen.findByRole('tooltip', {
+      name: 'You must run the query successfully first',
     }),
   ).toBeInTheDocument();
 });

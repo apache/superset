@@ -22,19 +22,19 @@ import {
   render,
   screen,
   sleep,
-} from "spec/helpers/testing-library";
-import TabsRenderer, { TabItem, TabsRendererProps } from "./TabsRenderer";
-import { StickyTabsOffsetContext } from "./StickyTabsOffsetContext";
+} from 'spec/helpers/testing-library';
+import TabsRenderer, { TabItem, TabsRendererProps } from './TabsRenderer';
+import { StickyTabsOffsetContext } from './StickyTabsOffsetContext';
 
 const mockTabItems: TabItem[] = [
   {
-    key: "tab-1",
+    key: 'tab-1',
     label: <div>Tab 1</div>,
     closeIcon: <div>×</div>,
     children: <div>Tab 1 Content</div>,
   },
   {
-    key: "tab-2",
+    key: 'tab-2',
     label: <div>Tab 2</div>,
     closeIcon: <div>×</div>,
     children: <div>Tab 2 Content</div>,
@@ -47,9 +47,9 @@ const mockProps: TabsRendererProps = {
   renderHoverMenu: true,
   tabsDragSourceRef: undefined,
   handleDeleteComponent: jest.fn(),
-  tabsComponent: { id: "test-tabs-id" },
-  activeKey: "tab-1",
-  tabIds: ["tab-1", "tab-2"],
+  tabsComponent: { id: 'test-tabs-id' },
+  activeKey: 'tab-1',
+  tabIds: ['tab-1', 'tab-2'],
   handleClickTab: jest.fn(),
   handleEdit: jest.fn(),
   tabBarPaddingLeft: 16,
@@ -99,44 +99,44 @@ afterEach(() => {
   globalThis.PointerEvent = OriginalPointerEvent;
 });
 
-test("renders tabs container with correct test attributes", () => {
+test('renders tabs container with correct test attributes', () => {
   render(<TabsRenderer {...mockProps} />);
 
-  const tabsContainer = screen.getByTestId("dashboard-component-tabs");
+  const tabsContainer = screen.getByTestId('dashboard-component-tabs');
 
   expect(tabsContainer).toBeInTheDocument();
-  expect(tabsContainer).toHaveClass("dashboard-component-tabs");
+  expect(tabsContainer).toHaveClass('dashboard-component-tabs');
 });
 
-test("renders LineEditableTabs with correct props", () => {
+test('renders LineEditableTabs with correct props', () => {
   render(<TabsRenderer {...mockProps} />);
 
-  const editableTabs = screen.getByTestId("nav-list");
+  const editableTabs = screen.getByTestId('nav-list');
   expect(editableTabs).toBeInTheDocument();
 });
 
-test("applies correct tab bar padding", () => {
+test('applies correct tab bar padding', () => {
   const { rerender } = render(<TabsRenderer {...mockProps} />);
 
-  let editableTabs = screen.getByTestId("nav-list");
+  let editableTabs = screen.getByTestId('nav-list');
   expect(editableTabs).toBeInTheDocument();
 
   rerender(<TabsRenderer {...mockProps} tabBarPaddingLeft={0} />);
-  editableTabs = screen.getByTestId("nav-list");
+  editableTabs = screen.getByTestId('nav-list');
 
   expect(editableTabs).toBeInTheDocument();
 });
 
-test("calls handleClickTab when tab is clicked", () => {
+test('calls handleClickTab when tab is clicked', () => {
   const handleClickTabMock = jest.fn();
   const propsWithTab2Active = {
     ...mockProps,
-    activeKey: "tab-2",
+    activeKey: 'tab-2',
     handleClickTab: handleClickTabMock,
   };
   render(<TabsRenderer {...propsWithTab2Active} />);
 
-  const tabElement = screen.getByText("Tab 1").closest('[role="tab"]');
+  const tabElement = screen.getByText('Tab 1').closest('[role="tab"]');
   expect(tabElement).not.toBeNull();
 
   fireEvent.click(tabElement!);
@@ -145,7 +145,7 @@ test("calls handleClickTab when tab is clicked", () => {
   expect(handleClickTabMock).toHaveBeenCalledTimes(1);
 });
 
-test("shows hover menu in edit mode", () => {
+test('shows hover menu in edit mode', () => {
   const mockRef = { current: null };
   const editModeProps: TabsRendererProps = {
     ...mockProps,
@@ -156,12 +156,12 @@ test("shows hover menu in edit mode", () => {
 
   render(<TabsRenderer {...editModeProps} />);
 
-  const hoverMenu = document.querySelector(".hover-menu");
+  const hoverMenu = document.querySelector('.hover-menu');
 
   expect(hoverMenu).toBeInTheDocument();
 });
 
-test("hides hover menu when not in edit mode", () => {
+test('hides hover menu when not in edit mode', () => {
   const viewModeProps: TabsRendererProps = {
     ...mockProps,
     editMode: false,
@@ -170,12 +170,12 @@ test("hides hover menu when not in edit mode", () => {
 
   render(<TabsRenderer {...viewModeProps} />);
 
-  const hoverMenu = document.querySelector(".hover-menu");
+  const hoverMenu = document.querySelector('.hover-menu');
 
   expect(hoverMenu).not.toBeInTheDocument();
 });
 
-test("hides hover menu when renderHoverMenu is false", () => {
+test('hides hover menu when renderHoverMenu is false', () => {
   const mockRef = { current: null };
   const noHoverMenuProps: TabsRendererProps = {
     ...mockProps,
@@ -186,25 +186,25 @@ test("hides hover menu when renderHoverMenu is false", () => {
 
   render(<TabsRenderer {...noHoverMenuProps} />);
 
-  const hoverMenu = document.querySelector(".hover-menu");
+  const hoverMenu = document.querySelector('.hover-menu');
 
   expect(hoverMenu).not.toBeInTheDocument();
 });
 
-test("renders with correct tab type based on edit mode", () => {
+test('renders with correct tab type based on edit mode', () => {
   const { rerender } = render(<TabsRenderer {...mockProps} editMode={false} />);
 
-  let editableTabs = screen.getByTestId("nav-list");
+  let editableTabs = screen.getByTestId('nav-list');
   expect(editableTabs).toBeInTheDocument();
 
   rerender(<TabsRenderer {...mockProps} editMode />);
 
-  editableTabs = screen.getByTestId("nav-list");
+  editableTabs = screen.getByTestId('nav-list');
 
   expect(editableTabs).toBeInTheDocument();
 });
 
-test("handles default props correctly", () => {
+test('handles default props correctly', () => {
   const minimalProps: TabsRendererProps = {
     tabItems: mockProps.tabItems,
     editMode: false,
@@ -218,12 +218,12 @@ test("handles default props correctly", () => {
 
   render(<TabsRenderer {...minimalProps} />);
 
-  const tabsContainer = screen.getByTestId("dashboard-component-tabs");
+  const tabsContainer = screen.getByTestId('dashboard-component-tabs');
 
   expect(tabsContainer).toBeInTheDocument();
 });
 
-test("calls onEdit when edit action is triggered", () => {
+test('calls onEdit when edit action is triggered', () => {
   const handleEditMock = jest.fn();
   const editableProps = {
     ...mockProps,
@@ -233,24 +233,24 @@ test("calls onEdit when edit action is triggered", () => {
 
   render(<TabsRenderer {...editableProps} />);
 
-  expect(screen.getByTestId("nav-list")).toBeInTheDocument();
+  expect(screen.getByTestId('nav-list')).toBeInTheDocument();
 });
 
-test("renders tab content correctly", () => {
+test('renders tab content correctly', () => {
   render(<TabsRenderer {...mockProps} />);
 
-  expect(screen.getByText("Tab 1 Content")).toBeInTheDocument();
-  expect(screen.queryByText("Tab 2 Content")).not.toBeInTheDocument(); // Not active
+  expect(screen.getByText('Tab 1 Content')).toBeInTheDocument();
+  expect(screen.queryByText('Tab 2 Content')).not.toBeInTheDocument(); // Not active
 });
 
-test("drags from the tab title and shows the drag indicator only then", async () => {
+test('drags from the tab title and shows the drag indicator only then', async () => {
   render(<TabsRenderer {...draggableTabProps} />);
-  const container = screen.getByTestId("dashboard-component-tabs");
-  const title = container.querySelector("textarea") as HTMLTextAreaElement;
+  const container = screen.getByTestId('dashboard-component-tabs');
+  const title = container.querySelector('textarea') as HTMLTextAreaElement;
 
   // At rest the title keeps the text cursor it sets on itself
-  expect(container).not.toHaveStyleRule("cursor", "move", {
-    target: ".dragdroppable-tab *",
+  expect(container).not.toHaveStyleRule('cursor', 'move', {
+    target: '.dragdroppable-tab *',
   });
 
   // Pressing on the title and moving past the sensor's distance constraint
@@ -263,8 +263,8 @@ test("drags from the tab title and shows the drag indicator only then", async ()
     clientX: 50,
   });
 
-  expect(container).toHaveStyleRule("cursor", "move", {
-    target: ".dragdroppable-tab *",
+  expect(container).toHaveStyleRule('cursor', 'move', {
+    target: '.dragdroppable-tab *',
   });
 
   // Release the pointer so the drag does not outlive this test. dnd-kit
@@ -278,34 +278,34 @@ test("drags from the tab title and shows the drag indicator only then", async ()
 // than the computed style, which antd's own `position: relative` would win
 const TAB_BAR = { target: /> ?\.ant-tabs ?> ?\.ant-tabs-nav$/ };
 
-test("pins the tab bar below the offset supplied by the dashboard", () => {
+test('pins the tab bar below the offset supplied by the dashboard', () => {
   render(
     <StickyTabsOffsetContext.Provider value={64}>
       <TabsRenderer {...mockProps} />
     </StickyTabsOffsetContext.Provider>,
   );
-  const container = screen.getByTestId("dashboard-component-tabs");
+  const container = screen.getByTestId('dashboard-component-tabs');
 
-  expect(container).toHaveStyleRule("position", "sticky", TAB_BAR);
-  expect(container).toHaveStyleRule("top", "64px", TAB_BAR);
+  expect(container).toHaveStyleRule('position', 'sticky', TAB_BAR);
+  expect(container).toHaveStyleRule('top', '64px', TAB_BAR);
 });
 
-test("leaves the tab bar in document flow without a dashboard offset", () => {
+test('leaves the tab bar in document flow without a dashboard offset', () => {
   render(<TabsRenderer {...mockProps} />);
-  const container = screen.getByTestId("dashboard-component-tabs");
+  const container = screen.getByTestId('dashboard-component-tabs');
 
-  expect(container).not.toHaveStyleRule("position", "sticky", TAB_BAR);
+  expect(container).not.toHaveStyleRule('position', 'sticky', TAB_BAR);
 });
 
-test("leaves the tab bar in document flow in edit mode", () => {
+test('leaves the tab bar in document flow in edit mode', () => {
   render(
     <StickyTabsOffsetContext.Provider value={64}>
       <TabsRenderer {...mockProps} editMode />
     </StickyTabsOffsetContext.Provider>,
   );
-  const container = screen.getByTestId("dashboard-component-tabs");
+  const container = screen.getByTestId('dashboard-component-tabs');
 
-  expect(container).not.toHaveStyleRule("position", "sticky", TAB_BAR);
+  expect(container).not.toHaveStyleRule('position', 'sticky', TAB_BAR);
 });
 
 // Reports the offset this tab set hands to tab sets nested inside it.
@@ -314,17 +314,17 @@ const nestedTabItems: TabItem[] = [
     ...mockTabItems[0],
     children: (
       <StickyTabsOffsetContext.Consumer>
-        {(offset) => <div data-test="nested-offset">{offset}</div>}
+        {offset => <div data-test="nested-offset">{offset}</div>}
       </StickyTabsOffsetContext.Consumer>
     ),
   },
   mockTabItems[1],
 ];
 
-test("stacks nested tab bars beneath its own tab bar", () => {
+test('stacks nested tab bars beneath its own tab bar', () => {
   // jsdom lays nothing out, so give the tab bar a height to add up
   const heightSpy = jest
-    .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+    .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
     .mockReturnValue(40);
 
   try {
@@ -334,13 +334,13 @@ test("stacks nested tab bars beneath its own tab bar", () => {
       </StickyTabsOffsetContext.Provider>,
     );
 
-    expect(screen.getByTestId("nested-offset")).toHaveTextContent("104");
+    expect(screen.getByTestId('nested-offset')).toHaveTextContent('104');
   } finally {
     heightSpy.mockRestore();
   }
 });
 
-test("restacks nested tab bars when its own tab bar reflows", () => {
+test('restacks nested tab bars when its own tab bar reflows', () => {
   // The shared jsdom shim never fires its callback, so stand in an observer
   // that hands the callback back to the test. The component re-measures the
   // element rather than reading the entries, so the height comes from the
@@ -359,7 +359,7 @@ test("restacks nested tab bars when its own tab bar reflows", () => {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
   const heightSpy = jest
-    .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+    .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
     .mockReturnValue(40);
 
   try {
@@ -368,18 +368,16 @@ test("restacks nested tab bars when its own tab bar reflows", () => {
         <TabsRenderer {...mockProps} tabItems={nestedTabItems} />
       </StickyTabsOffsetContext.Provider>,
     );
-    expect(screen.getByTestId("nested-offset")).toHaveTextContent("104");
+    expect(screen.getByTestId('nested-offset')).toHaveTextContent('104');
 
     // The bar grows -- labels wrap on a narrow viewport, a webfont lands --
     // and the tab set below it has to move down by the same amount.
     heightSpy.mockReturnValue(80);
     act(() => {
-      observerCallbacks.forEach((callback) =>
-        callback([], {} as ResizeObserver),
-      );
+      observerCallbacks.forEach(callback => callback([], {} as ResizeObserver));
     });
 
-    expect(screen.getByTestId("nested-offset")).toHaveTextContent("144");
+    expect(screen.getByTestId('nested-offset')).toHaveTextContent('144');
   } finally {
     heightSpy.mockRestore();
     window.ResizeObserver = RealResizeObserver;
@@ -389,23 +387,23 @@ test("restacks nested tab bars when its own tab bar reflows", () => {
 // Switching tabs while the bar is pinned: the page scrolls so the tab set
 // starts where its bar is pinned, mirroring the top-level tabs' jump to top
 function renderPinnedTabSet(containerTop: number, offset?: number) {
-  const scrollTo = jest.spyOn(window, "scrollTo").mockImplementation();
+  const scrollTo = jest.spyOn(window, 'scrollTo').mockImplementation();
   const rectSpy = jest
-    .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+    .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
     .mockReturnValue({ top: containerTop } as DOMRect);
-  const scrollYStub = jest.replaceProperty(window, "scrollY", 500);
+  const scrollYStub = jest.replaceProperty(window, 'scrollY', 500);
   render(
     <StickyTabsOffsetContext.Provider value={offset}>
       <TabsRenderer {...mockProps} />
     </StickyTabsOffsetContext.Provider>,
   );
-  fireEvent.click(screen.getByText("Tab 2").closest('[role="tab"]')!);
+  fireEvent.click(screen.getByText('Tab 2').closest('[role="tab"]')!);
   rectSpy.mockRestore();
   scrollYStub.restore();
   return scrollTo;
 }
 
-test("scrolls a pinned tab set back to its top when switching tabs", () => {
+test('scrolls a pinned tab set back to its top when switching tabs', () => {
   // the tab set's top is 200px above the viewport, so the bar is pinned
   const scrollTo = renderPinnedTabSet(-200, 64);
 
@@ -413,7 +411,7 @@ test("scrolls a pinned tab set back to its top when switching tabs", () => {
   scrollTo.mockRestore();
 });
 
-test("leaves the page alone when the tab bar is not pinned", () => {
+test('leaves the page alone when the tab bar is not pinned', () => {
   // the tab set starts below where its bar would pin, so it is in flow
   const scrollTo = renderPinnedTabSet(300, 64);
 
@@ -421,7 +419,7 @@ test("leaves the page alone when the tab bar is not pinned", () => {
   scrollTo.mockRestore();
 });
 
-test("leaves the page alone without a dashboard offset", () => {
+test('leaves the page alone without a dashboard offset', () => {
   const scrollTo = renderPinnedTabSet(-200);
 
   expect(scrollTo).not.toHaveBeenCalled();

@@ -16,26 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act } from "react";
-import { QueryState } from "@superset-ui/core";
-import fetchMock from "fetch-mock";
-import createMockStore from "redux-mock-store";
-import thunk from "redux-thunk";
-import { render, waitFor } from "spec/helpers/testing-library";
-import { cleanup } from "@testing-library/react";
-import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from "src/logger/LogUtils";
+import { act } from 'react';
+import { QueryState } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
+import createMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { render, waitFor } from 'spec/helpers/testing-library';
+import { cleanup } from '@testing-library/react';
+import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import {
   CLEAR_INACTIVE_QUERIES,
   REFRESH_QUERIES,
-} from "src/SqlLab/actions/sqlLab";
+} from 'src/SqlLab/actions/sqlLab';
 import QueryAutoRefresh, {
   isQueryRunning,
   shouldCheckForQueries,
   QUERY_UPDATE_FREQ,
-} from "src/SqlLab/components/QueryAutoRefresh";
-import { successfulQuery, runningQuery } from "src/SqlLab/fixtures";
-import { QueryDictionary } from "src/SqlLab/types";
-import mockDatabases from "spec/fixtures/mockDatabases";
+} from 'src/SqlLab/components/QueryAutoRefresh';
+import { successfulQuery, runningQuery } from 'src/SqlLab/fixtures';
+import { QueryDictionary } from 'src/SqlLab/types';
+import mockDatabases from 'spec/fixtures/mockDatabases';
 
 const middlewares = [thunk];
 const mockStore = createMockStore(middlewares);
@@ -48,7 +48,7 @@ const successfulQueries: QueryDictionary = {
   [successfulQuery.id]: successfulQuery,
 };
 const queriesLastUpdate = Date.now();
-const refreshApi = "glob:*/api/v1/query/updated_since?*";
+const refreshApi = 'glob:*/api/v1/query/updated_since?*';
 
 beforeEach(() => {
   jest.useFakeTimers({ advanceTimers: true });
@@ -61,34 +61,34 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-test("isQueryRunning returns true for valid running query", () => {
+test('isQueryRunning returns true for valid running query', () => {
   expect(isQueryRunning(runningQuery)).toBe(true);
 });
 
-test("isQueryRunning returns false for valid not-running query", () => {
+test('isQueryRunning returns false for valid not-running query', () => {
   expect(isQueryRunning(successfulQuery)).toBe(false);
 });
 
-test("isQueryRunning returns false for invalid query", () => {
+test('isQueryRunning returns false for invalid query', () => {
   // @ts-expect-error
   expect(isQueryRunning(null)).toBe(false);
   // @ts-expect-error
   expect(isQueryRunning(undefined)).toBe(false);
   // @ts-expect-error
-  expect(isQueryRunning("I Should Be An Object")).toBe(false);
+  expect(isQueryRunning('I Should Be An Object')).toBe(false);
   // @ts-expect-error
   expect(isQueryRunning({ state: { badFormat: true } })).toBe(false);
 });
 
-test("shouldCheckForQueries is true for valid running query", () => {
+test('shouldCheckForQueries is true for valid running query', () => {
   expect(shouldCheckForQueries(runningQueries)).toBe(true);
 });
 
-test("shouldCheckForQueries is false for valid completed query", () => {
+test('shouldCheckForQueries is false for valid completed query', () => {
   expect(shouldCheckForQueries(successfulQueries)).toBe(false);
 });
 
-test("shouldCheckForQueries is false for invalid inputs", () => {
+test('shouldCheckForQueries is false for invalid inputs', () => {
   // @ts-expect-error
   expect(shouldCheckForQueries(null)).toBe(false);
   // @ts-expect-error
@@ -96,22 +96,22 @@ test("shouldCheckForQueries is false for invalid inputs", () => {
   expect(
     shouldCheckForQueries({
       // @ts-expect-error
-      "1234": null,
+      '1234': null,
       // @ts-expect-error
-      "23425": "hello world",
+      '23425': 'hello world',
       // @ts-expect-error
-      "345": [],
+      '345': [],
       // @ts-expect-error
-      "57346": undefined,
+      '57346': undefined,
     }),
   ).toBe(false);
 });
 
-test("Attempts to refresh when given pending query", async () => {
+test('Attempts to refresh when given pending query', async () => {
   const store = mockStore({ sqlLab: { ...mockState } });
 
   fetchMock.get(refreshApi, {
-    result: [{ id: runningQuery.id, status: "success" }],
+    result: [{ id: runningQuery.id, status: 'success' }],
   });
 
   render(
@@ -133,7 +133,7 @@ test("Attempts to refresh when given pending query", async () => {
   );
 });
 
-test("Attempts to clear inactive queries when updated queries are empty", async () => {
+test('Attempts to clear inactive queries when updated queries are empty', async () => {
   const store = mockStore({ sqlLab: { ...mockState } });
 
   fetchMock.get(refreshApi, { result: [] });
@@ -162,11 +162,11 @@ test("Attempts to clear inactive queries when updated queries are empty", async 
   expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(1);
 });
 
-test("Does not fail and attempts to refresh with mixed valid/invalid queries", async () => {
+test('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
   const store = mockStore({ sqlLab: { ...mockState } });
 
   fetchMock.get(refreshApi, {
-    result: [{ id: runningQuery.id, status: "success" }],
+    result: [{ id: runningQuery.id, status: 'success' }],
   });
 
   render(
@@ -189,11 +189,11 @@ test("Does not fail and attempts to refresh with mixed valid/invalid queries", a
   );
 });
 
-test("Does NOT Attempt to refresh when given only completed queries", async () => {
+test('Does NOT Attempt to refresh when given only completed queries', async () => {
   const store = mockStore({ sqlLab: { ...mockState } });
 
   fetchMock.get(refreshApi, {
-    result: [{ id: runningQuery.id, status: "success" }],
+    result: [{ id: runningQuery.id, status: 'success' }],
   });
 
   render(
@@ -217,7 +217,7 @@ test("Does NOT Attempt to refresh when given only completed queries", async () =
   expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(0);
 });
 
-test("logs the failed error for async queries", async () => {
+test('logs the failed error for async queries', async () => {
   const store = mockStore({ sqlLab: { ...mockState } });
 
   fetchMock.get(refreshApi, {
@@ -229,14 +229,14 @@ test("logs the failed error for async queries", async () => {
         extra: {
           errors: [
             {
-              error_type: "TEST_ERROR",
-              level: "error",
-              message: "Syntax invalid",
+              error_type: 'TEST_ERROR',
+              level: 'error',
+              message: 'Syntax invalid',
               extra: {
                 issue_codes: [
                   {
                     code: 102,
-                    message: "DB failed",
+                    message: 'DB failed',
                   },
                 ],
               },
@@ -265,8 +265,8 @@ test("logs the failed error for async queries", async () => {
         payload: expect.objectContaining({
           eventName: LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY,
           eventData: expect.objectContaining({
-            error_type: "TEST_ERROR",
-            error_details: "Syntax invalid",
+            error_type: 'TEST_ERROR',
+            error_details: 'Syntax invalid',
             issue_codes: [102],
           }),
         }),

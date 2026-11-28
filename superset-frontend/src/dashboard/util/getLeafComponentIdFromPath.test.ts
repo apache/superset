@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getLeafComponentIdFromPath from "src/dashboard/util/getLeafComponentIdFromPath";
-import { filterId } from "spec/fixtures/mockSliceEntities";
-import { dashboardFilters } from "spec/fixtures/mockDashboardFilters";
+import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
+import { filterId } from 'spec/fixtures/mockSliceEntities';
+import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 
 const path = dashboardFilters[filterId].directPathToFilter;
 const leaf = path.slice().pop();
 
-test("should return component id", () => {
+test('should return component id', () => {
   expect(getLeafComponentIdFromPath(path)).toBe(leaf);
 });
 
-test("should not return label component", () => {
+test('should not return label component', () => {
   const updatedPath =
-    dashboardFilters[filterId].directPathToFilter.concat("LABEL-test123");
+    dashboardFilters[filterId].directPathToFilter.concat('LABEL-test123');
   expect(getLeafComponentIdFromPath(updatedPath)).toBe(leaf);
 });

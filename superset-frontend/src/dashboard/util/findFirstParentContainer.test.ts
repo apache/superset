@@ -16,111 +16,111 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findFirstParentContainerId from "src/dashboard/util/findFirstParentContainer";
+import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
-} from "src/dashboard/util/constants";
-import type { DashboardLayout } from "src/dashboard/types";
+} from 'src/dashboard/util/constants';
+import type { DashboardLayout } from 'src/dashboard/types';
 
 const mockGridLayout = {
-  DASHBOARD_VERSION_KEY: "v2",
+  DASHBOARD_VERSION_KEY: 'v2',
   ROOT_ID: {
-    type: "ROOT",
-    id: "ROOT_ID",
-    children: ["GRID_ID"],
+    type: 'ROOT',
+    id: 'ROOT_ID',
+    children: ['GRID_ID'],
   },
   GRID_ID: {
-    type: "GRID",
-    id: "GRID_ID",
-    children: ["ROW-Bk45URrlQ"],
+    type: 'GRID',
+    id: 'GRID_ID',
+    children: ['ROW-Bk45URrlQ'],
   },
-  "ROW-Bk45URrlQ": {
-    type: "ROW",
-    id: "ROW-Bk45URrlQ",
-    children: ["CHART-ryxVc8RHlX"],
+  'ROW-Bk45URrlQ': {
+    type: 'ROW',
+    id: 'ROW-Bk45URrlQ',
+    children: ['CHART-ryxVc8RHlX'],
   },
-  "CHART-ryxVc8RHlX": {
-    type: "CHART",
-    id: "CHART-ryxVc8RHlX",
+  'CHART-ryxVc8RHlX': {
+    type: 'CHART',
+    id: 'CHART-ryxVc8RHlX',
     children: [],
   },
   HEADER_ID: {
-    id: "HEADER_ID",
-    type: "HEADER",
+    id: 'HEADER_ID',
+    type: 'HEADER',
   },
 };
 const mockTabsLayout = {
-  "CHART-S1gilYABe7": {
+  'CHART-S1gilYABe7': {
     children: [],
-    id: "CHART-S1gilYABe7",
-    type: "CHART",
+    id: 'CHART-S1gilYABe7',
+    type: 'CHART',
   },
-  "CHART-SJli5K0HlQ": {
+  'CHART-SJli5K0HlQ': {
     children: [],
-    id: "CHART-SJli5K0HlQ",
-    type: "CHART",
+    id: 'CHART-SJli5K0HlQ',
+    type: 'CHART',
   },
   GRID_ID: {
     children: [],
-    id: "GRID_ID",
-    type: "GRID",
+    id: 'GRID_ID',
+    type: 'GRID',
   },
   HEADER_ID: {
-    id: "HEADER_ID",
-    type: "HEADER",
+    id: 'HEADER_ID',
+    type: 'HEADER',
   },
   ROOT_ID: {
-    children: ["TABS-SkgJ5t0Bem"],
-    id: "ROOT_ID",
-    type: "ROOT",
+    children: ['TABS-SkgJ5t0Bem'],
+    id: 'ROOT_ID',
+    type: 'ROOT',
   },
-  "ROW-S1B8-JLgX": {
-    children: ["CHART-SJli5K0HlQ"],
-    id: "ROW-S1B8-JLgX",
-    type: "ROW",
+  'ROW-S1B8-JLgX': {
+    children: ['CHART-SJli5K0HlQ'],
+    id: 'ROW-S1B8-JLgX',
+    type: 'ROW',
   },
-  "ROW-S1bUb1Ilm": {
-    children: ["CHART-S1gilYABe7"],
-    id: "ROW-S1bUb1Ilm",
-    type: "ROW",
+  'ROW-S1bUb1Ilm': {
+    children: ['CHART-S1gilYABe7'],
+    id: 'ROW-S1bUb1Ilm',
+    type: 'ROW',
   },
-  "TABS-ByeLSWyLe7": {
-    children: ["TAB-BJbLSZ1UeQ"],
-    id: "TABS-ByeLSWyLe7",
-    type: "TABS",
+  'TABS-ByeLSWyLe7': {
+    children: ['TAB-BJbLSZ1UeQ'],
+    id: 'TABS-ByeLSWyLe7',
+    type: 'TABS',
   },
-  "TABS-SkgJ5t0Bem": {
-    children: ["TAB-HkWJcFCHxQ", "TAB-ByDBbkLlQ"],
-    id: "TABS-SkgJ5t0Bem",
+  'TABS-SkgJ5t0Bem': {
+    children: ['TAB-HkWJcFCHxQ', 'TAB-ByDBbkLlQ'],
+    id: 'TABS-SkgJ5t0Bem',
     meta: {},
-    type: "TABS",
+    type: 'TABS',
   },
-  "TAB-BJbLSZ1UeQ": {
-    children: ["ROW-S1bUb1Ilm"],
-    id: "TAB-BJbLSZ1UeQ",
-    type: "TAB",
+  'TAB-BJbLSZ1UeQ': {
+    children: ['ROW-S1bUb1Ilm'],
+    id: 'TAB-BJbLSZ1UeQ',
+    type: 'TAB',
   },
-  "TAB-ByDBbkLlQ": {
-    children: ["ROW-S1B8-JLgX"],
-    id: "TAB-ByDBbkLlQ",
-    type: "TAB",
+  'TAB-ByDBbkLlQ': {
+    children: ['ROW-S1B8-JLgX'],
+    id: 'TAB-ByDBbkLlQ',
+    type: 'TAB',
   },
-  "TAB-HkWJcFCHxQ": {
-    children: ["TABS-ByeLSWyLe7"],
-    id: "TAB-HkWJcFCHxQ",
-    type: "TAB",
+  'TAB-HkWJcFCHxQ': {
+    children: ['TABS-ByeLSWyLe7'],
+    id: 'TAB-HkWJcFCHxQ',
+    type: 'TAB',
   },
-  DASHBOARD_VERSION_KEY: "v2",
+  DASHBOARD_VERSION_KEY: 'v2',
 };
 
-test("should return grid root", () => {
+test('should return grid root', () => {
   expect(
     findFirstParentContainerId(mockGridLayout as unknown as DashboardLayout),
   ).toBe(DASHBOARD_GRID_ID);
 });
 
-test("should return first tab", () => {
+test('should return first tab', () => {
   const layout = mockTabsLayout as unknown as Record<
     string,
     { children: string[]; id: string; type: string }

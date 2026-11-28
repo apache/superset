@@ -16,37 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import createMockStore from "redux-mock-store";
-import thunk from "redux-thunk";
-import fetchMock from "fetch-mock";
-import { isFeatureEnabled } from "@superset-ui/core";
+import createMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import fetchMock from 'fetch-mock';
+import { isFeatureEnabled } from '@superset-ui/core';
 import {
   render,
   screen,
   act,
   userEvent,
   waitFor,
-} from "spec/helpers/testing-library";
-import ShareSqlLabQuery from "src/SqlLab/components/ShareSqlLabQuery";
-import { initialState } from "src/SqlLab/fixtures";
-import { omit } from "lodash-es";
+} from 'spec/helpers/testing-library';
+import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
+import { initialState } from 'src/SqlLab/fixtures';
+import { omit } from 'lodash-es';
 
 const mockStore = createMockStore([thunk]);
 const defaultProps = {
-  queryEditorId: "qe1",
+  queryEditorId: 'qe1',
   addDangerToast: jest.fn(),
 };
 const mockQueryEditor = {
   id: defaultProps.queryEditorId,
   dbId: 0,
-  name: "query title",
-  schema: "query_schema",
+  name: 'query title',
+  schema: 'query_schema',
   autorun: false,
-  sql: "SELECT * FROM ...",
+  sql: 'SELECT * FROM ...',
   remoteId: 999,
 };
 const disabled = {
-  id: "disabledEditorId",
+  id: 'disabledEditorId',
   remoteId: undefined,
 };
 
@@ -59,8 +59,8 @@ const mockState = {
 };
 const store = mockStore(mockState);
 
-jest.mock("@superset-ui/core", () => ({
-  ...jest.requireActual("@superset-ui/core"),
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
 
@@ -69,15 +69,15 @@ const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 const unsavedQueryEditor = {
   id: defaultProps.queryEditorId,
   dbId: 9888,
-  name: "query title changed",
-  schema: "query_schema_updated",
-  sql: "SELECT * FROM Updated Limit 100",
+  name: 'query title changed',
+  schema: 'query_schema_updated',
+  sql: 'SELECT * FROM Updated Limit 100',
   autorun: true,
   templateParams: '{ "my_value": "foo" }',
 };
 
-const storeQueryUrl = "glob:*/api/v1/sqllab/permalink";
-const storeQueryMockId = "ci39c3";
+const storeQueryUrl = 'glob:*/api/v1/sqllab/permalink';
+const storeQueryMockId = 'ci39c3';
 
 beforeEach(async () => {
   fetchMock.removeRoute(storeQueryUrl);
@@ -100,15 +100,15 @@ afterAll(() => {
   mockedIsFeatureEnabled.mockReset();
 });
 
-test("calls storeQuery() with the query when getCopyUrl() is called", async () => {
+test('calls storeQuery() with the query when getCopyUrl() is called', async () => {
   await act(async () => {
     render(<ShareSqlLabQuery {...defaultProps} />, {
       useRedux: true,
       store,
     });
   });
-  const button = screen.getByRole("button");
-  const expected = omit(mockQueryEditor, ["id", "remoteId"]);
+  const button = screen.getByRole('button');
+  const expected = omit(mockQueryEditor, ['id', 'remoteId']);
   await userEvent.click(button);
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(storeQueryUrl)).toHaveLength(1),
@@ -127,19 +127,19 @@ test('does not show duplicate "Copy to clipboard" tooltip on hover', async () =>
       store,
     });
   });
-  const button = screen.getByRole("button");
+  const button = screen.getByRole('button');
   await userEvent.hover(button);
   expect(
-    await screen.findByText("Copy query link to your clipboard"),
+    await screen.findByText('Copy query link to your clipboard'),
   ).toBeInTheDocument();
   await waitFor(() => {
     // CopyToClipboard default tooltip must NOT appear —
     // only the Button-level "Copy query link to your clipboard" should show.
-    expect(screen.queryByText("Copy to clipboard")).not.toBeInTheDocument();
+    expect(screen.queryByText('Copy to clipboard')).not.toBeInTheDocument();
   });
 });
 
-test("calls storeQuery() with unsaved changes", async () => {
+test('calls storeQuery() with unsaved changes', async () => {
   await act(async () => {
     render(<ShareSqlLabQuery {...defaultProps} />, {
       useRedux: true,
@@ -152,8 +152,8 @@ test("calls storeQuery() with unsaved changes", async () => {
       }),
     });
   });
-  const button = screen.getByRole("button");
-  const expected = omit(unsavedQueryEditor, ["id"]);
+  const button = screen.getByRole('button');
+  const expected = omit(unsavedQueryEditor, ['id']);
   await userEvent.click(button);
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(storeQueryUrl)).toHaveLength(1),

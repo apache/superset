@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useDispatch, useSelector } from "react-redux";
-import { configureStore } from "@reduxjs/toolkit";
+import { useDispatch, useSelector } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import {
   act,
   render,
   screen,
   userEvent,
   waitFor,
-} from "spec/helpers/testing-library";
-import reducerIndex from "spec/helpers/reducerIndex";
-import { t } from "@apache-superset/core/translation";
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import { t } from '@apache-superset/core/translation';
 import {
   Dataset,
   getStandardizedControls,
   sharedControls,
-} from "@superset-ui/chart-controls";
+} from '@superset-ui/chart-controls';
 import {
   ComparisonType,
   DatasourceType,
@@ -41,32 +41,32 @@ import {
   NO_TIME_RANGE,
   QueryFormData,
   QueryMode,
-} from "@superset-ui/core";
+} from '@superset-ui/core';
 import {
   defaultControls,
   defaultState,
   getControlsState,
-} from "src/explore/store";
-import { ExplorePageState } from "src/explore/types";
-import { setControlValue } from "src/explore/actions/exploreActions";
+} from 'src/explore/store';
+import { ExplorePageState } from 'src/explore/types';
+import { setControlValue } from 'src/explore/actions/exploreActions';
 import {
   hydrateExplore,
   HydrateExplore,
-} from "src/explore/actions/hydrateExplore";
-import { exploreInitialData } from "src/explore/fixtures";
+} from 'src/explore/actions/hydrateExplore';
+import { exploreInitialData } from 'src/explore/fixtures';
 import {
   getControlStateFromControlConfig,
   getFormDataFromControls,
-} from "src/explore/controlUtils";
+} from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
   ControlPanelsContainerProps,
-} from "src/explore/components/ControlPanelsContainer";
+} from 'src/explore/components/ControlPanelsContainer';
 
-jest.mock("@superset-ui/core", () => ({
-  ...jest.requireActual("@superset-ui/core"),
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
-  fetchTimeRange: jest.fn(async () => ({ value: "Actual time range" })),
+  fetchTimeRange: jest.fn(async () => ({ value: 'Actual time range' })),
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
@@ -76,7 +76,7 @@ const FormDataMock = () => {
     (state: ExplorePageState) => state.explore.form_data,
   );
 
-  return <div data-test="mock-formdata">{Object.keys(formData).join(":")}</div>;
+  return <div data-test="mock-formdata">{Object.keys(formData).join(':')}</div>;
 };
 
 // Mirrors the props ExploreViewContainer derives from the store, so the real
@@ -104,8 +104,8 @@ const StoreBackedControlPanelsContainer = () => {
       chart={
         {
           queriesResponse: null,
-          chartStatus: "success",
-        } as ControlPanelsContainerProps["chart"]
+          chartStatus: 'success',
+        } as ControlPanelsContainerProps['chart']
       }
       onQuery={jest.fn()}
       onStop={jest.fn()}
@@ -119,36 +119,36 @@ const StoreBackedControlPanelsContainer = () => {
 const defaultTableConfig = {
   controlPanelSections: [
     {
-      label: t("GROUP BY"),
-      description: t("Use this section if you want a query that aggregates"),
+      label: t('GROUP BY'),
+      description: t('Use this section if you want a query that aggregates'),
       expanded: true,
       controlSetRows: [
-        ["groupby"],
-        ["metrics"],
-        ["percent_metrics"],
-        ["timeseries_limit_metric", "row_limit"],
-        ["include_time", "order_desc"],
+        ['groupby'],
+        ['metrics'],
+        ['percent_metrics'],
+        ['timeseries_limit_metric', 'row_limit'],
+        ['include_time', 'order_desc'],
       ],
     },
     {
-      label: t("NOT GROUPED BY"),
-      description: t("Use this section if you want to query atomic rows"),
+      label: t('NOT GROUPED BY'),
+      description: t('Use this section if you want to query atomic rows'),
       expanded: true,
-      controlSetRows: [["all_columns"], ["order_by_cols"], ["row_limit", null]],
+      controlSetRows: [['all_columns'], ['order_by_cols'], ['row_limit', null]],
     },
     {
-      label: t("Query"),
+      label: t('Query'),
       expanded: true,
-      controlSetRows: [["adhoc_filters"]],
+      controlSetRows: [['adhoc_filters']],
     },
     {
-      label: t("Options"),
+      label: t('Options'),
       expanded: true,
       controlSetRows: [
-        ["table_timestamp_format"],
-        ["page_length", null],
-        ["include_search", "table_filter"],
-        ["align_pn", "color_pn"],
+        ['table_timestamp_format'],
+        ['page_length', null],
+        ['include_search', 'table_filter'],
+        ['align_pn', 'color_pn'],
       ],
     },
   ],
@@ -159,9 +159,9 @@ const defaultTableConfig = {
 const switchTargetConfig = {
   controlPanelSections: [
     {
-      label: t("Query"),
+      label: t('Query'),
       expanded: true,
-      controlSetRows: [["groupby"], ["metrics"], ["limit"]],
+      controlSetRows: [['groupby'], ['metrics'], ['limit']],
     },
   ],
 };
@@ -172,9 +172,9 @@ const switchTargetConfig = {
 const switchMappedConfig = {
   controlPanelSections: [
     {
-      label: t("Query"),
+      label: t('Query'),
       expanded: true,
-      controlSetRows: [["size"], ["series_columns"]],
+      controlSetRows: [['size'], ['series_columns']],
     },
   ],
   formDataOverrides: (formData: QueryFormData) => ({
@@ -185,13 +185,13 @@ const switchMappedConfig = {
 };
 
 beforeEach(() => {
-  getChartControlPanelRegistry().registerValue("table", defaultTableConfig);
+  getChartControlPanelRegistry().registerValue('table', defaultTableConfig);
   getChartControlPanelRegistry().registerValue(
-    "switch-mapped",
+    'switch-mapped',
     switchMappedConfig,
   );
   getChartControlPanelRegistry().registerValue(
-    "switch-target",
+    'switch-target',
     switchTargetConfig,
   );
   jest.clearAllMocks();
@@ -200,18 +200,18 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().remove("switch-target");
-  getChartControlPanelRegistry().remove("switch-mapped");
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().remove('switch-target');
+  getChartControlPanelRegistry().remove('switch-mapped');
   jest.clearAllMocks();
 });
 
 afterAll(() => {
-  getChartControlPanelRegistry().remove("table");
+  getChartControlPanelRegistry().remove('table');
 });
 
 function getDefaultProps() {
-  const controls = defaultControls as ControlPanelsContainerProps["controls"];
+  const controls = defaultControls as ControlPanelsContainerProps['controls'];
   return {
     datasource_type: DatasourceType.Table,
     actions: {},
@@ -221,7 +221,7 @@ function getDefaultProps() {
     exploreState: {},
     chart: {
       queriesResponse: null,
-      chartStatus: "success",
+      chartStatus: 'success',
     },
   } as ControlPanelsContainerProps;
 }
@@ -229,37 +229,37 @@ function getDefaultProps() {
 test.each([
   { sliceId: undefined, version: undefined },
   { sliceId: 21, version: undefined },
-  { sliceId: 21, version: "old" },
+  { sliceId: 21, version: 'old' },
 ])(
-  "unverified semantic selections expose explicit field initialization (%j)",
+  'unverified semantic selections expose explicit field initialization (%j)',
   async ({ sliceId, version }) => {
     const registry = getChartControlPanelRegistry();
-    const previous = registry.get("line");
-    registry.registerValue("line", defaultTableConfig);
+    const previous = registry.get('line');
+    registry.registerValue('line', defaultTableConfig);
     try {
       mockIsFeatureEnabled.mockImplementation(
-        (featureFlag) => featureFlag === FeatureFlag.Matrixify,
+        featureFlag => featureFlag === FeatureFlag.Matrixify,
       );
       const props = getDefaultProps();
       const resetSemanticSelections = jest.fn();
       props.actions = { setControlValue: jest.fn(), resetSemanticSelections };
       props.exploreState = {
         ...defaultState,
-        datasource: { semantic_selection_version: "cube-member-id-v1" },
-      } as ControlPanelsContainerProps["exploreState"];
+        datasource: { semantic_selection_version: 'cube-member-id-v1' },
+      } as ControlPanelsContainerProps['exploreState'];
       props.form_data = {
         ...props.form_data,
-        datasource: "7__semantic_view",
+        datasource: '7__semantic_view',
         slice_id: sliceId,
-        viz_type: "line",
+        viz_type: 'line',
         matrixify_enable: true,
-        matrixify_mode_rows: "metrics",
+        matrixify_mode_rows: 'metrics',
         semantic_selection_version: version,
       };
       render(<ControlPanelsContainer {...props} />, { useRedux: true });
-      expect(screen.queryByText("Query")).not.toBeInTheDocument();
+      expect(screen.queryByText('Query')).not.toBeInTheDocument();
       expect(
-        screen.getByText("Re-pick fields for this chart"),
+        screen.getByText('Re-pick fields for this chart'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
@@ -267,29 +267,29 @@ test.each([
         ),
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole("tab", { name: /matrixify/i }),
+        screen.queryByRole('tab', { name: /matrixify/i }),
       ).not.toBeInTheDocument();
       await userEvent.click(
-        screen.getByRole("button", { name: "Re-pick fields" }),
+        screen.getByRole('button', { name: 'Re-pick fields' }),
       );
       expect(resetSemanticSelections).toHaveBeenCalledWith(sliceId);
     } finally {
-      if (previous) registry.registerValue("line", previous);
-      else registry.remove("line");
+      if (previous) registry.registerValue('line', previous);
+      else registry.remove('line');
     }
   },
 );
 
-test("real new semantic chart payload hydrates without the banner", () => {
+test('real new semantic chart payload hydrates without the banner', () => {
   const dispatch = jest.fn();
   const formData: Partial<QueryFormData> = {
     adhoc_filters: [],
     applied_time_extras: {},
-    datasource: "4__semantic_view",
+    datasource: '4__semantic_view',
     url_params: {
-      datasource_id: "4",
-      datasource_type: "semantic_view",
-      viz_type: "table",
+      datasource_id: '4',
+      datasource_type: 'semantic_view',
+      viz_type: 'table',
     },
   };
   hydrateExplore({
@@ -301,7 +301,7 @@ test("real new semantic chart payload hydrates without the banner", () => {
       ...exploreInitialData.dataset,
       id: 4,
       type: DatasourceType.SemanticView,
-      semantic_selection_version: "cube-member-id-v1",
+      semantic_selection_version: 'cube-member-id-v1',
     },
   })(
     dispatch,
@@ -320,64 +320,64 @@ test("real new semantic chart payload hydrates without the banner", () => {
   props.form_data = explore.form_data;
   props.controls = explore.controls;
   render(<ControlPanelsContainer {...props} />, { useRedux: true });
-  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-  expect(screen.getByText("Query")).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.getByText('Query')).toBeInTheDocument();
 });
 
-test("current semantic selections render query controls", async () => {
+test('current semantic selections render query controls', async () => {
   const props = getDefaultProps();
   props.exploreState = {
     ...defaultState,
-    datasource: { semantic_selection_version: "cube-member-id-v1" },
-  } as ControlPanelsContainerProps["exploreState"];
+    datasource: { semantic_selection_version: 'cube-member-id-v1' },
+  } as ControlPanelsContainerProps['exploreState'];
   props.form_data = {
     ...props.form_data,
-    datasource: "7__semantic_view",
-    semantic_selection_version: "cube-member-id-v1",
+    datasource: '7__semantic_view',
+    semantic_selection_version: 'cube-member-id-v1',
   };
   render(<ControlPanelsContainer {...props} />, { useRedux: true });
-  expect(screen.getByText("Query")).toBeInTheDocument();
+  expect(screen.getByText('Query')).toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: "Re-pick fields" }),
+    screen.queryByRole('button', { name: 'Re-pick fields' }),
   ).not.toBeInTheDocument();
 });
 
-test("renders ControlPanelSections", async () => {
+test('renders ControlPanelSections', async () => {
   render(<ControlPanelsContainer {...getDefaultProps()} />, {
     useRedux: true,
   });
   await waitFor(() => {
     expect(
-      screen.getAllByTestId("collapsible-control-panel-header"),
+      screen.getAllByTestId('collapsible-control-panel-header'),
     ).toHaveLength(4);
   });
-  expect(screen.getByRole("tab", { name: /customize/i })).toBeInTheDocument();
-  await userEvent.click(screen.getByRole("tab", { name: /customize/i }));
+  expect(screen.getByRole('tab', { name: /customize/i })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('tab', { name: /customize/i }));
   await waitFor(() => {
     expect(
-      screen.getAllByTestId("collapsible-control-panel-header"),
+      screen.getAllByTestId('collapsible-control-panel-header'),
     ).toHaveLength(5);
   });
 });
 
-test("renders ControlPanelSections no Customize Tab", async () => {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().registerValue("table", {
+test('renders ControlPanelSections no Customize Tab', async () => {
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [
       {
-        label: t("GROUP BY"),
-        description: t("Use this section if you want a query that aggregates"),
+        label: t('GROUP BY'),
+        description: t('Use this section if you want a query that aggregates'),
         expanded: true,
         controlSetRows: [
-          ["groupby"],
-          ["metrics"],
-          ["percent_metrics"],
-          ["timeseries_limit_metric", "row_limit"],
-          ["include_time", "order_desc"],
+          ['groupby'],
+          ['metrics'],
+          ['percent_metrics'],
+          ['timeseries_limit_metric', 'row_limit'],
+          ['include_time', 'order_desc'],
         ],
       },
       {
-        label: t("Options"),
+        label: t('Options'),
         expanded: true,
         controlSetRows: [],
       },
@@ -389,30 +389,30 @@ test("renders ControlPanelSections no Customize Tab", async () => {
   expect(screen.queryByText(/customize/i)).not.toBeInTheDocument();
   await waitFor(() => {
     expect(
-      screen.getAllByTestId("collapsible-control-panel-header"),
+      screen.getAllByTestId('collapsible-control-panel-header'),
     ).toHaveLength(2);
   });
 });
 
-test("visibility of panels is correctly applied", async () => {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().registerValue("table", {
+test('visibility of panels is correctly applied', async () => {
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [
       {
-        label: t("Advanced analytics"),
-        description: t("Advanced analytics post processing"),
+        label: t('Advanced analytics'),
+        description: t('Advanced analytics post processing'),
         expanded: true,
-        controlSetRows: [["groupby"], ["metrics"], ["percent_metrics"]],
+        controlSetRows: [['groupby'], ['metrics'], ['percent_metrics']],
         visibility: () => false,
       },
       {
-        label: t("Chart Title"),
+        label: t('Chart Title'),
         visibility: () => true,
-        controlSetRows: [["timeseries_limit_metric", "row_limit"]],
+        controlSetRows: [['timeseries_limit_metric', 'row_limit']],
       },
       {
-        label: t("Chart Options"),
-        controlSetRows: [["include_time", "order_desc"]],
+        label: t('Chart Options'),
+        controlSetRows: [['include_time', 'order_desc']],
       },
     ],
   });
@@ -427,31 +427,31 @@ test("visibility of panels is correctly applied", async () => {
     },
   );
 
-  const disabledSection = screen.queryByRole("button", {
+  const disabledSection = screen.queryByRole('button', {
     name: /advanced analytics/i,
   });
   expect(disabledSection).not.toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: /chart title/i }),
+    screen.getByRole('button', { name: /chart title/i }),
   ).toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: /chart options/i }),
+    screen.queryByRole('button', { name: /chart options/i }),
   ).toBeInTheDocument();
 
-  expect(getByTestId("mock-formdata")).not.toHaveTextContent("groupby");
-  expect(getByTestId("mock-formdata")).not.toHaveTextContent("metrics");
-  expect(getByTestId("mock-formdata")).not.toHaveTextContent("percent_metrics");
+  expect(getByTestId('mock-formdata')).not.toHaveTextContent('groupby');
+  expect(getByTestId('mock-formdata')).not.toHaveTextContent('metrics');
+  expect(getByTestId('mock-formdata')).not.toHaveTextContent('percent_metrics');
 });
 
-test("renders section with function label and description", async () => {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().registerValue("table", {
+test('renders section with function label and description', async () => {
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [
       {
-        label: () => t("Dynamic Section Label"),
-        description: () => t("Dynamic section description"),
+        label: () => t('Dynamic Section Label'),
+        description: () => t('Dynamic section description'),
         expanded: true,
-        controlSetRows: [["groupby"]],
+        controlSetRows: [['groupby']],
       },
     ],
   });
@@ -459,47 +459,47 @@ test("renders section with function label and description", async () => {
     useRedux: true,
   });
   await waitFor(() => {
-    expect(screen.getByText("Dynamic Section Label")).toBeInTheDocument();
+    expect(screen.getByText('Dynamic Section Label')).toBeInTheDocument();
   });
 });
 
-test("hidden state of controls is correctly applied", async () => {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().registerValue("table", {
+test('hidden state of controls is correctly applied', async () => {
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [
       {
-        label: t("Time Comparison"),
+        label: t('Time Comparison'),
         expanded: true,
         controlSetRows: [
           [
             {
-              name: "time_compare",
+              name: 'time_compare',
               config: {
-                type: "SelectControl",
+                type: 'SelectControl',
                 freeForm: true,
-                label: t("Time shift"),
+                label: t('Time shift'),
                 choices: [],
               },
             },
           ],
           [
             {
-              name: "start_date_offset",
+              name: 'start_date_offset',
               config: {
-                type: "SelectControl",
+                type: 'SelectControl',
                 choices: [],
-                label: t("Shift start date"),
+                label: t('Shift start date'),
                 hidden: true,
               },
             },
           ],
           [
             {
-              name: "comparison_type",
+              name: 'comparison_type',
               config: {
-                type: "SelectControl",
-                label: t("Calculation type"),
-                default: "values",
+                type: 'SelectControl',
+                label: t('Calculation type'),
+                default: 'values',
                 choices: [],
                 hidden: () => true,
               },
@@ -513,21 +513,21 @@ test("hidden state of controls is correctly applied", async () => {
     useRedux: true,
   });
 
-  expect(screen.getByText("Time shift")).toBeInTheDocument();
-  expect(screen.getByText("Shift start date")).toBeInTheDocument();
-  expect(screen.getByText("Calculation type")).toBeInTheDocument();
-  expect(screen.getByText("Shift start date")).not.toBeVisible();
-  expect(screen.getByText("Calculation type")).not.toBeVisible();
+  expect(screen.getByText('Time shift')).toBeInTheDocument();
+  expect(screen.getByText('Shift start date')).toBeInTheDocument();
+  expect(screen.getByText('Calculation type')).toBeInTheDocument();
+  expect(screen.getByText('Shift start date')).not.toBeVisible();
+  expect(screen.getByText('Calculation type')).not.toBeVisible();
 });
 
-test("should stay on Matrixify tab when matrixify is enabled", async () => {
+test('should stay on Matrixify tab when matrixify is enabled', async () => {
   // Enable Matrixify feature flag
   mockIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
   );
 
   // Register control panel for line chart
-  getChartControlPanelRegistry().registerValue("line", {
+  getChartControlPanelRegistry().registerValue('line', {
     controlPanelSections: [],
   });
 
@@ -535,9 +535,9 @@ test("should stay on Matrixify tab when matrixify is enabled", async () => {
   // Use a chart type that supports matrixify (not a table)
   props.form_data = {
     ...props.form_data,
-    viz_type: "line",
+    viz_type: 'line',
     matrixify_enable: true,
-    matrixify_mode_rows: "metrics",
+    matrixify_mode_rows: 'metrics',
   };
 
   const { rerender } = render(<ControlPanelsContainer {...props} />, {
@@ -546,9 +546,9 @@ test("should stay on Matrixify tab when matrixify is enabled", async () => {
 
   // Check that Matrixify tab exists and is active
   await waitFor(() => {
-    const matrixifyTab = screen.getByRole("tab", { name: /matrixify/i });
+    const matrixifyTab = screen.getByRole('tab', { name: /matrixify/i });
     expect(matrixifyTab).toBeInTheDocument();
-    expect(matrixifyTab).toHaveAttribute("aria-selected", "true");
+    expect(matrixifyTab).toHaveAttribute('aria-selected', 'true');
   });
 
   // Simulate saving with updated dimension values
@@ -556,12 +556,12 @@ test("should stay on Matrixify tab when matrixify is enabled", async () => {
     ...props,
     form_data: {
       ...props.form_data,
-      viz_type: "line",
+      viz_type: 'line',
       matrixify_enable: true,
-      matrixify_mode_rows: "metrics",
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_columns: {
-        dimension: "country",
-        values: ["USA", "Canada"],
+        dimension: 'country',
+        values: ['USA', 'Canada'],
       },
     },
   };
@@ -570,24 +570,24 @@ test("should stay on Matrixify tab when matrixify is enabled", async () => {
 
   // Matrixify tab should still be active after rerender
   await waitFor(() => {
-    const matrixifyTabAfterSave = screen.getByRole("tab", {
+    const matrixifyTabAfterSave = screen.getByRole('tab', {
       name: /matrixify/i,
     });
-    expect(matrixifyTabAfterSave).toHaveAttribute("aria-selected", "true");
+    expect(matrixifyTabAfterSave).toHaveAttribute('aria-selected', 'true');
   });
 
   // Clean up
-  getChartControlPanelRegistry().remove("line");
+  getChartControlPanelRegistry().remove('line');
 });
 
-test("should automatically switch to Matrixify tab when matrixify becomes enabled", async () => {
+test('should automatically switch to Matrixify tab when matrixify becomes enabled', async () => {
   // Enable Matrixify feature flag
   mockIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
   );
 
   // Register control panel for line chart
-  getChartControlPanelRegistry().registerValue("line", {
+  getChartControlPanelRegistry().registerValue('line', {
     controlPanelSections: [],
   });
 
@@ -595,7 +595,7 @@ test("should automatically switch to Matrixify tab when matrixify becomes enable
   // Use a chart type that supports matrixify (not a table)
   props.form_data = {
     ...props.form_data,
-    viz_type: "line",
+    viz_type: 'line',
   };
 
   const { rerender } = render(<ControlPanelsContainer {...props} />, {
@@ -603,17 +603,17 @@ test("should automatically switch to Matrixify tab when matrixify becomes enable
   });
 
   // Initially, Data tab should be active
-  const dataTab = screen.getByRole("tab", { name: /data/i });
-  expect(dataTab).toHaveAttribute("aria-selected", "true");
+  const dataTab = screen.getByRole('tab', { name: /data/i });
+  expect(dataTab).toHaveAttribute('aria-selected', 'true');
 
   // Enable matrixify
   const updatedProps = {
     ...props,
     form_data: {
       ...props.form_data,
-      viz_type: "line",
+      viz_type: 'line',
       matrixify_enable: true,
-      matrixify_mode_columns: "metrics",
+      matrixify_mode_columns: 'metrics',
     },
   };
 
@@ -621,37 +621,37 @@ test("should automatically switch to Matrixify tab when matrixify becomes enable
 
   // Matrixify tab should now be active
   await waitFor(() => {
-    const matrixifyTab = screen.getByRole("tab", { name: /matrixify/i });
+    const matrixifyTab = screen.getByRole('tab', { name: /matrixify/i });
     expect(matrixifyTab).toBeInTheDocument();
-    expect(matrixifyTab).toHaveAttribute("aria-selected", "true");
+    expect(matrixifyTab).toHaveAttribute('aria-selected', 'true');
   });
 
   // Data tab should no longer be active
-  expect(screen.getByRole("tab", { name: /data/i })).toHaveAttribute(
-    "aria-selected",
-    "false",
+  expect(screen.getByRole('tab', { name: /data/i })).toHaveAttribute(
+    'aria-selected',
+    'false',
   );
 
   // Clean up
-  getChartControlPanelRegistry().remove("line");
+  getChartControlPanelRegistry().remove('line');
 });
 
-test("should stash control value when visibility is false and disableStash is not set", async () => {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().registerValue("table", {
+test('should stash control value when visibility is false and disableStash is not set', async () => {
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [
       {
-        label: t("Query"),
+        label: t('Query'),
         expanded: true,
         controlSetRows: [
           [
             {
-              name: "x_axis_time_format",
+              name: 'x_axis_time_format',
               config: {
-                type: "SelectControl",
-                label: t("Time Format"),
-                default: "smart_date",
-                choices: [["smart_date", "Adaptive Formatting"]],
+                type: 'SelectControl',
+                label: t('Time Format'),
+                default: 'smart_date',
+                choices: [['smart_date', 'Adaptive Formatting']],
                 visibility: () => false,
               },
             },
@@ -664,7 +664,7 @@ test("should stash control value when visibility is false and disableStash is no
   const props = getDefaultProps();
   props.form_data = {
     ...props.form_data,
-    x_axis_time_format: "smart_date",
+    x_axis_time_format: 'smart_date',
   };
 
   const { getByTestId } = render(
@@ -678,7 +678,7 @@ test("should stash control value when visibility is false and disableStash is no
         explore: {
           form_data: {
             ...defaultState.form_data,
-            x_axis_time_format: "smart_date",
+            x_axis_time_format: 'smart_date',
           },
         },
       },
@@ -686,28 +686,28 @@ test("should stash control value when visibility is false and disableStash is no
   );
 
   await waitFor(() => {
-    expect(getByTestId("mock-formdata")).not.toHaveTextContent(
-      "x_axis_time_format",
+    expect(getByTestId('mock-formdata')).not.toHaveTextContent(
+      'x_axis_time_format',
     );
   });
 });
 
-test("should preserve control value when visibility is false and disableStash is true", async () => {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().registerValue("table", {
+test('should preserve control value when visibility is false and disableStash is true', async () => {
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [
       {
-        label: t("Query"),
+        label: t('Query'),
         expanded: true,
         controlSetRows: [
           [
             {
-              name: "x_axis_time_format",
+              name: 'x_axis_time_format',
               config: {
-                type: "SelectControl",
-                label: t("Time Format"),
-                default: "smart_date",
-                choices: [["smart_date", "Adaptive Formatting"]],
+                type: 'SelectControl',
+                label: t('Time Format'),
+                default: 'smart_date',
+                choices: [['smart_date', 'Adaptive Formatting']],
                 visibility: () => false,
                 disableStash: true,
               },
@@ -721,7 +721,7 @@ test("should preserve control value when visibility is false and disableStash is
   const props = getDefaultProps();
   props.form_data = {
     ...props.form_data,
-    x_axis_time_format: "smart_date",
+    x_axis_time_format: 'smart_date',
   };
 
   const { getByTestId } = render(
@@ -735,7 +735,7 @@ test("should preserve control value when visibility is false and disableStash is
         explore: {
           form_data: {
             ...defaultState.form_data,
-            x_axis_time_format: "smart_date",
+            x_axis_time_format: 'smart_date',
           },
         },
       },
@@ -743,13 +743,13 @@ test("should preserve control value when visibility is false and disableStash is
   );
 
   await waitFor(() => {
-    expect(getByTestId("mock-formdata")).toHaveTextContent(
-      "x_axis_time_format",
+    expect(getByTestId('mock-formdata')).toHaveTextContent(
+      'x_axis_time_format',
     );
   });
 });
 
-test("should not show Matrixify tab for table chart types", async () => {
+test('should not show Matrixify tab for table chart types', async () => {
   // Enable Matrixify feature flag
   mockIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
@@ -757,11 +757,11 @@ test("should not show Matrixify tab for table chart types", async () => {
 
   // All table-type charts that don't support matrixify
   const tableVizTypes = [
-    "table",
-    "ag-grid-table",
-    "pivot_table_v2",
-    "time_table",
-    "time_pivot",
+    'table',
+    'ag-grid-table',
+    'pivot_table_v2',
+    'time_table',
+    'time_pivot',
   ];
 
   for (const vizType of tableVizTypes) {
@@ -777,17 +777,17 @@ test("should not show Matrixify tab for table chart types", async () => {
 
     // Wait for tabs to be rendered
     await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /data/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
     });
 
     // Check that Matrixify tab does not exist for table chart types
     expect(
-      screen.queryByRole("tab", { name: /matrixify/i }),
+      screen.queryByRole('tab', { name: /matrixify/i }),
     ).not.toBeInTheDocument();
   }
 });
 
-test("should show Matrixify tab for supported chart types", async () => {
+test('should show Matrixify tab for supported chart types', async () => {
   // Enable Matrixify feature flag
   mockIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.Matrixify,
@@ -795,12 +795,12 @@ test("should show Matrixify tab for supported chart types", async () => {
 
   // Register control panels for non-table chart types
   const simpleConfig = { controlPanelSections: [] };
-  getChartControlPanelRegistry().registerValue("line", simpleConfig);
-  getChartControlPanelRegistry().registerValue("bar", simpleConfig);
-  getChartControlPanelRegistry().registerValue("pie", simpleConfig);
+  getChartControlPanelRegistry().registerValue('line', simpleConfig);
+  getChartControlPanelRegistry().registerValue('bar', simpleConfig);
+  getChartControlPanelRegistry().registerValue('pie', simpleConfig);
 
   // Non-table chart types that support matrixify
-  const supportedVizTypes = ["line", "bar", "pie"];
+  const supportedVizTypes = ['line', 'bar', 'pie'];
 
   for (const vizType of supportedVizTypes) {
     const props = getDefaultProps();
@@ -816,21 +816,21 @@ test("should show Matrixify tab for supported chart types", async () => {
     // Wait for Matrixify tab to be rendered
     await waitFor(() => {
       expect(
-        screen.getByRole("tab", { name: /matrixify/i }),
+        screen.getByRole('tab', { name: /matrixify/i }),
       ).toBeInTheDocument();
     });
 
     // Also verify Data tab exists
-    expect(screen.getByRole("tab", { name: /data/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
 
     // Clean up this render before the next iteration
     unmount();
   }
 
   // Clean up registered chart types
-  getChartControlPanelRegistry().remove("line");
-  getChartControlPanelRegistry().remove("bar");
-  getChartControlPanelRegistry().remove("pie");
+  getChartControlPanelRegistry().remove('line');
+  getChartControlPanelRegistry().remove('bar');
+  getChartControlPanelRegistry().remove('pie');
 });
 
 // The partition-pruning glyph on the standalone Time Range control is
@@ -840,23 +840,23 @@ test("should show Matrixify tab for supported chart types", async () => {
 // charts that still carry this control. `shouldMapStateToProps` gives the
 // glyph the freshness it needs without the reducer ever touching the value.
 const PARTITION_FILTER_MAPPING = {
-  partition_column: "dt_epoch",
-  mapped_column: "event_time",
+  partition_column: 'dt_epoch',
+  mapped_column: 'event_time',
   active: true,
   is_monotonic: true,
-  mirrorable_operators: ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+  mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
 };
 
 const mirroredDatasource: Dataset = {
   id: 1,
   type: DatasourceType.Table,
-  datasource_name: "mirrored",
+  datasource_name: 'mirrored',
   description: null,
   column_formats: {},
   verbose_map: {},
-  main_dttm_col: "event_time",
+  main_dttm_col: 'event_time',
   always_filter_main_dttm: false,
-  columns: [{ column_name: "event_time", is_dttm: true }],
+  columns: [{ column_name: 'event_time', is_dttm: true }],
   metrics: [],
   partition_filter_mapping: PARTITION_FILTER_MAPPING,
 };
@@ -875,9 +875,9 @@ function mirroredTimeRangeProps(
   const controlPanelState = {
     controls: {},
     form_data: {
-      datasource: "1__table",
-      viz_type: "table",
-      granularity_sqla: "event_time",
+      datasource: '1__table',
+      viz_type: 'table',
+      granularity_sqla: 'event_time',
       time_range: initialTimeRange,
     },
     datasource: mirroredDatasource,
@@ -888,9 +888,9 @@ function mirroredTimeRangeProps(
     initialTimeRange,
   )!;
   const formData = {
-    datasource: "1__table",
-    viz_type: "table",
-    granularity_sqla: "event_time",
+    datasource: '1__table',
+    viz_type: 'table',
+    granularity_sqla: 'event_time',
     time_range: timeRange,
   };
 
@@ -898,34 +898,34 @@ function mirroredTimeRangeProps(
     ...getDefaultProps(),
     controls: {
       time_range: { ...controlState, value: timeRange },
-    } as unknown as ControlPanelsContainerProps["controls"],
+    } as unknown as ControlPanelsContainerProps['controls'],
     form_data: formData,
     exploreState: { form_data: formData, datasource: mirroredDatasource },
   } as unknown as ControlPanelsContainerProps;
 }
 
 function registerTimeRangeOnlyPanel() {
-  getChartControlPanelRegistry().remove("table");
-  getChartControlPanelRegistry().registerValue("table", {
+  getChartControlPanelRegistry().remove('table');
+  getChartControlPanelRegistry().registerValue('table', {
     controlPanelSections: [
       {
-        label: t("Time"),
+        label: t('Time'),
         expanded: true,
-        controlSetRows: [["time_range"]],
+        controlSetRows: [['time_range']],
       },
     ],
   });
 }
 
-test("the partition glyph shows on a time range that is mirrored", async () => {
+test('the partition glyph shows on a time range that is mirrored', async () => {
   registerTimeRangeOnlyPanel();
 
-  render(<ControlPanelsContainer {...mirroredTimeRangeProps("Last week")} />, {
+  render(<ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />, {
     useRedux: true,
   });
 
   expect(
-    await screen.findByTestId("partition-pruning-indicator"),
+    await screen.findByTestId('partition-pruning-indicator'),
   ).toBeInTheDocument();
 });
 
@@ -933,22 +933,22 @@ test('the partition glyph drops when the time range becomes "No filter"', async 
   registerTimeRangeOnlyPanel();
 
   const { rerender } = render(
-    <ControlPanelsContainer {...mirroredTimeRangeProps("Last week")} />,
+    <ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />,
     { useRedux: true },
   );
   expect(
-    await screen.findByTestId("partition-pruning-indicator"),
+    await screen.findByTestId('partition-pruning-indicator'),
   ).toBeInTheDocument();
 
   rerender(
     <ControlPanelsContainer
-      {...mirroredTimeRangeProps(NO_TIME_RANGE, "Last week")}
+      {...mirroredTimeRangeProps(NO_TIME_RANGE, 'Last week')}
     />,
   );
 
   await waitFor(() => {
     expect(
-      screen.queryByTestId("partition-pruning-indicator"),
+      screen.queryByTestId('partition-pruning-indicator'),
     ).not.toBeInTheDocument();
   });
 });
@@ -957,18 +957,18 @@ function createStoreBackedExplore() {
   const datasource = {
     id: 1,
     type: DatasourceType.Table,
-    columns: [{ column_name: "name" }, { column_name: "gender" }],
-    metrics: [{ metric_name: "count" }],
+    columns: [{ column_name: 'name' }, { column_name: 'gender' }],
+    metrics: [{ metric_name: 'count' }],
     verbose_map: {},
     column_formats: {},
   };
   const baseState = { datasource };
   const formData = {
-    viz_type: "table",
-    datasource: "1__table",
-    groupby: ["name", "gender"],
-    metrics: ["count"],
-    all_columns: ["name"],
+    viz_type: 'table',
+    datasource: '1__table',
+    groupby: ['name', 'gender'],
+    metrics: ['count'],
+    all_columns: ['name'],
     row_limit: 100,
   };
   const controls = getControlsState(
@@ -984,11 +984,11 @@ function createStoreBackedExplore() {
         ...baseState,
         controls,
         form_data: getFormDataFromControls(
-          controls as ControlPanelsContainerProps["controls"],
+          controls as ControlPanelsContainerProps['controls'],
         ),
       },
     } as never,
-    middleware: (getDefaultMiddleware) =>
+    middleware: getDefaultMiddleware =>
       getDefaultMiddleware({
         serializableCheck: false,
         immutableCheck: false,
@@ -997,12 +997,12 @@ function createStoreBackedExplore() {
   });
 }
 
-test("switching viz_type re-renders the control sections of the new viz", async () => {
+test('switching viz_type re-renders the control sections of the new viz', async () => {
   const store = createStoreBackedExplore();
   render(<StoreBackedControlPanelsContainer />, { store });
 
   expect(
-    await screen.findByRole("button", { name: /group by/i }),
+    await screen.findByRole('button', { name: /group by/i }),
   ).toBeInTheDocument();
   expect(screen.queryByText(/series limit/i)).not.toBeInTheDocument();
   expect(
@@ -1010,59 +1010,59 @@ test("switching viz_type re-renders the control sections of the new viz", async 
   ).toBeUndefined();
 
   act(() => {
-    store.dispatch(setControlValue("viz_type", "switch-target"));
+    store.dispatch(setControlValue('viz_type', 'switch-target'));
   });
 
   expect((await screen.findAllByText(/series limit/i)).length).toBeGreaterThan(
     0,
   );
   expect(
-    screen.queryByRole("button", { name: /group by/i }),
+    screen.queryByRole('button', { name: /group by/i }),
   ).not.toBeInTheDocument();
   // The label above comes from the registered panel config, so also check the
   // reducer built control state for `limit`, which only the target viz has.
   const { controls } = (store.getState() as ExplorePageState).explore;
-  expect(controls.limit).toMatchObject({ label: "Series limit" });
+  expect(controls.limit).toMatchObject({ label: 'Series limit' });
 });
 
-test("switching viz_type carries shared metrics and groupby over and drops controls the new viz lacks", async () => {
+test('switching viz_type carries shared metrics and groupby over and drops controls the new viz lacks', async () => {
   const store = createStoreBackedExplore();
   render(<StoreBackedControlPanelsContainer />, { store });
-  await screen.findByRole("button", { name: /group by/i });
+  await screen.findByRole('button', { name: /group by/i });
 
   act(() => {
-    store.dispatch(setControlValue("viz_type", "switch-target"));
+    store.dispatch(setControlValue('viz_type', 'switch-target'));
   });
   await screen.findAllByText(/series limit/i);
 
   const { form_data: formData, controls } = (
     store.getState() as ExplorePageState
   ).explore;
-  expect(formData.viz_type).toBe("switch-target");
-  expect(formData.groupby).toEqual(["name", "gender"]);
-  expect(formData.metrics).toEqual(["count"]);
+  expect(formData.viz_type).toBe('switch-target');
+  expect(formData.groupby).toEqual(['name', 'gender']);
+  expect(formData.metrics).toEqual(['count']);
   expect(formData.standardizedFormData.controls).toEqual({
-    metrics: ["count"],
-    columns: ["name", "gender"],
+    metrics: ['count'],
+    columns: ['name', 'gender'],
   });
   expect(controls.all_columns).toBeUndefined();
   expect(formData.all_columns).toBeUndefined();
 });
 
-test("switching viz_type hands standardized metrics and columns to the target formDataOverrides", async () => {
+test('switching viz_type hands standardized metrics and columns to the target formDataOverrides', async () => {
   const store = createStoreBackedExplore();
   render(<StoreBackedControlPanelsContainer />, { store });
-  await screen.findByRole("button", { name: /group by/i });
+  await screen.findByRole('button', { name: /group by/i });
 
   act(() => {
-    store.dispatch(setControlValue("viz_type", "switch-mapped"));
+    store.dispatch(setControlValue('viz_type', 'switch-mapped'));
   });
 
   const { form_data: formData } = (store.getState() as ExplorePageState)
     .explore;
-  expect(formData.viz_type).toBe("switch-mapped");
-  expect(formData.size).toBe("count");
-  expect(formData.series_columns).toEqual(["name", "gender"]);
+  expect(formData.viz_type).toBe('switch-mapped');
+  expect(formData.size).toBe('count');
+  expect(formData.series_columns).toEqual(['name', 'gender']);
 });
 
 function withHeaderGroupsSync(
@@ -1071,22 +1071,22 @@ function withHeaderGroupsSync(
   const setControlValue = jest.fn();
   const props = getDefaultProps();
   const timeCompareControl = {
-    type: "SelectControl" as const,
-    value: "1 year ago",
+    type: 'SelectControl' as const,
+    value: '1 year ago',
   };
   const queryModeControl = {
-    type: "RadioButtonControl" as const,
+    type: 'RadioButtonControl' as const,
     value: QueryMode.Aggregate,
   };
   const comparisonTypeControl = {
-    type: "SelectControl" as const,
+    type: 'SelectControl' as const,
     value: ComparisonType.Values,
   };
   props.actions = { setControlValue, resetSemanticSelections: jest.fn() };
   props.controls = {
     ...props.controls,
     header_groups: {
-      type: "HeaderGroupsControl",
+      type: 'HeaderGroupsControl',
       value: [],
     },
     time_compare: timeCompareControl,
@@ -1097,7 +1097,7 @@ function withHeaderGroupsSync(
     ...props.exploreState,
     form_data: {
       ...props.form_data,
-      metrics: ["revenue"],
+      metrics: ['revenue'],
       query_mode: QueryMode.Aggregate,
       comparison_type: ComparisonType.Values,
     },
@@ -1112,18 +1112,18 @@ function withHeaderGroupsSync(
   return { props, setControlValue };
 }
 
-test("syncs time comparison header groups without opening Customize", async () => {
+test('syncs time comparison header groups without opening Customize', async () => {
   const { props, setControlValue } = withHeaderGroupsSync();
 
   render(<ControlPanelsContainer {...props} />, { useRedux: true });
 
   await waitFor(() => {
     expect(setControlValue).toHaveBeenCalledWith(
-      "header_groups",
+      'header_groups',
       expect.arrayContaining([
         expect.objectContaining({
-          id: "time-compare-revenue",
-          source: "time_compare",
+          id: 'time-compare-revenue',
+          source: 'time_compare',
         }),
       ]),
       undefined,
@@ -1132,18 +1132,18 @@ test("syncs time comparison header groups without opening Customize", async () =
   });
 });
 
-test("does not rewrite header groups that already match time comparison", async () => {
+test('does not rewrite header groups that already match time comparison', async () => {
   const autoGroup = {
-    id: "time-compare-revenue",
-    label: "revenue",
-    columns: ["Main revenue", "# revenue", "△ revenue", "% revenue"],
-    source: "time_compare" as const,
+    id: 'time-compare-revenue',
+    label: 'revenue',
+    columns: ['Main revenue', '# revenue', '△ revenue', '% revenue'],
+    source: 'time_compare' as const,
   };
   const { props, setControlValue } = withHeaderGroupsSync();
   props.controls = {
     ...props.controls,
     header_groups: {
-      type: "HeaderGroupsControl",
+      type: 'HeaderGroupsControl',
       value: [autoGroup],
     },
   };
@@ -1151,43 +1151,43 @@ test("does not rewrite header groups that already match time comparison", async 
   render(<ControlPanelsContainer {...props} />, { useRedux: true });
 
   await waitFor(() => {
-    expect(screen.getByRole("tab", { name: /data/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
   });
   expect(setControlValue).not.toHaveBeenCalled();
 });
 
-test("does not sync header groups when the control is absent", async () => {
+test('does not sync header groups when the control is absent', async () => {
   const { props, setControlValue } = withHeaderGroupsSync();
   props.controls = Object.fromEntries(
-    Object.entries(props.controls).filter(([name]) => name !== "header_groups"),
+    Object.entries(props.controls).filter(([name]) => name !== 'header_groups'),
   );
 
   render(<ControlPanelsContainer {...props} />, { useRedux: true });
 
   await waitFor(() => {
-    expect(screen.getByRole("tab", { name: /data/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
   });
   expect(setControlValue).not.toHaveBeenCalled();
 });
 
-test("drops time comparison header groups when time comparison is cleared", async () => {
+test('drops time comparison header groups when time comparison is cleared', async () => {
   const { props, setControlValue } = withHeaderGroupsSync();
-  const emptyTimeCompare = { type: "SelectControl" as const, value: [] };
+  const emptyTimeCompare = { type: 'SelectControl' as const, value: [] };
   props.controls = {
     ...props.controls,
     header_groups: {
-      type: "HeaderGroupsControl",
+      type: 'HeaderGroupsControl',
       value: [
         {
-          id: "time-compare-revenue",
-          label: "Revenue",
-          columns: ["Main revenue"],
-          source: "time_compare",
+          id: 'time-compare-revenue',
+          label: 'Revenue',
+          columns: ['Main revenue'],
+          source: 'time_compare',
         },
         {
-          id: "custom",
-          label: "Custom",
-          columns: ["region"],
+          id: 'custom',
+          label: 'Custom',
+          columns: ['region'],
         },
       ],
     },
@@ -1205,18 +1205,18 @@ test("drops time comparison header groups when time comparison is cleared", asyn
 
   await waitFor(() => {
     expect(setControlValue).toHaveBeenCalledWith(
-      "header_groups",
-      [expect.objectContaining({ id: "custom" })],
+      'header_groups',
+      [expect.objectContaining({ id: 'custom' })],
       undefined,
       { programmatic: true },
     );
   });
 });
 
-test("does not sync time comparison header groups in raw records mode", async () => {
+test('does not sync time comparison header groups in raw records mode', async () => {
   const { props, setControlValue } = withHeaderGroupsSync();
   const rawQueryMode = {
-    type: "RadioButtonControl" as const,
+    type: 'RadioButtonControl' as const,
     value: QueryMode.Raw,
   };
   props.controls = {
@@ -1238,15 +1238,15 @@ test("does not sync time comparison header groups in raw records mode", async ()
   render(<ControlPanelsContainer {...props} />, { useRedux: true });
 
   await waitFor(() => {
-    expect(screen.getByRole("tab", { name: /data/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
   });
   expect(setControlValue).not.toHaveBeenCalled();
 });
 
-test("does not sync time comparison header groups unless comparison type is values", async () => {
+test('does not sync time comparison header groups unless comparison type is values', async () => {
   const { props, setControlValue } = withHeaderGroupsSync();
   const differenceType = {
-    type: "SelectControl" as const,
+    type: 'SelectControl' as const,
     value: ComparisonType.Difference,
   };
   props.controls = {
@@ -1268,7 +1268,7 @@ test("does not sync time comparison header groups unless comparison type is valu
   render(<ControlPanelsContainer {...props} />, { useRedux: true });
 
   await waitFor(() => {
-    expect(screen.getByRole("tab", { name: /data/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
   });
   expect(setControlValue).not.toHaveBeenCalled();
 });

@@ -16,41 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getFilterScopeFromNodesTree from "src/dashboard/util/getFilterScopeFromNodesTree";
+import getFilterScopeFromNodesTree from 'src/dashboard/util/getFilterScopeFromNodesTree';
 
-test("should return empty scope", () => {
-  const nodes: Parameters<typeof getFilterScopeFromNodesTree>[0]["nodes"] = [];
+test('should return empty scope', () => {
+  const nodes: Parameters<typeof getFilterScopeFromNodesTree>[0]['nodes'] = [];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "107_region",
+      filterKey: '107_region',
       nodes,
       checkedChartIds: [],
     }),
   ).toEqual({ scope: [], immune: [] });
 });
 
-test("should return scope for simple grid", () => {
+test('should return scope for simple grid', () => {
   const nodes = [
     {
-      label: "All dashboard",
-      type: "ROOT",
-      value: "ROOT_ID",
+      label: 'All dashboard',
+      type: 'ROOT',
+      value: 'ROOT_ID',
       children: [
         {
           value: 104,
-          label: "Life Expectancy VS Rural %",
-          type: "CHART",
+          label: 'Life Expectancy VS Rural %',
+          type: 'CHART',
         },
-        { value: 105, label: "Rural Breakdown", type: "CHART" },
+        { value: 105, label: 'Rural Breakdown', type: 'CHART' },
         {
           value: 106,
           label: "World's Pop Growth",
-          type: "CHART",
+          type: 'CHART',
         },
         {
-          label: "Time Filter",
+          label: 'Time Filter',
           showCheckbox: false,
-          type: "CHART",
+          type: 'CHART',
           value: 108,
         },
       ],
@@ -59,12 +59,12 @@ test("should return scope for simple grid", () => {
   const checkedChartIds = [104, 106];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "108___time_range",
+      filterKey: '108___time_range',
       nodes,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["ROOT_ID"],
+    scope: ['ROOT_ID'],
     immune: [105],
   });
 });
@@ -84,80 +84,80 @@ test("should return scope for simple grid", () => {
 //     - chart_102
 const nodes = [
   {
-    label: "All dashboard",
-    type: "ROOT",
-    value: "ROOT_ID",
+    label: 'All dashboard',
+    type: 'ROOT',
+    value: 'ROOT_ID',
     children: [
       {
-        label: "Tab 1",
-        type: "TAB",
-        value: "TAB-Rb5aaqKWgG",
+        label: 'Tab 1',
+        type: 'TAB',
+        value: 'TAB-Rb5aaqKWgG',
         children: [
           {
-            label: "Geo Filters",
+            label: 'Geo Filters',
             showCheckbox: false,
-            type: "CHART",
+            type: 'CHART',
             value: 107,
           },
           {
             label: "World's Pop Growth",
             showCheckbox: true,
-            type: "CHART",
+            type: 'CHART',
             value: 106,
           },
         ],
       },
       {
-        label: "Tab 2",
-        type: "TAB",
-        value: "TAB-w5Fp904Rs",
+        label: 'Tab 2',
+        type: 'TAB',
+        value: 'TAB-w5Fp904Rs',
         children: [
           {
-            label: "Time Filter",
+            label: 'Time Filter',
             showCheckbox: true,
-            type: "CHART",
+            type: 'CHART',
             value: 108,
           },
           {
-            label: "Life Expectancy VS Rural %",
+            label: 'Life Expectancy VS Rural %',
             showCheckbox: true,
-            type: "CHART",
+            type: 'CHART',
             value: 104,
           },
           {
-            label: "Row Tab 1",
-            type: "TAB",
-            value: "TAB-E4mJaZ-uQM",
+            label: 'Row Tab 1',
+            type: 'TAB',
+            value: 'TAB-E4mJaZ-uQM',
             children: [
               {
                 value: 105,
-                label: "Rural Breakdown",
-                type: "CHART",
+                label: 'Rural Breakdown',
+                type: 'CHART',
                 showCheckbox: true,
               },
               {
                 value: 103,
-                label: "% Rural",
-                type: "CHART",
+                label: '% Rural',
+                type: 'CHART',
                 showCheckbox: true,
               },
             ],
           },
           {
-            value: "TAB-rLYu-Cryu",
-            label: "New Tab",
-            type: "TAB",
+            value: 'TAB-rLYu-Cryu',
+            label: 'New Tab',
+            type: 'TAB',
             children: [
               {
                 value: 102,
-                label: "Most Populated Countries",
-                type: "CHART",
+                label: 'Most Populated Countries',
+                type: 'CHART',
                 showCheckbox: true,
               },
               {
                 value: 101,
                 label: "World's Population",
-                type: "CHART",
+                type: 'CHART',
                 showCheckbox: true,
               },
             ],
@@ -185,36 +185,36 @@ const nodes = [
 //     - chart_102
 const nodes2 = [
   {
-    label: "All dashboard",
-    type: "ROOT",
-    value: "ROOT_ID",
+    label: 'All dashboard',
+    type: 'ROOT',
+    value: 'ROOT_ID',
     children: [
       {
-        label: "Time Filter",
+        label: 'Time Filter',
         showCheckbox: true,
-        type: "CHART",
+        type: 'CHART',
         value: 109,
       },
       {
-        label: "Tab 1",
-        type: "TAB",
-        value: "TAB-Rb5aaqKWgG",
+        label: 'Tab 1',
+        type: 'TAB',
+        value: 'TAB-Rb5aaqKWgG',
         children: [
           {
-            label: "Row Tab 1",
-            type: "TAB",
-            value: "TAB-row-tab1",
+            label: 'Row Tab 1',
+            type: 'TAB',
+            value: 'TAB-row-tab1',
             children: [
               {
-                label: "Geo Filters",
+                label: 'Geo Filters',
                 showCheckbox: false,
-                type: "CHART",
+                type: 'CHART',
                 value: 107,
               },
               {
                 label: "World's Pop Growth",
                 showCheckbox: true,
-                type: "CHART",
+                type: 'CHART',
                 value: 106,
               },
             ],
@@ -222,56 +222,56 @@ const nodes2 = [
         ],
       },
       {
-        label: "Tab 2",
-        type: "TAB",
-        value: "TAB-w5Fp904Rs",
+        label: 'Tab 2',
+        type: 'TAB',
+        value: 'TAB-w5Fp904Rs',
         children: [
           {
-            label: "Time Filter",
+            label: 'Time Filter',
             showCheckbox: true,
-            type: "CHART",
+            type: 'CHART',
             value: 108,
           },
           {
-            label: "Life Expectancy VS Rural %",
+            label: 'Life Expectancy VS Rural %',
             showCheckbox: true,
-            type: "CHART",
+            type: 'CHART',
             value: 104,
           },
           {
-            label: "Row Tab 1",
-            type: "TAB",
-            value: "TAB-E4mJaZ-uQM",
+            label: 'Row Tab 1',
+            type: 'TAB',
+            value: 'TAB-E4mJaZ-uQM',
             children: [
               {
                 value: 105,
-                label: "Rural Breakdown",
-                type: "CHART",
+                label: 'Rural Breakdown',
+                type: 'CHART',
                 showCheckbox: true,
               },
               {
                 value: 103,
-                label: "% Rural",
-                type: "CHART",
+                label: '% Rural',
+                type: 'CHART',
                 showCheckbox: true,
               },
             ],
           },
           {
-            value: "TAB-rLYu-Cryu",
-            label: "New Tab",
-            type: "TAB",
+            value: 'TAB-rLYu-Cryu',
+            label: 'New Tab',
+            type: 'TAB',
             children: [
               {
                 value: 102,
-                label: "Most Populated Countries",
-                type: "CHART",
+                label: 'Most Populated Countries',
+                type: 'CHART',
                 showCheckbox: true,
               },
               {
                 value: 101,
                 label: "World's Population",
-                type: "CHART",
+                type: 'CHART',
                 showCheckbox: true,
               },
             ],
@@ -282,105 +282,105 @@ const nodes2 = [
   },
 ];
 
-test("root level tab scope", () => {
+test('root level tab scope', () => {
   const checkedChartIds = [106];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "107_region",
+      filterKey: '107_region',
       nodes,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["TAB-Rb5aaqKWgG"],
+    scope: ['TAB-Rb5aaqKWgG'],
     immune: [],
   });
 });
 
-test("global scope", () => {
+test('global scope', () => {
   const checkedChartIds = [106, 104, 101, 102, 103, 105];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "107_country_name",
+      filterKey: '107_country_name',
       nodes,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["ROOT_ID"],
+    scope: ['ROOT_ID'],
     immune: [108],
   });
 });
 
-test("row level tab scope", () => {
+test('row level tab scope', () => {
   const checkedChartIds = [103, 105];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "108___time_range",
+      filterKey: '108___time_range',
       nodes,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["TAB-E4mJaZ-uQM"],
+    scope: ['TAB-E4mJaZ-uQM'],
     immune: [],
   });
 });
 
-test("mixed row level and root level scope", () => {
+test('mixed row level and root level scope', () => {
   const checkedChartIds = [103, 105, 106];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "107_region",
+      filterKey: '107_region',
       nodes,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["TAB-Rb5aaqKWgG", "TAB-E4mJaZ-uQM"],
+    scope: ['TAB-Rb5aaqKWgG', 'TAB-E4mJaZ-uQM'],
     immune: [],
   });
 });
 
-test("mixed row level tab and chart scope", () => {
+test('mixed row level tab and chart scope', () => {
   const checkedChartIds = [103, 105, 102];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "107_region",
+      filterKey: '107_region',
       nodes,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["TAB-E4mJaZ-uQM", "TAB-rLYu-Cryu"],
+    scope: ['TAB-E4mJaZ-uQM', 'TAB-rLYu-Cryu'],
     immune: [101],
   });
 });
 
-test("exclude sub-tab", () => {
+test('exclude sub-tab', () => {
   const checkedChartIds = [103, 104, 105];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "108___time_range",
+      filterKey: '108___time_range',
       nodes,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["TAB-w5Fp904Rs"],
+    scope: ['TAB-w5Fp904Rs'],
     immune: [102, 101],
   });
 });
 
-test("exclude top-tab", () => {
+test('exclude top-tab', () => {
   const checkedChartIds = [106, 109];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "107_region",
+      filterKey: '107_region',
       nodes: nodes2,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["ROOT_ID"],
+    scope: ['ROOT_ID'],
     immune: [105, 103, 102, 101, 108, 104],
   });
 });
 
-test("exclude nested sub-tab", () => {
+test('exclude nested sub-tab', () => {
   // another layout for test:
   // - filter_109
   // - chart_106
@@ -393,61 +393,61 @@ test("exclude nested sub-tab", () => {
   //     - chart_104
   const nodes3 = [
     {
-      label: "All dashboard",
-      type: "ROOT",
-      value: "ROOT_ID",
+      label: 'All dashboard',
+      type: 'ROOT',
+      value: 'ROOT_ID',
       children: [
         {
-          label: "Time Filter",
+          label: 'Time Filter',
           showCheckbox: true,
-          type: "CHART",
+          type: 'CHART',
           value: 109,
         },
         {
           label: "World's Pop Growth",
           showCheckbox: true,
-          type: "CHART",
+          type: 'CHART',
           value: 106,
         },
         {
-          label: "Row Tab 1",
-          type: "TAB",
-          value: "TAB-w5Fp904Rs",
+          label: 'Row Tab 1',
+          type: 'TAB',
+          value: 'TAB-w5Fp904Rs',
           children: [
             {
-              label: "Nested Tab 1",
-              type: "TAB",
-              value: "TAB-E4mJaZ-uQM",
+              label: 'Nested Tab 1',
+              type: 'TAB',
+              value: 'TAB-E4mJaZ-uQM',
               children: [
                 {
                   value: 104,
-                  label: "Rural Breakdown",
-                  type: "CHART",
+                  label: 'Rural Breakdown',
+                  type: 'CHART',
                   showCheckbox: true,
                 },
                 {
                   value: 103,
-                  label: "% Rural",
-                  type: "CHART",
+                  label: '% Rural',
+                  type: 'CHART',
                   showCheckbox: true,
                 },
               ],
             },
             {
-              value: "TAB-rLYu-Cryu",
-              label: "Nested Tab 2",
-              type: "TAB",
+              value: 'TAB-rLYu-Cryu',
+              label: 'Nested Tab 2',
+              type: 'TAB',
               children: [
                 {
                   value: 102,
-                  label: "Most Populated Countries",
-                  type: "CHART",
+                  label: 'Most Populated Countries',
+                  type: 'CHART',
                   showCheckbox: true,
                 },
                 {
                   value: 101,
                   label: "World's Population",
-                  type: "CHART",
+                  type: 'CHART',
                   showCheckbox: true,
                 },
               ],
@@ -461,12 +461,12 @@ test("exclude nested sub-tab", () => {
   const checkedChartIds = [103, 104, 106];
   expect(
     getFilterScopeFromNodesTree({
-      filterKey: "109___time_range",
+      filterKey: '109___time_range',
       nodes: nodes3,
       checkedChartIds,
     }),
   ).toEqual({
-    scope: ["ROOT_ID"],
+    scope: ['ROOT_ID'],
     immune: [102, 101],
   });
 });

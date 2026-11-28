@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import updateComponentParentsList from "src/dashboard/util/updateComponentParentsList";
-import { DASHBOARD_ROOT_ID } from "src/dashboard/util/constants";
+import updateComponentParentsList from 'src/dashboard/util/updateComponentParentsList';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   dashboardLayout,
   dashboardLayoutWithTabs,
-} from "spec/fixtures/mockDashboardLayout";
+} from 'spec/fixtures/mockDashboardLayout';
 
 type LayoutComponent = {
   id: string;
@@ -33,13 +33,13 @@ type LayoutComponent = {
 const emptyLayout: Record<string, LayoutComponent> = {
   GRID_ID: {
     children: [],
-    id: "GRID_ID",
-    type: "GRID",
+    id: 'GRID_ID',
+    type: 'GRID',
   },
   ROOT_ID: {
-    children: ["GRID_ID"],
-    id: "ROOT_ID",
-    type: "ROOT",
+    children: ['GRID_ID'],
+    id: 'ROOT_ID',
+    type: 'ROOT',
   },
 };
 const gridLayout = {
@@ -49,7 +49,7 @@ const tabsLayout = {
   ...dashboardLayoutWithTabs.present,
 } as Record<string, LayoutComponent>;
 
-test("should handle empty layout", () => {
+test('should handle empty layout', () => {
   const nextState = {
     ...emptyLayout,
   };
@@ -59,10 +59,10 @@ test("should handle empty layout", () => {
     layout: nextState,
   });
 
-  expect(nextState.GRID_ID.parents).toEqual(["ROOT_ID"]);
+  expect(nextState.GRID_ID.parents).toEqual(['ROOT_ID']);
 });
 
-test("should handle grid layout", () => {
+test('should handle grid layout', () => {
   const nextState = {
     ...gridLayout,
   };
@@ -72,16 +72,16 @@ test("should handle grid layout", () => {
     layout: nextState,
   });
 
-  expect(nextState.GRID_ID.parents).toEqual(["ROOT_ID"]);
+  expect(nextState.GRID_ID.parents).toEqual(['ROOT_ID']);
   expect(nextState.CHART_ID.parents).toEqual([
-    "ROOT_ID",
-    "GRID_ID",
-    "ROW_ID",
-    "COLUMN_ID",
+    'ROOT_ID',
+    'GRID_ID',
+    'ROW_ID',
+    'COLUMN_ID',
   ]);
 });
 
-test("should handle root level tabs", () => {
+test('should handle root level tabs', () => {
   const nextState = {
     ...tabsLayout,
   };
@@ -91,16 +91,16 @@ test("should handle root level tabs", () => {
     layout: nextState,
   });
 
-  expect(nextState.GRID_ID.parents).toEqual(["ROOT_ID"]);
+  expect(nextState.GRID_ID.parents).toEqual(['ROOT_ID']);
   expect(nextState.CHART_ID2.parents).toEqual([
-    "ROOT_ID",
-    "TABS_ID",
-    "TAB_ID2",
-    "ROW_ID2",
+    'ROOT_ID',
+    'TABS_ID',
+    'TAB_ID2',
+    'ROW_ID2',
   ]);
 });
 
-test("should handle invalid parameters and not throw error", () => {
+test('should handle invalid parameters and not throw error', () => {
   updateComponentParentsList({
     currentComponent: undefined,
     layout: undefined,
@@ -115,7 +115,7 @@ test("should handle invalid parameters and not throw error", () => {
 
   expect(() =>
     updateComponentParentsList({
-      currentComponent: { id: "" },
+      currentComponent: { id: '' },
       layout: undefined,
     }),
   ).not.toThrow();
@@ -127,7 +127,7 @@ test("should handle invalid parameters and not throw error", () => {
    */
   expect(() =>
     updateComponentParentsList({
-      currentComponent: { id: "" },
+      currentComponent: { id: '' },
       layout: null as any,
     }),
   ).not.toThrow();
@@ -138,8 +138,8 @@ test("should handle invalid parameters and not throw error", () => {
    */
   expect(() =>
     updateComponentParentsList({
-      currentComponent: { id: "id3", children: ["id1", "id2"] },
-      layout: { id3: { id: "id3" } },
+      currentComponent: { id: 'id3', children: ['id1', 'id2'] },
+      layout: { id3: { id: 'id3' } },
     }),
   ).not.toThrow();
 
@@ -150,32 +150,32 @@ test("should handle invalid parameters and not throw error", () => {
    */
   expect(() =>
     updateComponentParentsList({
-      currentComponent: { id: "id3" },
-      layout: { id3: { id: "id3" } },
+      currentComponent: { id: 'id3' },
+      layout: { id3: { id: 'id3' } },
     }),
   ).not.toThrow();
 
   expect(() =>
     updateComponentParentsList({
-      currentComponent: { id: "id3" },
+      currentComponent: { id: 'id3' },
       layout: {},
     }),
   ).not.toThrow();
 });
 
-test("skips a back-edge to an ancestor instead of recursing forever", () => {
+test('skips a back-edge to an ancestor instead of recursing forever', () => {
   const layout: Record<
     string,
     { id: string; children?: string[]; parents?: string[] }
   > = {
-    root: { id: "root", children: ["row"] },
-    row: { id: "row", children: ["col"] },
-    col: { id: "col", children: ["row"] },
+    root: { id: 'root', children: ['row'] },
+    row: { id: 'row', children: ['col'] },
+    col: { id: 'col', children: ['row'] },
   };
 
   expect(() =>
     updateComponentParentsList({ currentComponent: layout.root, layout }),
   ).not.toThrow();
-  expect(layout.row.parents).toEqual(["root"]);
-  expect(layout.col.parents).toEqual(["root", "row"]);
+  expect(layout.row.parents).toEqual(['root']);
+  expect(layout.col.parents).toEqual(['root', 'row']);
 });

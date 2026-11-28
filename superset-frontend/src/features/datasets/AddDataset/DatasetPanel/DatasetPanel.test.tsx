@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from "spec/helpers/testing-library";
-import { ErrorTypeEnum } from "@superset-ui/core";
+import { render, screen } from 'spec/helpers/testing-library';
+import { ErrorTypeEnum } from '@superset-ui/core';
 import DatasetPanel, {
   REFRESHING,
   tableColumnDefinition,
   COLUMN_TITLE,
   ERROR_TITLE,
-} from "src/features/datasets/AddDataset/DatasetPanel/DatasetPanel";
-import { exampleColumns, exampleDataset } from "./fixtures";
-import { ITableColumn } from "./types";
+} from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
+import { exampleColumns, exampleDataset } from './fixtures';
+import { ITableColumn } from './types';
 import {
   SELECT_MESSAGE,
   CREATE_MESSAGE,
@@ -33,23 +33,24 @@ import {
   SELECT_TABLE_TITLE,
   NO_COLUMNS_TITLE,
   NO_COLUMNS_DESCRIPTION,
-} from "./MessageContent";
+} from './MessageContent';
 
 jest.mock(
-  "@superset-ui/core/components/Icons/AsyncIcon",
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) => (
-      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
-      <span role="img" aria-label={fileName.replace("_", "-")} />
-    ),
+    ({ fileName }: { fileName: string }) =>
+      (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
+        <span role="img" aria-label={fileName.replace('_', '-')} />
+      ),
 );
 
-test("renders a blank state DatasetPanel", () => {
+test('renders a blank state DatasetPanel', () => {
   render(<DatasetPanel columnList={[]} loading={false} />, {
     useRouter: true,
   });
 
-  const blankDatasetImg = screen.getByRole("img", { name: /empty/i });
+  const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
   expect(blankDatasetImg).toBeVisible();
   const blankDatasetTitle = screen.getByText(SELECT_TABLE_TITLE);
   expect(blankDatasetTitle).toBeVisible();
@@ -61,18 +62,18 @@ test("renders a blank state DatasetPanel", () => {
     exact: false,
   });
   expect(blankDatasetDescription2).toBeVisible();
-  const sqlLabLink = screen.getByRole("link", {
+  const sqlLabLink = screen.getByRole('link', {
     name: CREATE_MESSAGE,
   });
   expect(sqlLabLink).toBeVisible();
 });
 
-test("renders a no columns screen", () => {
+test('renders a no columns screen', () => {
   render(<DatasetPanel tableName="Name" columnList={[]} loading={false} />, {
     useRouter: true,
   });
 
-  const blankDatasetImg = screen.getByRole("img", { name: /empty/i });
+  const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
   expect(blankDatasetImg).toBeVisible();
   const noColumnsTitle = screen.getByText(NO_COLUMNS_TITLE);
   expect(noColumnsTitle).toBeVisible();
@@ -80,26 +81,26 @@ test("renders a no columns screen", () => {
   expect(noColumnsDescription).toBeVisible();
 });
 
-test("renders a loading screen", () => {
+test('renders a loading screen', () => {
   render(<DatasetPanel tableName="Name" columnList={[]} loading />, {
     useRouter: true,
   });
 
-  const loadingIndicator = screen.getByTestId("loading-indicator");
+  const loadingIndicator = screen.getByTestId('loading-indicator');
   expect(loadingIndicator).toBeVisible();
   const blankDatasetTitle = screen.getByText(REFRESHING);
   expect(blankDatasetTitle).toBeVisible();
 });
 
-test("renders an error screen", () => {
+test('renders an error screen', () => {
   render(
     <DatasetPanel
       tableName="Name"
       error={{
         error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
         extra: null,
-        level: "error",
-        message: "Structured backend failure",
+        level: 'error',
+        message: 'Structured backend failure',
       }}
       columnList={[]}
       loading={false}
@@ -111,13 +112,13 @@ test("renders an error screen", () => {
 
   const errorTitle = screen.getByText(ERROR_TITLE);
   expect(errorTitle).toBeVisible();
-  const errorDescription = screen.getByText("Structured backend failure");
+  const errorDescription = screen.getByText('Structured backend failure');
   expect(errorDescription).toBeVisible();
-  expect(screen.getByTitle("Name")).toHaveStyle({ position: "relative" });
+  expect(screen.getByTitle('Name')).toHaveStyle({ position: 'relative' });
 });
 
-test("renders a table with columns displayed", async () => {
-  const tableName = "example_name";
+test('renders a table with columns displayed', async () => {
+  const tableName = 'example_name';
   render(
     <DatasetPanel
       tableName={tableName}
@@ -136,13 +137,13 @@ test("renders a table with columns displayed", async () => {
   expect(
     screen.getByLabelText(tableColumnDefinition[1].title as string),
   ).toBeInTheDocument();
-  exampleColumns.forEach((row) => {
+  exampleColumns.forEach(row => {
     expect(screen.getByText(row.name)).toBeInTheDocument();
     expect(screen.getByText(row.type)).toBeInTheDocument();
   });
 });
 
-test("renders an info banner if table already has a dataset", async () => {
+test('renders an info banner if table already has a dataset', async () => {
   render(
     <DatasetPanel
       tableName="example_table"
@@ -163,24 +164,24 @@ test("renders an info banner if table already has a dataset", async () => {
   ).toBeVisible();
 });
 
-test("sorts the column list by name when sorting by Column Name", () => {
+test('sorts the column list by name when sorting by Column Name', () => {
   const sorter = tableColumnDefinition[0].sorter as (
     a: ITableColumn,
     b: ITableColumn,
   ) => number;
   const sorted = [...exampleColumns].sort(sorter);
-  expect(sorted.map((c) => c.name)).toEqual([
-    "birth_date",
-    "height_in_inches",
-    "name",
+  expect(sorted.map(c => c.name)).toEqual([
+    'birth_date',
+    'height_in_inches',
+    'name',
   ]);
 });
 
-test("sorts the column list by type when sorting by Datatype", () => {
+test('sorts the column list by type when sorting by Datatype', () => {
   const sorter = tableColumnDefinition[1].sorter as (
     a: ITableColumn,
     b: ITableColumn,
   ) => number;
   const sorted = [...exampleColumns].sort(sorter);
-  expect(sorted.map((c) => c.type)).toEqual(["DATE", "NUMBER", "STRING"]);
+  expect(sorted.map(c => c.type)).toEqual(['DATE', 'NUMBER', 'STRING']);
 });

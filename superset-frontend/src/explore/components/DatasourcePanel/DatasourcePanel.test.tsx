@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactChild } from "react";
+import { ReactChild } from 'react';
 import {
   cleanup,
   render,
@@ -24,25 +24,25 @@ import {
   userEvent,
   waitFor,
   within,
-} from "spec/helpers/testing-library";
+} from 'spec/helpers/testing-library';
 import DatasourcePanel, {
   IDatasource,
   Props as DatasourcePanelProps,
-} from "src/explore/components/DatasourcePanel";
+} from 'src/explore/components/DatasourcePanel';
 import {
   columns,
   metrics,
-} from "src/explore/components/DatasourcePanel/fixtures";
-import { DatasourceType } from "@superset-ui/core";
-import DatasourceControl from "src/explore/components/controls/DatasourceControl";
-import ExploreContainer from "../ExploreContainer";
+} from 'src/explore/components/DatasourcePanel/fixtures';
+import { DatasourceType } from '@superset-ui/core';
+import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
+import ExploreContainer from '../ExploreContainer';
 import {
   DndColumnSelect,
   DndMetricSelect,
-} from "../controls/DndColumnSelectControl";
-import { FoldersEditorItemType } from "src/components/Datasource/types";
+} from '../controls/DndColumnSelectControl';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
 
-jest.mock("react-virtualized-auto-sizer", () => ({
+jest.mock('react-virtualized-auto-sizer', () => ({
   AutoSizer: ({
     renderProp,
   }: {
@@ -58,21 +58,21 @@ const datasource: IDatasource = {
   database: {
     id: 1,
   },
-  datasource_name: "table1",
+  datasource_name: 'table1',
 };
 
 const datasourceWithFolders: IDatasource = {
   ...datasource,
   folders: [
     {
-      name: "Test folder",
+      name: 'Test folder',
       type: FoldersEditorItemType.Folder,
-      uuid: "1",
+      uuid: '1',
       children: [
         {
-          name: "Test nested folder",
+          name: 'Test nested folder',
           type: FoldersEditorItemType.Folder,
-          uuid: "1.1",
+          uuid: '1.1',
           children: [
             {
               type: FoldersEditorItemType.Metric,
@@ -84,9 +84,9 @@ const datasourceWithFolders: IDatasource = {
       ],
     },
     {
-      name: "Second test folder",
+      name: 'Second test folder',
       type: FoldersEditorItemType.Folder,
-      uuid: "2",
+      uuid: '2',
       children: [
         {
           type: FoldersEditorItemType.Column,
@@ -104,15 +104,15 @@ const datasourceWithFolders: IDatasource = {
 };
 
 const mockUser = {
-  createdOn: "2021-04-27T18:12:38.952304",
-  email: "admin",
-  firstName: "admin",
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
   isActive: true,
-  lastName: "admin",
+  lastName: 'admin',
   permissions: {},
   roles: { Admin: Array(173) },
   userId: 1,
-  username: "admin",
+  username: 'admin',
   isAnonymous: false,
 };
 
@@ -123,7 +123,7 @@ const props: DatasourcePanelProps = {
       validationErrors: null,
       mapStateToProps: () => ({ value: undefined }),
       type: DatasourceControl,
-      label: "hello",
+      label: 'hello',
       datasource,
       user: mockUser,
     },
@@ -157,7 +157,7 @@ const search = async (value: string, input: HTMLElement) => {
   await userEvent.type(input, value);
 };
 
-test("should render", async () => {
+test('should render', async () => {
   const { container } = render(<DatasourcePanel {...props} />, {
     useRedux: true,
     useDnd: true,
@@ -166,13 +166,13 @@ test("should render", async () => {
   expect(container).toBeVisible();
 });
 
-test("should display items in controls", async () => {
+test('should display items in controls', async () => {
   render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
-  expect(await screen.findByText("Metrics")).toBeInTheDocument();
-  expect(screen.getByText("Columns")).toBeInTheDocument();
+  expect(await screen.findByText('Metrics')).toBeInTheDocument();
+  expect(screen.getByText('Columns')).toBeInTheDocument();
 });
 
-test("should render the metrics", async () => {
+test('should render the metrics', async () => {
   jest.setTimeout(10000);
   render(
     <ExploreContainer>
@@ -181,12 +181,12 @@ test("should render the metrics", async () => {
     </ExploreContainer>,
     { useRedux: true, useDnd: true },
   );
-  metrics.forEach((metric) =>
+  metrics.forEach(metric =>
     expect(screen.getByText(metric.metric_name)).toBeInTheDocument(),
   );
 });
 
-test("should render the columns", async () => {
+test('should render the columns', async () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
@@ -194,51 +194,47 @@ test("should render the columns", async () => {
     </ExploreContainer>,
     { useRedux: true, useDnd: true },
   );
-  columns.forEach((col) =>
+  columns.forEach(col =>
     expect(screen.getByText(col.column_name)).toBeInTheDocument(),
   );
 });
 
-beforeAll(() => {
-  jest.setTimeout(30000);
-});
+test('should search and render matching columns', async () => {
+  try {
+    const { unmount } = render(
+      <ExploreContainer>
+        <DatasourcePanel {...props} />
+        <DndMetricSelect {...metricProps} />
+      </ExploreContainer>,
+      { useRedux: true, useDnd: true },
+    );
 
-afterEach(async () => {
-  cleanup();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-});
+    const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
-test("should search and render matching columns", async () => {
-  const { unmount } = render(
-    <ExploreContainer>
-      <DatasourcePanel {...props} />
-      <DndMetricSelect {...metricProps} />
-    </ExploreContainer>,
-    { useRedux: true, useDnd: true },
-  );
+    await waitFor(() => {
+      expect(searchInput).toBeInTheDocument();
+    });
 
-  const searchInput = screen.getByPlaceholderText("Search Metrics & Columns");
+    await search(columns[0].column_name, searchInput);
 
-  await waitFor(() => {
-    expect(searchInput).toBeInTheDocument();
-  });
+    await waitFor(
+      () => {
+        expect(screen.getByText(columns[0].column_name)).toBeInTheDocument();
+        expect(
+          screen.queryByText(columns[1].column_name),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
-  await search(columns[0].column_name, searchInput);
-
-  await waitFor(
-    () => {
-      expect(screen.getByText(columns[0].column_name)).toBeInTheDocument();
-      expect(
-        screen.queryByText(columns[1].column_name),
-      ).not.toBeInTheDocument();
-    },
-    { timeout: 10000 },
-  );
-
-  unmount();
+    unmount();
+  } finally {
+    cleanup();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
 }, 15000);
 
-test("should search and render matching metrics", async () => {
+test('should search and render matching metrics', async () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
@@ -246,7 +242,7 @@ test("should search and render matching metrics", async () => {
     </ExploreContainer>,
     { useRedux: true, useDnd: true },
   );
-  const searchInput = screen.getByPlaceholderText("Search Metrics & Columns");
+  const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   await search(metrics[0].metric_name, searchInput);
 
@@ -256,10 +252,10 @@ test("should search and render matching metrics", async () => {
   });
 });
 
-test("should render a warning", async () => {
+test('should render a warning', async () => {
   const deprecatedDatasource = {
     ...datasource,
-    extra: JSON.stringify({ warning_markdown: "This is a warning." }),
+    extra: JSON.stringify({ warning_markdown: 'This is a warning.' }),
   };
   const newProps = {
     ...props,
@@ -274,11 +270,11 @@ test("should render a warning", async () => {
   };
   render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
   expect(
-    await screen.findByRole("img", { name: "warning" }),
+    await screen.findByRole('img', { name: 'warning' }),
   ).toBeInTheDocument();
 });
 
-test("should render a create dataset infobox", async () => {
+test('should render a create dataset infobox', async () => {
   const newProps = {
     ...props,
     datasource: {
@@ -288,7 +284,7 @@ test("should render a create dataset infobox", async () => {
   };
   render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
 
-  const createButton = await screen.findByRole("button", {
+  const createButton = await screen.findByRole('button', {
     name: /create a dataset/i,
   });
   const infoboxText = screen.getByText(/to edit or add columns and metrics./i);
@@ -297,7 +293,7 @@ test("should render a create dataset infobox", async () => {
   expect(infoboxText).toBeVisible();
 });
 
-test("should not render a save dataset modal when datasource is not query or dataset", async () => {
+test('should not render a save dataset modal when datasource is not query or dataset', async () => {
   const newProps = {
     ...props,
     datasource: {
@@ -311,17 +307,17 @@ test("should not render a save dataset modal when datasource is not query or dat
   expect(screen.queryByText(/create a dataset/i)).not.toBeInTheDocument();
 });
 
-test("should render only droppable metrics and columns", async () => {
+test('should render only droppable metrics and columns', async () => {
   const column1FilterProps = {
-    type: "DndColumnSelect" as const,
-    name: "Filter",
+    type: 'DndColumnSelect' as const,
+    name: 'Filter',
     onChange: jest.fn(),
     options: [{ column_name: columns[1].column_name }],
     actions: { setControlValue: jest.fn() },
   };
   const column2FilterProps = {
-    type: "DndColumnSelect" as const,
-    name: "Filter",
+    type: 'DndColumnSelect' as const,
+    name: 'Filter',
     onChange: jest.fn(),
     options: [
       { column_name: columns[1].column_name },
@@ -340,7 +336,7 @@ test("should render only droppable metrics and columns", async () => {
 
   await waitFor(
     () => {
-      const selections = getByTestId("fieldSelections");
+      const selections = getByTestId('fieldSelections');
       expect(
         within(selections).queryByText(columns[0].column_name),
       ).not.toBeInTheDocument();
@@ -357,7 +353,7 @@ test("should render only droppable metrics and columns", async () => {
   unmount();
 });
 
-test("Renders with custom folders", () => {
+test('Renders with custom folders', () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...propsWithFolders} />
@@ -369,25 +365,25 @@ test("Renders with custom folders", () => {
     },
   );
 
-  expect(screen.getByText("Test folder")).toBeInTheDocument();
-  expect(screen.getByText("Test nested folder")).toBeInTheDocument();
-  expect(screen.getByText("Second test folder")).toBeInTheDocument();
-  expect(screen.getByText("Metrics")).toBeInTheDocument();
-  expect(screen.getByText("Columns")).toBeInTheDocument();
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.getByText('Test nested folder')).toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.getByText('Metrics')).toBeInTheDocument();
+  expect(screen.getByText('Columns')).toBeInTheDocument();
 
-  columns.forEach((col) => {
+  columns.forEach(col => {
     expect(screen.getByText(col.column_name)).toBeInTheDocument();
   });
 
-  metrics.forEach((metric) => {
+  metrics.forEach(metric => {
     expect(screen.getByText(metric.metric_name)).toBeInTheDocument();
   });
 
-  expect(screen.getAllByTestId("DatasourcePanelDragOption").length).toEqual(5);
-  expect(screen.getAllByTestId("datasource-panel-divider").length).toEqual(3);
+  expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
+  expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(3);
 });
 
-test("Collapse folders", async () => {
+test('Collapse folders', async () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...propsWithFolders} />
@@ -399,41 +395,41 @@ test("Collapse folders", async () => {
     },
   );
 
-  await userEvent.click(screen.getByText("Test folder"));
+  await userEvent.click(screen.getByText('Test folder'));
 
-  expect(screen.getByText("Test folder")).toBeInTheDocument();
-  expect(screen.queryByText("Test nested folder")).not.toBeInTheDocument();
-  expect(screen.getByText("Second test folder")).toBeInTheDocument();
-  expect(screen.getByText("Metrics")).toBeInTheDocument();
-  expect(screen.getByText("Columns")).toBeInTheDocument();
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.queryByText('Test nested folder')).not.toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.getByText('Metrics')).toBeInTheDocument();
+  expect(screen.getByText('Columns')).toBeInTheDocument();
 
   expect(screen.queryByText(metrics[0].metric_name)).not.toBeInTheDocument();
 
-  await userEvent.click(screen.getByText("Test folder"));
+  await userEvent.click(screen.getByText('Test folder'));
 
-  expect(screen.getByText("Test folder")).toBeInTheDocument();
-  expect(screen.getByText("Test nested folder")).toBeInTheDocument();
-  expect(screen.getByText("Second test folder")).toBeInTheDocument();
-  expect(screen.getByText("Metrics")).toBeInTheDocument();
-  expect(screen.getByText("Columns")).toBeInTheDocument();
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.getByText('Test nested folder')).toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.getByText('Metrics')).toBeInTheDocument();
+  expect(screen.getByText('Columns')).toBeInTheDocument();
 
   expect(screen.getByText(metrics[0].metric_name)).toBeInTheDocument();
 });
 
-test("Default Metrics and Columns folders dont render when all metrics and columns are assigned to custom folders", () => {
+test('Default Metrics and Columns folders dont render when all metrics and columns are assigned to custom folders', () => {
   const datasourceWithFullFolders: IDatasource = {
     ...datasource,
     folders: [
       {
-        name: "Test folder",
+        name: 'Test folder',
         type: FoldersEditorItemType.Folder,
-        uuid: "1",
+        uuid: '1',
         children: [
           {
-            name: "Test nested folder",
+            name: 'Test nested folder',
             type: FoldersEditorItemType.Folder,
-            uuid: "1.1",
-            children: metrics.map((m) => ({
+            uuid: '1.1',
+            children: metrics.map(m => ({
               type: FoldersEditorItemType.Metric,
               uuid: m.uuid,
               name: m.metric_name,
@@ -442,10 +438,10 @@ test("Default Metrics and Columns folders dont render when all metrics and colum
         ],
       },
       {
-        name: "Second test folder",
+        name: 'Second test folder',
         type: FoldersEditorItemType.Folder,
-        uuid: "2",
-        children: columns.map((c) => ({
+        uuid: '2',
+        children: columns.map(c => ({
           type: FoldersEditorItemType.Column,
           uuid: c.uuid,
           name: c.column_name,
@@ -475,20 +471,20 @@ test("Default Metrics and Columns folders dont render when all metrics and colum
     },
   );
 
-  expect(screen.getByText("Test folder")).toBeInTheDocument();
-  expect(screen.getByText("Test nested folder")).toBeInTheDocument();
-  expect(screen.getByText("Second test folder")).toBeInTheDocument();
-  expect(screen.queryByText("Metrics")).not.toBeInTheDocument();
-  expect(screen.queryByText("Columns")).not.toBeInTheDocument();
+  expect(screen.getByText('Test folder')).toBeInTheDocument();
+  expect(screen.getByText('Test nested folder')).toBeInTheDocument();
+  expect(screen.getByText('Second test folder')).toBeInTheDocument();
+  expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  expect(screen.queryByText('Columns')).not.toBeInTheDocument();
 
-  columns.forEach((col) => {
+  columns.forEach(col => {
     expect(screen.getByText(col.column_name)).toBeInTheDocument();
   });
 
-  metrics.forEach((metric) => {
+  metrics.forEach(metric => {
     expect(screen.getByText(metric.metric_name)).toBeInTheDocument();
   });
 
-  expect(screen.getAllByTestId("DatasourcePanelDragOption").length).toEqual(5);
-  expect(screen.getAllByTestId("datasource-panel-divider").length).toEqual(1);
+  expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
+  expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(1);
 });

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_TYPE } from "src/dashboard/util/componentTypes";
-import { DatasourceType, NativeFilterType } from "@superset-ui/core";
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { DatasourceType, NativeFilterType } from '@superset-ui/core';
 import {
   extractLabel,
   getAppliedColumnsWithFallback,
@@ -25,26 +25,26 @@ import {
   IndicatorStatus,
   selectNativeIndicatorsForChart,
   selectChartCrossFilters,
-} from "./selectors";
+} from './selectors';
 
-test("a SQL chart cross-filter rejected by a semantic chart remains Incompatible", () => {
+test('a SQL chart cross-filter rejected by a semantic chart remains Incompatible', () => {
   const result = selectChartCrossFilters(
     {
       17: {
-        id: "17",
-        extraFormData: { filters: [{ col: "country", op: "IN", val: ["US"] }] },
-        filterState: { value: ["US"], label: "US" },
+        id: '17',
+        extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+        filterState: { value: ['US'], label: 'US' },
       },
     },
     73,
     [],
-    { 17: { id: 17, crossFilters: { scope: "global", chartsInScope: [73] } } },
+    { 17: { id: 17, crossFilters: { scope: 'global', chartsInScope: [73] } } },
     new Set(),
-    new Set(["country"]),
+    new Set(['country']),
   );
   expect(result).toEqual([
     expect.objectContaining({
-      column: "country",
+      column: 'country',
       status: IndicatorStatus.Incompatible,
     }),
   ]);
@@ -53,111 +53,111 @@ test("a SQL chart cross-filter rejected by a semantic chart remains Incompatible
 const chartId = 123;
 const chartLayoutItems = [
   {
-    id: "chart-123",
+    id: 'chart-123',
     type: CHART_TYPE,
     children: [],
-    parents: ["ROOT_ID"],
+    parents: ['ROOT_ID'],
     meta: {
       chartId,
-      sliceName: "Test Chart",
-      uuid: "uuid-123",
+      sliceName: 'Test Chart',
+      uuid: 'uuid-123',
       height: 10,
       width: 10,
     },
   },
 ];
 
-test("returns correct indicator with label from filterState.label", () => {
+test('returns correct indicator with label from filterState.label', () => {
   const dataMask = {
-    filterState: { label: "foo", value: "bar" },
+    filterState: { label: 'foo', value: 'bar' },
     extraFormData: {},
   };
   const result = getCrossFilterIndicator(chartId, dataMask, chartLayoutItems);
   expect(result).toEqual({
     column: undefined,
-    name: "Test Chart",
-    path: ["ROOT_ID", "chart-123"],
-    value: "foo",
+    name: 'Test Chart',
+    path: ['ROOT_ID', 'chart-123'],
+    value: 'foo',
   });
 });
 
-test("returns correct indicator with label from filterState.value", () => {
+test('returns correct indicator with label from filterState.value', () => {
   const dataMask = {
-    filterState: { value: ["bar", "baz"] },
+    filterState: { value: ['bar', 'baz'] },
     extraFormData: {},
   };
   const result = getCrossFilterIndicator(chartId, dataMask, chartLayoutItems);
   expect(result).toEqual({
     column: undefined,
-    name: "Test Chart",
-    path: ["ROOT_ID", "chart-123"],
-    value: "bar, baz",
+    name: 'Test Chart',
+    path: ['ROOT_ID', 'chart-123'],
+    value: 'bar, baz',
   });
 });
 
-test("returns correct indicator with column and customColumnLabel", () => {
+test('returns correct indicator with column and customColumnLabel', () => {
   const dataMask = {
     filterState: {
-      value: "valA",
-      filters: { col: "col" },
-      customColumnLabel: "label",
+      value: 'valA',
+      filters: { col: 'col' },
+      customColumnLabel: 'label',
     },
     extraFormData: {},
   };
   const result = getCrossFilterIndicator(chartId, dataMask, chartLayoutItems);
   expect(result).toEqual({
-    column: "col",
-    name: "Test Chart",
-    path: ["ROOT_ID", "chart-123"],
-    value: "valA",
-    customColumnLabel: "label",
+    column: 'col',
+    name: 'Test Chart',
+    path: ['ROOT_ID', 'chart-123'],
+    value: 'valA',
+    customColumnLabel: 'label',
   });
 });
 
-test("returns correct indicator with column from extraFormData.filters", () => {
-  const filterClause = { col: "colB", op: "IS NOT NULL" as const };
+test('returns correct indicator with column from extraFormData.filters', () => {
+  const filterClause = { col: 'colB', op: 'IS NOT NULL' as const };
   const dataMask = {
-    filterState: { value: "valB" },
+    filterState: { value: 'valB' },
     extraFormData: { filters: [filterClause] },
   };
   const result = getCrossFilterIndicator(chartId, dataMask, chartLayoutItems);
   expect(result).toEqual({
-    column: "colB",
-    name: "Test Chart",
-    path: ["ROOT_ID", "chart-123"],
-    value: "valB",
+    column: 'colB',
+    name: 'Test Chart',
+    path: ['ROOT_ID', 'chart-123'],
+    value: 'valB',
   });
 });
 
-test("returns correct indicator with column from filterState.filters", () => {
+test('returns correct indicator with column from filterState.filters', () => {
   const dataMask = {
-    filterState: { value: "valC", filters: { colC: "something" } },
+    filterState: { value: 'valC', filters: { colC: 'something' } },
     extraFormData: {},
   };
   const result = getCrossFilterIndicator(chartId, dataMask, chartLayoutItems);
   expect(result).toEqual({
-    column: "colC",
-    name: "Test Chart",
-    path: ["ROOT_ID", "chart-123"],
-    value: "valC",
+    column: 'colC',
+    name: 'Test Chart',
+    path: ['ROOT_ID', 'chart-123'],
+    value: 'valC',
   });
 });
 
-test("returns empty name and path if chartLayoutItem is not found", () => {
+test('returns empty name and path if chartLayoutItem is not found', () => {
   const dataMask = {
-    filterState: { value: "valD" },
+    filterState: { value: 'valD' },
     extraFormData: {},
   };
   const result = getCrossFilterIndicator(999, dataMask, chartLayoutItems);
   expect(result).toEqual({
     column: undefined,
-    name: "",
-    path: [""],
-    value: "valD",
+    name: '',
+    path: [''],
+    value: 'valD',
   });
 });
 
-test("returns null value if no label or value in filterState", () => {
+test('returns null value if no label or value in filterState', () => {
   const dataMask = {
     filterState: {},
     extraFormData: {},
@@ -165,34 +165,34 @@ test("returns null value if no label or value in filterState", () => {
   const result = getCrossFilterIndicator(chartId, dataMask, chartLayoutItems);
   expect(result).toEqual({
     column: undefined,
-    name: "Test Chart",
-    path: ["ROOT_ID", "chart-123"],
+    name: 'Test Chart',
+    path: ['ROOT_ID', 'chart-123'],
     value: null,
   });
 });
 
-test("extractLabel returns label when filter has label and it does not include undefined", () => {
-  expect(extractLabel({ label: "My Label", value: "x" })).toBe("My Label");
-  expect(extractLabel({ label: "Only label" })).toBe("Only label");
+test('extractLabel returns label when filter has label and it does not include undefined', () => {
+  expect(extractLabel({ label: 'My Label', value: 'x' })).toBe('My Label');
+  expect(extractLabel({ label: 'Only label' })).toBe('Only label');
 });
 
 test('extractLabel returns value joined by ", " when filter has non-empty array value and no label', () => {
-  expect(extractLabel({ value: ["a", "b"] })).toBe("a, b");
-  expect(extractLabel({ value: ["single"] })).toBe("single");
+  expect(extractLabel({ value: ['a', 'b'] })).toBe('a, b');
+  expect(extractLabel({ value: ['single'] })).toBe('single');
 });
 
-test("extractLabel returns value when filter has non-array value (ensureIsArray wraps it)", () => {
-  expect(extractLabel({ value: "scalar" })).toBe("scalar");
-  expect(extractLabel({ value: 42 })).toBe("42");
+test('extractLabel returns value when filter has non-array value (ensureIsArray wraps it)', () => {
+  expect(extractLabel({ value: 'scalar' })).toBe('scalar');
+  expect(extractLabel({ value: 42 })).toBe('42');
 });
 
-test("extractLabel returns null when filter is undefined or has no label and no value", () => {
+test('extractLabel returns null when filter is undefined or has no label and no value', () => {
   expect(extractLabel(undefined)).toBe(null);
   expect(extractLabel({})).toBe(null);
-  expect(extractLabel({ label: "" })).toBe(null);
+  expect(extractLabel({ label: '' })).toBe(null);
 });
 
-test("extractLabel returns null when filter.value is null or undefined", () => {
+test('extractLabel returns null when filter.value is null or undefined', () => {
   expect(extractLabel({ value: null })).toBe(null);
   expect(extractLabel({ value: undefined })).toBe(null);
 });
@@ -200,52 +200,52 @@ test("extractLabel returns null when filter.value is null or undefined", () => {
 test('extractLabel does not return ", " or "null, null" for arrays of only null, undefined, or empty string', () => {
   expect(extractLabel({ value: [null, null] })).toBe(null);
   expect(extractLabel({ value: [null] })).toBe(null);
-  expect(extractLabel({ value: [""] })).toBe(null);
-  expect(extractLabel({ value: ["", ""] })).toBe(null);
-  expect(extractLabel({ value: [null, ""] })).toBe(null);
+  expect(extractLabel({ value: [''] })).toBe(null);
+  expect(extractLabel({ value: ['', ''] })).toBe(null);
+  expect(extractLabel({ value: [null, ''] })).toBe(null);
   expect(extractLabel({ value: [undefined, undefined] })).toBe(null);
-  expect(extractLabel({ value: [null, undefined, ""] })).toBe(null);
-  expect(extractLabel({ value: [null, null] })).not.toBe(", ");
-  expect(extractLabel({ value: [null, ""] })).not.toBe(", ");
+  expect(extractLabel({ value: [null, undefined, ''] })).toBe(null);
+  expect(extractLabel({ value: [null, null] })).not.toBe(', ');
+  expect(extractLabel({ value: [null, ''] })).not.toBe(', ');
 });
 
-test("extractLabel returns only non-empty items when array has mix of empty and non-empty", () => {
-  expect(extractLabel({ value: [null, "a", "", "b", undefined] })).toBe("a, b");
-  expect(extractLabel({ value: ["", "x", ""] })).toBe("x");
+test('extractLabel returns only non-empty items when array has mix of empty and non-empty', () => {
+  expect(extractLabel({ value: [null, 'a', '', 'b', undefined] })).toBe('a, b');
+  expect(extractLabel({ value: ['', 'x', ''] })).toBe('x');
 });
 
-test("extractLabel uses value when label is undefined", () => {
-  expect(extractLabel({ label: undefined, value: ["a"] })).toBe("a");
+test('extractLabel uses value when label is undefined', () => {
+  expect(extractLabel({ label: undefined, value: ['a'] })).toBe('a');
 });
 
-test("getAppliedColumnsWithFallback returns columns from query response when available", () => {
+test('getAppliedColumnsWithFallback returns columns from query response when available', () => {
   const chart = {
     queriesResponse: [
       {
-        applied_filters: [{ column: "age" }, { column: "name" }],
+        applied_filters: [{ column: 'age' }, { column: 'name' }],
       },
     ],
   };
   const result = getAppliedColumnsWithFallback(chart);
-  expect(result).toEqual(new Set(["age", "name"]));
+  expect(result).toEqual(new Set(['age', 'name']));
 });
 
-test("getAppliedColumnsWithFallback returns columns from all query responses", () => {
+test('getAppliedColumnsWithFallback returns columns from all query responses', () => {
   const chart = {
     queriesResponse: [
       {
         applied_filters: [],
       },
       {
-        applied_filters: [{ column: "age" }, { column: "name" }],
+        applied_filters: [{ column: 'age' }, { column: 'name' }],
       },
     ],
   };
   const result = getAppliedColumnsWithFallback(chart);
-  expect(result).toEqual(new Set(["age", "name"]));
+  expect(result).toEqual(new Set(['age', 'name']));
 });
 
-test("getAppliedColumnsWithFallback returns empty set when query response has no applied_filters and no fallback params", () => {
+test('getAppliedColumnsWithFallback returns empty set when query response has no applied_filters and no fallback params', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
@@ -253,33 +253,33 @@ test("getAppliedColumnsWithFallback returns empty set when query response has no
   expect(result).toEqual(new Set());
 });
 
-test("getAppliedColumnsWithFallback derives columns from native filters when query response is empty", () => {
+test('getAppliedColumnsWithFallback derives columns from native filters when query response is empty', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
     filter2: {
-      id: "filter2",
+      id: 'filter2',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "name" } }],
+      targets: [{ column: { name: 'name' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
     filter2: {
-      id: "filter2",
-      filterState: { value: "John" },
+      id: 'filter2',
+      filterState: { value: 'John' },
       extraFormData: {},
     },
   } as any;
@@ -289,36 +289,36 @@ test("getAppliedColumnsWithFallback derives columns from native filters when que
     dataMask,
     123,
   );
-  expect(result).toEqual(new Set(["age", "name"]));
+  expect(result).toEqual(new Set(['age', 'name']));
 });
 
-test("getAppliedColumnsWithFallback excludes filters not in chart scope", () => {
+test('getAppliedColumnsWithFallback excludes filters not in chart scope', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
     filter2: {
-      id: "filter2",
+      id: 'filter2',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [456], // Different chart
-      targets: [{ column: { name: "name" } }],
+      targets: [{ column: { name: 'name' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
     filter2: {
-      id: "filter2",
-      filterState: { value: "John" },
+      id: 'filter2',
+      filterState: { value: 'John' },
       extraFormData: {},
     },
   } as any;
@@ -328,35 +328,35 @@ test("getAppliedColumnsWithFallback excludes filters not in chart scope", () => 
     dataMask,
     123,
   );
-  expect(result).toEqual(new Set(["age"]));
+  expect(result).toEqual(new Set(['age']));
 });
 
-test("getAppliedColumnsWithFallback excludes filters without values", () => {
+test('getAppliedColumnsWithFallback excludes filters without values', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
     filter2: {
-      id: "filter2",
+      id: 'filter2',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "name" } }],
+      targets: [{ column: { name: 'name' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
     filter2: {
-      id: "filter2",
+      id: 'filter2',
       filterState: { value: null },
       extraFormData: {},
     },
@@ -367,22 +367,22 @@ test("getAppliedColumnsWithFallback excludes filters without values", () => {
     dataMask,
     123,
   );
-  expect(result).toEqual(new Set(["age"]));
+  expect(result).toEqual(new Set(['age']));
 });
 
-test("getAppliedColumnsWithFallback excludes filters without targets", () => {
+test('getAppliedColumnsWithFallback excludes filters without targets', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
     filter2: {
-      id: "filter2",
+      id: 'filter2',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
       targets: [],
@@ -390,13 +390,13 @@ test("getAppliedColumnsWithFallback excludes filters without targets", () => {
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
     filter2: {
-      id: "filter2",
-      filterState: { value: "John" },
+      id: 'filter2',
+      filterState: { value: 'John' },
       extraFormData: {},
     },
   } as any;
@@ -406,36 +406,36 @@ test("getAppliedColumnsWithFallback excludes filters without targets", () => {
     dataMask,
     123,
   );
-  expect(result).toEqual(new Set(["age"]));
+  expect(result).toEqual(new Set(['age']));
 });
 
-test("getAppliedColumnsWithFallback excludes non-native filter types", () => {
+test('getAppliedColumnsWithFallback excludes non-native filter types', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
     filter2: {
-      id: "filter2",
-      type: "other_type" as any,
+      id: 'filter2',
+      type: 'other_type' as any,
       chartsInScope: [123],
-      targets: [{ column: { name: "name" } }],
+      targets: [{ column: { name: 'name' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
     filter2: {
-      id: "filter2",
-      filterState: { value: "John" },
+      id: 'filter2',
+      filterState: { value: 'John' },
       extraFormData: {},
     },
   } as any;
@@ -445,19 +445,19 @@ test("getAppliedColumnsWithFallback excludes non-native filter types", () => {
     dataMask,
     123,
   );
-  expect(result).toEqual(new Set(["age"]));
+  expect(result).toEqual(new Set(['age']));
 });
 
-test("getAppliedColumnsWithFallback handles missing dataMask entry for filter", () => {
+test('getAppliedColumnsWithFallback handles missing dataMask entry for filter', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
   } as any;
   const dataMask = {
@@ -472,21 +472,21 @@ test("getAppliedColumnsWithFallback handles missing dataMask entry for filter", 
   expect(result).toEqual(new Set());
 });
 
-test("getAppliedColumnsWithFallback handles empty array values in filterState", () => {
+test('getAppliedColumnsWithFallback handles empty array values in filterState', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       filterState: { value: [] },
       extraFormData: {},
     },
@@ -500,21 +500,21 @@ test("getAppliedColumnsWithFallback handles empty array values in filterState", 
   expect(result).toEqual(new Set());
 });
 
-test("getAppliedColumnsWithFallback handles null values in filterState", () => {
+test('getAppliedColumnsWithFallback handles null values in filterState', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       filterState: { value: [null, null] },
       extraFormData: {},
     },
@@ -528,33 +528,33 @@ test("getAppliedColumnsWithFallback handles null values in filterState", () => {
   expect(result).toEqual(new Set());
 });
 
-test("getAppliedColumnsWithFallback returns empty set when chart is undefined", () => {
+test('getAppliedColumnsWithFallback returns empty set when chart is undefined', () => {
   const result = getAppliedColumnsWithFallback(undefined);
   expect(result).toEqual(new Set());
 });
 
-test("getAppliedColumnsWithFallback returns empty set when chart has no queriesResponse", () => {
+test('getAppliedColumnsWithFallback returns empty set when chart has no queriesResponse', () => {
   const chart = {};
   const result = getAppliedColumnsWithFallback(chart);
   expect(result).toEqual(new Set());
 });
 
-test("getAppliedColumnsWithFallback returns empty set when fallback params are incomplete", () => {
+test('getAppliedColumnsWithFallback returns empty set when fallback params are incomplete', () => {
   const chart = {
     queriesResponse: [{ applied_filters: [] }],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
   } as any;
@@ -572,26 +572,26 @@ test("getAppliedColumnsWithFallback returns empty set when fallback params are i
   ).toEqual(new Set());
 });
 
-test("getAppliedColumnsWithFallback prioritizes query response over fallback", () => {
+test('getAppliedColumnsWithFallback prioritizes query response over fallback', () => {
   const chart = {
     queriesResponse: [
       {
-        applied_filters: [{ column: "query_column" }],
+        applied_filters: [{ column: 'query_column' }],
       },
     ],
   };
   const nativeFilters = {
     filter1: {
-      id: "filter1",
+      id: 'filter1',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: "fallback_column" } }],
+      targets: [{ column: { name: 'fallback_column' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
   } as any;
@@ -601,31 +601,31 @@ test("getAppliedColumnsWithFallback prioritizes query response over fallback", (
     dataMask,
     123,
   );
-  expect(result).toEqual(new Set(["query_column"]));
+  expect(result).toEqual(new Set(['query_column']));
 });
 
-test("selectNativeIndicatorsForChart marks rejected filters from later query responses incompatible", () => {
+test('selectNativeIndicatorsForChart marks rejected filters from later query responses incompatible', () => {
   const chartId = 987;
   const nativeFilters = {
     filter1: {
-      id: "filter1",
-      name: "Age",
+      id: 'filter1',
+      name: 'Age',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [chartId],
-      targets: [{ column: { name: "age" } }],
+      targets: [{ column: { name: 'age' } }],
     },
   } as any;
   const dataMask = {
     filter1: {
-      id: "filter1",
-      filterState: { value: "25" },
+      id: 'filter1',
+      filterState: { value: '25' },
       extraFormData: {},
     },
   } as any;
   const chart = {
     queriesResponse: [
       { rejected_filters: [] },
-      { rejected_filters: [{ column: "age" }] },
+      { rejected_filters: [{ column: 'age' }] },
     ],
   };
 
@@ -639,44 +639,44 @@ test("selectNativeIndicatorsForChart marks rejected filters from later query res
 
   expect(result).toEqual([
     {
-      column: "age",
-      name: "Age",
-      path: ["filter1"],
+      column: 'age',
+      name: 'Age',
+      path: ['filter1'],
       status: IndicatorStatus.Incompatible,
-      value: "25",
+      value: '25',
     },
   ]);
 });
 
-test("selectNativeIndicatorsForChart leaves an unset filter Unset when its column is rejected", () => {
+test('selectNativeIndicatorsForChart leaves an unset filter Unset when its column is rejected', () => {
   type Args = Parameters<typeof selectNativeIndicatorsForChart>;
   const chartId = 654;
   const nativeFilters = {
     withValue: {
-      id: "withValue",
-      name: "Country",
+      id: 'withValue',
+      name: 'Country',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [chartId],
-      targets: [{ column: { name: "country" } }],
+      targets: [{ column: { name: 'country' } }],
     },
     withoutValue: {
-      id: "withoutValue",
-      name: "Country (unset)",
+      id: 'withoutValue',
+      name: 'Country (unset)',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [chartId],
-      targets: [{ column: { name: "country" } }],
+      targets: [{ column: { name: 'country' } }],
     },
   } as unknown as Args[0];
   const dataMask = {
     withValue: {
-      id: "withValue",
-      filterState: { value: "US" },
+      id: 'withValue',
+      filterState: { value: 'US' },
       extraFormData: {},
     },
-    withoutValue: { id: "withoutValue", filterState: {}, extraFormData: {} },
+    withoutValue: { id: 'withoutValue', filterState: {}, extraFormData: {} },
   } as unknown as Args[1];
   const chart = {
-    queriesResponse: [{ rejected_filters: [{ column: "country" }] }],
+    queriesResponse: [{ rejected_filters: [{ column: 'country' }] }],
   } as unknown as Args[3];
 
   const statuses = Object.fromEntries(
@@ -686,7 +686,7 @@ test("selectNativeIndicatorsForChart leaves an unset filter Unset when its colum
       chartId,
       chart,
       [],
-    ).map((indicator) => [indicator.path?.[0], indicator.status]),
+    ).map(indicator => [indicator.path?.[0], indicator.status]),
   );
 
   expect(statuses).toEqual({
@@ -695,67 +695,67 @@ test("selectNativeIndicatorsForChart leaves an unset filter Unset when its colum
   });
 });
 
-test("skipped SQL filters are incompatible by source id, not by column name", () => {
+test('skipped SQL filters are incompatible by source id, not by column name', () => {
   type Args = Parameters<typeof selectNativeIndicatorsForChart>;
   const native: Args[0] = {
     sql: {
-      id: "sql",
-      name: "SQL country",
+      id: 'sql',
+      name: 'SQL country',
       type: NativeFilterType.NativeFilter,
       cascadeParentIds: [],
       defaultDataMask: {},
       scope: { rootPath: [], excluded: [] },
       controlValues: {},
-      description: "",
-      filterType: "filter_select",
-      targets: [{ datasetId: 12, column: { name: "country" } }],
+      description: '',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 12, column: { name: 'country' } }],
       chartsInScope: [9001],
     },
     semantic: {
-      id: "semantic",
-      name: "Semantic country",
+      id: 'semantic',
+      name: 'Semantic country',
       type: NativeFilterType.NativeFilter,
       cascadeParentIds: [],
       defaultDataMask: {},
       scope: { rootPath: [], excluded: [] },
       controlValues: {},
-      description: "",
-      filterType: "filter_select",
+      description: '',
+      filterType: 'filter_select',
       targets: [
         {
           datasetId: 3,
           datasourceType: DatasourceType.SemanticView,
-          column: { name: "country" },
+          column: { name: 'country' },
         },
       ],
       chartsInScope: [9001],
     },
   };
   const mask: Args[1] = Object.fromEntries(
-    ["sql", "semantic", "42"].map((id) => [
+    ['sql', 'semantic', '42'].map(id => [
       id,
       {
         id,
-        filterState: { value: ["US"] },
+        filterState: { value: ['US'] },
         extraFormData: {
-          filters: [{ col: "country", op: "IN" as const, val: ["US"] }],
+          filters: [{ col: 'country', op: 'IN' as const, val: ['US'] }],
         },
       },
     ]),
   );
   const chart = {
     form_data: {
-      datasource: "3__semantic_view",
-      semantic_selection_version: "cube-member-id-v1",
+      datasource: '3__semantic_view',
+      semantic_selection_version: 'cube-member-id-v1',
     },
     queriesResponse: [
-      { applied_filters: [{ column: "country" }], rejected_filters: [] },
+      { applied_filters: [{ column: 'country' }], rejected_filters: [] },
     ],
   };
   const config: Args[5] = {
-    42: { id: 42, crossFilters: { scope: "global", chartsInScope: [9001] } },
+    42: { id: 42, crossFilters: { scope: 'global', chartsInScope: [9001] } },
   };
-  const sources: Args[6] = { 42: "12__table" };
+  const sources: Args[6] = { 42: '12__table' };
   const selected = selectNativeIndicatorsForChart(
     native,
     mask,
@@ -766,9 +766,9 @@ test("skipped SQL filters are incompatible by source id, not by column name", ()
     sources,
   );
   expect(selected.map(({ name, status }) => [name, status])).toEqual([
-    ["", IndicatorStatus.Incompatible],
-    ["SQL country", IndicatorStatus.Incompatible],
-    ["Semantic country", IndicatorStatus.Applied],
+    ['', IndicatorStatus.Incompatible],
+    ['SQL country', IndicatorStatus.Incompatible],
+    ['Semantic country', IndicatorStatus.Applied],
   ]);
   const defaultScope = selectNativeIndicatorsForChart(
     native,
@@ -804,29 +804,29 @@ test("skipped SQL filters are incompatible by source id, not by column name", ()
   expect(unknown[0].status).toBe(IndicatorStatus.CrossFilterApplied);
 });
 
-test.each(["filter_select", "filter_range", "cross-filter"])(
-  "foreign %s badge becomes unset on clear and stays unset before selection",
-  (origin) => {
+test.each(['filter_select', 'filter_range', 'cross-filter'])(
+  'foreign %s badge becomes unset on clear and stays unset before selection',
+  origin => {
     type Args = Parameters<typeof selectNativeIndicatorsForChart>;
     const native: Args[0] =
-      origin === "cross-filter"
+      origin === 'cross-filter'
         ? {}
         : {
             42: {
-              id: "42",
-              name: "Foreign filter",
+              id: '42',
+              name: 'Foreign filter',
               type: NativeFilterType.NativeFilter,
               cascadeParentIds: [],
               defaultDataMask: {},
               scope: { rootPath: [], excluded: [] },
               controlValues: {},
-              description: "",
+              description: '',
               filterType: origin,
               targets: [
                 {
                   datasetId: 9,
                   datasourceType: DatasourceType.SemanticView,
-                  column: { name: "country" },
+                  column: { name: 'country' },
                 },
               ],
               chartsInScope: [9002],
@@ -834,34 +834,34 @@ test.each(["filter_select", "filter_range", "cross-filter"])(
           };
     const chart = {
       form_data: {
-        datasource: "3__semantic_view",
-        semantic_selection_version: "cube-member-id-v1",
+        datasource: '3__semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
       },
     };
     const config: Args[5] =
-      origin === "cross-filter"
+      origin === 'cross-filter'
         ? {
             42: {
               id: 42,
-              crossFilters: { scope: "global", chartsInScope: [9002] },
+              crossFilters: { scope: 'global', chartsInScope: [9002] },
             },
           }
         : {};
-    for (const state of ["selected", "cleared", "never-set", "reselected"]) {
-      const selected = state === "selected" || state === "reselected";
+    for (const state of ['selected', 'cleared', 'never-set', 'reselected']) {
+      const selected = state === 'selected' || state === 'reselected';
       const mask: Args[1] = {
         42: {
-          id: "42",
+          id: '42',
           filterState:
-            state === "never-set" ? {} : { value: selected ? ["US"] : null },
+            state === 'never-set' ? {} : { value: selected ? ['US'] : null },
           extraFormData: {
             ...(selected
               ? {
-                  filters: [{ col: "country", op: "IN" as const, val: ["US"] }],
+                  filters: [{ col: 'country', op: 'IN' as const, val: ['US'] }],
                 }
               : {}),
             semantic_selection_sources: [
-              { datasource: "9__semantic_view", version: "cube-member-id-v1" },
+              { datasource: '9__semantic_view', version: 'cube-member-id-v1' },
             ],
           },
         },
@@ -873,12 +873,12 @@ test.each(["filter_select", "filter_range", "cross-filter"])(
         chart,
         [],
         config,
-        { 42: "9__semantic_view" },
+        { 42: '9__semantic_view' },
       );
       expect(indicators.map(({ status }) => status)).toEqual(
         selected
           ? [IndicatorStatus.Incompatible]
-          : origin === "cross-filter"
+          : origin === 'cross-filter'
             ? []
             : [IndicatorStatus.Unset],
       );

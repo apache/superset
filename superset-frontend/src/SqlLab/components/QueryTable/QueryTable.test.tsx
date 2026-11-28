@@ -16,69 +16,69 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement } from "react";
-import thunk from "redux-thunk";
-import createMockStore from "redux-mock-store";
-import userEvent from "@testing-library/user-event";
-import QueryTable from "src/SqlLab/components/QueryTable";
-import { runningQuery, successfulQuery, user } from "src/SqlLab/fixtures";
-import { render, screen, waitFor } from "spec/helpers/testing-library";
+import { isValidElement } from 'react';
+import thunk from 'redux-thunk';
+import createMockStore from 'redux-mock-store';
+import userEvent from '@testing-library/user-event';
+import QueryTable from 'src/SqlLab/components/QueryTable';
+import { runningQuery, successfulQuery, user } from 'src/SqlLab/fixtures';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 
 const mockedProps = {
   queries: [runningQuery, successfulQuery],
   displayLimit: 100,
-  latestQueryId: "ryhMUZCGb",
+  latestQueryId: 'ryhMUZCGb',
 };
 
 const queryWithResults = {
   ...successfulQuery,
-  resultsKey: "test-results-key-123",
+  resultsKey: 'test-results-key-123',
 };
 
-test("is valid", () => {
+test('is valid', () => {
   expect(isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
 });
 
-test("is valid with props", () => {
+test('is valid with props', () => {
   expect(isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
 });
 
-test("renders a proper table", () => {
+test('renders a proper table', () => {
   const mockStore = createMockStore([thunk]);
   const { container } = render(<QueryTable {...mockedProps} />, {
     store: mockStore({ user }),
   });
 
-  expect(screen.getByTestId("listview-table")).toBeVisible();
-  expect(screen.getByRole("table")).toBeVisible();
-  expect(container.querySelector(".table-condensed")).toBeVisible();
-  expect(container.querySelectorAll("table > thead > tr")).toHaveLength(1);
+  expect(screen.getByTestId('listview-table')).toBeVisible();
+  expect(screen.getByRole('table')).toBeVisible();
+  expect(container.querySelector('.table-condensed')).toBeVisible();
+  expect(container.querySelectorAll('table > thead > tr')).toHaveLength(1);
   expect(
     container.querySelectorAll(
-      "table > tbody > tr:not(.ant-table-measure-row)",
+      'table > tbody > tr:not(.ant-table-measure-row)',
     ),
   ).toHaveLength(2);
 });
 
-test("renders empty table when no queries provided", () => {
+test('renders empty table when no queries provided', () => {
   const mockStore = createMockStore([thunk]);
   const { container } = render(
     <QueryTable {...{ ...mockedProps, queries: [] }} />,
     { store: mockStore({ user }) },
   );
 
-  expect(screen.getByTestId("listview-table")).toBeVisible();
-  expect(screen.getAllByRole("table")[0]).toBeVisible();
-  expect(container.querySelector(".table-condensed")).toBeVisible();
-  expect(container.querySelectorAll("table > thead > tr")).toHaveLength(1);
+  expect(screen.getByTestId('listview-table')).toBeVisible();
+  expect(screen.getAllByRole('table')[0]).toBeVisible();
+  expect(container.querySelector('.table-condensed')).toBeVisible();
+  expect(container.querySelectorAll('table > thead > tr')).toHaveLength(1);
   expect(
     container.querySelectorAll(
-      "table > tbody > tr:not(.ant-table-measure-row):not(.ant-table-placeholder)",
+      'table > tbody > tr:not(.ant-table-measure-row):not(.ant-table-placeholder)',
     ),
   ).toHaveLength(0);
 });
 
-test("renders with custom displayLimit", () => {
+test('renders with custom displayLimit', () => {
   const mockStore = createMockStore([thunk]);
   const customProps = {
     ...mockedProps,
@@ -89,29 +89,29 @@ test("renders with custom displayLimit", () => {
     store: mockStore({ user }),
   });
 
-  expect(screen.getByTestId("listview-table")).toBeVisible();
+  expect(screen.getByTestId('listview-table')).toBeVisible();
   expect(
     container.querySelectorAll(
-      "table > tbody > tr:not(.ant-table-measure-row)",
+      'table > tbody > tr:not(.ant-table-measure-row)',
     ),
   ).toHaveLength(1);
 });
 
-test("renders View button when query has resultsKey", () => {
+test('renders View button when query has resultsKey', () => {
   const mockStore = createMockStore([thunk]);
   const propsWithResults = {
     ...mockedProps,
-    columns: ["started", "duration", "rows", "results"],
+    columns: ['started', 'duration', 'rows', 'results'],
     queries: [queryWithResults],
   };
   render(<QueryTable {...propsWithResults} />, {
     store: mockStore({ user, sqlLab: { queries: {} } }),
   });
 
-  expect(screen.getByRole("button", { name: /view/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /view/i })).toBeInTheDocument();
 });
 
-test("does not render View button when query has no resultsKey", () => {
+test('does not render View button when query has no resultsKey', () => {
   const mockStore = createMockStore([thunk]);
   const queryWithoutResults = {
     ...successfulQuery,
@@ -119,7 +119,7 @@ test("does not render View button when query has no resultsKey", () => {
   };
   const propsWithoutResults = {
     ...mockedProps,
-    columns: ["started", "duration", "rows", "results"],
+    columns: ['started', 'duration', 'rows', 'results'],
     queries: [queryWithoutResults],
   };
   render(<QueryTable {...propsWithoutResults} />, {
@@ -127,15 +127,15 @@ test("does not render View button when query has no resultsKey", () => {
   });
 
   expect(
-    screen.queryByRole("button", { name: /view/i }),
+    screen.queryByRole('button', { name: /view/i }),
   ).not.toBeInTheDocument();
 });
 
-test("clicking View button opens data preview modal", async () => {
+test('clicking View button opens data preview modal', async () => {
   const mockStore = createMockStore([thunk]);
   const propsWithResults = {
     ...mockedProps,
-    columns: ["started", "duration", "rows", "results"],
+    columns: ['started', 'duration', 'rows', 'results'],
     queries: [queryWithResults],
   };
   render(<QueryTable {...propsWithResults} />, {
@@ -149,17 +149,17 @@ test("clicking View button opens data preview modal", async () => {
     }),
   });
 
-  const viewButton = screen.getByRole("button", { name: /view/i });
+  const viewButton = screen.getByRole('button', { name: /view/i });
   await userEvent.click(viewButton);
 
-  expect(await screen.findByText("Data preview")).toBeInTheDocument();
+  expect(await screen.findByText('Data preview')).toBeInTheDocument();
 });
 
-test("modal closes when exiting", async () => {
+test('modal closes when exiting', async () => {
   const mockStore = createMockStore([thunk]);
   const propsWithResults = {
     ...mockedProps,
-    columns: ["started", "duration", "rows", "results"],
+    columns: ['started', 'duration', 'rows', 'results'],
     queries: [queryWithResults],
   };
   render(<QueryTable {...propsWithResults} />, {
@@ -173,15 +173,15 @@ test("modal closes when exiting", async () => {
     }),
   });
 
-  const viewButton = screen.getByRole("button", { name: /view/i });
+  const viewButton = screen.getByRole('button', { name: /view/i });
   await userEvent.click(viewButton);
 
-  expect(await screen.findByText("Data preview")).toBeInTheDocument();
+  expect(await screen.findByText('Data preview')).toBeInTheDocument();
 
-  const closeButton = screen.getByRole("button", { name: /close/i });
+  const closeButton = screen.getByRole('button', { name: /close/i });
   await userEvent.click(closeButton);
 
   await waitFor(() => {
-    expect(screen.queryByText("Data preview")).not.toBeInTheDocument();
+    expect(screen.queryByText('Data preview')).not.toBeInTheDocument();
   });
 });

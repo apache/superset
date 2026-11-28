@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import newComponentFactory from "src/dashboard/util/newComponentFactory";
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
 import {
   CHART_TYPE,
@@ -30,7 +30,7 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
-} from "src/dashboard/util/componentTypes";
+} from 'src/dashboard/util/componentTypes';
 
 const types = [
   CHART_TYPE,
@@ -46,19 +46,19 @@ const types = [
   TAB_TYPE,
 ];
 
-types.forEach((type) => {
+types.forEach(type => {
   test(`returns a new ${type}`, () => {
     const result = newComponentFactory(type);
 
     expect(result.type).toBe(type);
-    expect(typeof result.id).toBe("string");
-    expect(typeof result.meta).toBe("object");
+    expect(typeof result.id).toBe('string');
+    expect(typeof result.meta).toBe('object');
     expect(Array.isArray(result.children)).toBe(true);
   });
 });
 
-test("adds passed meta data to the entity", () => {
-  const banana = "banana";
+test('adds passed meta data to the entity', () => {
+  const banana = 'banana';
   const result = newComponentFactory(CHART_TYPE, { banana });
   expect(result.meta.banana).toBe(banana);
 });

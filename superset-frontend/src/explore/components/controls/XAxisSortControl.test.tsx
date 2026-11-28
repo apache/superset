@@ -16,31 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from "spec/helpers/testing-library";
-import XAxisSortControl from "src/explore/components/controls/XAxisSortControl";
+import { render, screen } from 'spec/helpers/testing-library';
+import XAxisSortControl from 'src/explore/components/controls/XAxisSortControl';
 
 const defaultProps = {
-  name: "x_axis_sort",
+  name: 'x_axis_sort',
   onChange: jest.fn(),
   shouldReset: false,
   value: null as string | null,
-  label: "Sort X Axis By",
+  label: 'Sort X Axis By',
   choices: [
-    ["ascending", "Ascending"],
-    ["descending", "Descending"],
+    ['ascending', 'Ascending'],
+    ['descending', 'Descending'],
   ] as [string, string][],
 };
 
 // antd renders the selected option's label, not its value.
-const ascending = () => screen.queryByText("Ascending");
-const descending = () => screen.queryByText("Descending");
+const ascending = () => screen.queryByText('Ascending');
+const descending = () => screen.queryByText('Descending');
 
-test("renders the value it was given", () => {
+test('renders the value it was given', () => {
   render(<XAxisSortControl {...defaultProps} value="ascending" />);
   expect(ascending()).toBeInTheDocument();
 });
 
-test("follows the value prop when it changes", () => {
+test('follows the value prop when it changes', () => {
   const { rerender: rerenderControl } = render(
     <XAxisSortControl {...defaultProps} value="ascending" />,
   );
@@ -53,7 +53,7 @@ test("follows the value prop when it changes", () => {
   expect(ascending()).not.toBeInTheDocument();
 });
 
-test("clears the value when shouldReset turns true", () => {
+test('clears the value when shouldReset turns true', () => {
   const onChange = jest.fn();
   const { rerender: rerenderControl } = render(
     <XAxisSortControl

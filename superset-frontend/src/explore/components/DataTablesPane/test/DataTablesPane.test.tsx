@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from "fetch-mock";
-import { FeatureFlag } from "@superset-ui/core";
-import * as copyUtils from "src/utils/copy";
+import fetchMock from 'fetch-mock';
+import { FeatureFlag } from '@superset-ui/core';
+import * as copyUtils from 'src/utils/copy';
 import {
   render,
   screen,
   userEvent,
   waitFor,
   within,
-} from "spec/helpers/testing-library";
-import { setupAGGridModules } from "@superset-ui/core/components/ThemedAgGridReact";
-import { setItem, LocalStorageKeys } from "src/utils/localStorageHelpers";
-import { DataTablesPane } from "..";
-import { createDataTablesPaneProps } from "./fixture";
+} from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import { DataTablesPane } from '..';
+import { createDataTablesPaneProps } from './fixture';
 
 beforeAll(() => {
   setupAGGridModules();
@@ -45,64 +45,64 @@ afterAll(() => {
   localStorage.clear();
 });
 
-test("Rendering DataTablesPane correctly", async () => {
+test('Rendering DataTablesPane correctly', async () => {
   const props = createDataTablesPaneProps(0);
   render(<DataTablesPane {...props} />, { useRedux: true });
-  expect(await screen.findByText("Results")).toBeVisible();
-  expect(screen.getByText("Samples")).toBeVisible();
-  expect(screen.getByLabelText("Expand data panel")).toBeVisible();
+  expect(await screen.findByText('Results')).toBeVisible();
+  expect(screen.getByText('Samples')).toBeVisible();
+  expect(screen.getByLabelText('Expand data panel')).toBeVisible();
 });
 
-test("Collapse/Expand buttons", async () => {
+test('Collapse/Expand buttons', async () => {
   const props = createDataTablesPaneProps(0);
   render(<DataTablesPane {...props} />, {
     useRedux: true,
   });
   expect(
-    screen.queryByLabelText("Collapse data panel"),
+    screen.queryByLabelText('Collapse data panel'),
   ).not.toBeInTheDocument();
-  await userEvent.click(screen.getByLabelText("Expand data panel"));
-  expect(await screen.findByLabelText("Collapse data panel")).toBeVisible();
-  expect(screen.queryByLabelText("Expand data panel")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Expand data panel'));
+  expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
+  expect(screen.queryByLabelText('Expand data panel')).not.toBeInTheDocument();
 });
 
-test("Should show tabs: View results", async () => {
+test('Should show tabs: View results', async () => {
   const props = createDataTablesPaneProps(0);
   render(<DataTablesPane {...props} />, {
     useRedux: true,
   });
-  await userEvent.click(screen.getByText("Results"));
+  await userEvent.click(screen.getByText('Results'));
   expect(
-    await screen.findByText("0 rows", undefined, { timeout: 5000 }),
+    await screen.findByText('0 rows', undefined, { timeout: 5000 }),
   ).toBeVisible();
-  expect(await screen.findByLabelText("Collapse data panel")).toBeVisible();
+  expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
   localStorage.clear();
 });
 
-test("Should show tabs: View samples", async () => {
+test('Should show tabs: View samples', async () => {
   const props = createDataTablesPaneProps(0);
   render(<DataTablesPane {...props} />, {
     useRedux: true,
   });
-  await userEvent.click(screen.getByText("Samples"));
+  await userEvent.click(screen.getByText('Samples'));
   expect(
-    await screen.findByText("0 rows", undefined, { timeout: 5000 }),
+    await screen.findByText('0 rows', undefined, { timeout: 5000 }),
   ).toBeVisible();
-  expect(await screen.findByLabelText("Collapse data panel")).toBeVisible();
+  expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
 });
 
-test("Hides Samples tab when datasource opts out via supports_samples=false", async () => {
+test('Hides Samples tab when datasource opts out via supports_samples=false', async () => {
   const props = createDataTablesPaneProps(0);
   const propsWithoutSamples = {
     ...props,
     datasource: { ...props.datasource, supports_samples: false },
   };
   render(<DataTablesPane {...propsWithoutSamples} />, { useRedux: true });
-  expect(await screen.findByText("Results")).toBeVisible();
-  expect(screen.queryByText("Samples")).not.toBeInTheDocument();
+  expect(await screen.findByText('Results')).toBeVisible();
+  expect(screen.queryByText('Samples')).not.toBeInTheDocument();
 });
 
-test("Falls back to Results when active Samples tab disappears mid-session", async () => {
+test('Falls back to Results when active Samples tab disappears mid-session', async () => {
   // Regression for codeant Major finding on PR #41509: a datasource swap
   // that hides the Samples tab while it was the active tab used to leave
   // ``activeTabKey === 'samples'`` orphaned, rendering a blank panel.
@@ -112,9 +112,9 @@ test("Falls back to Results when active Samples tab disappears mid-session", asy
   });
 
   // Open the panel and pick the Samples tab.
-  await userEvent.click(screen.getByLabelText("Expand data panel"));
-  await userEvent.click(await screen.findByText("Samples"));
-  expect(await screen.findByLabelText("Collapse data panel")).toBeVisible();
+  await userEvent.click(screen.getByLabelText('Expand data panel'));
+  await userEvent.click(await screen.findByText('Samples'));
+  expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
 
   // Swap to a datasource that doesn't support samples (e.g. a semantic
   // view). The Samples tab should disappear and the panel should land on
@@ -126,34 +126,34 @@ test("Falls back to Results when active Samples tab disappears mid-session", asy
     />,
   );
   await waitFor(() => {
-    expect(screen.queryByText("Samples")).not.toBeInTheDocument();
+    expect(screen.queryByText('Samples')).not.toBeInTheDocument();
   });
   // The Results tab must be the ACTIVE pane, not merely present — the
   // original bug left the removed Samples key active, rendering a blank
   // panel while the Results tab label was still visible.
-  expect(screen.getByRole("tab", { selected: true })).toHaveTextContent(
-    "Results",
+  expect(screen.getByRole('tab', { selected: true })).toHaveTextContent(
+    'Results',
   );
   // Panel stays expanded and the active tabpanel renders actual Results
   // content — the row-count readout — rather than going blank (the
   // orphaned-key bug mounted no pane at all).
-  expect(screen.getByLabelText("Collapse data panel")).toBeVisible();
-  const activePanel = screen.getByRole("tabpanel");
+  expect(screen.getByLabelText('Collapse data panel')).toBeVisible();
+  const activePanel = screen.getByRole('tabpanel');
   expect(
-    await within(activePanel).findByText("0 rows", undefined, {
+    await within(activePanel).findByText('0 rows', undefined, {
       timeout: 5000,
     }),
   ).toBeVisible();
 });
 
-test("Should copy data table content correctly", async () => {
+test('Should copy data table content correctly', async () => {
   fetchMock.post(
-    "glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D",
+    'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
     {
       result: [
         {
-          data: [{ __timestamp: 1230768000000, genre: "Action" }],
-          colnames: ["__timestamp", "genre"],
+          data: [{ __timestamp: 1230768000000, genre: 'Action' }],
+          colnames: ['__timestamp', 'genre'],
           coltypes: [2, 1],
           rowcount: 1,
           sql_rowcount: 1,
@@ -165,39 +165,39 @@ test("Should copy data table content correctly", async () => {
   global.featureFlags = {
     [FeatureFlag.GranularExportControls]: true,
   };
-  const copyToClipboardSpy = jest.spyOn(copyUtils, "default");
+  const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
   const props = createDataTablesPaneProps(456);
   render(<DataTablesPane {...props} />, {
     useRedux: true,
     initialState: {
       user: {
         roles: {
-          gamma: [["can_copy_clipboard", "Superset"]],
+          gamma: [['can_copy_clipboard', 'Superset']],
         },
       },
     },
   });
-  await userEvent.click(screen.getByText("Results"));
-  expect(await screen.findByText("1 row")).toBeVisible();
+  await userEvent.click(screen.getByText('Results'));
+  expect(await screen.findByText('1 row')).toBeVisible();
 
-  await userEvent.click(screen.getByLabelText("Copy"));
+  await userEvent.click(screen.getByLabelText('Copy'));
   expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
   const value = await copyToClipboardSpy.mock.calls[0][0]();
-  expect(value).toBe("__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n");
+  expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
   copyToClipboardSpy.mockRestore();
   // @ts-expect-error
   global.featureFlags = {};
   fetchMock.clearHistory().removeRoutes();
 });
 
-test("Should not allow copy data table content without clipboard permission", async () => {
+test('Should not allow copy data table content without clipboard permission', async () => {
   fetchMock.post(
-    "glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D",
+    'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
     {
       result: [
         {
-          data: [{ __timestamp: 1230768000000, genre: "Action" }],
-          colnames: ["__timestamp", "genre"],
+          data: [{ __timestamp: 1230768000000, genre: 'Action' }],
+          colnames: ['__timestamp', 'genre'],
           coltypes: [2, 1],
           rowcount: 1,
           sql_rowcount: 1,
@@ -209,7 +209,7 @@ test("Should not allow copy data table content without clipboard permission", as
   global.featureFlags = {
     [FeatureFlag.GranularExportControls]: true,
   };
-  const copyToClipboardSpy = jest.spyOn(copyUtils, "default");
+  const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
   const props = {
     ...createDataTablesPaneProps(456),
     canDownload: true,
@@ -219,15 +219,15 @@ test("Should not allow copy data table content without clipboard permission", as
     initialState: {
       user: {
         roles: {
-          gamma: [["can_export_data", "Superset"]],
+          gamma: [['can_export_data', 'Superset']],
         },
       },
     },
   });
-  await userEvent.click(screen.getByText("Results"));
-  expect(await screen.findByText("1 row")).toBeVisible();
-  const copyButton = screen.getByLabelText("Copy");
-  expect(copyButton).toHaveAttribute("aria-disabled", "true");
+  await userEvent.click(screen.getByText('Results'));
+  expect(await screen.findByText('1 row')).toBeVisible();
+  const copyButton = screen.getByLabelText('Copy');
+  expect(copyButton).toHaveAttribute('aria-disabled', 'true');
   await userEvent.hover(copyButton);
   expect(
     await screen.findByText("You don't have permission to copy to clipboard"),
@@ -240,17 +240,17 @@ test("Should not allow copy data table content without clipboard permission", as
   fetchMock.clearHistory().removeRoutes();
 });
 
-test("Search table", async () => {
+test('Search table', async () => {
   fetchMock.post(
-    "glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A789%7D",
+    'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A789%7D',
     {
       result: [
         {
           data: [
-            { __timestamp: 1230768000000, genre: "Action" },
-            { __timestamp: 1230768000010, genre: "Horror" },
+            { __timestamp: 1230768000000, genre: 'Action' },
+            { __timestamp: 1230768000010, genre: 'Horror' },
           ],
-          colnames: ["__timestamp", "genre"],
+          colnames: ['__timestamp', 'genre'],
           coltypes: [2, 1],
           rowcount: 2,
           sql_rowcount: 2,
@@ -262,15 +262,15 @@ test("Search table", async () => {
   render(<DataTablesPane {...props} />, {
     useRedux: true,
   });
-  await userEvent.click(screen.getByText("Results"));
-  expect(await screen.findByText("2 rows")).toBeVisible();
+  await userEvent.click(screen.getByText('Results'));
+  expect(await screen.findByText('2 rows')).toBeVisible();
 
-  expect(screen.getByText("Action")).toBeVisible();
-  expect(screen.getByText("Horror")).toBeVisible();
+  expect(screen.getByText('Action')).toBeVisible();
+  expect(screen.getByText('Horror')).toBeVisible();
   fetchMock.clearHistory().removeRoutes();
 });
 
-test("Displaying the data pane is under featureflag", () => {
+test('Displaying the data pane is under featureflag', () => {
   // @ts-expect-error
   global.featureFlags = {
     [FeatureFlag.DatapanelClosedByDefault]: true,
@@ -281,27 +281,27 @@ test("Displaying the data pane is under featureflag", () => {
     useRedux: true,
   });
   expect(
-    screen.queryByLabelText("Collapse data panel"),
+    screen.queryByLabelText('Collapse data panel'),
   ).not.toBeInTheDocument();
 });
 
-test("Should handle column label rendering and clean up headers properly via hook", async () => {
+test('Should handle column label rendering and clean up headers properly via hook', async () => {
   fetchMock.post(
-    "glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A111%7D",
+    'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A111%7D',
     {
       result: [
         {
           data: [
             {
-              plain_column: "val1",
-              revenue__contribution: "val2",
-              '{"label": "Custom Metric"}': "val3",
-              '{"label": "Custom Metric"}__contribution': "val4",
+              plain_column: 'val1',
+              revenue__contribution: 'val2',
+              '{"label": "Custom Metric"}': 'val3',
+              '{"label": "Custom Metric"}__contribution': 'val4',
             },
           ],
           colnames: [
-            "plain_column",
-            "revenue__contribution",
+            'plain_column',
+            'revenue__contribution',
             '{"label": "Custom Metric"}',
             '{"label": "Custom Metric"}__contribution',
           ],
@@ -315,12 +315,12 @@ test("Should handle column label rendering and clean up headers properly via hoo
 
   const props = createDataTablesPaneProps(111);
   render(<DataTablesPane {...props} />, { useRedux: true });
-  await userEvent.click(screen.getByText("Results"));
+  await userEvent.click(screen.getByText('Results'));
 
-  expect(await screen.findByText("plain_column")).toBeVisible();
-  expect(screen.getByText("revenue (contribution)")).toBeVisible();
-  expect(screen.getByText("Custom Metric")).toBeVisible();
-  expect(screen.getByText("Custom Metric (contribution)")).toBeVisible();
+  expect(await screen.findByText('plain_column')).toBeVisible();
+  expect(screen.getByText('revenue (contribution)')).toBeVisible();
+  expect(screen.getByText('Custom Metric')).toBeVisible();
+  expect(screen.getByText('Custom Metric (contribution)')).toBeVisible();
 
   fetchMock.clearHistory().removeRoutes();
 });

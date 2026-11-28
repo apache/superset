@@ -16,27 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from "spec/helpers/testing-library";
-import { PluginContext } from "src/components";
-import type { PluginContextType } from "src/components/DynamicPlugins/types";
+import { render, screen } from 'spec/helpers/testing-library';
+import { PluginContext } from 'src/components';
+import type { PluginContextType } from 'src/components/DynamicPlugins/types';
 
-import DashboardComponent from "src/dashboard/components/Dashboard";
-import { CHART_TYPE } from "src/dashboard/util/componentTypes";
-import newComponentFactory from "src/dashboard/util/newComponentFactory";
+import DashboardComponent from 'src/dashboard/components/Dashboard';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
-import chartQueries from "spec/fixtures/mockChartQueries";
-import datasources from "spec/fixtures/mockDatasource";
+import chartQueries from 'spec/fixtures/mockChartQueries';
+import datasources from 'spec/fixtures/mockDatasource';
 import {
   singleNativeFiltersState,
   dataMaskWith1Filter,
-} from "spec/fixtures/mockNativeFilters";
-import dashboardInfo from "spec/fixtures/mockDashboardInfo";
-import { dashboardLayout } from "spec/fixtures/mockDashboardLayout";
-import dashboardState from "spec/fixtures/mockDashboardState";
-import { sliceEntitiesForChart as sliceEntities } from "spec/fixtures/mockSliceEntities";
-import { getAllActiveFilters } from "src/dashboard/util/activeAllDashboardFilters";
-import { getRelatedCharts } from "src/dashboard/util/getRelatedCharts";
-import { LOG_ACTIONS_MOUNT_DASHBOARD } from "src/logger/LogUtils";
+} from 'spec/fixtures/mockNativeFilters';
+import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
+import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
+import dashboardState from 'spec/fixtures/mockDashboardState';
+import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
+import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
+import { getRelatedCharts } from 'src/dashboard/util/getRelatedCharts';
+import { LOG_ACTIONS_MOUNT_DASHBOARD } from 'src/logger/LogUtils';
 
 // Test mock data doesn't perfectly match strict component prop types,
 // so we use a loosely-typed wrapper for test rendering
@@ -45,7 +45,7 @@ const Dashboard = DashboardComponent as unknown as React.FC<
 >;
 
 // mock data
-jest.mock("src/dashboard/util/getRelatedCharts");
+jest.mock('src/dashboard/util/getRelatedCharts');
 
 const mockGetRelatedCharts = getRelatedCharts as jest.Mock;
 
@@ -85,7 +85,7 @@ const props = {
   layout: dashboardLayout.present,
   timeout: 60,
   userId: dashboardInfo.userId,
-  impressionId: "id",
+  impressionId: 'id',
   loadStats: {},
   chartConfiguration: {},
 };
@@ -102,22 +102,22 @@ const renderDashboard = (overrideProps: Record<string, unknown> = {}) =>
   );
 
 const OVERRIDE_FILTERS = {
-  "1_region": { values: [], scope: [1] },
-  "2_country_name": { values: ["USA"], scope: [1, 2] },
-  "3_region": { values: [], scope: [1] },
-  "3_country_name": { values: ["USA"], scope: [] },
+  '1_region': { values: [], scope: [1] },
+  '2_country_name': { values: ['USA'], scope: [1, 2] },
+  '3_region': { values: [], scope: [1] },
+  '3_country_name': { values: ['USA'], scope: [] },
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test("should render the children component", () => {
+test('should render the children component', () => {
   renderDashboard();
-  expect(screen.getByText("Test")).toBeInTheDocument();
+  expect(screen.getByText('Test')).toBeInTheDocument();
 });
 
-test("should log a mount event on mount with the edit/publish state", () => {
+test('should log a mount event on mount with the edit/publish state', () => {
   renderDashboard({ editMode: true, isPublished: false });
 
   expect(mockLogEvent).toHaveBeenCalledWith(
@@ -134,7 +134,7 @@ const layoutWithExtraChart = {
   1001: newComponentFactory(CHART_TYPE, { chartId: 1001 }),
 };
 
-test("should call addSliceToDashboard if a new slice is added to the layout", () => {
+test('should call addSliceToDashboard if a new slice is added to the layout', () => {
   const { rerender } = renderDashboard();
 
   rerender(
@@ -148,7 +148,7 @@ test("should call addSliceToDashboard if a new slice is added to the layout", ()
   expect(mockAddSlice).toHaveBeenCalled();
 });
 
-test("should call removeSliceFromDashboard if a slice is removed from the layout", () => {
+test('should call removeSliceFromDashboard if a slice is removed from the layout', () => {
   const { rerender } = renderDashboard({ layout: layoutWithExtraChart });
 
   const nextLayout = { ...layoutWithExtraChart } as Record<
@@ -168,7 +168,7 @@ test("should call removeSliceFromDashboard if a slice is removed from the layout
   expect(mockRemoveSlice).toHaveBeenCalled();
 });
 
-test("should not call refresh when in editMode", () => {
+test('should not call refresh when in editMode', () => {
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
   rerender(
@@ -189,7 +189,7 @@ test("should not call refresh when in editMode", () => {
   expect(mockTriggerQuery).not.toHaveBeenCalled();
 });
 
-test("should not call refresh when there is no change", () => {
+test('should not call refresh when there is no change', () => {
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
   rerender(
@@ -203,7 +203,7 @@ test("should not call refresh when there is no change", () => {
   expect(mockTriggerQuery).not.toHaveBeenCalled();
 });
 
-test("should call refresh when native filters changed", () => {
+test('should call refresh when native filters changed', () => {
   mockGetRelatedCharts.mockReturnValue([230]);
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
@@ -218,7 +218,7 @@ test("should call refresh when native filters changed", () => {
             dataMask: dataMaskWith1Filter,
             nativeFilters: singleNativeFiltersState.filters as Parameters<
               typeof getAllActiveFilters
-            >[0]["nativeFilters"],
+            >[0]['nativeFilters'],
             allSliceIds: [227, 229, 230],
           }),
         }}
@@ -231,12 +231,12 @@ test("should call refresh when native filters changed", () => {
   expect(mockTriggerQuery).toHaveBeenCalled();
 });
 
-test("should call refresh if a filter is added", () => {
+test('should call refresh if a filter is added', () => {
   mockGetRelatedCharts.mockReturnValue([1]);
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
   const newFilter = {
-    gender: { values: ["boy", "girl"], scope: [1] },
+    gender: { values: ['boy', 'girl'], scope: [1] },
   };
 
   rerender(
@@ -250,7 +250,7 @@ test("should call refresh if a filter is added", () => {
   expect(mockTriggerQuery).toHaveBeenCalled();
 });
 
-test("should call refresh if a filter is removed", () => {
+test('should call refresh if a filter is removed', () => {
   mockGetRelatedCharts.mockReturnValue([1]); // Ensure we return some charts to refresh
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
@@ -265,13 +265,13 @@ test("should call refresh if a filter is removed", () => {
   expect(mockTriggerQuery).toHaveBeenCalledWith(true, 1);
 });
 
-test("should call refresh if a filter is changed", () => {
+test('should call refresh if a filter is changed', () => {
   mockGetRelatedCharts.mockReturnValue([1]);
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
   const newFilters = {
     ...OVERRIDE_FILTERS,
-    "1_region": { values: ["Canada"], scope: [1] },
+    '1_region': { values: ['Canada'], scope: [1] },
   };
 
   rerender(
@@ -285,13 +285,13 @@ test("should call refresh if a filter is changed", () => {
   expect(mockTriggerQuery).toHaveBeenCalled();
 });
 
-test("should call refresh with multiple chart ids", () => {
+test('should call refresh with multiple chart ids', () => {
   mockGetRelatedCharts.mockReturnValue([1, 2]);
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
   const newFilters = {
     ...OVERRIDE_FILTERS,
-    "2_country_name": { values: ["New Country"], scope: [1, 2] },
+    '2_country_name': { values: ['New Country'], scope: [1, 2] },
   };
 
   rerender(
@@ -305,13 +305,13 @@ test("should call refresh with multiple chart ids", () => {
   expect(mockTriggerQuery).toHaveBeenCalled();
 });
 
-test("should call refresh if a filter scope is changed", () => {
+test('should call refresh if a filter scope is changed', () => {
   mockGetRelatedCharts.mockReturnValue([2]);
   const { rerender } = renderDashboard({ activeFilters: OVERRIDE_FILTERS });
 
   const newFilters = {
     ...OVERRIDE_FILTERS,
-    "3_country_name": { values: ["USA"], scope: [2] },
+    '3_country_name': { values: ['USA'], scope: [2] },
   };
 
   rerender(
@@ -325,7 +325,7 @@ test("should call refresh if a filter scope is changed", () => {
   expect(mockTriggerQuery).toHaveBeenCalled();
 });
 
-test("should call refresh with empty [] if a filter is changed but scope is not applicable", () => {
+test('should call refresh with empty [] if a filter is changed but scope is not applicable', () => {
   mockGetRelatedCharts.mockReturnValue([]);
   const { rerender } = renderDashboard({
     activeFilters: OVERRIDE_FILTERS,
@@ -337,7 +337,7 @@ test("should call refresh with empty [] if a filter is changed but scope is not 
 
   const newFilters = {
     ...OVERRIDE_FILTERS,
-    "3_country_name": { values: ["CHINA"], scope: [] },
+    '3_country_name': { values: ['CHINA'], scope: [] },
   };
 
   rerender(
@@ -359,7 +359,7 @@ test("should call refresh with empty [] if a filter is changed but scope is not 
   expect(mockTriggerQuery).not.toHaveBeenCalled();
 });
 
-test("should NOT call refresh when ownDataCharts content is unchanged", () => {
+test('should NOT call refresh when ownDataCharts content is unchanged', () => {
   // When only clientView changes, getRelevantDataMask strips it,
   // so Dashboard receives identical ownDataCharts and should not refresh
   const initialOwnDataCharts = {
@@ -393,7 +393,7 @@ test("should NOT call refresh when ownDataCharts content is unchanged", () => {
   expect(mockTriggerQuery).not.toHaveBeenCalled();
 });
 
-test("should call refresh when ownDataCharts pageSize changes", () => {
+test('should call refresh when ownDataCharts pageSize changes', () => {
   const initialOwnDataCharts = {
     1: { pageSize: 10, currentPage: 0 },
   };
@@ -425,5 +425,5 @@ test("should call refresh when ownDataCharts pageSize changes", () => {
     </PluginContext.Provider>,
   );
 
-  expect(mockTriggerQuery).toHaveBeenCalledWith(true, "1");
+  expect(mockTriggerQuery).toHaveBeenCalledWith(true, '1');
 });

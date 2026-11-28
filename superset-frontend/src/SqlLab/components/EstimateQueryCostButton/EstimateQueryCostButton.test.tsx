@@ -16,27 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import createMockStore from "redux-mock-store";
-import thunk from "redux-thunk";
-import { fireEvent, render } from "spec/helpers/testing-library";
-import { Store } from "redux";
+import createMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { fireEvent, render } from 'spec/helpers/testing-library';
+import { Store } from 'redux';
 import {
   initialState,
   defaultQueryEditor,
   extraQueryEditor1,
-} from "src/SqlLab/fixtures";
+} from 'src/SqlLab/fixtures';
 
 import EstimateQueryCostButton, {
   EstimateQueryCostButtonProps,
-} from "src/SqlLab/components/EstimateQueryCostButton";
+} from 'src/SqlLab/components/EstimateQueryCostButton';
 
 const middlewares = [thunk];
 const mockStore = createMockStore(middlewares);
 
-jest.mock("@superset-ui/core/components/Select/Select", () => () => (
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock("@superset-ui/core/components/Select/AsyncSelect", () => () => (
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
@@ -53,22 +53,22 @@ const setup = (props: Partial<EstimateQueryCostButtonProps>, store?: Store) =>
     },
   );
 
-test("renders EstimateQueryCostButton", async () => {
+test('renders EstimateQueryCostButton', async () => {
   const { queryByLabelText } = setup({}, mockStore(initialState));
 
-  expect(queryByLabelText("Estimate cost")).toBeInTheDocument();
+  expect(queryByLabelText('Estimate cost')).toBeInTheDocument();
 });
 
-test("renders label for selected query", async () => {
+test('renders label for selected query', async () => {
   const { queryByLabelText } = setup(
     { queryEditorId: extraQueryEditor1.id },
     mockStore(initialState),
   );
 
-  expect(queryByLabelText("Estimate selected query cost")).toBeInTheDocument();
+  expect(queryByLabelText('Estimate selected query cost')).toBeInTheDocument();
 });
 
-test("renders label for selected query from unsaved", async () => {
+test('renders label for selected query from unsaved', async () => {
   const { queryByLabelText } = setup(
     {},
     mockStore({
@@ -77,16 +77,16 @@ test("renders label for selected query from unsaved", async () => {
         ...initialState.sqlLab,
         unsavedQueryEditor: {
           id: defaultQueryEditor.id,
-          selectedText: "SELECT",
+          selectedText: 'SELECT',
         },
       },
     }),
   );
 
-  expect(queryByLabelText("Estimate selected query cost")).toBeInTheDocument();
+  expect(queryByLabelText('Estimate selected query cost')).toBeInTheDocument();
 });
 
-test("renders estimation error result", async () => {
+test('renders estimation error result', async () => {
   const { queryByLabelText, queryByText, getByLabelText } = setup(
     {},
     mockStore({
@@ -95,20 +95,20 @@ test("renders estimation error result", async () => {
         ...initialState.sqlLab,
         queryCostEstimates: {
           [defaultQueryEditor.id]: {
-            error: "Estimate error",
+            error: 'Estimate error',
           },
         },
       },
     }),
   );
 
-  expect(queryByLabelText("Estimate cost")).toBeInTheDocument();
-  fireEvent.click(getByLabelText("Estimate cost"));
+  expect(queryByLabelText('Estimate cost')).toBeInTheDocument();
+  fireEvent.click(getByLabelText('Estimate cost'));
 
-  expect(queryByText("Estimate error")).toBeInTheDocument();
+  expect(queryByText('Estimate error')).toBeInTheDocument();
 });
 
-test("renders estimation success result", async () => {
+test('renders estimation success result', async () => {
   const { queryByLabelText, getByLabelText, findByTitle } = setup(
     {},
     mockStore({
@@ -118,15 +118,15 @@ test("renders estimation success result", async () => {
         queryCostEstimates: {
           [defaultQueryEditor.id]: {
             completed: true,
-            cost: [{ "Total cost": "1.2" }],
+            cost: [{ 'Total cost': '1.2' }],
           },
         },
       },
     }),
   );
 
-  expect(queryByLabelText("Estimate cost")).toBeInTheDocument();
-  fireEvent.click(getByLabelText("Estimate cost"));
-  const totalCostTitle = await findByTitle("Total cost");
+  expect(queryByLabelText('Estimate cost')).toBeInTheDocument();
+  fireEvent.click(getByLabelText('Estimate cost'));
+  const totalCostTitle = await findByTitle('Total cost');
   expect(totalCostTitle).toBeInTheDocument();
 });

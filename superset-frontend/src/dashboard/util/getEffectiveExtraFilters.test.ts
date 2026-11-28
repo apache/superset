@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordFilters } from "@superset-ui/core";
-import getEffectiveExtraFilters from "src/dashboard/util/charts/getEffectiveExtraFilters";
+import { DataRecordFilters } from '@superset-ui/core';
+import getEffectiveExtraFilters from 'src/dashboard/util/charts/getEffectiveExtraFilters';
 
-test("should create valid filters", () => {
+test('should create valid filters', () => {
   const result = getEffectiveExtraFilters({
-    gender: ["girl"],
+    gender: ['girl'],
     name: null,
-    __time_range: " : 2020-07-17T00:00:00",
+    __time_range: ' : 2020-07-17T00:00:00',
   } as unknown as DataRecordFilters);
   expect(result).toMatchObject([
     {
-      col: "gender",
-      op: "IN",
-      val: ["girl"],
+      col: 'gender',
+      op: 'IN',
+      val: ['girl'],
     },
     {
-      col: "__time_range",
-      op: "==",
-      val: " : 2020-07-17T00:00:00",
+      col: '__time_range',
+      op: '==',
+      val: ' : 2020-07-17T00:00:00',
     },
   ]);
 });

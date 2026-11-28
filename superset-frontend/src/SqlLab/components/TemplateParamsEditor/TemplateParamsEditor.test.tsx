@@ -17,28 +17,28 @@
  * under the License.
  */
 
-import createMockStore from "redux-mock-store";
-import thunk from "redux-thunk";
-import { Store } from "redux";
+import createMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { Store } from 'redux';
 import {
   render,
   fireEvent,
   getByText,
   waitFor,
-} from "spec/helpers/testing-library";
-import { initialState, defaultQueryEditor } from "src/SqlLab/fixtures";
+} from 'spec/helpers/testing-library';
+import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 
 import TemplateParamsEditor, {
   TemplateParamsEditorProps,
-} from "src/SqlLab/components/TemplateParamsEditor";
+} from 'src/SqlLab/components/TemplateParamsEditor';
 
-jest.mock("@superset-ui/core/components/Select/Select", () => () => (
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock("@superset-ui/core/components/Select/AsyncSelect", () => () => (
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
-jest.mock("src/core/editors", () => ({
+jest.mock('src/core/editors', () => ({
   EditorHost: ({ value, height }: { value: string; height: string }) => (
     <div data-test="mock-async-ace-editor" data-height={height}>
       {value}
@@ -66,44 +66,44 @@ const setup = (
     },
   );
 
-test("should render with a title", () => {
+test('should render with a title', () => {
   const { container } = setup();
   expect(container.querySelector('div[role="button"]')).toBeInTheDocument();
 });
 
-test("should open a modal with the ace editor", async () => {
+test('should open a modal with the ace editor', async () => {
   const { container, getByTestId } = setup();
-  fireEvent.click(getByText(container, "Parameters"));
+  fireEvent.click(getByText(container, 'Parameters'));
   await waitFor(() => {
-    expect(getByTestId("mock-async-ace-editor")).toBeInTheDocument();
+    expect(getByTestId('mock-async-ace-editor')).toBeInTheDocument();
   });
 });
 
-test("renders the editor with a bounded height to avoid overflowing the popover", async () => {
+test('renders the editor with a bounded height to avoid overflowing the popover', async () => {
   const { container, getByTestId } = setup();
-  fireEvent.click(getByText(container, "Parameters"));
+  fireEvent.click(getByText(container, 'Parameters'));
   await waitFor(() => {
-    expect(getByTestId("mock-async-ace-editor")).toBeInTheDocument();
+    expect(getByTestId('mock-async-ace-editor')).toBeInTheDocument();
   });
-  expect(getByTestId("mock-async-ace-editor")).toHaveAttribute(
-    "data-height",
-    "360px",
+  expect(getByTestId('mock-async-ace-editor')).toHaveAttribute(
+    'data-height',
+    '360px',
   );
 });
 
-test("renders templateParams", async () => {
+test('renders templateParams', async () => {
   const { container, getByTestId } = setup();
-  fireEvent.click(getByText(container, "Parameters"));
+  fireEvent.click(getByText(container, 'Parameters'));
   await waitFor(() => {
-    expect(getByTestId("mock-async-ace-editor")).toBeInTheDocument();
+    expect(getByTestId('mock-async-ace-editor')).toBeInTheDocument();
   });
-  expect(getByTestId("mock-async-ace-editor")).toHaveTextContent(
+  expect(getByTestId('mock-async-ace-editor')).toHaveTextContent(
     defaultQueryEditor.templateParams,
   );
 });
 
-test("renders code from unsaved changes", async () => {
-  const expectedCode = "custom code value";
+test('renders code from unsaved changes', async () => {
+  const expectedCode = 'custom code value';
   const { container, getByTestId } = setup(
     {},
     mockStore({
@@ -117,9 +117,9 @@ test("renders code from unsaved changes", async () => {
       },
     }),
   );
-  fireEvent.click(getByText(container, "Parameters"));
+  fireEvent.click(getByText(container, 'Parameters'));
   await waitFor(() => {
-    expect(getByTestId("mock-async-ace-editor")).toBeInTheDocument();
+    expect(getByTestId('mock-async-ace-editor')).toBeInTheDocument();
   });
-  expect(getByTestId("mock-async-ace-editor")).toHaveTextContent(expectedCode);
+  expect(getByTestId('mock-async-ace-editor')).toHaveTextContent(expectedCode);
 });

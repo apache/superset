@@ -21,24 +21,24 @@ import {
   render,
   screen,
   userEvent,
-} from "spec/helpers/testing-library";
-import { DatasourceType } from "@superset-ui/core";
-import { sliceEntitiesForDashboard as mockSliceEntities } from "spec/fixtures/mockSliceEntities";
-import { configureStore } from "@reduxjs/toolkit";
+} from 'spec/helpers/testing-library';
+import { DatasourceType } from '@superset-ui/core';
+import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
+import { configureStore } from '@reduxjs/toolkit';
 import SliceAdder, {
   SliceAdderProps,
   sortByComparator,
   SliceListRow,
-} from "./SliceAdder";
+} from './SliceAdder';
 
 // Mock the Select component to avoid debounce issues
-jest.mock("@superset-ui/core", () => ({
-  ...jest.requireActual("@superset-ui/core"),
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   Select: ({ value, onChange, options }: any) => (
     <select
       data-test="select"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={e => onChange(e.target.value)}
     >
       {options?.map((opt: any) => (
         <option key={opt.value} value={opt.value}>
@@ -49,8 +49,8 @@ jest.mock("@superset-ui/core", () => ({
   ),
 }));
 
-jest.mock("lodash", () => ({
-  ...jest.requireActual("lodash"),
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
   debounce: (fn: Function) => {
     const debouncedFn = ((...args: any[]) =>
       fn(...args)) as unknown as Function & {
@@ -62,10 +62,10 @@ jest.mock("lodash", () => ({
 }));
 
 const mockStore = configureStore({
-  reducer: (state = { common: { locale: "en" } }) => state,
+  reducer: (state = { common: { locale: 'en' } }) => state,
 });
 
-const defaultProps: Omit<SliceAdderProps, "theme"> = {
+const defaultProps: Omit<SliceAdderProps, 'theme'> = {
   slices: mockSliceEntities.slices,
   fetchSlices: jest.fn(),
   updateSlices: jest.fn(),
@@ -73,7 +73,7 @@ const defaultProps: Omit<SliceAdderProps, "theme"> = {
   userId: 1,
   dashboardId: 0,
   editMode: false,
-  errorMessage: "",
+  errorMessage: '',
   isLoading: false,
   lastUpdated: 0,
 };
@@ -85,155 +85,155 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test("renders the create new chart button", () => {
+test('renders the create new chart button', () => {
   renderSliceAdder();
-  expect(screen.getByText("Create new chart")).toBeInTheDocument();
+  expect(screen.getByText('Create new chart')).toBeInTheDocument();
 });
 
-test("renders loading state", () => {
+test('renders loading state', () => {
   renderSliceAdder({ ...defaultProps, isLoading: true });
-  expect(screen.getByRole("status")).toBeInTheDocument();
+  expect(screen.getByRole('status')).toBeInTheDocument();
 });
 
-test("renders error message", () => {
-  const errorMessage = "Error loading charts";
+test('renders error message', () => {
+  const errorMessage = 'Error loading charts';
   renderSliceAdder({ ...defaultProps, errorMessage });
   expect(screen.getByText(errorMessage)).toBeInTheDocument();
 });
 
-test("fetches slices on mount", () => {
+test('fetches slices on mount', () => {
   renderSliceAdder();
-  expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, "", "changed_on");
+  expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'changed_on');
 });
 
-test("handles search input changes", async () => {
+test('handles search input changes', async () => {
   renderSliceAdder();
-  const searchInput = screen.getByPlaceholderText("Filter your charts");
-  await userEvent.type(searchInput, "test search");
+  const searchInput = screen.getByPlaceholderText('Filter your charts');
+  await userEvent.type(searchInput, 'test search');
   expect(defaultProps.fetchSlices).toHaveBeenCalledWith(
     1,
-    "test search",
-    "changed_on",
+    'test search',
+    'changed_on',
   );
 });
 
-test("handles sort selection changes", async () => {
+test('handles sort selection changes', async () => {
   renderSliceAdder();
   // Update selector to match the actual rendered element
-  const sortSelect = screen.getByText("Sort by recent");
+  const sortSelect = screen.getByText('Sort by recent');
   await userEvent.click(sortSelect);
-  const vizTypeOption = screen.getByText("Sort by viz type");
+  const vizTypeOption = screen.getByText('Sort by viz type');
   await userEvent.click(vizTypeOption);
-  expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, "", "viz_type");
+  expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'viz_type');
 });
 
-test("handles show only my charts toggle", async () => {
+test('handles show only my charts toggle', async () => {
   renderSliceAdder();
-  const checkbox = screen.getByRole("checkbox");
+  const checkbox = screen.getByRole('checkbox');
   await userEvent.click(checkbox);
   expect(defaultProps.fetchSlices).toHaveBeenCalledWith(
     undefined,
-    "",
-    "changed_on",
+    '',
+    'changed_on',
   );
 });
 
-test("opens new chart in new tab when create new chart is clicked", () => {
-  const windowSpy = jest.spyOn(window, "open").mockImplementation();
+test('opens new chart in new tab when create new chart is clicked', () => {
+  const windowSpy = jest.spyOn(window, 'open').mockImplementation();
   renderSliceAdder();
-  const createButton = screen.getByText("Create new chart");
+  const createButton = screen.getByText('Create new chart');
   fireEvent.click(createButton);
   expect(windowSpy).toHaveBeenCalledWith(
-    "/chart/add?dashboard_id=0",
-    "_blank",
-    "noopener noreferrer",
+    '/chart/add?dashboard_id=0',
+    '_blank',
+    'noopener noreferrer',
   );
   windowSpy.mockRestore();
 });
 
 const baseSlice = {
-  slice_url: "/superset/explore/",
-  thumbnail_url: "/thumbnail",
-  datasource_url: "/superset/datasource/1",
-  changed_on_humanized: "1 day ago",
+  slice_url: '/superset/explore/',
+  thumbnail_url: '/thumbnail',
+  datasource_url: '/superset/datasource/1',
+  changed_on_humanized: '1 day ago',
   datasource_id: 1,
-  datasource_name: "test_datasource",
+  datasource_name: 'test_datasource',
   datasource_type: DatasourceType.Table,
   form_data: {},
-  viz_type: "test_viz",
-  datasource: "1__table",
-  description: "",
-  description_markdown: "",
-  modified: "2020-01-01",
+  viz_type: 'test_viz',
+  datasource: '1__table',
+  description: '',
+  description_markdown: '',
+  modified: '2020-01-01',
   editors: [],
   created_by: { id: 1 }, // Fix: provide required user object instead of null
   cache_timeout: null,
-  uuid: "1234",
+  uuid: '1234',
   query_context: null,
 };
 
-test("should sort by changed_on in descending order", () => {
+test('should sort by changed_on in descending order', () => {
   const input = [
     {
       ...baseSlice,
       slice_id: 1,
-      slice_name: "Test 1",
+      slice_name: 'Test 1',
       changed_on: 1577836800000, // 2020-01-01
     },
     {
       ...baseSlice,
       slice_id: 2,
-      slice_name: "Test 2",
+      slice_name: 'Test 2',
       changed_on: 1578009600000, // 2020-01-03
-      uuid: "5678",
+      uuid: '5678',
     },
     {
       ...baseSlice,
       slice_id: 3,
-      slice_name: "Test 3",
+      slice_name: 'Test 3',
       changed_on: 1577923200000, // 2020-01-02
-      uuid: "9012",
+      uuid: '9012',
     },
   ];
-  const sorted = input.sort(sortByComparator("changed_on"));
+  const sorted = input.sort(sortByComparator('changed_on'));
   expect(sorted[0].changed_on).toBe(1578009600000);
   expect(sorted[2].changed_on).toBe(1577836800000);
 });
 
-test("should sort by other fields in ascending order", () => {
+test('should sort by other fields in ascending order', () => {
   const input = [
     {
       ...baseSlice,
       slice_id: 1,
-      slice_name: "c",
+      slice_name: 'c',
       changed_on: 1577836800000, // Add changed_on field
-      uuid: "1234",
+      uuid: '1234',
     },
     {
       ...baseSlice,
       slice_id: 2,
-      slice_name: "a",
+      slice_name: 'a',
       changed_on: 1577836800000, // Add changed_on field
-      uuid: "5678",
+      uuid: '5678',
     },
     {
       ...baseSlice,
       slice_id: 3,
-      slice_name: "b",
+      slice_name: 'b',
       changed_on: 1577836800000, // Add changed_on field
-      uuid: "9012",
+      uuid: '9012',
     },
   ];
-  const sorted = input.sort(sortByComparator("slice_name"));
-  expect(sorted[0].slice_name).toBe("a");
-  expect(sorted[2].slice_name).toBe("c");
+  const sorted = input.sort(sortByComparator('slice_name'));
+  expect(sorted[0].slice_name).toBe('a');
+  expect(sorted[2].slice_name).toBe('c');
 });
 
-test("should update selectedSliceIdsSet when props change", () => {
+test('should update selectedSliceIdsSet when props change', () => {
   const { rerender } = renderSliceAdder();
   rerender(<SliceAdder {...defaultProps} selectedSliceIds={[129]} />);
   // Verify the internal state was updated by checking if new charts are available
-  expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  expect(screen.getByRole('checkbox')).toBeInTheDocument();
 });
 
 // Covers the react-window v2 `rowComponent`/`rowProps` wiring: SliceAdder
@@ -242,16 +242,16 @@ test("should update selectedSliceIdsSet when props change", () => {
 // that hoisted row renders correctly from the flattened rowProps react-window
 // passes it (index/style plus the custom row props), rather than through
 // closures over component state.
-test("SliceListRow renders a chart card for the slice at the given index", () => {
+test('SliceListRow renders a chart card for the slice at the given index', () => {
   const filteredSlices = Object.values(mockSliceEntities.slices);
   render(
     <SliceListRow
       index={0}
       style={{}}
       ariaAttributes={{
-        role: "listitem",
-        "aria-posinset": 1,
-        "aria-setsize": filteredSlices.length,
+        role: 'listitem',
+        'aria-posinset': 1,
+        'aria-setsize': filteredSlices.length,
       }}
       filteredSlices={filteredSlices}
       selectedSliceIdsSet={new Set()}
@@ -259,20 +259,20 @@ test("SliceListRow renders a chart card for the slice at the given index", () =>
     />,
     { useDnd: true, store: mockStore },
   );
-  expect(screen.getByTestId("chart-card")).toBeInTheDocument();
+  expect(screen.getByTestId('chart-card')).toBeInTheDocument();
   expect(screen.getByText(filteredSlices[0].slice_name)).toBeInTheDocument();
 });
 
-test("SliceListRow renders the slice at the row index passed via rowProps, not index 0", () => {
+test('SliceListRow renders the slice at the row index passed via rowProps, not index 0', () => {
   const filteredSlices = Object.values(mockSliceEntities.slices);
   render(
     <SliceListRow
       index={1}
       style={{}}
       ariaAttributes={{
-        role: "listitem",
-        "aria-posinset": 2,
-        "aria-setsize": filteredSlices.length,
+        role: 'listitem',
+        'aria-posinset': 2,
+        'aria-setsize': filteredSlices.length,
       }}
       filteredSlices={filteredSlices}
       selectedSliceIdsSet={new Set()}

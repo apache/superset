@@ -20,25 +20,25 @@
 import {
   CHANGE_FILTER,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
-} from "src/dashboard/actions/dashboardFilters";
+} from 'src/dashboard/actions/dashboardFilters';
 import dashboardFiltersReducer, {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
-} from "src/dashboard/reducers/dashboardFilters";
-import * as activeDashboardFilters from "src/dashboard/util/activeDashboardFilters";
-import { dashboardFilters } from "spec/fixtures/mockDashboardFilters";
+} from 'src/dashboard/reducers/dashboardFilters';
+import * as activeDashboardFilters from 'src/dashboard/util/activeDashboardFilters';
+import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import {
   sliceEntitiesForDashboard,
   filterId,
   column,
-} from "spec/fixtures/mockSliceEntities";
-import { filterComponent } from "spec/fixtures/mockDashboardLayout";
+} from 'spec/fixtures/mockSliceEntities';
+import { filterComponent } from 'spec/fixtures/mockDashboardLayout';
 
 const { form_data } = sliceEntitiesForDashboard.slices[filterId];
 const component = filterComponent;
 const directPathToFilter = (component.parents || []).slice();
 directPathToFilter.push(component.id);
 
-test("should overwrite a filter if merge is false", () => {
+test('should overwrite a filter if merge is false', () => {
   expect(
     dashboardFiltersReducer(
       dashboardFilters as unknown as Parameters<
@@ -48,8 +48,8 @@ test("should overwrite a filter if merge is false", () => {
         type: CHANGE_FILTER,
         chartId: filterId,
         newSelectedValues: {
-          region: ["c"],
-          gender: ["body", "girl"],
+          region: ['c'],
+          gender: ['body', 'girl'],
         },
         merge: false,
       },
@@ -62,8 +62,8 @@ test("should overwrite a filter if merge is false", () => {
       isDateFilter: false,
       isInstantFilter: !!form_data.instant_filtering,
       columns: {
-        region: ["c"],
-        gender: ["body", "girl"],
+        region: ['c'],
+        gender: ['body', 'girl'],
       },
       labels: {
         [column]: column,
@@ -76,7 +76,7 @@ test("should overwrite a filter if merge is false", () => {
   });
 });
 
-test("should merge a filter if merge is true", () => {
+test('should merge a filter if merge is true', () => {
   expect(
     dashboardFiltersReducer(
       dashboardFilters as unknown as Parameters<
@@ -86,8 +86,8 @@ test("should merge a filter if merge is true", () => {
         type: CHANGE_FILTER,
         chartId: filterId,
         newSelectedValues: {
-          region: ["c"],
-          gender: ["body", "girl"],
+          region: ['c'],
+          gender: ['body', 'girl'],
         },
         merge: true,
       },
@@ -100,8 +100,8 @@ test("should merge a filter if merge is true", () => {
       isDateFilter: false,
       isInstantFilter: !!form_data.instant_filtering,
       columns: {
-        region: ["a", "b", "c"],
-        gender: ["body", "girl"],
+        region: ['a', 'b', 'c'],
+        gender: ['body', 'girl'],
       },
       labels: {
         [column]: column,
@@ -114,13 +114,13 @@ test("should merge a filter if merge is true", () => {
   });
 });
 
-test("should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE", () => {
+test('should buildActiveFilters on UPDATE_DASHBOARD_FILTERS_SCOPE', () => {
   const regionScope = {
-    scope: ["TAB-1"],
+    scope: ['TAB-1'],
     immune: [],
   };
   const genderScope = {
-    scope: ["ROOT_ID"],
+    scope: ['ROOT_ID'],
     immune: [1],
   };
   const scopes = {

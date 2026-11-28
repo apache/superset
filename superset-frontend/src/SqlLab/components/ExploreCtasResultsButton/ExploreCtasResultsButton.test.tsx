@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import createMockStore from "redux-mock-store";
-import fetchMock from "fetch-mock";
-import thunk from "redux-thunk";
-import { fireEvent, render, waitFor } from "spec/helpers/testing-library";
-import { Store } from "redux";
-import { SupersetClientClass } from "@superset-ui/core";
-import { initialState } from "src/SqlLab/fixtures";
+import createMockStore from 'redux-mock-store';
+import fetchMock from 'fetch-mock';
+import thunk from 'redux-thunk';
+import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import { Store } from 'redux';
+import { SupersetClientClass } from '@superset-ui/core';
+import { initialState } from 'src/SqlLab/fixtures';
 
 import ExploreCtasResultsButton, {
   ExploreCtasResultsButtonProps,
-} from "src/SqlLab/components/ExploreCtasResultsButton";
+} from 'src/SqlLab/components/ExploreCtasResultsButton';
 
 const middlewares = [thunk];
 const mockStore = createMockStore(middlewares);
@@ -47,28 +47,28 @@ const setup = (props: Partial<ExploreCtasResultsButtonProps>, store?: Store) =>
     },
   );
 
-const postFormSpy = jest.spyOn(SupersetClientClass.prototype, "postForm");
+const postFormSpy = jest.spyOn(SupersetClientClass.prototype, 'postForm');
 postFormSpy.mockImplementation(jest.fn());
 
-test("renders", async () => {
+test('renders', async () => {
   const { queryByText } = setup({}, mockStore(initialState));
 
-  expect(queryByText("Explore")).toBeInTheDocument();
+  expect(queryByText('Explore')).toBeInTheDocument();
 });
 
-test("visualize results", async () => {
+test('visualize results', async () => {
   const { getByText } = setup({}, mockStore(initialState));
 
   postFormSpy.mockClear();
   fetchMock.clearHistory().removeRoutes();
   fetchMock.post(getOrCreateTableEndpoint, { result: { table_id: 1234 } });
 
-  fireEvent.click(getByText("Explore"));
+  fireEvent.click(getByText('Explore'));
 
   await waitFor(() => {
     expect(postFormSpy).toHaveBeenCalledTimes(1);
     expect(postFormSpy).toHaveBeenCalledWith(
-      { url: "http://localhost/explore/" },
+      { url: 'http://localhost/explore/' },
       {
         form_data:
           '{"datasource":"1234__table","metrics":["count"],"groupby":[],"viz_type":"table","since":"100 years ago","all_columns":[],"row_limit":1000}',
@@ -77,16 +77,16 @@ test("visualize results", async () => {
   });
 });
 
-test("visualize results fails", async () => {
+test('visualize results fails', async () => {
   const { getByText } = setup({}, mockStore(initialState));
 
   postFormSpy.mockClear();
   fetchMock.clearHistory().removeRoutes();
   fetchMock.post(getOrCreateTableEndpoint, {
-    throws: new Error("Unexpected all to v1 API"),
+    throws: new Error('Unexpected all to v1 API'),
   });
 
-  fireEvent.click(getByText("Explore"));
+  fireEvent.click(getByText('Explore'));
 
   await waitFor(() => {
     expect(postFormSpy).toHaveBeenCalledTimes(0);

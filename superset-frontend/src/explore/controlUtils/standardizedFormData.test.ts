@@ -24,52 +24,52 @@ import {
   QueryFormData,
   TimeGranularity,
   VizType,
-} from "@superset-ui/core";
+} from '@superset-ui/core';
 // TODO: tests shouldn't depend on plugins
-import { sections } from "@superset-ui/chart-controls";
-import TableChartPlugin from "../../../plugins/plugin-chart-table/src";
-import { BigNumberTotalChartPlugin } from "../../../plugins/plugin-chart-echarts/src";
+import { sections } from '@superset-ui/chart-controls';
+import TableChartPlugin from '../../../plugins/plugin-chart-table/src';
+import { BigNumberTotalChartPlugin } from '../../../plugins/plugin-chart-echarts/src';
 import {
   StandardizedFormData,
   sharedMetricsKey,
   sharedColumnsKey,
   publicControls,
-} from "./standardizedFormData";
+} from './standardizedFormData';
 
 const adhocColumn: AdhocColumn = {
-  expressionType: "SQL",
-  label: "country",
-  optionName: "country",
-  sqlExpression: "country",
+  expressionType: 'SQL',
+  label: 'country',
+  optionName: 'country',
+  sqlExpression: 'country',
 };
 const adhocMetricSQL: AdhocMetricSQL = {
-  expressionType: "SQL",
-  label: "count",
-  optionName: "count",
-  sqlExpression: "count(*)",
+  expressionType: 'SQL',
+  label: 'count',
+  optionName: 'count',
+  sqlExpression: 'count(*)',
 };
 const adhocMetricSimple: AdhocMetricSimple = {
-  expressionType: "SIMPLE",
+  expressionType: 'SIMPLE',
   column: {
     id: 1,
-    column_name: "sales",
-    columnName: "sales",
-    verbose_name: "sales",
+    column_name: 'sales',
+    columnName: 'sales',
+    verbose_name: 'sales',
   },
-  aggregate: "SUM",
-  label: "count",
-  optionName: "count",
+  aggregate: 'SUM',
+  label: 'count',
+  optionName: 'count',
 };
 
 const tableVizFormData = {
-  datasource: "30__table",
+  datasource: '30__table',
   viz_type: VizType.Table,
-  granularity_sqla: "ds",
+  granularity_sqla: 'ds',
   time_grain_sqla: TimeGranularity.DAY,
-  time_range: "No filter",
-  query_mode: "aggregate",
-  groupby: ["name", "gender", adhocColumn],
-  metrics: ["count", "avg(sales)", adhocMetricSimple, adhocMetricSQL],
+  time_range: 'No filter',
+  query_mode: 'aggregate',
+  groupby: ['name', 'gender', adhocColumn],
+  metrics: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
   all_columns: [],
   percent_metrics: [],
   adhoc_filters: [],
@@ -77,50 +77,50 @@ const tableVizFormData = {
   row_limit: 10000,
   server_page_length: 10,
   order_desc: true,
-  table_timestamp_format: "smart_date",
+  table_timestamp_format: 'smart_date',
   show_cell_bars: true,
   color_pn: true,
   url_params: {
     form_data_key:
-      "p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y",
-    dataset_id: "30",
+      'p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y',
+    dataset_id: '30',
   },
 };
 const tableVizStore = {
   form_data: tableVizFormData,
   controls: {
     datasource: {
-      value: "30__table",
+      value: '30__table',
     },
     viz_type: {
-      value: "table",
+      value: 'table',
     },
     slice_id: {},
     cache_timeout: {},
     url_params: {
       value: {
         form_data_key:
-          "p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y",
-        dataset_id: "30",
+          'p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y',
+        dataset_id: '30',
       },
     },
     granularity_sqla: {
-      value: "ds",
+      value: 'ds',
     },
     time_grain_sqla: {
-      value: "P1D",
+      value: 'P1D',
     },
     time_range: {
-      value: "No filter",
+      value: 'No filter',
     },
     query_mode: {
-      value: "aggregate",
+      value: 'aggregate',
     },
     groupby: {
-      value: ["name", "gender", adhocColumn],
+      value: ['name', 'gender', adhocColumn],
     },
     metrics: {
-      value: ["count", "avg(sales)", adhocMetricSimple, adhocMetricSQL],
+      value: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
     },
     all_columns: {
       value: [],
@@ -148,7 +148,7 @@ const tableVizStore = {
     },
     show_totals: {},
     table_timestamp_format: {
-      value: "smart_date",
+      value: 'smart_date',
     },
     page_length: {},
     include_search: {},
@@ -163,7 +163,7 @@ const tableVizStore = {
     conditional_formatting: {},
   },
   datasource: {
-    type: "table",
+    type: 'table',
     columns: [],
   },
 };
@@ -171,54 +171,54 @@ const tableVizStore = {
 const sharedKey = [...sharedMetricsKey, ...sharedColumnsKey];
 const sharedControlsFormData = {
   // metrics
-  metric: "m1",
-  metrics: ["m2"],
-  metric_2: "m3",
-  size: "m4",
-  x: "m5",
-  y: "m6",
-  secondary_metric: "m7",
-  open: "m8",
-  close: "m9",
-  high: "m10",
-  low: "m11",
+  metric: 'm1',
+  metrics: ['m2'],
+  metric_2: 'm3',
+  size: 'm4',
+  x: 'm5',
+  y: 'm6',
+  secondary_metric: 'm7',
+  open: 'm8',
+  close: 'm9',
+  high: 'm10',
+  low: 'm11',
   // columns
-  groupby: ["c1"],
-  columns: ["c2"],
-  groupbyColumns: ["c3"],
-  groupbyRows: ["c4"],
-  series: "c5",
-  entity: "c6",
-  series_columns: ["c7"],
+  groupby: ['c1'],
+  columns: ['c2'],
+  groupbyColumns: ['c3'],
+  groupbyRows: ['c4'],
+  series: 'c5',
+  entity: 'c6',
+  series_columns: ['c7'],
 };
 const publicControlsFormData = {
   // time section
-  granularity_sqla: "time_column",
+  granularity_sqla: 'time_column',
   time_grain_sqla: TimeGranularity.DAY,
-  time_range: "2000 : today",
+  time_range: '2000 : today',
   // filters
   adhoc_filters: [],
   // subquery limit(series limit)
   limit: 5,
   // order by clause
-  timeseries_limit_metric: "orderby_metric",
-  series_limit_metric: "orderby_metric",
+  timeseries_limit_metric: 'orderby_metric',
+  series_limit_metric: 'orderby_metric',
   // desc or asc in order by clause
   order_desc: true,
   // outer query limit
   row_limit: 100,
   // x asxs column
-  x_axis: "x_axis_column",
+  x_axis: 'x_axis_column',
   // advanced analytics - rolling window
-  rolling_type: "sum",
+  rolling_type: 'sum',
   rolling_periods: 1,
   min_periods: 0,
   // advanced analytics - time comparison
-  time_compare: "1 year ago",
-  comparison_type: "values",
+  time_compare: '1 year ago',
+  comparison_type: 'values',
   // advanced analytics - resample
-  resample_rule: "1D",
-  resample_method: "zerofill",
+  resample_rule: '1D',
+  resample_method: 'zerofill',
   resample_fill_time_range: true,
   // dashboard context
   dashboardId: 123,
@@ -226,8 +226,8 @@ const publicControlsFormData = {
 const sourceMockFormData: QueryFormData = {
   ...sharedControlsFormData,
   ...publicControlsFormData,
-  datasource: "100__table",
-  viz_type: "source_viz",
+  datasource: '100__table',
+  viz_type: 'source_viz',
 };
 
 const sourceMockStore = {
@@ -236,38 +236,38 @@ const sourceMockStore = {
     Object.entries(sourceMockFormData).map(([key, value]) => [key, { value }]),
   ),
   datasource: {
-    type: "table",
+    type: 'table',
     columns: [],
   },
 };
 
 beforeAll(() => {
   // dashboardId is not a control, it's just context, so exclude it from control definitions
-  const publicControlFields = publicControls.filter((c) => c !== "dashboardId");
+  const publicControlFields = publicControls.filter(c => c !== 'dashboardId');
 
-  getChartControlPanelRegistry().registerValue("source_viz", {
+  getChartControlPanelRegistry().registerValue('source_viz', {
     controlPanelSections: [
       sections.advancedAnalyticsControls,
       {
-        label: "transform controls",
-        controlSetRows: publicControlFields.map((control) => [control]),
+        label: 'transform controls',
+        controlSetRows: publicControlFields.map(control => [control]),
       },
       {
-        label: "axis column",
-        controlSetRows: [["x_axis"]],
+        label: 'axis column',
+        controlSetRows: [['x_axis']],
       },
     ],
   });
-  getChartControlPanelRegistry().registerValue("target_viz", {
+  getChartControlPanelRegistry().registerValue('target_viz', {
     controlPanelSections: [
       sections.advancedAnalyticsControls,
       {
-        label: "transform controls",
-        controlSetRows: publicControlFields.map((control) => [control]),
+        label: 'transform controls',
+        controlSetRows: publicControlFields.map(control => [control]),
       },
       {
-        label: "axis column",
-        controlSetRows: [["x_axis"]],
+        label: 'axis column',
+        controlSetRows: [['x_axis']],
       },
     ],
     formDataOverrides: (formData: QueryFormData) => ({
@@ -277,20 +277,20 @@ beforeAll(() => {
     }),
   });
   // a target viz whose "Time shift" control offers inherit/custom choices
-  getChartControlPanelRegistry().registerValue("target_viz_inherit", {
+  getChartControlPanelRegistry().registerValue('target_viz_inherit', {
     controlPanelSections: [
       sections.timeComparisonControls({}),
       {
-        label: "transform controls",
+        label: 'transform controls',
         controlSetRows: publicControlFields
-          .filter((c) => c !== "time_compare")
-          .map((control) => [control]),
+          .filter(c => c !== 'time_compare')
+          .map(control => [control]),
       },
     ],
   });
 });
 
-test("should avoid to overlap", () => {
+test('should avoid to overlap', () => {
   const sharedControlsSet = new Set(Object.keys(sharedKey));
   const publicControlsSet = new Set(publicControls);
   expect(
@@ -298,65 +298,65 @@ test("should avoid to overlap", () => {
   ).toEqual([]);
 });
 
-test("should collect all sharedControls", () => {
+test('should collect all sharedControls', () => {
   expect(Object.entries(sharedControlsFormData).length).toBe(
     Object.entries(sharedKey).length,
   );
   const sfd = new StandardizedFormData(sourceMockFormData);
   expect(sfd.serialize().controls.metrics).toEqual([
-    "m1",
-    "m2",
-    "m3",
-    "m4",
-    "m5",
-    "m6",
-    "m7",
-    "m8",
-    "m9",
-    "m10",
-    "m11",
+    'm1',
+    'm2',
+    'm3',
+    'm4',
+    'm5',
+    'm6',
+    'm7',
+    'm8',
+    'm9',
+    'm10',
+    'm11',
   ]);
   expect(sfd.serialize().controls.columns).toEqual([
-    "c1",
-    "c2",
-    "c3",
-    "c4",
-    "c5",
-    "c6",
-    "c7",
+    'c1',
+    'c2',
+    'c3',
+    'c4',
+    'c5',
+    'c6',
+    'c7',
   ]);
 });
 
-test("should transform all publicControls and sharedControls", () => {
+test('should transform all publicControls and sharedControls', () => {
   expect(Object.entries(publicControlsFormData).length).toBe(
     publicControls.length,
   );
 
   const sfd = new StandardizedFormData(sourceMockFormData);
-  const { formData } = sfd.transform("target_viz", sourceMockStore);
+  const { formData } = sfd.transform('target_viz', sourceMockStore);
   Object.entries(publicControlsFormData).forEach(([key, value]) => {
     expect(formData).toHaveProperty(key);
     expect(value).toEqual(
       publicControlsFormData[key as keyof typeof publicControlsFormData],
     );
   });
-  expect(formData.columns).toEqual(["c1", "c2", "c3", "c4", "c5", "c6", "c7"]);
+  expect(formData.columns).toEqual(['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7']);
   expect(formData.metrics).toEqual([
-    "m1",
-    "m2",
-    "m3",
-    "m4",
-    "m5",
-    "m6",
-    "m7",
-    "m8",
-    "m9",
-    "m10",
-    "m11",
+    'm1',
+    'm2',
+    'm3',
+    'm4',
+    'm5',
+    'm6',
+    'm7',
+    'm8',
+    'm9',
+    'm10',
+    'm11',
   ]);
 });
 
-test("strips inherit/custom time shifts when target viz does not support them", () => {
+test('strips inherit/custom time shifts when target viz does not support them', () => {
   // Table/Big Number period-over-period offer "inherit" and "custom" time
   // shifts; the timeseries advanced-analytics target (target_viz) does not.
   // Carrying them over leaves un-removable tags on the new chart (SC-99170).
@@ -364,29 +364,29 @@ test("strips inherit/custom time shifts when target viz does not support them", 
     ...sourceMockStore,
     form_data: {
       ...sourceMockFormData,
-      time_compare: ["1 year ago", "inherit", "custom"],
+      time_compare: ['1 year ago', 'inherit', 'custom'],
     },
   };
   const sfd = new StandardizedFormData(store.form_data);
-  const { formData } = sfd.transform("target_viz", store);
+  const { formData } = sfd.transform('target_viz', store);
   // the free-form delta survives, the special markers are dropped
-  expect(formData.time_compare).toEqual(["1 year ago"]);
+  expect(formData.time_compare).toEqual(['1 year ago']);
 });
 
-test("preserves inherit/custom time shifts when target viz supports them", () => {
+test('preserves inherit/custom time shifts when target viz supports them', () => {
   const store = {
     ...sourceMockStore,
     form_data: {
       ...sourceMockFormData,
-      time_compare: ["1 year ago", "inherit"],
+      time_compare: ['1 year ago', 'inherit'],
     },
   };
   const sfd = new StandardizedFormData(store.form_data);
-  const { formData } = sfd.transform("target_viz_inherit", store);
-  expect(formData.time_compare).toEqual(["1 year ago", "inherit"]);
+  const { formData } = sfd.transform('target_viz_inherit', store);
+  expect(formData.time_compare).toEqual(['1 year ago', 'inherit']);
 });
 
-test("clears time_compare to null when every shift is unsupported", () => {
+test('clears time_compare to null when every shift is unsupported', () => {
   // When only special markers carry over and none survive, the control value
   // must serialize to null (not an empty array) so the target chart shows an
   // empty "Time shift" rather than a stray tag (SC-99170).
@@ -394,15 +394,15 @@ test("clears time_compare to null when every shift is unsupported", () => {
     ...sourceMockStore,
     form_data: {
       ...sourceMockFormData,
-      time_compare: ["inherit", "custom"],
+      time_compare: ['inherit', 'custom'],
     },
   };
   const sfd = new StandardizedFormData(store.form_data);
-  const { formData } = sfd.transform("target_viz", store);
+  const { formData } = sfd.transform('target_viz', store);
   expect(formData.time_compare).toBeNull();
 });
 
-test("strips a scalar time shift after getControlsState coerces it to an array", () => {
+test('strips a scalar time shift after getControlsState coerces it to an array', () => {
   // Table/Big Number store `time_compare` as a scalar string; getControlsState
   // coerces it to an array before the strip runs, so a lone unsupported marker
   // must still serialize to null on the target viz (SC-99170).
@@ -410,30 +410,30 @@ test("strips a scalar time shift after getControlsState coerces it to an array",
     ...sourceMockStore,
     form_data: {
       ...sourceMockFormData,
-      time_compare: "inherit",
+      time_compare: 'inherit',
     },
   };
   const sfd = new StandardizedFormData(store.form_data);
-  const { formData } = sfd.transform("target_viz", store);
+  const { formData } = sfd.transform('target_viz', store);
   expect(formData.time_compare).toBeNull();
 });
 
-test("should inherit standardizedFormData and memorizedFormData is LIFO", () => {
+test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {
   // from source_viz to target_viz
   const sfd = new StandardizedFormData(sourceMockFormData);
   const { formData, controlsState } = sfd.transform(
-    "target_viz",
+    'target_viz',
     sourceMockStore,
   );
   expect(
     formData.standardizedFormData.memorizedFormData.map(
       (fd: [string, QueryFormData]) => fd[0],
     ),
-  ).toEqual(["source_viz"]);
+  ).toEqual(['source_viz']);
 
   // from target_viz to source_viz
   const sfd2 = new StandardizedFormData(formData);
-  const { formData: fd2, controlsState: cs2 } = sfd2.transform("source_viz", {
+  const { formData: fd2, controlsState: cs2 } = sfd2.transform('source_viz', {
     ...sourceMockStore,
     form_data: formData,
     controls: controlsState,
@@ -442,11 +442,11 @@ test("should inherit standardizedFormData and memorizedFormData is LIFO", () => 
     fd2.standardizedFormData.memorizedFormData.map(
       (fd: [string, QueryFormData]) => fd[0],
     ),
-  ).toEqual(["source_viz", "target_viz"]);
+  ).toEqual(['source_viz', 'target_viz']);
 
   // from source_viz to target_viz
   const sfd3 = new StandardizedFormData(fd2);
-  const { formData: fd3 } = sfd3.transform("target_viz", {
+  const { formData: fd3 } = sfd3.transform('target_viz', {
     ...sourceMockStore,
     form_data: fd2,
     controls: cs2,
@@ -455,7 +455,7 @@ test("should inherit standardizedFormData and memorizedFormData is LIFO", () => 
     fd3.standardizedFormData.memorizedFormData.map(
       (fd: [string, QueryFormData]) => fd[0],
     ),
-  ).toEqual(["target_viz", "source_viz"]);
+  ).toEqual(['target_viz', 'source_viz']);
 });
 
 beforeAll(() => {
@@ -464,12 +464,12 @@ beforeAll(() => {
     new BigNumberTotalChartPlugin().controlPanel,
   );
   getChartControlPanelRegistry().registerValue(
-    "table",
+    'table',
     new TableChartPlugin().controlPanel,
   );
 });
 
-test("get and has", () => {
+test('get and has', () => {
   // table -> bigNumberTotal
   const sfd = new StandardizedFormData(tableVizFormData);
   const { formData: bntFormData } = sfd.transform(
@@ -480,51 +480,51 @@ test("get and has", () => {
   // bigNumberTotal -> table
   const sfd2 = new StandardizedFormData(bntFormData);
   expect(sfd2.has(VizType.BigNumberTotal)).toBeTruthy();
-  expect(sfd2.has("table")).toBeTruthy();
+  expect(sfd2.has('table')).toBeTruthy();
   expect(sfd2.get(VizType.BigNumberTotal).viz_type).toBe(
     VizType.BigNumberTotal,
   );
-  expect(sfd2.get("table").viz_type).toBe(VizType.Table);
+  expect(sfd2.get('table').viz_type).toBe(VizType.Table);
 });
 
-test("transform", () => {
+test('transform', () => {
   // table -> bigNumberTotal
   const sfd = new StandardizedFormData(tableVizFormData);
   const { formData: bntFormData, controlsState: bntControlsState } =
     sfd.transform(VizType.BigNumberTotal, tableVizStore);
   expect(Object.keys(bntFormData).sort()).toEqual(
-    [...Object.keys(bntControlsState), "standardizedFormData"].sort(),
+    [...Object.keys(bntControlsState), 'standardizedFormData'].sort(),
   );
   expect(bntFormData.viz_type).toBe(VizType.BigNumberTotal);
-  expect(bntFormData.metric).toBe("count");
+  expect(bntFormData.metric).toBe('count');
 
   // change control values on bigNumber
-  bntFormData.metric = "sum(sales)";
+  bntFormData.metric = 'sum(sales)';
 
-  bntControlsState.metric.value = "sum(sales)";
+  bntControlsState.metric.value = 'sum(sales)';
 
   // bigNumberTotal -> table
   const sfd2 = new StandardizedFormData(bntFormData);
   const { formData: tblFormData, controlsState: tblControlsState } =
-    sfd2.transform("table", {
+    sfd2.transform('table', {
       ...tableVizStore,
       form_data: bntFormData,
       controls: bntControlsState,
     });
   expect(Object.keys(tblFormData).sort()).toEqual(
-    [...Object.keys(tblControlsState), "standardizedFormData"].sort(),
+    [...Object.keys(tblControlsState), 'standardizedFormData'].sort(),
   );
   expect(tblFormData.viz_type).toBe(VizType.Table);
   expect(tblFormData.metrics).toEqual([
-    "sum(sales)",
-    "avg(sales)",
+    'sum(sales)',
+    'avg(sales)',
     adhocMetricSimple,
     adhocMetricSQL,
   ]);
-  expect(tblFormData.groupby).toEqual(["name", "gender", adhocColumn]);
+  expect(tblFormData.groupby).toEqual(['name', 'gender', adhocColumn]);
 });
 
-test("preserves dashboardId when transforming between viz types", () => {
+test('preserves dashboardId when transforming between viz types', () => {
   // Create form data with dashboardId (simulating opening explore from a dashboard)
   const formDataWithDashboard = {
     ...tableVizFormData,
@@ -547,7 +547,7 @@ test("preserves dashboardId when transforming between viz types", () => {
 
   // Transform back bigNumberTotal -> table
   const sfd2 = new StandardizedFormData(bntFormData);
-  const { formData: tblFormData } = sfd2.transform("table", {
+  const { formData: tblFormData } = sfd2.transform('table', {
     ...storeWithDashboard,
     form_data: bntFormData,
     controls: {
@@ -559,7 +559,7 @@ test("preserves dashboardId when transforming between viz types", () => {
   expect(tblFormData.dashboardId).toBe(42);
 });
 
-test("handles missing dashboardId gracefully", () => {
+test('handles missing dashboardId gracefully', () => {
   // Test with no dashboardId (exploring a chart not from a dashboard)
   const formDataNoDashboard = {
     ...tableVizFormData,
@@ -580,7 +580,7 @@ test("handles missing dashboardId gracefully", () => {
   expect(bntFormData.dashboardId).toBeUndefined();
 });
 
-test("handles null dashboardId", () => {
+test('handles null dashboardId', () => {
   // Test with explicit null dashboardId
   const formDataNullDashboard = {
     ...tableVizFormData,
@@ -601,25 +601,14 @@ test("handles null dashboardId", () => {
   expect(bntFormData.dashboardId).toBeUndefined();
 });
 
-beforeAll(() => {
-  getChartControlPanelRegistry().registerValue(
-    VizType.BigNumberTotal,
-    new BigNumberTotalChartPlugin().controlPanel,
-  );
-  getChartControlPanelRegistry().registerValue(
-    "table",
-    new TableChartPlugin().controlPanel,
-  );
-});
-
-test("initial SFD between different datasource", () => {
+test('initial SFD between different datasource', () => {
   const sfd = new StandardizedFormData(tableVizFormData);
   // table -> big number
   const { formData: bntFormData, controlsState: bntControlsState } =
     sfd.transform(VizType.BigNumberTotal, tableVizStore);
   const sfd2 = new StandardizedFormData(bntFormData);
   // big number -> table
-  const { formData: tblFormData } = sfd2.transform("table", {
+  const { formData: tblFormData } = sfd2.transform('table', {
     ...tableVizStore,
     form_data: bntFormData,
     controls: bntControlsState,
@@ -630,29 +619,29 @@ test("initial SFD between different datasource", () => {
       (mfd: [string, QueryFormData][]) => mfd[0],
     ),
   ).toEqual([VizType.Table, VizType.BigNumberTotal]);
-  const newDatasourceFormData = { ...tblFormData, datasource: "20__table" };
+  const newDatasourceFormData = { ...tblFormData, datasource: '20__table' };
   const newDatasourceSFD = new StandardizedFormData(newDatasourceFormData);
   expect(
     newDatasourceSFD.serialize().memorizedFormData.map(([vizType]) => vizType),
   ).toEqual([VizType.Table]);
-  expect(newDatasourceSFD.get("table")).not.toHaveProperty(
-    "standardizedFormData",
+  expect(newDatasourceSFD.get('table')).not.toHaveProperty(
+    'standardizedFormData',
   );
 });
 
-test("collects candlestick OHLC metrics into standardized controls", () => {
+test('collects candlestick OHLC metrics into standardized controls', () => {
   const controls = StandardizedFormData.getStandardizedControls({
-    datasource: "1__table",
+    datasource: '1__table',
     viz_type: VizType.Table,
-    open: "open_col",
-    close: "close_col",
-    high: "high_col",
-    low: "low_col",
+    open: 'open_col',
+    close: 'close_col',
+    high: 'high_col',
+    low: 'low_col',
   } as QueryFormData);
   expect(controls.metrics).toEqual([
-    "open_col",
-    "close_col",
-    "high_col",
-    "low_col",
+    'open_col',
+    'close_col',
+    'high_col',
+    'low_col',
   ]);
 });

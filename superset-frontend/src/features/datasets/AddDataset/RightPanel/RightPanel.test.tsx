@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from "spec/helpers/testing-library";
-import RightPanel from "src/features/datasets/AddDataset/RightPanel";
+import { render, screen } from 'spec/helpers/testing-library';
+import RightPanel from 'src/features/datasets/AddDataset/RightPanel';
 
-test("renders a blank state RightPanel", () => {
+test('renders a blank state RightPanel', () => {
   render(<RightPanel />);
 
   expect(screen.getByText(/right panel/i)).toBeVisible();

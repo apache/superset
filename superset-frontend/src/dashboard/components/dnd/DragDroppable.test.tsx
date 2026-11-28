@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from "spec/helpers/testing-library";
-import { getEmptyImage } from "react-dnd-html5-backend";
+import { render } from 'spec/helpers/testing-library';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 
-import newComponentFactory from "src/dashboard/util/newComponentFactory";
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
   CHART_TYPE,
   ROW_TYPE,
   TAB_TYPE,
-} from "src/dashboard/util/componentTypes";
-import { UnwrappedDragDroppable as DragDroppable } from "src/dashboard/components/dnd/DragDroppable";
+} from 'src/dashboard/util/componentTypes';
+import { UnwrappedDragDroppable as DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 
 const props = {
   component: newComponentFactory(CHART_TYPE),
@@ -62,7 +62,7 @@ function setup(overrideProps: Record<string, any> = {}) {
   };
 }
 
-test("should call its child function", () => {
+test('should call its child function', () => {
   const renderChild = jest.fn((provided: Record<string, unknown>) => (
     <div data-test="child-content" {...provided}>
       Test Content
@@ -73,13 +73,13 @@ test("should call its child function", () => {
   expect(renderChild).toHaveBeenCalled();
   expect(renderChild.mock.calls[0][0]).toEqual(
     expect.objectContaining({
-      "data-test": "dragdroppable-content",
+      'data-test': 'dragdroppable-content',
     }),
   );
 });
 
 test('should call its child function with "dragSourceRef" if editMode=true', () => {
-  const renderChild = jest.fn().mockImplementation((provided) => (
+  const renderChild = jest.fn().mockImplementation(provided => (
     <div data-test="child-content" {...provided}>
       Test Content
     </div>
@@ -89,14 +89,14 @@ test('should call its child function with "dragSourceRef" if editMode=true', () 
   setup({ children: renderChild, editMode: false });
   expect(renderChild).toHaveBeenCalledWith(
     expect.objectContaining({
-      "data-test": "dragdroppable-content",
+      'data-test': 'dragdroppable-content',
     }),
   );
 
   setup({ children: renderChild, editMode: true, dragSourceRef });
   expect(renderChild).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      "data-test": "dragdroppable-content",
+      'data-test': 'dragdroppable-content',
       dragSourceRef,
     }),
   );
@@ -113,7 +113,7 @@ test('should call its child function with "dropIndicatorProps" dependent on edit
   class MockDragDroppable extends DragDroppable {
     constructor(mockProps: ConstructorParameters<typeof DragDroppable>[0]) {
       super(mockProps);
-      this.state = { dropIndicator: "DROP_TOP" as any };
+      this.state = { dropIndicator: 'DROP_TOP' as any };
     }
   }
 
@@ -132,12 +132,12 @@ test('should call its child function with "dropIndicatorProps" dependent on edit
   expect(
     renderChild.mock.calls[renderChild.mock.calls.length - 1][0],
   ).toMatchObject({
-    "data-test": "dragdroppable-content",
-    dropIndicatorProps: { className: "drop-indicator" },
+    'data-test': 'dragdroppable-content',
+    dropIndicatorProps: { className: 'drop-indicator' },
   });
 });
 
-test("should call props.dragPreviewRef and props.droppableRef on mount", () => {
+test('should call props.dragPreviewRef and props.droppableRef on mount', () => {
   const dragPreviewRef = jest.fn();
   const droppableRef = jest.fn();
 
@@ -146,7 +146,7 @@ test("should call props.dragPreviewRef and props.droppableRef on mount", () => {
   expect(droppableRef).toHaveBeenCalledTimes(1);
 });
 
-test("should handle forbidden drops correctly", () => {
+test('should handle forbidden drops correctly', () => {
   const renderChild = jest.fn((provided: Record<string, unknown>) => (
     <div data-test="child-content" {...provided}>
       Test Content
@@ -156,7 +156,7 @@ test("should handle forbidden drops correctly", () => {
   class MockDragDroppable extends DragDroppable {
     constructor(mockProps: ConstructorParameters<typeof DragDroppable>[0]) {
       super(mockProps);
-      this.state = { dropIndicator: "DROP_FORBIDDEN" };
+      this.state = { dropIndicator: 'DROP_FORBIDDEN' };
     }
   }
 
@@ -175,20 +175,20 @@ test("should handle forbidden drops correctly", () => {
     renderChild.mock.calls[renderChild.mock.calls.length - 1][0],
   ).toMatchObject({
     dropIndicatorProps: {
-      className: expect.stringContaining("drop-indicator--forbidden"),
+      className: expect.stringContaining('drop-indicator--forbidden'),
     },
   });
 });
 
-test("should handle orientation prop correctly", () => {
-  const { container } = setup({ orientation: "column" });
-  expect(container.firstChild).toHaveClass("dragdroppable-column");
+test('should handle orientation prop correctly', () => {
+  const { container } = setup({ orientation: 'column' });
+  expect(container.firstChild).toHaveClass('dragdroppable-column');
 
-  const { container: container2 } = setup({ orientation: "row" });
-  expect(container2.firstChild).toHaveClass("dragdroppable-row");
+  const { container: container2 } = setup({ orientation: 'row' });
+  expect(container2.firstChild).toHaveClass('dragdroppable-row');
 });
 
-test("should handle disabled drag and drop", () => {
+test('should handle disabled drag and drop', () => {
   const renderChild = jest.fn((provided: Record<string, unknown>) => (
     <div data-test="child-content" {...provided}>
       Test Content
@@ -198,7 +198,7 @@ test("should handle disabled drag and drop", () => {
   class MockDragDroppable extends DragDroppable {
     constructor(mockProps: ConstructorParameters<typeof DragDroppable>[0]) {
       super(mockProps);
-      this.state = { dropIndicator: "DROP_TOP" as any };
+      this.state = { dropIndicator: 'DROP_TOP' as any };
     }
   }
 
@@ -217,13 +217,13 @@ test("should handle disabled drag and drop", () => {
   expect(
     renderChild.mock.calls[renderChild.mock.calls.length - 1][0],
   ).toMatchObject({
-    "data-test": "dragdroppable-content",
+    'data-test': 'dragdroppable-content',
     dropIndicatorProps: null,
   });
 });
 
 // Later in the file, remove the require and use the imported getEmptyImage
-test("should handle empty drag preview correctly", () => {
+test('should handle empty drag preview correctly', () => {
   const dragPreviewRef = jest.fn();
 
   setup({
@@ -239,7 +239,7 @@ test("should handle empty drag preview correctly", () => {
   );
 });
 
-test("should call onDropIndicatorChange when appropriate", () => {
+test('should call onDropIndicatorChange when appropriate', () => {
   const onDropIndicatorChange = jest.fn();
   const { rerender } = setup({
     component: newComponentFactory(TAB_TYPE),
