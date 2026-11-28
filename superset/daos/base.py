@@ -961,7 +961,6 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 query = query.order_by(desc(column))
             else:
                 query = query.order_by(asc(column))
-        page = page
         # Clamp the page size to a sane range: at least 1, and no larger than
         # the configured upper bound, to keep result sets bounded.
         # Normalize the configured maximum to a positive integer so that a
