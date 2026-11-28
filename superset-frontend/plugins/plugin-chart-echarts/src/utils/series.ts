@@ -61,6 +61,7 @@ import {
   StackType,
 } from '../types';
 import { defaultLegendPadding } from '../defaults';
+import { isConfidenceBandSeries } from './forecast';
 import { coerceTemporalMs } from './formatters';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -510,6 +511,10 @@ export function extractDataTotalValues(
         if (legendState && !legendState[curr]) {
           return prev;
         }
+        // confidence bands are not rendered in a stack
+        if (isConfidenceBandSeries(curr)) {
+          return prev;
+        }
         const value = datum[curr] || 0;
         // Query results with integers beyond Number.MAX_SAFE_INTEGER are
         // parsed as native BigInt (see
@@ -576,8 +581,16 @@ export function extractShowValueIndexes(
     return result;
   }
 
-  series.forEach((entry, seriesIndex) => {
-    const stackGroup = seriesStackIds?.[seriesIndex] ?? DEFAULT_STACK_GROUP;
+  // Confidence bands are dropped when the chart is stacked, so they take no
+  // place in the rendered series that these indexes point into.
+  let skippedBands = 0;
+  series.forEach((entry, rawIndex) => {
+    if (isConfidenceBandSeries(entry.name)) {
+      skippedBands += 1;
+      return;
+    }
+    const seriesIndex = rawIndex - skippedBands;
+    const stackGroup = seriesStackIds?.[rawIndex] ?? DEFAULT_STACK_GROUP;
     if (!Object.prototype.hasOwnProperty.call(result, stackGroup)) {
       result[stackGroup] = [];
     }

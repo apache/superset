@@ -47,6 +47,14 @@ export const extractForecastSeriesContext = (
   };
 };
 
+export const isConfidenceBandSeries = (name?: OptionName): boolean => {
+  const { type } = extractForecastSeriesContext(name ?? '');
+  return (
+    type === ForecastSeriesEnum.ForecastLower ||
+    type === ForecastSeriesEnum.ForecastUpper
+  );
+};
+
 export const extractForecastSeriesContexts = (
   seriesNames: string[],
 ): { [key: string]: ForecastSeriesEnum[] } =>
