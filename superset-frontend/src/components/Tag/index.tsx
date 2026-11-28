@@ -26,16 +26,20 @@ import {
   type CheckableTagProps,
 } from '@superset-ui/core/components/Tag';
 import { Tooltip } from '@superset-ui/core/components/Tooltip';
-import { useMemo } from 'react';
 
+// Long names are shortened by CSS only when the chip runs out of room, so
+// wide cells show full names; the tooltip always carries the full name.
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
   margin-top: ${theme.sizeUnit}px;
   margin-bottom: ${theme.sizeUnit}px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
   `};
 `;
-
-const MAX_DISPLAY_CHAR = 20;
 
 const SupersetTag = ({
   name,
@@ -48,11 +52,7 @@ const SupersetTag = ({
   children,
   ...rest
 }: TagType) => {
-  const tagDisplay = useMemo(() => {
-    if (!name) return null;
-    const isLongTag = name.length > MAX_DISPLAY_CHAR;
-    return isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
-  }, [name]);
+  const tagDisplay = name || null;
 
   const handleClose = () => (index !== undefined ? onDelete?.(index) : null);
 
