@@ -31,7 +31,9 @@ from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.query_context import QueryContext
 from superset.exceptions import (
     CacheLoadError,
+    ColumnNotFoundException,
     QueryObjectValidationMessage,
+    SupersetGenericDBErrorException,
 )
 from superset.semantic_layers.chart_types import validate_query_context_chart_type
 
@@ -64,6 +66,22 @@ class ChartDataCommand(BaseCommand):
         )
         return ChartDataQueryFailedError(_("Error: %(error)s", error=message))
 
+    def _column_probe_failed(
+        self, ex: ColumnNotFoundException | SupersetGenericDBErrorException
+    ) -> ChartDataQueryFailedError:
+        """
+        Report a typed Superset error raised while probing an adhoc column.
+
+        Building the query for a GROUP BY/axis adhoc column can execute a
+        zero-row probe against the underlying database to resolve its type
+        (``adhoc_column_to_sqla``). A database-shaped failure there (e.g. a
+        ClickHouse "cube" table missing a primary key, or a column the
+        expression doesn't resolve to) already carries a typed Superset
+        exception and a user-actionable message; it should be reported like
+        any other failed query instead of escaping as an unhandled error.
+        """
+        return ChartDataQueryFailedError(_("Error: %(error)s", error=ex.message))
+
     def run(self, **kwargs: Any) -> dict[str, Any]:
         # caching is handled in query_context.get_df_payload
         # (also evals `force` property)
@@ -77,6 +95,8 @@ class ChartDataCommand(BaseCommand):
             raise ChartDataCacheLoadError(ex.message) from ex
         except SQLAlchemyError as ex:
             raise self._query_failed(ex) from ex
+        except (ColumnNotFoundException, SupersetGenericDBErrorException) as ex:
+            raise self._column_probe_failed(ex) from ex
 
         for query in payload["queries"]:
             self._raise_for_query_error(query)
@@ -103,6 +123,8 @@ class ChartDataCommand(BaseCommand):
             raise ChartDataCacheLoadError(ex.message) from ex
         except SQLAlchemyError as ex:
             raise self._query_failed(ex) from ex
+        except (ColumnNotFoundException, SupersetGenericDBErrorException) as ex:
+            raise self._column_probe_failed(ex) from ex
 
         for query in result.queries:
             self._raise_for_query_error(query.payload)
