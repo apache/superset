@@ -184,14 +184,3 @@ jobs:
       - name: Fail if regression detected
         if: steps.regression.outcome == 'failure'
         run: exit 1
-
-  actions-timeline:
-    needs: [frontend-check-translations, babel-extract]
-    if: always()
-    runs-on: ubuntu-slim
-    permissions:
-      actions: read
-    steps:
-      - uses: Kesin11/actions-timeline@460b1f8a750077029ad3589824d371b200e91dcf # v3.2.1
-        with:
-          expand-composite-actions: true
