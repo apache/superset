@@ -20,6 +20,7 @@ from typing import Any
 from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
@@ -56,6 +57,14 @@ class ChartDataCommand(BaseCommand):
         lands here; it is a failed query like any other, not an unexpected
         server error.
         """
+        # The DB-API error above leaves the scoped session's transaction in
+        # an "invalid"/pending-rollback state. Converting it to a typed
+        # ChartDataQueryFailedError (below) lets the request return a clean
+        # 4xx, but unless we roll back here, the *next* statement on this
+        # same session — often not until teardown calls session.close() —
+        # raises sqlalchemy's PendingRollbackError instead, which masks the
+        # real error and surfaces as an unhandled 500 (see SUPERSET-PYTHON-1CHQ).
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         database = getattr(self._query_context.datasource, "database", None)
         message = (
             database.db_engine_spec.extract_error_message(ex)
