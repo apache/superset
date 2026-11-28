@@ -32,7 +32,7 @@ from superset_core.semantic_layers.errors import (
 )
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.types import (
-    Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     Operator,
@@ -192,7 +192,9 @@ def test_unsupported_filter_is_rejected_even_when_other_filter_matches_no_rows(
     invalid_kind: str,
 ) -> None:
     """Empty results must not hide an unsupported predicate in any filter order."""
-    dimensions: dict[str, Dimension] = {d.id: d for d in stub_view.get_dimensions()}
+    dimensions: dict[str, DimensionSelection] = {
+        d.id: DimensionSelection(d) for d in stub_view.get_dimensions()
+    }
     metric: Metric = next(iter(stub_view.get_metrics()))
     empty: Filter = Filter(
         PredicateType.WHERE, dimensions["region"], Operator.IN, ("North",)
@@ -236,7 +238,9 @@ def test_supported_filter_can_return_an_empty_result(
 
 def test_or_filter_group_is_supported(stub_view: SemanticViewABC) -> None:
     """OR leaves combine inside a group, with top-level filters still ANDed."""
-    region: Dimension = next(d for d in stub_view.get_dimensions() if d.id == "region")
+    region: DimensionSelection = DimensionSelection(
+        next(d for d in stub_view.get_dimensions() if d.id == "region")
+    )
     group: OrFilter = OrFilter(
         frozenset(
             {
@@ -284,7 +288,9 @@ def test_exclusion_group_retains_nulls_and_outer_filter(
             {"category": "Music", "region": "East", "amount": 1000},
         ),
     )
-    dimensions: dict[str, Dimension] = {d.id: d for d in stub_view.get_dimensions()}
+    dimensions: dict[str, DimensionSelection] = {
+        d.id: DimensionSelection(d) for d in stub_view.get_dimensions()
+    }
     total: Metric = next(m for m in stub_view.get_metrics() if m.name == "total_amount")
     exclusion: Filter = Filter(
         PredicateType.WHERE, dimensions["category"], operator, value
@@ -313,7 +319,9 @@ def test_invalid_or_leaf_is_validated_before_matching(
         "_matches",
         lambda row, leaf: pytest.fail("a row was matched before validation"),
     )
-    region: Dimension = next(d for d in stub_view.get_dimensions() if d.id == "region")
+    region: DimensionSelection = DimensionSelection(
+        next(d for d in stub_view.get_dimensions() if d.id == "region")
+    )
     group: OrFilter = OrFilter(
         frozenset(
             {

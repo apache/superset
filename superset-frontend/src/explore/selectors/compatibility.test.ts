@@ -65,3 +65,14 @@ test('missing compatibility state defaults to idle', () => {
   expect(selectCompatibleMetricNames(state)).toBeNull();
   expect(selectCompatibleDimensionNames(state)).toBeNull();
 });
+
+test('expired evidence permits choices even before the timer dispatch runs', () => {
+  const state = stateWith({
+    status: 'verified',
+    metrics: [],
+    dimensions: [],
+    expiresAt: 0,
+  });
+  expect(selectCompatibleMetricNames(state)).toBeNull();
+  expect(selectCompatibleDimensionNames(state)).toBeNull();
+});

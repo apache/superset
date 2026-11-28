@@ -89,7 +89,7 @@ def test_group_identity_is_order_independent_and_not_flattened() -> None:
     assert identity != SemanticCacheIdentityFactory.query(
         replace(query, filters={flattened})
     )
-    assert ":v5:" in identity
+    assert ":v6:" in identity
 
 
 @pytest.mark.parametrize(
@@ -103,7 +103,7 @@ def test_group_identity_is_order_independent_and_not_flattened() -> None:
 )
 def test_user_exclusion_cannot_reuse_old_null_dropping_results(
     operator: str,
-    value: FilterValues | frozenset[FilterValues],
+    value: str | frozenset[str],
 ) -> None:
     """Normalized user exclusion is distinct from its NULL-dropping SDK leaf."""
     query: SemanticQuery = build_semantic_query()
@@ -117,7 +117,7 @@ def test_user_exclusion_cannot_reuse_old_null_dropping_results(
             "op": operator,
             "val": list(value) if isinstance(value, frozenset) else value,
         },
-        {query.dimensions[0].name: query.dimensions[0]},
+        {query.dimensions[0].name: query.dimensions[0].dimension},
     )
     requested: SemanticQuery = replace(query, filters=normalized)
     assert SemanticCacheIdentityFactory.query(
@@ -150,7 +150,7 @@ def test_negated_group_reuse_requires_exact_pattern(operator: str) -> None:
             query,
             filters=_convert_query_object_filter(
                 {"col": dimension_name, "op": operator, "val": pattern},
-                {dimension_name: query.dimensions[0]},
+                {dimension_name: query.dimensions[0].dimension},
             ),
         )
         for pattern in ("G%", "GB%")
@@ -281,7 +281,15 @@ def test_reuse_requires_identical_canonical_group_set(variant: str) -> None:
         filters = {
             _group(
                 replace(
-                    query, dimensions=[replace(query.dimensions[0], definition="other")]
+                    query,
+                    dimensions=[
+                        replace(
+                            query.dimensions[0],
+                            dimension=replace(
+                                query.dimensions[0].dimension, definition="other"
+                            ),
+                        )
+                    ],
                 )
             )
         }

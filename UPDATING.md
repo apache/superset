@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Cube semantic views refuse explicit bucketed filters instead of comparing raw
+  timestamps. Custom granularities that collide with built-in ISO durations (or
+  with another custom granularity) are omitted and logged; built-in Year and Week
+  keep calendar-year and ISO-week semantics.
+- The semantic provider SDK replaces per-grain `Dimension` variants with one
+  catalog dimension declaring `grains` and explicit omission defaults. Query
+  operands use composed `DimensionSelection(dimension, grain)` values, including
+  filters, order/group limits, value lookups and compatibility inputs. This is a
+  breaking SDK contract: host and providers must upgrade together. QA, staging and demo MetricFlow semantic views saved before this change must
+  be re-saved (edit and re-select fields), or deleted and re-added. Old
+  configurations are refused instead of automatically converted. Complete
+  host/provider and cache migration is required before deploying this SDK
+  change.
 - MCP `get_table` query failures now populate `error_code`. Untyped dataset
   engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
   specific `SupersetErrorType` code for typed errors, while guests receive

@@ -29,6 +29,7 @@ from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     Operator,
@@ -65,6 +66,9 @@ def metric_view(mocker: MockerFixture) -> tuple[SemanticView, MagicMock]:
     provider.get_dimensions.return_value = {
         Dimension("category", "category", pa.string()),
     }
+    provider.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider.get_dimensions()
+    )
     provider.get_metrics.return_value = {
         Metric("total_amount", "total_amount", pa.int64(), "SUM(amount)"),
     }
@@ -145,7 +149,7 @@ def test_chart_data_fetch_values_predicate_without_configured_predicate(
     expected_filters: set[Filter] = {
         Filter(
             type=PredicateType.WHERE,
-            column=next(iter(metric_view[1].get_dimensions())),
+            column=DimensionSelection(next(iter(metric_view[1].get_dimensions()))),
             operator=Operator.EQUALS,
             value="Books",
         )
@@ -171,7 +175,7 @@ def test_group_limit_fetch_values_predicate_without_configured_predicate(
     assert _get_group_limit_filters(query, {dimension.name: dimension}) == {
         Filter(
             type=PredicateType.WHERE,
-            column=dimension,
+            column=DimensionSelection(dimension),
             operator=Operator.EQUALS,
             value="Books",
         )
@@ -296,7 +300,7 @@ def test_dimension_filters_still_reach_provider(
     assert query.filters == {
         Filter(
             PredicateType.WHERE,
-            Dimension("category", "category", pa.string()),
+            DimensionSelection(Dimension("category", "category", pa.string())),
             Operator.EQUALS,
             "Books",
         ),

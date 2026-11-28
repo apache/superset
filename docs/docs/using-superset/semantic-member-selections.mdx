@@ -189,3 +189,16 @@ remove the constraint unless **Filter value is required** is enabled.
 The minimum cannot exceed the maximum. Negative values and decimals are
 supported, and existing minimum, maximum, and exact single-value modes remain
 available. SQL dataset filters retain their discovered bounds and slider options.
+
+## Compatibility freshness
+
+Semantic providers can supply time-limited evidence for the metric and dimension
+picker suggestions. Complete profiles can narrow choices; missing profiles do not
+prove a choice is invalid. When evidence expires, Explore restores member choices
+without polling or removing your selections. A later selection change requests
+fresh guidance. Run remains the final validation of the query.
+
+Member compatibility does not grant additional time grains. If member evidence
+expires, the dimension's reported grain choices and clearability remain unchanged.
+Saved selections keep their existing validation rules. Providers that do not
+supply freshness evidence retain their existing compatibility behavior.

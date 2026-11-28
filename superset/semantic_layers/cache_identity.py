@@ -27,7 +27,7 @@ from typing import Mapping
 
 from superset_core.semantic_layers.types import (
     AdhocExpression,
-    Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     GroupLimit,
@@ -41,7 +41,7 @@ from superset.utils import json
 
 # Prefixes every bucket and value key. Bump it whenever the pickled shape of
 # ``cache_types.CachedEntry`` or the canonical query material changes.
-IDENTITY_FORMAT_VERSION: str = "v5"
+IDENTITY_FORMAT_VERSION: str = "v6"
 _SENSITIVE_KEY_PARTS: tuple[str, ...] = (
     "credential",
     "password",
@@ -232,12 +232,12 @@ def _canonical_metric(metric: Metric) -> Mapping[str, object]:
     }
 
 
-def _canonical_dimension(dimension: Dimension) -> Mapping[str, object]:
+def _canonical_dimension(dimension: DimensionSelection) -> Mapping[str, object]:
     return {
-        "id": dimension.id,
+        "id": dimension.dimension.id,
         "name": dimension.name,
         "type": str(dimension.type),
-        "definition": dimension.definition,
+        "definition": dimension.dimension.definition,
         "grain": (
             {
                 "name": dimension.grain.name,
@@ -249,17 +249,23 @@ def _canonical_dimension(dimension: Dimension) -> Mapping[str, object]:
     }
 
 
-def semantic_dimension_key(dimension: Dimension) -> str:
+def semantic_dimension_key(dimension: DimensionSelection) -> str:
     """Return a dimension identity that distinguishes requested grains."""
     if dimension.grain is None:
-        return dimension.id
-    return f"{dimension.id}@{dimension.grain.representation}"
+        return dimension.dimension.id
+    return f"{dimension.dimension.id}@{dimension.grain.representation}"
 
 
 def _canonical_filter(filter_: Filter) -> Mapping[str, object]:
     return {
         "type": filter_.type.value,
-        "column": filter_.column.id if filter_.column else None,
+        "column": (
+            _canonical_dimension(filter_.column)
+            if isinstance(filter_.column, DimensionSelection)
+            else _canonical_metric(filter_.column)
+            if filter_.column
+            else None
+        ),
         "operator": filter_.operator.value,
         "value": _canonical_value(filter_.value),
     }
@@ -301,11 +307,11 @@ def _canonical_value(value: object) -> Mapping[str, object]:
 
 
 def _canonical_orderable(
-    element: Metric | Dimension | AdhocExpression,
+    element: Metric | DimensionSelection | AdhocExpression,
 ) -> Mapping[str, object]:
     if isinstance(element, Metric):
         return {"kind": "metric", **_canonical_metric(element)}
-    if isinstance(element, Dimension):
+    if isinstance(element, DimensionSelection):
         return {"kind": "dimension", **_canonical_dimension(element)}
     return {"kind": "adhoc", "id": element.id, "definition": element.definition}
 

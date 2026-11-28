@@ -25,7 +25,7 @@ from time import time
 
 from superset_core.semantic_layers.types import (
     AggregationType,
-    Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     Metric,
@@ -93,7 +93,7 @@ class CachedEntry:
     """
 
     filters: frozenset[FilterExpression]
-    dimensions: frozenset[Dimension]
+    dimensions: frozenset[DimensionSelection]
     metrics: frozenset[Metric]
     limit: int | None
     offset: int

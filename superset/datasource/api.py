@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import math
 import re
+import time
 from typing import Any, cast
 
 from flask import current_app as app, make_response, request, Response
@@ -23,6 +25,8 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
 from sqlalchemy.exc import OperationalError
+from superset_core.semantic_layers.errors import SemanticViewConfigurationError
+from superset_core.semantic_layers.view import CompatibilityEvidence
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.datasource.list import GetCombinedDatasourceListCommand
@@ -52,8 +56,15 @@ from superset.extensions import cache_manager, feature_flag_manager
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.semantic_layers.capabilities import supported_view_features
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.dimension_resolution import (
+    AmbiguousDimensionError,
+    dimension_support,
+    DimensionSupport,
+    GrainSelectionError,
+)
 from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
+    SemanticLayerConfigurationError,
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
 )
@@ -698,9 +709,7 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(  # noqa: C901
-        self, datasource_type: str, datasource_id: int
-    ) -> FlaskResponse:
+    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Return compatible members, refusing unknown selected names with a 400.
 
         Non-string entries in selection lists do not select datasource members.
@@ -731,6 +740,14 @@ class DatasourceRestApi(BaseSupersetApi):
                       type: array
                       items:
                         type: string
+                    dimension_grains:
+                      type: object
+                      description: >-
+                        Selected dimension names mapped to ISO durations;
+                        null explicitly requests native values.
+                      additionalProperties:
+                        type: string
+                        nullable: true
           responses:
             200:
               description: Compatible metrics and dimensions
@@ -750,6 +767,33 @@ class DatasourceRestApi(BaseSupersetApi):
                             type: array
                             items:
                               type: string
+                          dimension_support:
+                            type: object
+                            description: >-
+                              Per-dimension supported grains and omission defaults.
+                            additionalProperties:
+                              type: object
+                          compatibility_evidence:
+                            type: object
+                            description: >-
+                              Optional finite authority for member suggestions.
+                              Absent for legacy providers. Unknown or expired
+                              evidence must not disable member choices.
+                            properties:
+                              format_version:
+                                type: integer
+                              quality:
+                                type: string
+                                enum: [known, partial, unknown]
+                              metadata_generation:
+                                type: string
+                              valid_for_ms:
+                                type: integer
+                                minimum: 0
+            422:
+              description: >-
+                Saved semantic configuration needs field re-selection;
+                includes error_type and recovery identifiers.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -776,11 +820,23 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(403, message=ex.message)
 
         body: Any = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            return self.response(400, message="The request body must be an object")
         raw_metrics: object = body.get("selected_metrics", [])
         raw_dimensions: object = body.get("selected_dimensions", [])
         if not isinstance(raw_metrics, list) or not isinstance(raw_dimensions, list):
             return self.response(
                 400, message="selected_metrics and selected_dimensions must be lists"
+            )
+
+        dimension_grains: Any = body.get("dimension_grains", {})
+        if not isinstance(dimension_grains, dict) or any(
+            not isinstance(key, str)
+            or (value is not None and not isinstance(value, str))
+            for key, value in dimension_grains.items()
+        ):
+            return self.response(
+                400, message="dimension_grains must map names to grains or null"
             )
 
         selected_metrics: list[str] = [
@@ -790,6 +846,39 @@ class DatasourceRestApi(BaseSupersetApi):
             name for name in raw_dimensions if isinstance(name, str)
         ]
 
+        try:
+            return self._compatible_result(
+                datasource, selected_metrics, selected_dimensions, dimension_grains
+            )
+        except (SemanticLayerConfigurationError, SemanticViewConfigurationError):
+            return self.response(
+                422,
+                message=configuration_recovery_message(),
+                error_type="SemanticViewConfigurationError",
+                recovery={
+                    "id": datasource.id,
+                    "name": datasource.name,
+                    "semantic_layer_uuid": str(datasource.semantic_layer_uuid),
+                }
+                if isinstance(datasource, SemanticView)
+                else None,
+            )
+        except QueryObjectValidationError as ex:
+            message: str = (
+                str(ex)
+                if isinstance(ex, (GrainSelectionError, AmbiguousDimensionError))
+                else "Unable to validate compatibility."
+            )
+            return self.response(400, message=message)
+
+    def _compatible_result(  # noqa: C901
+        self,
+        datasource: BaseDatasource | SemanticView,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None],
+    ) -> FlaskResponse:
+        """Validate the live selection before serving or storing compatibility."""
         # Check names before the result cache: live datasource members can change
         # without invalidating a previously cached compatibility result.
         selection_errors: list[str] = []
@@ -825,41 +914,136 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
+        if isinstance(datasource, SemanticView) and dimension_grains:
+            datasource._compat_selection(
+                selected_metrics, selected_dimensions, dimension_grains
+            )
+
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = "compatible:" + hash_from_dict(
+        cache_key: str = "compatible:v4:" + hash_from_dict(
             {
                 "uid": datasource_uid,
                 "changed_on": str(getattr(datasource, "changed_on", "")),
                 "metadata_version": metadata_version,
                 "m": sorted(selected_metrics),
                 "d": sorted(selected_dimensions),
+                "grains": dimension_grains,
             }
         )
 
         timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        cached: dict[str, list[str]] | None
+        evidence_started: float = time.monotonic()
+        created_at: float = time.time()
+        evidence: CompatibilityEvidence | None = (
+            datasource.get_compatibility_evidence()
+            if isinstance(datasource, SemanticView)
+            else None
+        )
+        # An invalid opted-in capability cannot supply negative evidence.
+        if evidence is not None and not isinstance(evidence, CompatibilityEvidence):
+            evidence = CompatibilityEvidence("unknown", 0)
+        cached: dict[str, Any] | None
         if (
             timeout != CACHE_DISABLED_TIMEOUT
             and (cached := cache_manager.data_cache.get(cache_key)) is not None
         ):
-            return self.response(200, result=cached)
+            if evidence is None and "compatibility_evidence" not in cached:
+                return self.response(200, result=cached)
+            if evidence is not None:
+                cached_evidence: Any = cached.get("compatibility_evidence", {})
+                cache_read_at: float = time.time()
+                expires_at: Any = cached.get("_expires_at")
+                cached_at: Any = cached.get("_created_at")
+                if (
+                    isinstance(cached_evidence, dict)
+                    and cached_evidence.get("format_version") == 1
+                    and cached_evidence.get("metadata_generation") == metadata_version
+                    and cached_evidence.get("quality") in ("known", "partial")
+                    and evidence.quality in ("known", "partial")
+                    and type(expires_at) in (int, float)
+                    and type(cached_at) in (int, float)
+                    and math.isfinite(expires_at)
+                    and math.isfinite(cached_at)
+                    and cached_at <= cache_read_at < expires_at
+                ):
+                    remaining: int = min(
+                        int((expires_at - cache_read_at) * 1000),
+                        evidence.valid_for_ms
+                        - int((time.monotonic() - evidence_started) * 1000),
+                    )
+                    if remaining > 0:
+                        result_from_cache: dict[str, Any] = {
+                            key: value
+                            for key, value in cached.items()
+                            if key not in ("_expires_at", "_created_at")
+                        }
+                        result_from_cache["compatibility_evidence"] = {
+                            **cached_evidence,
+                            "valid_for_ms": remaining,
+                        }
+                        return self.response(200, result=result_from_cache)
 
         try:
-            result: dict[str, list[str]] = {
-                "compatible_metrics": datasource.get_compatible_metrics(
+            result: dict[str, Any] = {}
+            if isinstance(datasource, SemanticView):
+                result["compatible_metrics"] = datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions, dimension_grains
+                )
+                support: dict[str, DimensionSupport] = {
+                    dimension.name: dimension_support(dimension)
+                    for dimension in datasource.get_compatible_dimension_metadata(
+                        selected_metrics, selected_dimensions, dimension_grains
+                    )
+                }
+                result["compatible_dimensions"] = sorted(support)
+                result["dimension_support"] = support
+            else:
+                result["compatible_metrics"] = datasource.get_compatible_metrics(
                     selected_metrics, selected_dimensions
-                ),
-                "compatible_dimensions": datasource.get_compatible_dimensions(
+                )
+                result["compatible_dimensions"] = datasource.get_compatible_dimensions(
                     selected_metrics, selected_dimensions
-                ),
-            }
+                )
         except AmbiguousDimensionError as ex:
             return self.response(400, message=str(ex))
 
-        if timeout != CACHE_DISABLED_TIMEOUT:
+        if evidence is not None:
+            valid_for_ms: int = max(
+                0,
+                evidence.valid_for_ms
+                - int((time.monotonic() - evidence_started) * 1000),
+            )
+            quality: str = evidence.quality if valid_for_ms > 0 else "unknown"
+            if quality == "unknown":
+                valid_for_ms = 0
+                # Member suggestions are advisory. Preserve the separate grain
+                # declarations; unknown member evidence never grants a grain.
+                result["compatible_metrics"] = sorted(
+                    metric.metric_name for metric in datasource.metrics
+                )
+                result["compatible_dimensions"] = sorted(
+                    column.column_name for column in datasource.columns
+                )
+            result["compatibility_evidence"] = {
+                "format_version": 1,
+                "quality": quality,
+                "metadata_generation": metadata_version,
+                "valid_for_ms": valid_for_ms,
+            }
+            if timeout != CACHE_DISABLED_TIMEOUT and valid_for_ms > 0:
+                cache_manager.data_cache.set(
+                    cache_key,
+                    {
+                        **result,
+                        "_created_at": created_at,
+                        "_expires_at": created_at + evidence.valid_for_ms / 1000,
+                    },
+                    timeout=min(timeout, max(1, valid_for_ms // 1000)),
+                )
+        elif timeout != CACHE_DISABLED_TIMEOUT:
             cache_manager.data_cache.set(cache_key, result, timeout=timeout)
 
         return self.response(200, result=result)

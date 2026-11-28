@@ -100,11 +100,10 @@ def test_connection_credentials_keys_unchanged(
     keys.append(chart_key)
     assert keys == [
         "col_values:eb5d43a7322c2a03556fc53bc62d54fbbe0b3d26d561d18a0e385c7457abd822",
-        # Compatibility identity includes changed_on="None" for this view.
-        "compatible:a2e526c4cd1db4f68fd34cc7dffe06cc4fbd029975f2147b4b11bb55179795b8",
-        # NULL-preserving exclusions use semantic-null-filters-v2 in chart keys;
-        # the execution-context contract adds no discriminator.
-        "0b34147df459869c54682b7f1c9f65ea642ee8b746193352ed2322e75c318575",
+        # Compatibility v4 isolates evidence; identity inputs remain unchanged.
+        "compatible:v4:5e562de2a9c1d5d7f8549ddc7dfbebe4228a801d2b6b0e6c76530e9275b768b9",
+        # Includes the grain-selection marker; credentials remain excluded.
+        "170b3fdb3bc39bc10fc15de3c12ce8c02a28455b4c597fd140d46e1f780d182d",
     ]
 
 

@@ -78,7 +78,7 @@ def paired_source(
     implementation: MagicMock = MagicMock()
     implementation.get_dimensions.return_value = {
         Dimension("category-id", "category", pa.string(), verbose_name="Category"),
-        Dimension("day-id", "occurred_at", pa.date32(), grain=Grains.DAY),
+        Dimension("day-id", "occurred_at", pa.date32(), grains=frozenset({Grains.DAY})),
     }
     implementation.get_metrics.return_value = {
         Metric("total-id", "total", pa.float64(), definition="total", d3format=",.2f")

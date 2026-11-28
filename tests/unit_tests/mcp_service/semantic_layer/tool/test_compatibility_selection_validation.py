@@ -17,13 +17,19 @@
 
 """External compatibility selection validation through the public MCP tools."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
 from fastmcp import Client
 from fastmcp.client.client import CallToolResult
-from superset_core.semantic_layers.types import Dimension, Metric
+from superset_core.semantic_layers.types import (
+    Dimension,
+    DimensionSelection,
+    Grains,
+    Metric,
+)
 
 from superset.mcp_service.app import mcp
 from superset.semantic_layers.models import SemanticView
@@ -74,7 +80,8 @@ async def test_external_compatibility_selection_names(
     dimension: Dimension = Dimension(
         id="countries.country",
         name="country_name",
-        type=pa.string(),
+        type=pa.timestamp("us"),
+        grains=frozenset({Grains.MONTH}),
         definition="provider-private-dimension-definition",
     )
     provider: MagicMock = MagicMock(selection_identity_version=None)
@@ -119,7 +126,7 @@ async def test_external_compatibility_selection_names(
                     }
                 },
             )
-        data: dict[str, object] = json.loads(result.content[0].text)
+        data: dict[str, Any] = json.loads(result.content[0].text)
 
     access.assert_called_once_with()
     if error is not None:
@@ -135,10 +142,13 @@ async def test_external_compatibility_selection_names(
         if tool_name == "get_compatible_metrics":
             provider.get_compatible_metrics.assert_called_once_with(
                 {metric} if metrics else set(),
-                {dimension} if dimensions else set(),
+                {DimensionSelection(dimension)} if dimensions else set(),
             )
         else:
+            assert data["compatible_dimensions"][0]["grains"] == ["P1M"]
+            assert data["compatible_dimensions"][0]["allows_default_grain"] is True
+            assert data["compatible_dimensions"][0]["omitted_grain"] == "native"
             provider.get_compatible_dimensions.assert_called_once_with(
                 {metric} if metrics else set(),
-                {dimension} if dimensions else set(),
+                {DimensionSelection(dimension)} if dimensions else set(),
             )

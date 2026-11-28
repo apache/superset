@@ -728,7 +728,7 @@ def test_cached_entry_shape_is_pinned_to_the_identity_version() -> None:
         "timeout",
         "write_nonce",
     )
-    assert IDENTITY_FORMAT_VERSION == "v5"
+    assert IDENTITY_FORMAT_VERSION == "v6"
 
 
 def test_store_surfaces_existence_check_failure_as_store_error() -> None:
@@ -917,13 +917,16 @@ def test_fence_rejects_invalid_pairs_and_store_repairs(damage: str) -> None:
     assert repository.lookup(meta, query, ContainmentCapabilities()).candidates
 
 
-def test_legacy_identity_namespace_cannot_supply_a_hit() -> None:
+@pytest.mark.parametrize("old_version", ["v3", "v5"])
+def test_legacy_identity_namespace_cannot_supply_a_hit(old_version: str) -> None:
     backend: _Backend = _Backend()
     repository: SemanticCacheRepository = SemanticCacheRepository(
         backend, _Coordinator()
     )
     meta: ViewMeta = build_view_meta()
     query: SemanticQuery = build_semantic_query()
-    with patch("superset.semantic_layers.cache_identity.IDENTITY_FORMAT_VERSION", "v3"):
+    with patch(
+        "superset.semantic_layers.cache_identity.IDENTITY_FORMAT_VERSION", old_version
+    ):
         repository.store(meta, query, build_semantic_result())
     assert repository.lookup(meta, query, ContainmentCapabilities()).candidates == ()

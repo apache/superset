@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# Licensed to the Apache Software Foundation (ASF) under one
 
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
@@ -26,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-24 01:38+0000\n"
+"POT-Creation-Date: 2026-11-26 10:45-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -315,7 +314,15 @@ msgid "%s %s"
 msgstr ""
 
 #, python-format
+msgid "%s (Bot installation required)"
+msgstr ""
+
+#, python-format
 msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
+msgid "%s (Unavailable)"
 msgstr ""
 
 #, python-format
@@ -1014,6 +1021,9 @@ msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
+msgstr ""
+
+msgid "A configured Teams destination key is required"
 msgstr ""
 
 msgid "A dashboard filter or display control has incompatible semantic selections. Dynamic group-by is unsupported on versioned semantic views; remove this chart from that control's scope. For other filters or controls, reset and reselect fields or saved values. If it targets another semantic view, remove this chart from its scope."
@@ -2461,10 +2471,7 @@ msgstr ""
 msgid "Archived by"
 msgstr ""
 
-msgid ""
-"Archived charts and dashboards may still depend on this dataset, including "
-"assets you cannot view. Archiving or permanently deleting this dataset can "
-"prevent those assets from working after they are recovered."
+msgid "Archived charts and dashboards may still depend on this dataset, including assets you cannot view. Archiving or permanently deleting this dataset can prevent those assets from working after they are recovered."
 msgstr ""
 
 msgid "Archived items must be recovered before they can be opened."
@@ -4535,6 +4542,9 @@ msgstr ""
 
 #, python-format
 msgid "Couldn't load %s —"
+msgstr ""
+
+msgid "Couldn't validate the selected fields. Check the selection and try again."
 msgstr ""
 
 msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
@@ -6923,6 +6933,9 @@ msgstr ""
 msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
+msgid "Explicit grain required"
+msgstr ""
+
 msgid "Explore"
 msgstr ""
 
@@ -7826,9 +7839,6 @@ msgstr ""
 msgid "Grace period"
 msgstr ""
 
-msgid "Grain"
-msgstr ""
-
 msgid "Graph Chart"
 msgstr ""
 
@@ -8330,6 +8340,9 @@ msgstr ""
 msgid "Inside top right"
 msgstr ""
 
+msgid "Install the notification bot in the approved team before delivery. You can save this alert, but delivery requires an active installation."
+msgstr ""
+
 msgid "Intensity"
 msgstr ""
 
@@ -8383,6 +8396,12 @@ msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
+msgstr ""
+
+msgid "Invalid Teams deployment configuration"
+msgstr ""
+
+msgid "Invalid Teams recipient configuration"
 msgstr ""
 
 msgid "Invalid Tree export parent ID column"
@@ -9996,10 +10015,19 @@ msgstr ""
 msgid "Named instances can't be entered as the host. Enter only the host and the port the instance listens on, or connect with a SQLAlchemy URI instead."
 msgstr ""
 
+msgid "Native"
+msgstr ""
+
+msgid "Native allowed"
+msgstr ""
+
 msgid "Native filter column is required"
 msgstr ""
 
 msgid "Native filter values has no values"
+msgstr ""
+
+msgid "Native grain"
 msgstr ""
 
 msgid "Need help? Learn how to connect your database"
@@ -10121,6 +10149,9 @@ msgid "No annotation yet"
 msgstr ""
 
 msgid "No applied filters"
+msgstr ""
+
+msgid "No approved Teams destinations are configured. Contact your administrator."
 msgstr ""
 
 msgid "No archived items"
@@ -10602,6 +10633,9 @@ msgstr ""
 msgid "Older history exists but is beyond what can be shown here."
 msgstr ""
 
+msgid "Omitted grain"
+msgstr ""
+
 msgid "On Grace"
 msgstr ""
 
@@ -10757,10 +10791,10 @@ msgstr ""
 msgid "Open in SQL Lab"
 msgstr ""
 
-msgid "Open in Superset"
+msgid "Open in SQL lab"
 msgstr ""
 
-msgid "Open in SQL lab"
+msgid "Open in Superset"
 msgstr ""
 
 msgid "Open page"
@@ -11755,6 +11789,13 @@ msgid "Re-pick fields"
 msgstr ""
 
 msgid "Re-pick fields for this chart"
+msgstr ""
+
+msgid "Re-select fields"
+msgstr ""
+
+#, python-format
+msgid "Re-select fields for %s"
 msgstr ""
 
 msgid "Read from the token's exp claim."
@@ -12756,6 +12797,9 @@ msgstr ""
 msgid "Save dataset"
 msgstr ""
 
+msgid "Save fields"
+msgstr ""
+
 msgid "Save for this session"
 msgstr ""
 
@@ -13154,6 +13198,9 @@ msgstr ""
 msgid "Select all items"
 msgstr ""
 
+msgid "Select an approved Teams channel"
+msgstr ""
+
 msgid "Select catalog or type to search catalogs"
 msgstr ""
 
@@ -13405,10 +13452,6 @@ msgstr ""
 msgid "Semantic colors"
 msgstr ""
 
-#, python-format
-msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
-msgstr ""
-
 msgid "Semantic layer"
 msgstr ""
 
@@ -13455,6 +13498,15 @@ msgid "Semantic view could not be updated."
 msgstr ""
 
 msgid "Semantic view does not exist"
+msgstr ""
+
+msgid "Semantic view fields could not be updated"
+msgstr ""
+
+msgid "Semantic view fields could not be updated. Please try again."
+msgstr ""
+
+msgid "Semantic view fields updated"
 msgstr ""
 
 msgid "Semantic view parameters are invalid."
@@ -14525,6 +14577,9 @@ msgstr ""
 msgid "Supported databases"
 msgstr ""
 
+msgid "Supported grains"
+msgstr ""
+
 #, python-format
 msgid "Swap %s"
 msgstr ""
@@ -14757,6 +14812,30 @@ msgid "Tasks"
 msgstr ""
 
 msgid "Tasks will appear here as background operations are executed."
+msgstr ""
+
+msgid "Teams delivery is unavailable. Contact your administrator to check the integration configuration and optional Teams dependency."
+msgstr ""
+
+msgid "Teams delivery requires an alert with attachments disabled."
+msgstr ""
+
+msgid "Teams deployment is not configured"
+msgstr ""
+
+msgid "Teams destination"
+msgstr ""
+
+msgid "Teams destination is not approved"
+msgstr ""
+
+msgid "Teams destination keys must be unique within a schedule"
+msgstr ""
+
+msgid "Teams recipients require an alert schedule"
+msgstr ""
+
+msgid "Teams recipients require disabled attachments (NONE format)"
 msgstr ""
 
 msgid "Template"
@@ -16466,6 +16545,9 @@ msgstr ""
 msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or ask an administrator to update the execution account's access."
 msgstr ""
 
+msgid "This saved Teams destination is unavailable. Ask your administrator to restore it or choose another destination."
+msgstr ""
+
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
 msgstr ""
 
@@ -16493,6 +16575,9 @@ msgid "This semantic provider cannot apply the requested offset. Turn off pagina
 msgstr ""
 
 msgid "This semantic provider does not support this query. Remove unsupported filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view configuration version or its selected fields are no longer supported. Re-open the view, re-select its fields, and save. If field editing is unavailable, delete the view and re-add it."
 msgstr ""
 
 msgid "This semantic view does not support server pagination."
@@ -17147,6 +17232,9 @@ msgstr ""
 
 #, python-format
 msgid "Unable to interpret the time offset: %(offset)s. Use a relative time such as \"1 month ago\"."
+msgstr ""
+
+msgid "Unable to load Teams destinations. Try reopening this dialog."
 msgstr ""
 
 msgid "Unable to load columns for the selected table."
@@ -19825,66 +19913,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-#, python-format
-msgid "%s (Bot installation required)"
-msgstr ""
-
-#, python-format
-msgid "%s (Unavailable)"
-msgstr ""
-
-msgid ""
-"Install the notification bot in the approved team before delivery. You "
-"can save this alert, but delivery requires an active installation."
-msgstr ""
-
-msgid "No approved Teams destinations are configured. Contact your administrator."
-msgstr ""
-
-msgid "Select an approved Teams channel"
-msgstr ""
-
-msgid ""
-"Teams delivery is unavailable. Contact your administrator to check the "
-"integration configuration and optional Teams dependency."
-msgstr ""
-
-msgid "Teams delivery requires an alert with attachments disabled."
-msgstr ""
-
-msgid "Teams destination"
-msgstr ""
-
-msgid ""
-"This saved Teams destination is unavailable. Ask your administrator to "
-"restore it or choose another destination."
-msgstr ""
-
-msgid "Unable to load Teams destinations. Try reopening this dialog."
-msgstr ""
-
-msgid "A configured Teams destination key is required"
-msgstr ""
-
-msgid "Invalid Teams deployment configuration"
-msgstr ""
-
-msgid "Invalid Teams recipient configuration"
-msgstr ""
-
-msgid "Teams deployment is not configured"
-msgstr ""
-
-msgid "Teams destination is not approved"
-msgstr ""
-
-msgid "Teams destination keys must be unique within a schedule"
-msgstr ""
-
-msgid "Teams recipients require an alert schedule"
-msgstr ""
-
-msgid "Teams recipients require disabled attachments (NONE format)"
 msgstr ""

@@ -18,6 +18,7 @@ from marshmallow import fields, Schema
 
 
 class SemanticViewPutSchema(Schema):
+    configuration: fields.Dict = fields.Dict()
     description = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
 

@@ -25,8 +25,10 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
+from superset_core.semantic_layers.types import Dimension
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -98,7 +100,9 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.raise_for_access = MagicMock(return_value=None)
     view.columns = [_make_column("country_name")]
     view.metrics = [_make_metric("bookings")]
-    view.get_compatible_dimensions = MagicMock(return_value=["country_name"])
+    view.get_compatible_dimension_metadata.return_value = {
+        Dimension("country_name", "country_name", pa.string())
+    }
     return view
 
 
@@ -182,7 +186,9 @@ async def test_get_compatible_dimensions_external_happy_path(
     assert data["success"] is True
     assert data["source"] == "external"
     assert [d["name"] for d in data["compatible_dimensions"]] == ["country_name"]
-    mock_view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    mock_view.get_compatible_dimension_metadata.assert_called_once_with(
+        ["bookings"], []
+    )
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
@@ -334,7 +340,7 @@ async def test_get_compatible_dimensions_external_empty_selection(
 ) -> None:
     """External views handle an explicitly empty selection without error."""
     mock_view: MagicMock = _make_view(5)
-    mock_view.get_compatible_dimensions = MagicMock(return_value=[])
+    mock_view.get_compatible_dimension_metadata.return_value = set()
 
     with patch(
         "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
@@ -355,7 +361,7 @@ async def test_get_compatible_dimensions_external_empty_selection(
 
     assert data["success"] is True
     assert data["compatible_dimensions"] == []
-    mock_view.get_compatible_dimensions.assert_called_once_with([], [])
+    mock_view.get_compatible_dimension_metadata.assert_called_once_with([], [])
 
 
 @pytest.mark.asyncio

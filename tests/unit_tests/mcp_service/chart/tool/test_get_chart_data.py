@@ -4225,8 +4225,11 @@ def _patch_refused_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> Mag
     provider.selection_identity_version = None
     provider.uid.return_value = "refused-filter-test"
     provider.get_dimensions.return_value = {
-        Dimension(id="orders.STATUS", name="STATUS", type=pa.utf8(), grain=None)
+        Dimension(id="orders.STATUS", name="STATUS", type=pa.utf8())
     }
+    provider.get_compatible_dimensions.return_value = (
+        provider.get_dimensions.return_value
+    )
     provider.get_metrics.return_value = {
         Metric(
             id="orders.ORDER_COUNT",

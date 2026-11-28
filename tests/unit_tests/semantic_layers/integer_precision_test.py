@@ -72,6 +72,9 @@ def test_chart_data_preserves_nullable_integer_precision(
     provider.get_dimensions.return_value = {
         Dimension("category", "category", pa.string()),
     }
+    provider.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider.get_dimensions()
+    )
     provider.get_metrics.return_value = {
         Metric("amount", "amount", pa.int64(), "SUM(amount)"),
     }
@@ -205,6 +208,9 @@ def test_post_processing_receives_numeric_nullable_integer_metrics(
     provider.get_dimensions.return_value = {
         Dimension("category", "category", pa.string()),
     }
+    provider.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider.get_dimensions()
+    )
     provider.get_metrics.return_value = {
         Metric("amount", "amount", pa.int64(), "SUM(amount)"),
     }
@@ -302,6 +308,9 @@ def test_contribution_with_separate_totals_query(
     provider.get_dimensions.return_value = {
         Dimension("category", "category", pa.string()),
     }
+    provider.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider.get_dimensions()
+    )
     provider.get_metrics.return_value = {
         Metric("amount", "amount", dtype, "SUM(amount)"),
     }

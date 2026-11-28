@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SemanticDimensionSupport } from '@superset-ui/chart-controls';
 import { Column } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -75,12 +76,12 @@ export const mapSemanticTypeToGenericDataType = (
 export interface SemanticViewStructure {
   name?: string;
   semantic_selection_version?: string;
-  dimensions: {
+  dimensions: ({
     name: string;
     type: string;
     grain?: string | null;
     verbose_name?: string | null;
-  }[];
+  } & Partial<SemanticDimensionSupport>)[];
   metrics: { name: string; definition: string }[];
 }
 
@@ -121,6 +122,7 @@ export const semanticViewDimensionsToColumns = (
   dimensions: SemanticViewStructure['dimensions'],
 ): Column[] => {
   type Dimension = SemanticViewStructure['dimensions'][number];
+  // Older cached structure responses can still contain grain variants.
   const byName = new Map<string, Dimension>();
   dimensions.forEach(dimension => {
     const existing = byName.get(dimension.name);
