@@ -3869,16 +3869,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return None
 
     def _process_date_range_offset(
-        self, offset_df: pd.DataFrame, join_keys: list[str]
+        self,
+        offset_df: pd.DataFrame,
+        join_keys: list[str],
+        x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Process date range offset data and return modified DataFrame and keys."""
         temporal_cols = ["ds", "__timestamp", "dttm"]
+        if (
+            x_axis_label in join_keys
+            and x_axis_label in offset_df
+            and (
+                x_axis_is_temporal
+                or pd.api.types.is_datetime64_any_dtype(offset_df[x_axis_label])
+            )
+        ):
+            temporal_cols.append(cast(str, x_axis_label))
         non_temporal_join_keys = [key for key in join_keys if key not in temporal_cols]
+        metric_columns = [
+            col
+            for col in offset_df.columns
+            if col not in temporal_cols and col not in non_temporal_join_keys
+        ]
 
         if non_temporal_join_keys:
+            # The offset window spans many rows per series, so total it per series
+            # to keep a single comparison value for each row of the main frame.
+            if metric_columns:
+                offset_df = offset_df.groupby(
+                    non_temporal_join_keys, as_index=False, dropna=False
+                ).agg(
+                    {
+                        col: (
+                            (lambda values: values.sum(min_count=1))
+                            if pd.api.types.is_numeric_dtype(offset_df[col])
+                            else "first"
+                        )
+                        for col in metric_columns
+                    }
+                )
             return offset_df, non_temporal_join_keys
-
-        metric_columns = [col for col in offset_df.columns if col not in temporal_cols]
 
         if metric_columns:
             aggregated_values = {}
@@ -3971,7 +4002,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return offset_df, [column_name, *join_keys[1:]]
 
         elif is_date_range_offset:
-            return self._process_date_range_offset(offset_df, join_keys)
+            return self._process_date_range_offset(
+                offset_df, join_keys, x_axis_label, x_axis_is_temporal
+            )
 
         else:
             return self._align_offset_without_time_grain(
@@ -4245,10 +4278,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df, offset, time_grain, join_keys, is_date_range_offset
             )
 
-            if not time_grain and not is_date_range_offset:
-                # The grain-less join indexes on the synthetic key plus the
-                # non-temporal join keys, which reset_index moves to the front;
-                # restore the original column order.
+            if not time_grain or is_date_range_offset:
+                # The grain-less and date-range joins index on the non-temporal
+                # join keys, which reset_index moves to the front; restore the
+                # original column order so the next offset's join column is still
+                # built from the time column.
                 df = df[
                     [col for col in original_columns if col in df.columns]
                     + [col for col in df.columns if col not in original_columns]

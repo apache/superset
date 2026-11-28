@@ -44,6 +44,8 @@ from superset.utils.core import (
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable
     from superset.jinja_context import BaseTemplateProcessor
     from superset.models.core import Database
@@ -7430,3 +7432,257 @@ def test_get_query_result_leaves_a_custom_operation_fault_unwrapped(
         table.get_query_result(query_object)
 
     assert not isinstance(excinfo.value, QueryObjectValidationError)
+
+
+COMPARISON_COLUMN = "COUNT(*)__2026-05-12 : 2026-06-12"
+RELATIVE_COMPARISON_COLUMN = "COUNT(*)__1 week ago"
+OFFSET_VALUES = {"date_range": "2026-05-12 : 2026-06-12", "relative": "1 week ago"}
+
+
+def _date_range_comparison_frame(
+    database: Database,
+    x_axis: str,
+    *,
+    grouped: bool = False,
+    empty_window: bool = False,
+    offsets: tuple[str, ...] = ("date_range",),
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Run a date-range time comparison on a chart whose x-axis column is ``x_axis``.
+
+    The datasource query is stubbed to return the rows of the shifted window, one
+    per day (and per ``grp`` series when ``grouped``), labelled with the x-axis
+    column exactly as the real query would label them. ``empty_window`` makes the
+    shifted window return no rows. ``offsets`` lists, in request order, the kinds of
+    offset to compare against: ``"date_range"`` and/or ``"relative"`` (one week
+    ago, only with ``grouped``); the stub answers each offset's query with the
+    rows of that offset's own window. Returns the main frame, then the frame after
+    ``processing_time_offsets``.
+    """
+    from datetime import timedelta
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="events",
+        columns=[
+            TableColumn(column_name=x_axis, is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="grp", type="TEXT"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(*)",
+        "label": "COUNT(*)",
+    }
+    columns: list[Any] = [
+        {
+            "label": x_axis,
+            "sqlExpression": x_axis,
+            "columnType": "BASE_AXIS",
+            "timeGrain": "P1D",
+        }
+    ]
+    if grouped:
+        columns.append("grp")
+    query_object = QueryObject(
+        datasource=table,
+        columns=columns,
+        metrics=[metric],
+        row_limit=1000,
+        time_offsets=[OFFSET_VALUES[offset] for offset in offsets],
+        filters=[
+            {
+                "col": x_axis,
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2026-06-12 : 2026-07-12",
+            }
+        ],
+    )
+
+    if grouped:
+        # three days for each of two series; series "a" counts 10 per day in the
+        # shifted window and series "b" counts 20, so the totals are 30 and 60.
+        days = list(pd.date_range("2026-06-12", periods=3, freq="D"))
+        main_df = pd.DataFrame(
+            {
+                x_axis: [day for day in days for _ in "ab"],
+                "grp": ["a", "b"] * 3,
+                "COUNT(*)": range(6),
+            }
+        )
+        shifted_days = list(pd.date_range("2026-05-12", periods=3, freq="D"))
+        shifted_df = pd.DataFrame(
+            {
+                x_axis: [day for day in shifted_days for _ in "ab"],
+                "grp": ["a", "b"] * 3,
+                "COUNT(*)": [10, 20] * 3,
+            }
+        )
+    else:
+        main_df = pd.DataFrame(
+            {
+                x_axis: pd.date_range("2026-06-12", periods=30, freq="D"),
+                "COUNT(*)": range(30),
+            }
+        )
+        shifted_df = pd.DataFrame(
+            {
+                x_axis: pd.date_range("2026-05-12", periods=31, freq="D"),
+                "COUNT(*)": [10] * 31,
+            }
+        )
+    if empty_window:
+        shifted_df = shifted_df.iloc[0:0]
+
+    shifted_frames = {"date_range": shifted_df}
+    if grouped:
+        # the same three days one week earlier, counting 100 + 10 * day for
+        # series "a" and one more for series "b"
+        week_before = list(pd.date_range("2026-06-05", periods=3, freq="D"))
+        shifted_frames["relative"] = pd.DataFrame(
+            {
+                x_axis: [day for day in week_before for _ in "ab"],
+                "grp": ["a", "b"] * 3,
+                "COUNT(*)": [100, 101, 110, 111, 120, 121],
+            }
+        )
+
+    with patch.object(
+        table,
+        "query",
+        side_effect=[
+            QueryResult(
+                df=shifted_frames[offset],
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            )
+            for offset in offsets
+        ],
+    ):
+        result = table.processing_time_offsets(main_df.copy(), query_object)
+
+    return main_df, result["df"]
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_time_comparison_with_custom_named_x_axis(
+    database: Database,
+) -> None:
+    """
+    A temporal x-axis column behaves the same whatever it is named.
+
+    A date-range offset is aggregated to a single total and broadcast across the
+    main series, so every row must carry the shifted window's total. When the
+    x-axis column was not one of ``ds``/``__timestamp``/``dttm`` it was joined as
+    an ordinary key instead, the shifted window's timestamps matched nothing, and
+    the comparison column came back null on every row.
+    """
+    main_df, df = _date_range_comparison_frame(database, "event_ts")
+
+    assert list(df.columns) == ["event_ts", "COUNT(*)", COMPARISON_COLUMN]
+    assert len(df) == len(main_df)
+    assert df[COMPARISON_COLUMN].tolist() == [310] * len(main_df)
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_time_comparison_with_legacy_named_x_axis(
+    database: Database,
+) -> None:
+    """
+    Control for the custom-named x-axis test: the same chart with the x-axis
+    column named ``__timestamp`` broadcasts the shifted window's total.
+    """
+    main_df, df = _date_range_comparison_frame(database, "__timestamp")
+
+    assert list(df.columns) == ["__timestamp", "COUNT(*)", COMPARISON_COLUMN]
+    assert len(df) == len(main_df)
+    assert df[COMPARISON_COLUMN].tolist() == [310] * len(main_df)
+
+
+@pytest.mark.parametrize("x_axis", ["event_ts", "__timestamp"])
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_time_comparison_with_a_series_keeps_one_row_per_series(
+    database: Database, x_axis: str
+) -> None:
+    """
+    With a series dimension each main row gets exactly one comparison value: its
+    series' total over the shifted window.
+
+    The shifted frame holds one row per day and series. Left joined on the series
+    alone it would repeat every main row once per shifted day and carry a single
+    day's value, so it has to be totalled per series first.
+    """
+    main_df, df = _date_range_comparison_frame(database, x_axis, grouped=True)
+
+    assert len(df) == len(main_df)
+    totals = {"a": 30, "b": 60}
+    assert df[COMPARISON_COLUMN].tolist() == df["grp"].map(totals).tolist()
+
+
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_time_comparison_of_an_empty_window_matches_legacy_axis_name(
+    database: Database,
+) -> None:
+    """
+    An empty shifted window gives the same comparison column whatever the x-axis
+    column is named.
+
+    The stand-in for an empty result is a single all-null row, which is totalled
+    like any other shifted window when the x-axis is recognised as temporal.
+    """
+    import pandas as pd
+
+    _, custom = _date_range_comparison_frame(database, "event_ts", empty_window=True)
+    _, legacy = _date_range_comparison_frame(database, "__timestamp", empty_window=True)
+
+    assert len(custom) == len(legacy)
+    pd.testing.assert_series_equal(
+        custom[COMPARISON_COLUMN].reset_index(drop=True),
+        legacy[COMPARISON_COLUMN].reset_index(drop=True),
+    )
+
+
+@pytest.mark.parametrize(
+    "offsets",
+    [
+        pytest.param(("date_range", "relative"), id="date range first"),
+        pytest.param(("relative", "date_range"), id="relative first"),
+    ],
+)
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_date_range_and_relative_comparisons_on_a_series_chart_in_either_order(
+    database: Database, offsets: tuple[str, ...]
+) -> None:
+    """
+    A date-range comparison does not disturb a relative one on a series chart,
+    whichever comes first.
+
+    The relative comparison builds its join column from the first column of the
+    frame, so the frame has to keep the time column first after the date-range
+    join, not the series column that join indexes on.
+    """
+    main_df, df = _date_range_comparison_frame(
+        database, "event_ts", grouped=True, offsets=offsets
+    )
+
+    assert len(df) == len(main_df)
+    assert list(df.columns[: len(main_df.columns)]) == list(main_df.columns)
+
+    totals = {"a": 30, "b": 60}
+    assert df[COMPARISON_COLUMN].tolist() == df["grp"].map(totals).tolist()
+
+    # a week earlier, series "a" counted 100 + 10 * day and series "b" one more
+    first_day = main_df["event_ts"].min()
+    expected = [
+        100 + 10 * (day - first_day).days + (grp == "b")
+        for day, grp in zip(df["event_ts"], df["grp"], strict=True)
+    ]
+    assert df[RELATIVE_COMPARISON_COLUMN].tolist() == expected
