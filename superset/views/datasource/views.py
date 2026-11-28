@@ -45,6 +45,11 @@ from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
+from superset.datasets.freshness import (
+    freshness_time_columns,
+    FreshnessValidationError,
+    validate_freshness_extra,
+)
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -446,6 +451,74 @@ def _authorize_repoint(
     return None
 
 
+def _authorize_freshness(
+    datasource: DatasourceModel,
+    datasource_dict: dict[str, Any],
+    database_id: int,
+    database_changed: bool,
+    requested_table: Table,
+    raw_template_params: str | None,
+) -> FlaskResponse | None:
+    """Validate the ``extra["freshness"]`` setting a save will store.
+
+    This endpoint bypasses ``UpdateDatasetCommand``, so it ports that command's
+    freshness check: a freshness ``sql`` is authorized like a virtual dataset's
+    SQL whenever it, or the connection, catalog, schema or template params it
+    resolves against, changes.
+
+    Returns an error response when the setting can't be stored, else ``None``.
+    """
+    if not isinstance(datasource, SqlaTable):
+        return None
+    extra = datasource_dict.get("extra")
+    if extra is not None and not isinstance(extra, str):
+        return json_error_response(
+            _("The `%(field)s` field must be a string.", field="extra"), status=422
+        )
+
+    params_changed = raw_template_params != datasource.template_params and (
+        not template_params_equivalent(raw_template_params, datasource.template_params)
+    )
+    binding_changed = (
+        database_changed
+        or params_changed
+        or (requested_table.schema, requested_table.catalog)
+        != (datasource.schema or None, datasource.catalog or None)
+    )
+    try:
+        template_params: dict[str, Any] | None = parse_template_params(
+            raw_template_params
+        )
+    except ValueError:
+        template_params = None
+    target_database = (
+        DatasetDAO.get_database_by_id(database_id)
+        if database_changed
+        else datasource.database
+    )
+    if target_database is None:
+        return json_error_response(_("Database not found."), status=422)
+
+    try:
+        validate_freshness_extra(
+            extra,
+            stored_extra=datasource.extra,
+            columns=freshness_time_columns(
+                datasource_dict.get("columns", []), existing=datasource.columns
+            ),
+            database=target_database,
+            catalog=requested_table.catalog,
+            schema=requested_table.schema,
+            template_params=template_params,
+            binding_changed=binding_changed,
+        )
+    except FreshnessValidationError as ex:
+        return json_error_response(json.dumps(ex.messages), status=422)
+    except SupersetSecurityException as ex:
+        raise DatasetForbiddenError() from ex
+    return None
+
+
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
@@ -496,6 +569,13 @@ class Datasource(BaseSupersetView):
             database_id,
             database_changed,
             requested_sql,
+            requested_table,
+            raw_template_params,
+        ) or _authorize_freshness(
+            orm_datasource,
+            datasource_dict,
+            database_id,
+            database_changed,
             requested_table,
             raw_template_params,
         ):

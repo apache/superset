@@ -34,6 +34,7 @@ import { Alert } from '@apache-superset/core/components';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import useDashboardFilterSync from 'src/dashboard/useDashboardFilterSync';
+import { useDataFreshnessLoader } from 'src/dashboard/components/DataFreshness';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Button, EmptyState, Loading } from '@superset-ui/core/components';
 import {
@@ -270,6 +271,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     state => state.dashboardInfo?.id,
   );
   useDashboardFilterSync(hydratedDashboardId === id ? id : undefined);
+  useDataFreshnessLoader(hydratedDashboardId === id ? id : undefined);
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;

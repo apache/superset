@@ -196,6 +196,18 @@ class DatasetDataAccessIsNotAllowed(ValidationError):  # noqa: N818
         super().__init__([_(message)], field_name="sql")
 
 
+class DatasetFreshnessAccessIsNotAllowed(ValidationError):  # noqa: N818
+    """
+    Marshmallow validation error for a freshness query that reads data the
+    author can't access
+    """
+
+    status = 422
+
+    def __init__(self, message: str) -> None:
+        super().__init__({"freshness": {"sql": [_(message)]}}, field_name="extra")
+
+
 class DatasetNotFoundError(CommandException):
     status = 404
     message = _("Dataset does not exist")

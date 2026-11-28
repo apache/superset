@@ -103,6 +103,7 @@ import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
 import { AutoRefreshIndicator } from '../AutoRefreshIndicator';
+import { DataFreshnessLabel } from '../DataFreshness';
 import { RefreshButton } from '../RefreshButton';
 
 type DashboardPropertiesUpdate = {
@@ -684,6 +685,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
           onTogglePause={handlePauseToggle}
         />
       ),
+      !editMode && <DataFreshnessLabel key="data-freshness" />,
       !editMode && !isMobile && (
         <PublishedStatus
           key="published-status"

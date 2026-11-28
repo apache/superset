@@ -36,6 +36,7 @@ from superset.commands.dataset.exceptions import (
     DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetForbiddenError,
+    DatasetFreshnessAccessIsNotAllowed,
     DatasetInvalidError,
     DatasetMetricsDuplicateValidationError,
     DatasetMetricsExistsValidationError,
@@ -58,6 +59,11 @@ from superset.connectors.sqla.partition_mapping import (
     validate_transform,
 )
 from superset.daos.dataset import DatasetDAO
+from superset.datasets.freshness import (
+    freshness_time_columns,
+    FreshnessValidationError,
+    validate_freshness_extra,
+)
 from superset.datasets.schemas import FolderSchema
 from superset.exceptions import (
     QueryClauseValidationException,
@@ -172,6 +178,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         self._validate_dataset_source(exceptions)
         self._validate_semantics(exceptions)
+        self._validate_freshness(exceptions)
         if (
             self._delete_metric_ids is not None
             and not DatasetDAO.validate_metrics_exist(
@@ -431,6 +438,54 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             )
         except TEMPLATE_RENDER_ERRORS as ex:
             exceptions.append(DatasetSqlRenderValidationError(ex))
+
+    def _validate_freshness(self, exceptions: list[ValidationError]) -> None:
+        """Validate the ``extra["freshness"]`` setting the update will store.
+
+        A freshness ``sql`` runs on the dataset's database for every viewer, so
+        it is authorized like a virtual dataset's SQL: whenever it changes, or
+        the connection, catalog, schema or template params it resolves against
+        change.
+        """
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+        if "extra" not in self._properties:
+            return
+
+        columns = freshness_time_columns(
+            self._properties.get("columns") or self._model.columns,
+            existing=self._model.columns,
+        )
+
+        params_changed = "template_params" in self._properties and (
+            _template_params_differ(
+                self._properties["template_params"], self._model.template_params
+            )
+        )
+        try:
+            template_params = parse_template_params(
+                self._properties.get("template_params", self._model.template_params)
+            )
+        except ValueError:
+            # Unreadable params fail a freshness ``sql`` closed (see
+            # ``validate_freshness_extra``) without blocking other settings.
+            template_params = None
+
+        try:
+            validate_freshness_extra(
+                self._properties["extra"],
+                stored_extra=self._model.extra,
+                columns=columns,
+                database=self._properties.get("database", self._model.database),
+                catalog=self._properties.get("catalog", self._model.catalog),
+                schema=self._properties.get("schema", self._model.schema),
+                template_params=template_params,
+                binding_changed=bool(self._location_changed) or params_changed,
+            )
+        except FreshnessValidationError as ex:
+            exceptions.append(ex)
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetFreshnessAccessIsNotAllowed(ex.error.message))
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model

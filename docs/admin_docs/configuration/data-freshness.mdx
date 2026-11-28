@@ -1,0 +1,136 @@
+---
+title: Data Freshness
+hide_title: true
+sidebar_position: 16
+version: 1
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+# Data Freshness
+
+"Cached 5 minutes ago" and "Last queried at" say when Superset last ran a query.
+They don't say how old the data behind it is. Data freshness shows that: a
+**Data as of** label in the dashboard header and in each chart's menu, read from
+a timestamp your pipeline already records.
+
+## Turning it on
+
+Data freshness is off by default. Enable it in `superset_config.py`:
+
+```python
+DATA_FRESHNESS_ENABLED = True
+
+# Seconds an answer is cached (in DATA_CACHE_CONFIG). Default: 15 minutes.
+DATA_FRESHNESS_CACHE_TIMEOUT = 900
+
+# Show times in a fixed zone instead of each viewer's browser zone.
+DATA_FRESHNESS_DISPLAY_TIMEZONE = "Africa/Nairobi"
+```
+
+Answers are cached in the data cache, so configure `DATA_CACHE_CONFIG` (the
+default `NullCache` caches nothing, and every dashboard load re-runs the
+freshness queries).
+
+## Setting it up for a dataset
+
+Open **Edit dataset → Settings → Data freshness** and choose where the
+timestamp comes from:
+
+- **Latest value of a column**: Superset runs `SELECT MAX(column)` over the
+  dataset, applying the viewer's row level security as it does for their
+  charts. Use a column the pipeline sets on load, such as `_loaded_at`. Only
+  time columns can be picked: columns marked **Is temporal**, or given a
+  **Datetime format**, in the dataset's *Columns* tab. String and number columns
+  are read with that datetime format (for example `epoch_s`, `epoch_ms` or
+  `%Y%m%d`); for string columns, use a format that sorts correctly (ISO 8601).
+  On large tables, pick a partitioned or indexed column.
+- **SQL query**: one read-only `SELECT` returning one timestamp, for example
+  from a pipeline run log:
+
+  ```sql
+  SELECT MAX(finished_at) FROM ops.load_log WHERE table_name = 'invoices'
+  ```
+
+  It runs on the dataset's database and can use [Jinja
+  templating](/admin-docs/configuration/sql-templating). It must return exactly
+  one row with one column, holding a timestamp, a date or an ISO 8601 string.
+  Numbers are not read as times; convert epochs in the query (for example
+  `to_timestamp(loaded_epoch)` on PostgreSQL).
+
+Optionally set **Warn after (minutes)**: once the data is older than that, the
+label turns into a warning.
+
+The setting is stored in the dataset's `extra` JSON and travels with dataset
+export and import:
+
+```json
+{ "freshness": { "column": "_loaded_at", "warn_after_minutes": 120 } }
+```
+
+Timestamps without a time zone are read as UTC. When a query returns nothing,
+a value that isn't a time, more than one row or column, or fails, the label is
+hidden rather than showing a wrong time or an error. Each of these except "returns
+nothing" is logged as a warning naming the dataset id and the reason (no SQL or
+data is logged), so a label that never appears can be explained from the
+Superset logs.
+
+## Showing it on a dashboard
+
+In **Dashboard properties → Styling**, turn on **Show data freshness**. The
+header then shows the oldest timestamp across the dashboard's datasets; hover it
+to see each dataset. Each chart's menu shows its own dataset's timestamp under
+"Cached …".
+
+The dashboard's freshness is also available from the REST API, at
+`GET /api/v1/dashboard/<id_or_slug>/freshness`.
+
+## Security
+
+A freshness **SQL query** runs for every viewer of the dataset, so it gets the
+same checks as a virtual dataset's SQL:
+
+- **When it is saved, imported or copied**, it must be a single read-only
+  `SELECT`, may not use functions listed in `DISALLOWED_SQL_FUNCTIONS`, and the
+  person saving it needs data access to every table it reads. Being an editor
+  of the dataset is not enough. The check runs again when the query, or the
+  database, schema or template parameters it resolves against, change.
+- **When it runs**, the viewer's row level security is applied to the tables it
+  reads that are registered as Superset datasets, as in SQL Lab. Global guest
+  rules for embedded users apply too: if a rule references a column the
+  freshness table doesn't have, the query fails and the label is hidden.
+
+A viewer sees a dataset's freshness only if they can load that dataset's charts
+on the dashboard. Cached answers are only shared between viewers who would run
+exactly the same SQL (after Jinja and row level security).
+
+## Embedded dashboards
+
+Embedded dashboards hide the label unless the host app opts in:
+
+```js
+embedDashboard({
+  // ...
+  dashboardUiConfig: { showDataFreshness: true },
+});
+```
+
+The dashboard also needs **Show data freshness** turned on. Host apps that draw
+their own header can call the REST endpoint with the guest token instead.

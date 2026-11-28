@@ -29,9 +29,15 @@ interface UiConfigType {
   // superset-embedded-sdk specific
   emitDataMasks: boolean; // emit data masks to the parent window
   showRowLimitWarning: boolean; // show the row limit warning
+  showDataFreshness: boolean; // show the "Data as of" freshness label
 }
 interface EmbeddedUiConfigProviderProps {
   children: JSX.Element;
+  /**
+   * Whether this is the embedded app. Options embedding hosts opt into, such
+   * as `showDataFreshness`, are on by default everywhere else.
+   */
+  isEmbedded?: boolean;
 }
 
 export const UiConfigContext = createContext<UiConfigType>({
@@ -41,12 +47,15 @@ export const UiConfigContext = createContext<UiConfigType>({
   hideChartControls: false,
   emitDataMasks: false,
   showRowLimitWarning: false,
+  // Shown outside embedded mode; embedded hosts opt in.
+  showDataFreshness: true,
 });
 
 export const useUiConfig = () => useContext(UiConfigContext);
 
 export const EmbeddedUiConfigProvider: FC<EmbeddedUiConfigProviderProps> = ({
   children,
+  isEmbedded = false,
 }) => {
   const config = getUrlParam(URL_PARAMS.uiConfig) || 0;
   const [embeddedConfig] = useState({
@@ -56,6 +65,7 @@ export const EmbeddedUiConfigProvider: FC<EmbeddedUiConfigProviderProps> = ({
     hideChartControls: (config & 8) !== 0,
     emitDataMasks: (config & 16) !== 0,
     showRowLimitWarning: (config & 32) !== 0,
+    showDataFreshness: !isEmbedded || (config & 64) !== 0,
   });
 
   return (

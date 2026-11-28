@@ -2144,6 +2144,21 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
+# ---------------------------------------------------
+# Data freshness ("Data as of")
+# ---------------------------------------------------
+# Lets dataset editors declare where the age of their source data lives: a
+# column holding the load timestamp, or a SQL query returning one. Dashboards
+# that opt in show the oldest of their datasets' timestamps in the header and
+# in each chart's menu. Off by default.
+DATA_FRESHNESS_ENABLED: bool = False
+# Seconds a freshness answer is kept in the data cache (``DATA_CACHE_CONFIG``).
+# Freshness queries can scan a whole table, so keep this well above zero.
+DATA_FRESHNESS_CACHE_TIMEOUT: int = int(timedelta(minutes=15).total_seconds())
+# IANA time zone used to display freshness timestamps, e.g. "Africa/Nairobi".
+# ``None`` displays them in each viewer's browser time zone.
+DATA_FRESHNESS_DISPLAY_TIMEZONE: str | None = None
+
 # Performance optimization: Return only custom tags in dashboard list API
 # When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
 # Reduces response payload and query time for dashboards with many editors

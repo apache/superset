@@ -233,6 +233,9 @@ class DashboardJSONMetadataSchema(Schema):
     cross_filters_enabled = fields.Boolean(dump_default=True)
     # controls visibility of "last queried at" timestamp on charts in dashboard view
     show_chart_timestamps = fields.Boolean(dump_default=False)
+    # controls visibility of the "Data as of" source-data freshness label
+    # (requires DATA_FRESHNESS_ENABLED)
+    show_data_freshness = fields.Boolean(dump_default=False)
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
@@ -345,6 +348,37 @@ class DatabaseSchema(Schema):
     disable_drill_to_detail = fields.Bool()
     allow_multi_catalog = fields.Bool()
     explore_database_id = fields.Int()
+
+
+class DashboardDatasetFreshnessSchema(Schema):
+    id = fields.Integer(metadata={"description": "The dataset id"})
+    name = fields.String(metadata={"description": "The dataset name"})
+    data_as_of = fields.DateTime(
+        allow_none=True,
+        metadata={
+            "description": "When the dataset's source data was last loaded, or "
+            "null when its freshness query gave no usable answer"
+        },
+    )
+    warn_after_minutes = fields.Integer(
+        allow_none=True,
+        metadata={"description": "Age after which the data counts as stale"},
+    )
+    stale = fields.Boolean(
+        metadata={"description": "Whether data_as_of is past warn_after_minutes"}
+    )
+
+
+class DashboardFreshnessResponseSchema(Schema):
+    data_as_of = fields.DateTime(
+        allow_none=True,
+        metadata={"description": "The oldest data_as_of across the datasets"},
+    )
+    stale = fields.Boolean(metadata={"description": "Whether any dataset is stale"})
+    datasets = fields.List(
+        fields.Nested(DashboardDatasetFreshnessSchema),
+        metadata={"description": "The datasets that have a freshness setting"},
+    )
 
 
 class DashboardDatasetSchema(Schema):

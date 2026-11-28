@@ -157,6 +157,7 @@ from superset.dashboards.schemas import (
     DashboardDatasetSchema,
     DashboardExportXlsxPostSchema,
     DashboardExportXlsxResponseSchema,
+    DashboardFreshnessResponseSchema,
     DashboardGetResponseSchema,
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
@@ -173,6 +174,7 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
+from superset.datasets.freshness import get_dashboard_freshness
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
     AcquireDistributedLockFailedException,
@@ -455,6 +457,7 @@ class DashboardRestApi(
         "remove_favorite",
         "get_charts",
         "get_datasets",
+        "get_freshness",
         "get_tabs",
         "get_embedded",
         "set_embedded",
@@ -719,6 +722,7 @@ class DashboardRestApi(
         DashboardDatasetSchema,
         DashboardExportXlsxPostSchema,
         DashboardExportXlsxResponseSchema,
+        DashboardFreshnessResponseSchema,
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
@@ -908,6 +912,60 @@ class DashboardRestApi(
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             raise DatasetValidationError(err) from err
+
+    @expose("/<id_or_slug>/freshness", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_freshness",
+        log_to_statsd=False,
+    )
+    def get_freshness(self, id_or_slug: str) -> Response:
+        """Get how fresh a dashboard's source data is.
+        ---
+        get:
+          summary: Get when a dashboard's source data was last loaded
+          description: >-
+            Runs the freshness setting of each of the dashboard's datasets that
+            has one, as the current user, and returns each answer plus the
+            oldest one. Answers are cached for DATA_FRESHNESS_CACHE_TIMEOUT
+            seconds. Returns 404 unless DATA_FRESHNESS_ENABLED is set.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: Dashboard source-data freshness
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DashboardFreshnessResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        if not current_app.config["DATA_FRESHNESS_ENABLED"]:
+            return self.response_404()
+        try:
+            dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+        result = DashboardFreshnessResponseSchema().dump(
+            get_dashboard_freshness(dashboard)
+        )
+        return self.response(200, result=result)
 
     def _serialize_dashboard_dataset(
         self,

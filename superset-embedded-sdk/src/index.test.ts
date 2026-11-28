@@ -131,6 +131,21 @@ describe("embedDashboard", () => {
     vi.restoreAllMocks();
   });
 
+  test("showDataFreshness sets bit 64 of the uiConfig url param", async () => {
+    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
+
+    await embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: vi.fn().mockResolvedValue(fakeToken),
+      dashboardUiConfig: { hideTitle: true, showDataFreshness: true },
+    });
+
+    const iframe = mountPoint.querySelector("iframe") as HTMLIFrameElement;
+    expect(new URL(iframe.src).searchParams.get("uiConfig")).toBe(`${1 + 64}`);
+  });
+
   test("setDataMask sends dataMask to iframe", async () => {
     const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
     const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
