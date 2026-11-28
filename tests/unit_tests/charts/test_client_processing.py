@@ -249,6 +249,35 @@ def test_apply_client_processing_temporal_pivot_totals(
     assert pd.to_numeric(output.iloc[:, -1]).tolist() == [3.0, 3.0, 6.0]
 
 
+def test_apply_client_processing_pivot_unknown_metric_raises_validation_error() -> None:
+    """A metric/column label absent from the query result is a bad request,
+    not an unhandled 500 (SUPERSET-PYTHON-1CG5)."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "west"],
+            "sales": [1, 2],
+        }
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": source.to_dict("records"),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["not_a_real_column"],
+    }
+    from superset.exceptions import QueryObjectValidationError
+
+    with pytest.raises(QueryObjectValidationError):
+        apply_client_processing(result, form_data)
+
+
 def test_pivot_df_no_cols_no_rows_single_metric():
     """
     Pivot table when no cols/rows and 1 metric are selected.
@@ -4722,6 +4751,64 @@ def test_table_derived_columns_inherit_the_parent_metric_format() -> None:
     assert formatted["% m"].tolist() == ["0.23"]
 
 
+def test_table_derived_column_takes_its_own_small_number_format() -> None:
+    """
+    Each derived column applies the small-number format saved against it.
+
+    `processComparisonColumns` gives each of the four its own config, and
+    `formatColumnValue` uses that config's `d3SmallNumberFormat` for a cell
+    below one. The parent metric's small-number format does not reach them,
+    and a blank one is unset. The AG Grid table ignores the format for these
+    columns as it does for any other.
+    """
+    df = pd.DataFrame({"m": [110, 0.5], "m__P1D": [100, 0.25]})
+    column_config = {
+        "m": {"d3SmallNumberFormat": ".1%"},
+        "Main m": {"d3SmallNumberFormat": ".1%"},
+        "△ m": {"d3SmallNumberFormat": "  "},
+        "% m": {"d3SmallNumberFormat": ".2f"},
+    }
+
+    formatted = table(df.copy(), comparison_form_data(column_config=column_config))
+    ag_grid = table(
+        df.copy(),
+        comparison_form_data(viz_type="ag-grid-table", column_config=column_config),
+    )
+
+    assert formatted["Main m"].tolist() == ["110", "50.0%"]
+    assert formatted["# m"].tolist() == ["100", "0.25"]
+    assert formatted["△ m"].tolist() == ["10", "0.25"]
+    assert formatted["% m"].tolist() == ["0.10", "100.000%"]
+    assert ag_grid["Main m"].tolist() == ["110", "0.5"]
+    assert ag_grid["% m"].tolist() == ["10.000%", "100.000%"]
+
+
+def test_table_derived_small_number_format_uses_its_own_currency() -> None:
+    """
+    The small-number format pairs with the derived column's own currency.
+
+    `getSmallNumberFormatter` gets the config's `currencyFormat` even on the
+    `%` column, whose normal formatter never carries one. The config is keyed
+    by the query's label, so a verbose-renamed metric still finds it.
+    """
+    df = pd.DataFrame({"My Metric": [110], "m__P1D": [100]})
+    datasource = MagicMock()
+    datasource.columns = []
+    datasource.data = {"verbose_map": {"m": "My Metric"}}
+    form_data = comparison_form_data(
+        column_config={
+            "% m": {
+                "d3SmallNumberFormat": ".1%",
+                "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        }
+    )
+
+    formatted = table(df, form_data, datasource)
+
+    assert formatted["% My Metric"].tolist() == ["$ 10.0"]
+
+
 def test_table_derives_for_a_verbose_renamed_metric() -> None:
     """
     The offset is read off the query's labels, not the verbose ones.
@@ -5338,6 +5425,14 @@ def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
         },
     )
     assert df[("sales",)].tolist() == ["1,234.50"]
+
+
+def test_apply_client_processing_preserves_tree_mode_raw_results() -> None:
+    """Tree reports bypass the ordinary Table V2 JSON formatter."""
+    result = {"queries": [{"result_format": "json", "data": [{"amount": 1234.5}]}]}
+    form_data = {"viz_type": "ag-grid-table", "query_mode": "tree"}
+    assert apply_client_processing(result, form_data) is result
+    assert result["queries"][0]["data"] == [{"amount": 1234.5}]
 
 
 def test_apply_client_processing_formats_an_ag_grid_table() -> None:

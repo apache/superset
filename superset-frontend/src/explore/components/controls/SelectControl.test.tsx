@@ -77,406 +77,347 @@ const renderSelectControl = (props = {}) => {
   return container;
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('SelectControl', () => {
-  test('calls props.onChange when select', async () => {
-    renderSelectControl();
-    defaultProps.onChange(50);
-    expect(defaultProps.onChange).toHaveBeenCalledWith(50);
+test('calls props.onChange when select', async () => {
+  renderSelectControl();
+  defaultProps.onChange(50);
+  expect(defaultProps.onChange).toHaveBeenCalledWith(50);
+});
+
+test('renders with Select by default', () => {
+  renderSelectControl();
+  const selectorInput = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  const selectorWrapper = selectorInput.closest('.ant-select') as HTMLElement;
+  expect(selectorWrapper).toBeInTheDocument();
+  expect(selectorInput).toBeInTheDocument();
+});
+
+test('renders as mode multiple', async () => {
+  renderSelectControl({ multi: true });
+  const selectorInput = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  const selectorWrapper = selectorInput.closest('.ant-select') as HTMLElement;
+  expect(selectorWrapper).toBeInTheDocument();
+  expect(selectorInput).toBeInTheDocument();
+  await user.click(selectorInput);
+  expect(screen.getByText('Select all (3)')).toBeInTheDocument();
+});
+
+test('renders with allowNewOptions when freeForm', async () => {
+  renderSelectControl({ freeForm: true });
+  const selectorInput = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  const selectorWrapper = selectorInput.closest('.ant-select') as HTMLElement;
+  expect(selectorWrapper).toBeInTheDocument();
+  expect(selectorInput).toBeInTheDocument();
+
+  // Expect a new option to be selectable.
+  await user.click(selectorInput);
+  await user.type(selectorInput, 'a new option');
+  act(() => jest.runAllTimers());
+  // antd v6 renders the dropdown options in a portal outside the
+  // .ant-select wrapper, so query the whole document.
+  expect(screen.getByRole('option')).toHaveTextContent('a new option');
+});
+
+test('renders with allowNewOptions=false when freeForm=false', async () => {
+  const container = renderSelectControl({ freeForm: false });
+  const selectorInput = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  const selectorWrapper = selectorInput.closest('.ant-select') as HTMLElement;
+  expect(selectorWrapper).toBeInTheDocument();
+  expect(selectorInput).toBeInTheDocument();
+
+  // Expect no new option to be selectable.
+  await user.click(selectorInput);
+  await user.type(selectorInput, 'a new option');
+  act(() => jest.advanceTimersByTime(300));
+
+  expect(container.querySelector('[role="option"]')).not.toBeInTheDocument();
+  // antd v6 renders the empty-state ("No data") in a portal outside the
+  // .ant-select wrapper, so query the whole document.
+  expect(screen.getByText('No data', { selector: 'div' })).toBeInTheDocument();
+});
+
+test('renders with tokenSeparators', async () => {
+  renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
+  const selectorInput = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  const selectorWrapper = selectorInput.closest('.ant-select') as HTMLElement;
+  expect(selectorWrapper).toBeInTheDocument();
+  expect(selectorInput).toBeInTheDocument();
+
+  await user.click(selectorInput);
+  const paste = createEvent.paste(selectorInput, {
+    clipboardData: {
+      getData: () => '1 year ago;1 week ago',
+    },
+  });
+  fireEvent(selectorInput, paste);
+  const yearOption = screen.getByRole('option', { name: /1 year ago/i });
+  expect(yearOption).toBeInTheDocument();
+  expect(yearOption).toHaveAttribute('aria-selected', 'true');
+  const weekOption = screen.getByRole('option', { name: /1 week ago/ });
+  expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
+});
+
+test('with multi select: does not show a placeholder if there are no choices', () => {
+  renderSelectControl({
+    choices: [],
+    multi: true,
+    placeholder: 'add something',
+  });
+  expect(screen.queryByRole('option')).not.toBeInTheDocument();
+});
+
+test('with a single choice: does not show a placeholder if there are no choices', async () => {
+  const container = renderSelectControl({
+    choices: [],
+    multi: false,
+    placeholder: 'add something',
+  });
+  expect(container.querySelector('[role="option"]')).not.toBeInTheDocument();
+});
+
+test('does not show a placeholder', () => {
+  const container = renderSelectControl({
+    multi: true,
+    value: ['today', '1 year ago'],
+  });
+  expect(container.querySelector('[role="option"]')).not.toBeInTheDocument();
+  expect(screen.queryByText('Select ...')).not.toBeInTheDocument();
+});
+
+test('when the select is multi: does not render the placeholder when a selection has been made', () => {
+  renderSelectControl({
+    multi: true,
+    value: ['today'],
+    placeholder: 'add something',
+  });
+  expect(screen.queryByText('add something')).not.toBeInTheDocument();
+});
+
+test('when the select is single: does not render the placeholder when a selection has been made', () => {
+  renderSelectControl({
+    multi: true,
+    value: 50,
+    placeholder: 'add something',
+  });
+  expect(screen.queryByText('add something')).not.toBeInTheDocument();
+});
+
+test('returns the correct options', () => {
+  expect(innerGetOptions(defaultProps)).toEqual(options);
+});
+
+test('returns true when all values are numbers (array format)', () => {
+  const items = [
+    [1, 'One'],
+    [2, 'Two'],
+    [3, 'Three'],
+  ];
+  expect(areAllValuesNumbers(items)).toBe(true);
+});
+
+test('returns false when some values are not numbers (array format)', () => {
+  const items = [
+    [1, 'One'],
+    ['two', 'Two'],
+    [3, 'Three'],
+  ];
+  expect(areAllValuesNumbers(items)).toBe(false);
+});
+
+test('returns true when all values are numbers (object format)', () => {
+  const items = [
+    { value: 1, label: 'One' },
+    { value: 2, label: 'Two' },
+    { value: 3, label: 'Three' },
+  ];
+  expect(areAllValuesNumbers(items)).toBe(true);
+});
+
+test('returns false when some values are not numbers (object format)', () => {
+  const items = [
+    { value: 1, label: 'One' },
+    { value: 'two', label: 'Two' },
+    { value: 3, label: 'Three' },
+  ];
+  expect(areAllValuesNumbers(items)).toBe(false);
+});
+
+test('returns true when all values are numbers (primitive format)', () => {
+  const items = [1, 2, 3];
+  expect(areAllValuesNumbers(items)).toBe(true);
+});
+
+test('returns false when some values are not numbers (primitive format)', () => {
+  const items = [1, 'two', 3];
+  expect(areAllValuesNumbers(items)).toBe(false);
+});
+
+test('works with custom valueKey', () => {
+  const items = [
+    { id: 1, label: 'One' },
+    { id: 2, label: 'Two' },
+    { id: 3, label: 'Three' },
+  ];
+  expect(areAllValuesNumbers(items, 'id')).toBe(true);
+});
+
+test('returns false for empty items', () => {
+  expect(areAllValuesNumbers([])).toBe(false);
+  // @ts-expect-error testing invalid input
+  expect(areAllValuesNumbers(null)).toBe(false);
+  // @ts-expect-error testing invalid input
+  expect(areAllValuesNumbers(undefined)).toBe(false);
+});
+
+const mockExplicitComparator = (a: { label: string }, b: { label: string }) =>
+  a.label.localeCompare(b.label);
+
+test('returns explicit comparator when provided', () => {
+  const choices = [
+    [1, 'One'],
+    [2, 'Two'],
+  ];
+  const result = getSortComparator(
+    choices,
+    undefined,
+    'value',
+    mockExplicitComparator,
+  );
+  expect(result).toBe(mockExplicitComparator);
+});
+
+test('returns number comparator for numeric choices', () => {
+  const choices = [
+    [1, 'One'],
+    [2, 'Two'],
+  ];
+  const result = getSortComparator(choices, undefined, 'value', undefined);
+  expect(typeof result).toBe('function');
+  expect(result).not.toBe(mockExplicitComparator);
+});
+
+test('returns number comparator for numeric options', () => {
+  const options = [
+    { value: 1, label: 'One' },
+    { value: 2, label: 'Two' },
+  ];
+  const result = getSortComparator(undefined, options, 'value', undefined);
+  expect(typeof result).toBe('function');
+  expect(result).not.toBe(mockExplicitComparator);
+});
+
+test('prioritizes options over choices when both are numeric', () => {
+  const choices = [
+    [1, 'One'],
+    [2, 'Two'],
+  ];
+  const options = [
+    { value: 3, label: 'Three' },
+    { value: 4, label: 'Four' },
+  ];
+  const result = getSortComparator(choices, options, 'value', undefined);
+  expect(typeof result).toBe('function');
+});
+
+test('returns undefined for non-numeric choices', () => {
+  const choices = [
+    ['one', 'One'],
+    ['two', 'Two'],
+  ];
+  const result = getSortComparator(choices, undefined, 'value', undefined);
+  expect(result).toBeUndefined();
+});
+
+test('returns undefined for non-numeric options', () => {
+  const options = [
+    { value: 'one', label: 'One' },
+    { value: 'two', label: 'Two' },
+  ];
+  const result = getSortComparator(undefined, options, 'value', undefined);
+  expect(result).toBeUndefined();
+});
+
+test('returns undefined when no choices or options provided', () => {
+  const result = getSortComparator(undefined, undefined, 'value', undefined);
+  expect(result).toBeUndefined();
+});
+
+test('applies numeric sorting to choices automatically', () => {
+  const numericChoices = [
+    [3, 'Three'],
+    [1, 'One'],
+    [2, 'Two'],
+  ];
+  renderSelectControl({ choices: numericChoices });
+
+  // The SelectControl should receive a sortComparator for numeric values
+  // This is tested by verifying the component renders without errors
+  // antd v6 places the aria-label on the Select's input element.
+  const selectorWrapper = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  expect(selectorWrapper).toBeInTheDocument();
+});
+
+test('applies numeric sorting to options automatically', () => {
+  const numericOptions = [
+    { value: 3, label: 'Three' },
+    { value: 1, label: 'One' },
+    { value: 2, label: 'Two' },
+  ];
+  renderSelectControl({ options: numericOptions, choices: undefined });
+
+  // The SelectControl should receive a sortComparator for numeric values
+  // antd v6 places the aria-label on the Select's input element.
+  const selectorWrapper = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  expect(selectorWrapper).toBeInTheDocument();
+});
+
+test('does not apply numeric sorting to mixed-type choices', () => {
+  const mixedChoices = [
+    [1, 'One'],
+    ['two', 'Two'],
+    [3, 'Three'],
+  ];
+  renderSelectControl({ choices: mixedChoices });
+
+  // Should render without errors and not apply numeric sorting
+  // antd v6 places the aria-label on the Select's input element.
+  const selectorWrapper = screen.getByLabelText('Row Limit', {
+    selector: 'input',
+  });
+  expect(selectorWrapper).toBeInTheDocument();
+});
+
+test('respects explicit sortComparator over automatic numeric sorting', () => {
+  const numericChoices = [
+    [3, 'Three'],
+    [1, 'One'],
+    [2, 'Two'],
+  ];
+  const explicitComparator = jest.fn((a, b) => a.label.localeCompare(b.label));
+
+  renderSelectControl({
+    choices: numericChoices,
+    sortComparator: explicitComparator,
   });
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('render', () => {
-    test('renders with Select by default', () => {
-      renderSelectControl();
-      const selectorInput = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      const selectorWrapper = selectorInput.closest(
-        '.ant-select',
-      ) as HTMLElement;
-      expect(selectorWrapper).toBeInTheDocument();
-      expect(selectorInput).toBeInTheDocument();
-    });
-
-    test('renders as mode multiple', async () => {
-      renderSelectControl({ multi: true });
-      const selectorInput = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      const selectorWrapper = selectorInput.closest(
-        '.ant-select',
-      ) as HTMLElement;
-      expect(selectorWrapper).toBeInTheDocument();
-      expect(selectorInput).toBeInTheDocument();
-      await user.click(selectorInput);
-      expect(screen.getByText('Select all (3)')).toBeInTheDocument();
-    });
-
-    test('renders with allowNewOptions when freeForm', async () => {
-      renderSelectControl({ freeForm: true });
-      const selectorInput = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      const selectorWrapper = selectorInput.closest(
-        '.ant-select',
-      ) as HTMLElement;
-      expect(selectorWrapper).toBeInTheDocument();
-      expect(selectorInput).toBeInTheDocument();
-
-      // Expect a new option to be selectable.
-      await user.click(selectorInput);
-      await user.type(selectorInput, 'a new option');
-      act(() => jest.runAllTimers());
-      // antd v6 renders the dropdown options in a portal outside the
-      // .ant-select wrapper, so query the whole document.
-      expect(screen.getByRole('option')).toHaveTextContent('a new option');
-    });
-
-    test('renders with allowNewOptions=false when freeForm=false', async () => {
-      const container = renderSelectControl({ freeForm: false });
-      const selectorInput = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      const selectorWrapper = selectorInput.closest(
-        '.ant-select',
-      ) as HTMLElement;
-      expect(selectorWrapper).toBeInTheDocument();
-      expect(selectorInput).toBeInTheDocument();
-
-      // Expect no new option to be selectable.
-      await user.click(selectorInput);
-      await user.type(selectorInput, 'a new option');
-      act(() => jest.advanceTimersByTime(300));
-
-      expect(
-        container.querySelector('[role="option"]'),
-      ).not.toBeInTheDocument();
-      // antd v6 renders the empty-state ("No data") in a portal outside the
-      // .ant-select wrapper, so query the whole document.
-      expect(
-        screen.getByText('No data', { selector: 'div' }),
-      ).toBeInTheDocument();
-    });
-
-    test('renders with tokenSeparators', async () => {
-      renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
-      const selectorInput = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      const selectorWrapper = selectorInput.closest(
-        '.ant-select',
-      ) as HTMLElement;
-      expect(selectorWrapper).toBeInTheDocument();
-      expect(selectorInput).toBeInTheDocument();
-
-      await user.click(selectorInput);
-      const paste = createEvent.paste(selectorInput, {
-        clipboardData: {
-          getData: () => '1 year ago;1 week ago',
-        },
-      });
-      fireEvent(selectorInput, paste);
-      const yearOption = screen.getByRole('option', { name: /1 year ago/i });
-      expect(yearOption).toBeInTheDocument();
-      expect(yearOption).toHaveAttribute('aria-selected', 'true');
-      const weekOption = screen.getByRole('option', { name: /1 week ago/ });
-      expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
-    });
-
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('empty placeholder', () => {
-      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-      describe('withMulti', () => {
-        test('does not show a placeholder if there are no choices', () => {
-          renderSelectControl({
-            choices: [],
-            multi: true,
-            placeholder: 'add something',
-          });
-          expect(screen.queryByRole('option')).not.toBeInTheDocument();
-        });
-      });
-      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-      describe('withSingleChoice', () => {
-        test('does not show a placeholder if there are no choices', async () => {
-          const container = renderSelectControl({
-            choices: [],
-            multi: false,
-            placeholder: 'add something',
-          });
-          expect(
-            container.querySelector('[role="option"]'),
-          ).not.toBeInTheDocument();
-        });
-      });
-      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-      describe('all choices selected', () => {
-        test('does not show a placeholder', () => {
-          const container = renderSelectControl({
-            multi: true,
-            value: ['today', '1 year ago'],
-          });
-          expect(
-            container.querySelector('[role="option"]'),
-          ).not.toBeInTheDocument();
-          expect(screen.queryByText('Select ...')).not.toBeInTheDocument();
-        });
-      });
-    });
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('when select is multi', () => {
-      test('does not render the placeholder when a selection has been made', () => {
-        renderSelectControl({
-          multi: true,
-          value: ['today'],
-          placeholder: 'add something',
-        });
-        expect(screen.queryByText('add something')).not.toBeInTheDocument();
-      });
-    });
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('when select is single', () => {
-      test('does not render the placeholder when a selection has been made', () => {
-        renderSelectControl({
-          multi: true,
-          value: 50,
-          placeholder: 'add something',
-        });
-        expect(screen.queryByText('add something')).not.toBeInTheDocument();
-      });
-    });
+  // antd v6 places the aria-label on the Select's input element.
+  const selectorWrapper = screen.getByLabelText('Row Limit', {
+    selector: 'input',
   });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('getOptions', () => {
-    test('returns the correct options', () => {
-      expect(innerGetOptions(defaultProps)).toEqual(options);
-    });
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('areAllValuesNumbers', () => {
-    test('returns true when all values are numbers (array format)', () => {
-      const items = [
-        [1, 'One'],
-        [2, 'Two'],
-        [3, 'Three'],
-      ];
-      expect(areAllValuesNumbers(items)).toBe(true);
-    });
-
-    test('returns false when some values are not numbers (array format)', () => {
-      const items = [
-        [1, 'One'],
-        ['two', 'Two'],
-        [3, 'Three'],
-      ];
-      expect(areAllValuesNumbers(items)).toBe(false);
-    });
-
-    test('returns true when all values are numbers (object format)', () => {
-      const items = [
-        { value: 1, label: 'One' },
-        { value: 2, label: 'Two' },
-        { value: 3, label: 'Three' },
-      ];
-      expect(areAllValuesNumbers(items)).toBe(true);
-    });
-
-    test('returns false when some values are not numbers (object format)', () => {
-      const items = [
-        { value: 1, label: 'One' },
-        { value: 'two', label: 'Two' },
-        { value: 3, label: 'Three' },
-      ];
-      expect(areAllValuesNumbers(items)).toBe(false);
-    });
-
-    test('returns true when all values are numbers (primitive format)', () => {
-      const items = [1, 2, 3];
-      expect(areAllValuesNumbers(items)).toBe(true);
-    });
-
-    test('returns false when some values are not numbers (primitive format)', () => {
-      const items = [1, 'two', 3];
-      expect(areAllValuesNumbers(items)).toBe(false);
-    });
-
-    test('works with custom valueKey', () => {
-      const items = [
-        { id: 1, label: 'One' },
-        { id: 2, label: 'Two' },
-        { id: 3, label: 'Three' },
-      ];
-      expect(areAllValuesNumbers(items, 'id')).toBe(true);
-    });
-
-    test('returns false for empty items', () => {
-      expect(areAllValuesNumbers([])).toBe(false);
-      // @ts-expect-error testing invalid input
-      expect(areAllValuesNumbers(null)).toBe(false);
-      // @ts-expect-error testing invalid input
-      expect(areAllValuesNumbers(undefined)).toBe(false);
-    });
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('getSortComparator', () => {
-    const mockExplicitComparator = (
-      a: { label: string },
-      b: { label: string },
-    ) => a.label.localeCompare(b.label);
-
-    test('returns explicit comparator when provided', () => {
-      const choices = [
-        [1, 'One'],
-        [2, 'Two'],
-      ];
-      const result = getSortComparator(
-        choices,
-        undefined,
-        'value',
-        mockExplicitComparator,
-      );
-      expect(result).toBe(mockExplicitComparator);
-    });
-
-    test('returns number comparator for numeric choices', () => {
-      const choices = [
-        [1, 'One'],
-        [2, 'Two'],
-      ];
-      const result = getSortComparator(choices, undefined, 'value', undefined);
-      expect(typeof result).toBe('function');
-      expect(result).not.toBe(mockExplicitComparator);
-    });
-
-    test('returns number comparator for numeric options', () => {
-      const options = [
-        { value: 1, label: 'One' },
-        { value: 2, label: 'Two' },
-      ];
-      const result = getSortComparator(undefined, options, 'value', undefined);
-      expect(typeof result).toBe('function');
-      expect(result).not.toBe(mockExplicitComparator);
-    });
-
-    test('prioritizes options over choices when both are numeric', () => {
-      const choices = [
-        [1, 'One'],
-        [2, 'Two'],
-      ];
-      const options = [
-        { value: 3, label: 'Three' },
-        { value: 4, label: 'Four' },
-      ];
-      const result = getSortComparator(choices, options, 'value', undefined);
-      expect(typeof result).toBe('function');
-    });
-
-    test('returns undefined for non-numeric choices', () => {
-      const choices = [
-        ['one', 'One'],
-        ['two', 'Two'],
-      ];
-      const result = getSortComparator(choices, undefined, 'value', undefined);
-      expect(result).toBeUndefined();
-    });
-
-    test('returns undefined for non-numeric options', () => {
-      const options = [
-        { value: 'one', label: 'One' },
-        { value: 'two', label: 'Two' },
-      ];
-      const result = getSortComparator(undefined, options, 'value', undefined);
-      expect(result).toBeUndefined();
-    });
-
-    test('returns undefined when no choices or options provided', () => {
-      const result = getSortComparator(
-        undefined,
-        undefined,
-        'value',
-        undefined,
-      );
-      expect(result).toBeUndefined();
-    });
-  });
-
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('numeric sorting integration', () => {
-    test('applies numeric sorting to choices automatically', () => {
-      const numericChoices = [
-        [3, 'Three'],
-        [1, 'One'],
-        [2, 'Two'],
-      ];
-      renderSelectControl({ choices: numericChoices });
-
-      // The SelectControl should receive a sortComparator for numeric values
-      // This is tested by verifying the component renders without errors
-      // antd v6 places the aria-label on the Select's input element.
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      expect(selectorWrapper).toBeInTheDocument();
-    });
-
-    test('applies numeric sorting to options automatically', () => {
-      const numericOptions = [
-        { value: 3, label: 'Three' },
-        { value: 1, label: 'One' },
-        { value: 2, label: 'Two' },
-      ];
-      renderSelectControl({ options: numericOptions, choices: undefined });
-
-      // The SelectControl should receive a sortComparator for numeric values
-      // antd v6 places the aria-label on the Select's input element.
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      expect(selectorWrapper).toBeInTheDocument();
-    });
-
-    test('does not apply numeric sorting to mixed-type choices', () => {
-      const mixedChoices = [
-        [1, 'One'],
-        ['two', 'Two'],
-        [3, 'Three'],
-      ];
-      renderSelectControl({ choices: mixedChoices });
-
-      // Should render without errors and not apply numeric sorting
-      // antd v6 places the aria-label on the Select's input element.
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      expect(selectorWrapper).toBeInTheDocument();
-    });
-
-    test('respects explicit sortComparator over automatic numeric sorting', () => {
-      const numericChoices = [
-        [3, 'Three'],
-        [1, 'One'],
-        [2, 'Two'],
-      ];
-      const explicitComparator = jest.fn((a, b) =>
-        a.label.localeCompare(b.label),
-      );
-
-      renderSelectControl({
-        choices: numericChoices,
-        sortComparator: explicitComparator,
-      });
-
-      // antd v6 places the aria-label on the Select's input element.
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'input',
-      });
-      expect(selectorWrapper).toBeInTheDocument();
-    });
-  });
+  expect(selectorWrapper).toBeInTheDocument();
 });
 
 // Control-path regression proof for the deck.gl "Legend Position: None" bug:

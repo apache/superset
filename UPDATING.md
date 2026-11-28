@@ -24,6 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `get_table` query failures now populate `error_code`. Untyped dataset
+  engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
+  specific `SupersetErrorType` code for typed errors, while guests receive
+  `GENERIC_BACKEND_ERROR` for unsafe typed errors. Semantic provider faults
+  and transport outages use `GENERIC_BACKEND_ERROR`. Rejected semantic
+  queries use one of
+  `UNSUPPORTED_QUERY`, `UNSUPPORTED_OFFSET`,
+  `UNSUPPORTED_GROUP_OTHERS_METRIC`, `INVALID_FILTER`, or `INVALID_QUERY`.
+  Malformed query results use `INVALID_QUERY_RESULT`; host-authored access and
+  OAuth errors retain their Superset error codes, except a provider-raised
+  OAuth error on a semantic view, which uses `GENERIC_BACKEND_ERROR`. These
+  codes are intended to remain stable for MCP clients. Semantic rejections
+  previously reported `error_type="QueryError"` and now report
+  `"QueryValidationError"`; host query validation reports `"ValidationError"`.
+  Transport outages remain `"QueryError"`. Raw `SQLAlchemyError` failures
+  previously reported `"DatabaseError"` and now report `"QueryError"`.
+  The old `"Query execution failed:"` and `"Database error:"` message prefixes
+  are removed. Clients matching error types or message prefixes should handle
+  these changes.
+
 - Provider tests inheriting `SemanticProviderConformance` must supply four
   additional `semantic_query_cases`: `or_not_in`, `or_not_equals`, `or_not_like`,
   and `or_not_ilike`. These check the existing normalized exclusion-filter
@@ -519,7 +539,7 @@ assists people when migrating to a new version.
   validation errors. Semantic result keys include a
   filter-protocol version, and chart-backed annotation results also receive a new
   cache discriminator: expect a one-time cold cache after upgrading. See the
-  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  [semantic filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions)
   for NULL value typing, mandatory `OrFilter` rendering and guarded loading on
   older SDKs.
 

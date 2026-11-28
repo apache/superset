@@ -74,104 +74,101 @@ jest.mock('src/dashboard/util/permissionUtils', () => ({
   isUserAdmin: () => true,
 }));
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('GroupsList', () => {
-  const renderComponent = async () => {
-    await act(async () => {
-      render(
-        <MemoryRouter>
-          <QueryParamProvider adapter={ReactRouter5Adapter}>
-            <GroupsList user={mockUser} />
-          </QueryParamProvider>
-        </MemoryRouter>,
-        { useRedux: true, store },
-      );
-    });
-  };
+const renderComponent = async () => {
+  await act(async () => {
+    render(
+      <MemoryRouter>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <GroupsList user={mockUser} />
+        </QueryParamProvider>
+      </MemoryRouter>,
+      { useRedux: true, store },
+    );
+  });
+};
 
-  beforeEach(() => {
-    fetchMock.clearHistory();
+beforeEach(() => {
+  fetchMock.clearHistory();
+});
+
+test('renders the page', async () => {
+  await renderComponent();
+  expect(await screen.findByText('List Groups')).toBeInTheDocument();
+});
+
+test('fetches roles on load', async () => {
+  await renderComponent();
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(rolesEndpoint).length).toBeGreaterThan(
+      0,
+    );
+  });
+});
+
+test('renders add group button and triggers modal', async () => {
+  await renderComponent();
+  const addButton = screen.getByTestId('add-group-button');
+  fireEvent.click(addButton);
+  expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
+});
+
+test('renders actions column for admin', async () => {
+  await renderComponent();
+  expect(screen.getAllByText('Actions')[0]).toBeInTheDocument();
+});
+
+test('renders the filters correctly', async () => {
+  await renderComponent();
+
+  // The compact filter UI renders the first search filter as an input,
+  // and select filters as pill buttons. Only "Name" search renders inline;
+  // "Label" and "Description" searches are hidden (one search box per page).
+  expect(screen.getByTestId('filters-search')).toBeInTheDocument();
+
+  // Select filters render as compact pill buttons
+  const pills = screen.getAllByTestId('compact-filter-pill');
+  const pillLabels = pills.map(p => p.textContent ?? '');
+  expect(pillLabels.some(l => /roles/i.test(l))).toBe(true);
+  expect(pillLabels.some(l => /users/i.test(l))).toBe(true);
+});
+
+test('renders correct columns in the table', async () => {
+  await renderComponent();
+  const table = screen.getByRole('table');
+
+  expect(await within(table).findByTitle('Name')).toBeInTheDocument();
+  expect(await within(table).findByTitle('Label')).toBeInTheDocument();
+  expect(await within(table).findByTitle('Roles')).toBeInTheDocument();
+});
+
+test('opens add group modal on button click', async () => {
+  await renderComponent();
+  const addButton = screen.getByTestId('add-group-button');
+  fireEvent.click(addButton);
+
+  expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
+});
+
+test('opens edit modal on edit button click', async () => {
+  fetchMock.removeRoute(groupsEndpoint);
+  fetchMock.get('glob:*/security/groups/?*', {
+    result: [
+      {
+        id: 1,
+        name: 'Editors',
+        label: 'editors',
+        description: 'Group for editors',
+        roles: mockRoles,
+        users: mockUsers,
+      },
+    ],
+    count: 1,
   });
 
-  test('renders the page', async () => {
-    await renderComponent();
-    expect(await screen.findByText('List Groups')).toBeInTheDocument();
-  });
+  await renderComponent();
 
-  test('fetches roles on load', async () => {
-    await renderComponent();
-    await waitFor(() => {
-      expect(fetchMock.callHistory.calls(rolesEndpoint).length).toBeGreaterThan(
-        0,
-      );
-    });
-  });
+  const editButtons = await screen.findAllByTestId('group-list-edit-action');
+  fireEvent.click(editButtons[0]);
 
-  test('renders add group button and triggers modal', async () => {
-    await renderComponent();
-    const addButton = screen.getByTestId('add-group-button');
-    fireEvent.click(addButton);
-    expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
-  });
-
-  test('renders actions column for admin', async () => {
-    await renderComponent();
-    expect(screen.getAllByText('Actions')[0]).toBeInTheDocument();
-  });
-
-  test('renders the filters correctly', async () => {
-    await renderComponent();
-
-    // The compact filter UI renders the first search filter as an input,
-    // and select filters as pill buttons. Only "Name" search renders inline;
-    // "Label" and "Description" searches are hidden (one search box per page).
-    expect(screen.getByTestId('filters-search')).toBeInTheDocument();
-
-    // Select filters render as compact pill buttons
-    const pills = screen.getAllByTestId('compact-filter-pill');
-    const pillLabels = pills.map(p => p.textContent ?? '');
-    expect(pillLabels.some(l => /roles/i.test(l))).toBe(true);
-    expect(pillLabels.some(l => /users/i.test(l))).toBe(true);
-  });
-
-  test('renders correct columns in the table', async () => {
-    await renderComponent();
-    const table = screen.getByRole('table');
-
-    expect(await within(table).findByTitle('Name')).toBeInTheDocument();
-    expect(await within(table).findByTitle('Label')).toBeInTheDocument();
-    expect(await within(table).findByTitle('Roles')).toBeInTheDocument();
-  });
-
-  test('opens add group modal on button click', async () => {
-    await renderComponent();
-    const addButton = screen.getByTestId('add-group-button');
-    fireEvent.click(addButton);
-
-    expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
-  });
-
-  test('opens edit modal on edit button click', async () => {
-    fetchMock.removeRoute(groupsEndpoint);
-    fetchMock.get('glob:*/security/groups/?*', {
-      result: [
-        {
-          id: 1,
-          name: 'Editors',
-          label: 'editors',
-          description: 'Group for editors',
-          roles: mockRoles,
-          users: mockUsers,
-        },
-      ],
-      count: 1,
-    });
-
-    await renderComponent();
-
-    const editButtons = await screen.findAllByTestId('group-list-edit-action');
-    fireEvent.click(editButtons[0]);
-
-    expect(await screen.findByTestId('Edit Group-modal')).toBeInTheDocument();
-  });
+  expect(await screen.findByTestId('Edit Group-modal')).toBeInTheDocument();
 });

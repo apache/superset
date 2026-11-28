@@ -59,31 +59,28 @@ const renderAndWait = (props = {}) =>
     useRouter: true,
   });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ExecutionLog', () => {
-  beforeAll(() => renderAndWait());
+beforeAll(() => renderAndWait());
 
-  test('renders with a ListView', () => {
-    expect(screen.getByText('Back to all')).toHaveAttribute(
-      'href',
-      '/alert/list/',
-    );
-    expect(screen.getByTestId('execution-log-list-view')).toBeVisible();
-  });
+test('renders with a ListView', () => {
+  expect(screen.getByText('Back to all')).toHaveAttribute(
+    'href',
+    '/alert/list/',
+  );
+  expect(screen.getByTestId('execution-log-list-view')).toBeVisible();
+});
 
-  test('fetches report/alert', () => {
-    const callsQ = fetchMock.callHistory.calls(/report\/1/);
-    expect(callsQ).toHaveLength(2);
-    expect(callsQ[1].url).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/report/1"`,
-    );
-  });
+test('fetches report/alert', () => {
+  const callsQ = fetchMock.callHistory.calls(/report\/1/);
+  expect(callsQ).toHaveLength(2);
+  expect(callsQ[1].url).toMatchInlineSnapshot(
+    `"http://localhost/api/v1/report/1"`,
+  );
+});
 
-  test('fetches execution logs', () => {
-    const callsQ = fetchMock.callHistory.calls(/report\/1\/log/);
-    expect(callsQ).toHaveLength(1);
-    expect(callsQ[0].url).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/report/1/log/?q=(order_column:start_dttm,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
+test('fetches execution logs', () => {
+  const callsQ = fetchMock.callHistory.calls(/report\/1\/log/);
+  expect(callsQ).toHaveLength(1);
+  expect(callsQ[0].url).toMatchInlineSnapshot(
+    `"http://localhost/api/v1/report/1/log/?q=(order_column:start_dttm,order_direction:desc,page:0,page_size:25)"`,
+  );
 });
