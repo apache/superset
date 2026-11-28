@@ -1112,16 +1112,19 @@ test('keyboard: forward Tab leaves an empty area in the last row and a last step
   parentCell(container, 'row-1', 'channel').focus();
   expect(await walk(3)).toEqual([
     'parent combobox Page Size:',
-    'parent li 1',
-    'parent li 2',
+    'parent button Page 1',
+    'parent button Page 2',
   ]);
   expect(await walk(3, true)).toEqual([
-    'parent li 1',
+    'parent button Page 1',
     'parent combobox Page Size:',
     'parent gridcell Chat',
   ]);
   container.querySelector<HTMLElement>('.ag-full-width-row')!.focus();
-  expect(await walk(2)).toEqual(['parent combobox Page Size:', 'parent li 1']);
+  expect(await walk(2)).toEqual([
+    'parent combobox Page Size:',
+    'parent button Page 1',
+  ]);
 
   await userEvent.click(parentButton(container, 1));
   await userEvent.click(parentButton(container, 0));
