@@ -24,7 +24,7 @@ import { LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import { logEvent } from 'src/logger/actions';
 import type { User } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import App, { pageScrollShellCss } from './App';
+import App, { mainContentFocusCss, pageScrollShellCss } from './App';
 
 jest.mock('src/setup/setupApp', () => jest.fn());
 jest.mock('src/setup/setupPlugins', () => jest.fn());
@@ -155,6 +155,31 @@ test('does not log spa_navigation for an anonymous user', () => {
   } finally {
     user.isAnonymous = false;
   }
+});
+
+// WCAG 2.4.1 (Bypass Blocks): keyboard users need a link ahead of the
+// navigation that moves focus straight to the page content.
+test('renders a skip link before the content that focuses the main landmark', () => {
+  const { unmount } = render(<App />);
+  const skipLink = screen.getByRole('link', { name: 'Skip to main content' });
+  const main = screen.getByRole('main');
+
+  expect(main).toHaveAttribute('id', 'main-content');
+  expect(skipLink).toHaveAttribute('href', '#main-content');
+  expect(
+    skipLink.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+
+  fireEvent.click(skipLink);
+  expect(main).toHaveFocus();
+  unmount();
+});
+
+// Programmatic focus on the main landmark should not flash an outline around
+// the whole page content.
+test('the main landmark hides the outline of its programmatic focus', () => {
+  expect(mainContentFocusCss.styles).toMatch(/\[tabindex='-1'\]:focus/);
+  expect(mainContentFocusCss.styles).toMatch(/outline:\s*none/);
 });
 
 // Locks in the page-scroll shell's CSS contract (superset#44867). #app is a

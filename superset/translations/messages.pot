@@ -13973,6 +13973,9 @@ msgstr ""
 msgid "Skip spaces after delimiter"
 msgstr ""
 
+msgid "Skip to main content"
+msgstr ""
+
 #, python-format
 msgid "Skipped %d system themes that cannot be deleted"
 msgstr ""
