@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import time
 from datetime import datetime
 from unittest import mock
 
 import pytest
 
 from superset.common.utils.time_range_utils import (
+    get_axis_temporal_columns,
     get_since_until_from_query_object,
     get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
@@ -222,4 +224,26 @@ def test__since_until_from_adhoc_filters(dummy_query_object):
     assert get_since_until_from_query_object(dummy_query_object) == (
         datetime(2001, 1, 1, 0, 0, 0),
         datetime(2002, 1, 1, 0, 0, 0),
+    )
+
+
+@pytest.mark.parametrize("opener", ['"', "`", "["])
+def test_axis_columns_scan_an_unterminated_quote_in_linear_time(opener: str) -> None:
+    """A client-supplied axis with unterminated quotes does not stall the scan."""
+    axis: AdhocColumn = {"label": "day", "sqlExpression": opener * 40_000 + " ds"}
+    started: float = time.perf_counter()
+    assert get_axis_temporal_columns(axis, {"ds"}) == ("ds",)
+    assert time.perf_counter() - started < 1
+
+
+def test_axis_columns_read_quoted_names() -> None:
+    """Quoted, backticked and bracketed names resolve to their datetime columns."""
+    axis: AdhocColumn = {
+        "label": "day",
+        "sqlExpression": 'COALESCE("ds", `created_at`, [shipped at], country)',
+    }
+    assert get_axis_temporal_columns(axis, {"ds", "created_at", "shipped at"}) == (
+        "ds",
+        "created_at",
+        "shipped at",
     )

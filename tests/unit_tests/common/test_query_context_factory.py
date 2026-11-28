@@ -1761,3 +1761,25 @@ def test_cross_filter_range_lands_on_the_cross_filtered_column() -> None:
         ("created_at", "Last year"),
         ("ds", bucket),
     ]
+
+
+def test_stored_query_with_an_x_axis_key_is_accepted() -> None:
+    """A stored query dict carrying ``x_axis`` does not clash with the form data's."""
+    query = _create(
+        {
+            "x_axis": "created_at",
+            "columns": [
+                {"columnType": "BASE_AXIS", "label": "ds", "sqlExpression": "ds"}
+            ],
+            "time_range": "2024-01-01 : 2025-01-01",
+            "filters": [
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "Last year"},
+            ],
+        },
+        {"x_axis": "ds"},
+    )
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("ds", "2024-01-01 : 2025-01-01"),
+        ("created_at", "Last year"),
+    ]

@@ -99,10 +99,12 @@ from superset.common.grouping_sets import (
 )
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
+    get_axis_temporal_columns,
     get_column_identifiers,
     get_since_until_from_query_object,
     get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
+    get_temporal_column_names,
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
@@ -3857,30 +3859,57 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Helper method to reliably determine the temporal column for filtering.
 
-        This method tries multiple strategies to find the correct temporal column:
-        1. Use the column from existing TEMPORAL_RANGE filter
+        The column is the query's time column, chosen as the main query chooses
+        it, so that a comparison shifts the range the main query applied:
+        1. The column of a TEMPORAL_RANGE filter on the time column (granularity),
+           the x-axis, or a datetime column the x-axis expression reads
         2. Use explicitly set granularity
-        3. Use x_axis_label if it exists
+        3. The column of a TEMPORAL_RANGE filter carrying the query's time range
+        4. The column of the first TEMPORAL_RANGE filter
+        5. Use x_axis_label if it exists
 
         :param query_object: The query object
         :param x_axis_label: The x-axis label from the query
         :return: The name of the temporal column, or None if not found
         """
-        # Strategy 1: Use the column from existing TEMPORAL_RANGE filter
-        if query_object.filter:
-            for flt in query_object.filter:
-                if flt.get("op") == FilterOperator.TEMPORAL_RANGE:
-                    col = flt.get("col")
-                    if isinstance(col, str):
-                        return col
-                    elif isinstance(col, dict) and col.get("sqlExpression"):
-                        return str(col.get("label") or col.get("sqlExpression"))
-
-        # Strategy 2: Use explicitly set granularity
-        if query_object.granularity:
+        temporal_filters: list[QueryObjectFilterClause] = [
+            flt
+            for flt in query_object.filter or []
+            if flt.get("op") == FilterOperator.TEMPORAL_RANGE
+        ]
+        base_axes = get_base_axis_columns(query_object.columns)
+        time_columns: set[str] = {
+            *get_column_identifiers(query_object.granularity),
+            *(
+                identifier
+                for axis in base_axes[:1]
+                for identifier in (
+                    *get_column_identifiers(axis),
+                    *get_axis_temporal_columns(axis, get_temporal_column_names(self)),
+                )
+            ),
+        }
+        candidates: list[QueryObjectFilterClause] = [
+            flt
+            for flt in temporal_filters
+            if time_columns.intersection(get_column_identifiers(flt.get("col")))
+        ]
+        if not candidates and query_object.granularity:
             return query_object.granularity
+        if not candidates and query_object.time_range:
+            candidates = [
+                flt
+                for flt in temporal_filters
+                if flt.get("val") == query_object.time_range
+            ]
+        for flt in candidates or temporal_filters:
+            col = flt.get("col")
+            if isinstance(col, str):
+                return col
+            elif isinstance(col, dict) and col.get("sqlExpression"):
+                return str(col.get("label") or col.get("sqlExpression"))
 
-        # Strategy 3: Use x_axis_label if it exists
+        # Use x_axis_label if it exists
         if x_axis_label:
             return x_axis_label
 

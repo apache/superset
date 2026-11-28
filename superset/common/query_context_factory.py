@@ -149,8 +149,14 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     force_query=force,
                     server_pagination=server_pagination,
                     preserve_null_row_limit=preserve_null_row_limit,
+                    # The chart's x-axis is read from the form data; an
+                    # ``x_axis`` key in a stored query dict is ignored.
                     x_axis=(form_data or {}).get("x_axis"),
-                    **query_obj,
+                    **{
+                        key: value
+                        for key, value in query_obj.items()
+                        if key != "x_axis"
+                    },
                 ),
             )
             for query_obj in queries

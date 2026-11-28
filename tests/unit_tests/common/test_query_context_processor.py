@@ -3781,10 +3781,28 @@ def _captured_offset_filters(
     filters: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Run one time offset and return the filters of the comparison query."""
+    return _captured_offset_query(processor, offset, column, index, filters)["filter"]
+
+
+def _captured_offset_query(
+    processor: QueryContextProcessor,
+    offset: str,
+    column: dict[str, Any] | str,
+    index: pd.Series,
+    filters: list[dict[str, Any]],
+    granularity: str | None = None,
+    temporal_columns: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Run one time offset and return the comparison query."""
+    from types import SimpleNamespace
+
     from superset.common.query_object import QueryObject
     from superset.models.helpers import ExploreMixin
 
     datasource: Any = processor._qc_datasource
+    datasource.columns = [
+        SimpleNamespace(column_name=name, is_dttm=True) for name in temporal_columns
+    ]
     label: str = column if isinstance(column, str) else column["label"]
     for method in (
         "processing_time_offsets",
@@ -3798,6 +3816,7 @@ def _captured_offset_filters(
         datasource=MagicMock(),
         columns=[cast(Any, column)],
         metrics=["sum__num"],
+        granularity=granularity,
         time_range="2024-04-01 : 2024-07-01",
         time_offsets=[offset],
         filters=cast(Any, filters),
@@ -3831,7 +3850,7 @@ def _captured_offset_filters(
             None,
             False,
         )
-    return captured[0]["filter"]
+    return captured[0]
 
 
 _SECONDARY_RANGE: dict[str, Any] = {
@@ -3879,3 +3898,101 @@ def test_relative_offset_shifts_only_the_time_range(
         ("ds", "2023-04-01 00:00:00 : 2023-07-01 00:00:00"),
         ("created_at", "2000-01-01 : 2001-01-01"),
     ]
+
+
+_X_AXIS_RANGE: dict[str, Any] = {
+    "col": "ds",
+    "op": "TEMPORAL_RANGE",
+    "val": "2024-04-01 : 2024-07-01",
+}
+
+
+def test_date_range_offset_replaces_the_x_axis_range_listed_after_another(
+    processor: QueryContextProcessor,
+) -> None:
+    """The compared column is the x-axis, not the first temporal filter listed."""
+    filters = _captured_offset_filters(
+        processor,
+        "2024-01-01 : 2024-04-01",
+        {"columnType": "BASE_AXIS", "label": "ds", "sqlExpression": "ds"},
+        pd.Series(pd.to_datetime(["2024-04-01", "2024-05-01"])),
+        [dict(_SECONDARY_RANGE), dict(_X_AXIS_RANGE)],
+    )
+    assert [(flt["col"], flt["val"]) for flt in filters] == [
+        ("created_at", "2000-01-01 : 2001-01-01"),
+        ("ds", "2024-01-01 00:00:00 : 2024-04-01 00:00:00"),
+    ]
+
+
+def test_relative_offset_shifts_the_x_axis_range_listed_after_another(
+    processor: QueryContextProcessor,
+) -> None:
+    """Shifting another column's range would leave the series empty."""
+    query = _captured_offset_query(
+        processor,
+        "1 year ago",
+        {"columnType": "BASE_AXIS", "label": "ds", "sqlExpression": "ds"},
+        pd.Series(pd.to_datetime(["2024-04-01", "2024-05-01"])),
+        [dict(_SECONDARY_RANGE), dict(_X_AXIS_RANGE)],
+    )
+    assert query["granularity"] == "ds"
+    assert (query["from_dttm"], query["to_dttm"]) == (
+        datetime(2023, 4, 1),
+        datetime(2023, 7, 1),
+    )
+    assert [(flt["col"], flt["val"]) for flt in query["filter"]] == [
+        ("created_at", "2000-01-01 : 2001-01-01"),
+        ("ds", "2023-04-01 00:00:00 : 2023-07-01 00:00:00"),
+    ]
+
+
+def test_offset_shifts_the_time_column_not_another_datetime_range(
+    processor: QueryContextProcessor,
+) -> None:
+    """With a Time Column and a categorical axis, other ranges are kept."""
+    query = _captured_offset_query(
+        processor,
+        "1 year ago",
+        "country",
+        pd.Series(["a", "b"]),
+        [dict(_SECONDARY_RANGE)],
+        granularity="ds",
+    )
+    assert query["granularity"] == "ds"
+    assert [(flt["col"], flt["val"]) for flt in query["filter"]] == [
+        ("created_at", "2000-01-01 : 2001-01-01"),
+    ]
+
+
+def test_date_range_offset_bounds_the_column_a_custom_sql_axis_reads(
+    processor: QueryContextProcessor,
+) -> None:
+    """A Custom SQL x-axis compares on the datetime column it reads."""
+    query = _captured_offset_query(
+        processor,
+        "2024-01-01 : 2024-04-01",
+        {"columnType": "BASE_AXIS", "label": "day", "sqlExpression": "DATE(ds)"},
+        pd.Series(pd.to_datetime(["2024-04-01", "2024-05-01"])),
+        [dict(_SECONDARY_RANGE), dict(_X_AXIS_RANGE)],
+        temporal_columns=("ds", "created_at"),
+    )
+    assert [(flt["col"], flt["val"]) for flt in query["filter"]] == [
+        ("created_at", "2000-01-01 : 2001-01-01"),
+        ("ds", "2024-01-01 00:00:00 : 2024-04-01 00:00:00"),
+    ]
+
+
+def test_get_temporal_column_for_filter_keeps_the_first_filter_fallback(
+    processor: QueryContextProcessor,
+) -> None:
+    """Without a known time column, the first temporal filter is compared."""
+    query_object = MagicMock(
+        filter=[dict(_SECONDARY_RANGE), dict(_X_AXIS_RANGE)],
+        columns=["country"],
+        granularity=None,
+        time_range=None,
+    )
+    datasource: Any = processor._qc_datasource
+    assert (
+        datasource._get_temporal_column_for_filter(query_object, None) == "created_at"
+    )
