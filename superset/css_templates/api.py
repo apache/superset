@@ -33,6 +33,7 @@ from superset.commands.css.exceptions import (
 )
 from superset.commands.css.export_css import ExportCssTemplatesCommand
 from superset.commands.css.importers.dispatcher import ImportCssTemplatesCommand
+from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.css_templates.filters import CssTemplateAllTextFilter
 from superset.css_templates.schemas import (
@@ -40,7 +41,7 @@ from superset.css_templates.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
-from superset.css_templates.utils import read_css_file
+from superset.css_templates.utils import CSS_IMPORT_MAX_FILES, read_css_file
 from superset.extensions import event_logger
 from superset.models.core import CssTemplate
 from superset.utils.core import send_export_zip, write_zip_entry
@@ -334,6 +335,10 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
         ]
         if not uploads:
             return self.response_400(message="At least one CSS file is required")
+        if len(uploads) > CSS_IMPORT_MAX_FILES:
+            raise IncorrectFormatError(
+                f"At most {CSS_IMPORT_MAX_FILES} CSS files can be imported at once"
+            )
 
         contents = [
             (upload.filename or "", read_css_file(upload)) for upload in uploads

@@ -27,6 +27,10 @@ CSS_FILE_EXTENSION = ".css"
 # memory used by one upload bounded.
 CSS_FILE_MAX_SIZE_BYTES = 1024 * 1024
 
+# Upper bound on the files accepted by one import. Together with
+# ``CSS_FILE_MAX_SIZE_BYTES`` it bounds the memory held by a single request.
+CSS_IMPORT_MAX_FILES = 20
+
 
 def get_base_name(file_name: str) -> str:
     """
