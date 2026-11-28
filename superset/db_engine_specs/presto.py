@@ -1091,7 +1091,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         Note that PyHive's Hive and Presto SQLAlchemy dialects do not adhere to the
         specification where the `get_table_names` method returns both real tables and
-        views. Futhermore the dialects wrongfully infer the request as schema agnostic
+        views. Furthermore the dialects wrongfully infer the request as schema agnostic
         when the schema is omitted.
 
         :param database: The database to inspect
@@ -1118,7 +1118,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         schema is used, however some dialects infer the request as schema agnostic.
 
         Note that PyHive's Presto SQLAlchemy dialect does not adhere to the
-        specification as the `get_view_names` method is not defined. Futhermore the
+        specification as the `get_view_names` method is not defined. Furthermore the
         dialect wrongfully infers the request as schema agnostic when the schema is
         omitted.
 

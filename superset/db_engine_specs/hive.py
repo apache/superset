@@ -794,9 +794,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         schema is used, however some dialects infer the request as schema agnostic.
 
         Note that PyHive's Hive SQLAlchemy dialect does not adhere to the specification
-        where the `get_view_names` method returns both real tables and views. Futhermore
-        the dialect wrongfully infers the request as schema agnostic when the schema is
-        omitted.
+        where the `get_view_names` method returns both real tables and views.
+        Furthermore the dialect wrongfully infers the request as schema agnostic when
+        the schema is omitted.
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector

@@ -120,7 +120,7 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         ],
     }
 
-    # Exasol's DATE_TRUNC function is PostgresSQL compatible
+    # Exasol's DATE_TRUNC function is PostgreSQL compatible
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",

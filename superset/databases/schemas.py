@@ -214,7 +214,7 @@ openapi_spec_methods_override = {
 
 def sqlalchemy_uri_validator(value: str) -> str:
     """
-    Validate if it's a valid SQLAlchemy URI and refuse SQLLite by default
+    Validate if it's a valid SQLAlchemy URI and refuse SQLite by default
     """
     try:
         uri = make_url_safe(value.strip())
