@@ -163,7 +163,6 @@
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.23",
     "dom-to-image-more": "^3.11.0",
-    "dom-to-pdf": "^0.3.2",
     "echarts": "^6.1.0",
     "fuse.js": "^7.5.0",
     "geolib": "^4.0.0",
@@ -180,6 +179,7 @@
     "js-levenshtein": "^1.1.6",
     "json-bigint": "^1.0.0",
     "json-stringify-pretty-compact": "^4.0.0",
+    "jspdf": "^4.2.0",
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
     "mapbox-gl": "^3.33.0",
@@ -368,7 +368,6 @@
     "core-js": "^3.38.1",
     "fast-xml-parser": "^5.8.0",
     "glob": "^14.0.2",
-    "jspdf": "^4.2.0",
     "minimatch": "^11.0.1",
     "nwsapi": "^2.2.24",
     "texture-compressor": {
