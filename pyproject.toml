@@ -106,8 +106,6 @@ dependencies = [
     "redis>=5.0.0, <9.0",
     "rich>=13.9.4",
     "rison>=2.0.1, <3.0",
-    "rich",
-
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.5.1, <0.6",
     "simplejson>=4.3.0",

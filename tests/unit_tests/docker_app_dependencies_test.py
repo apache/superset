@@ -21,6 +21,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from packaging.requirements import Requirement
 
 
 @pytest.mark.parametrize(
@@ -107,7 +108,11 @@ def test_cli_dependency_is_declared() -> None:
     """The CLI must not rely on a test environment to supply rich."""
     repository = Path(__file__).resolve().parents[2]
     project = tomllib.loads((repository / "pyproject.toml").read_text())
-    assert "rich" in project["project"]["dependencies"]
+    dependency_names = [
+        Requirement(dependency).name
+        for dependency in project["project"]["dependencies"]
+    ]
+    assert dependency_names.count("rich") == 1
 
 
 @pytest.mark.parametrize("installer_exit", [0, 1])
