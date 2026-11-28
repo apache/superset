@@ -30,18 +30,88 @@ import {
   BoxPlotChartTransformedProps,
   BoxPlotQueryFormData,
   EchartsBoxPlotChartProps,
+  Stats,
+  DEFAULT_FORM_DATA,
+  ViolinItem,
 } from './types';
 import {
   extractGroupbyLabel,
   getColtypesMapping,
   sanitizeHtml,
 } from '../utils/series';
+import type {
+  CustomSeriesRenderItem,
+  CustomSeriesRenderItemParams,
+  CustomSeriesRenderItemAPI,
+} from 'echarts';
 import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+
+// custom rendering for a violin plot based on a violin item
+const renderViolin =
+  (
+    violinItems: ViolinItem[],
+    peakForViolinItem: (violinItem: ViolinItem) => number,
+  ): CustomSeriesRenderItem =>
+  (params: CustomSeriesRenderItemParams, api: CustomSeriesRenderItemAPI) => {
+    const item = violinItems[params.dataIndex];
+    // nothing to draw for a missing item or an empty curve
+    if (!item || item.density.length === 0) {
+      return null;
+    }
+    const category = api.value(0);
+    const bandwidth = (api.size?.([1, 0]) as number[] | undefined)?.[0] ?? 0;
+
+    const [cx] = api.coord([category, item.stats.median]);
+
+    const style = {
+      fill: item.color,
+      stroke: item.color,
+      opacity: item.isFiltered ? OpacityEnum.SemiTransparent : 0.6,
+    };
+
+    // a constant group has a single density point, so draw it as a dot
+    if (item.density.length === 1) {
+      const [, y] = api.coord([category, item.density[0][0]]);
+      return {
+        type: 'circle',
+        shape: {
+          cx,
+          cy: y,
+          r: 4,
+        },
+        style,
+      };
+    }
+
+    const peak = peakForViolinItem(item) || 1;
+    // each half of the violin is at most 40% of the category width
+    const maxWidthOfTheBand = 0.4;
+    // outline of the density curve, mirrored on both sides of the centre
+    const rightOutline = item.density.map(([value, density]) => {
+      const [, y] = api.coord([category, value]);
+
+      return [cx + (density / peak) * maxWidthOfTheBand * bandwidth, y];
+    });
+
+    const leftOutline = item.density.map(([value, density]) => {
+      const [, y] = api.coord([category, value]);
+
+      return [cx - (density / peak) * maxWidthOfTheBand * bandwidth, y];
+    });
+
+    return {
+      type: 'polygon',
+      shape: {
+        points: [...rightOutline, ...leftOutline.reverse()],
+      },
+      style,
+    };
+  };
 
 export default function transformProps(
   chartProps: EchartsBoxPlotChartProps,
@@ -56,7 +126,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
   } = chartProps;
-  const { data = [] } = queriesData[0];
+  const [{ data = [] }] = queriesData;
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
@@ -75,14 +145,36 @@ export default function transformProps(
     sliceId,
     zoomable,
     yAxisSlider,
+    distributionStyle,
+    showInnerBox = DEFAULT_FORM_DATA.showInnerBox,
   } = formData as BoxPlotQueryFormData;
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
+  const isViolin = distributionStyle === 'violin';
 
-  const transformedData = data
+  const statFormatter = (name: string, stats: Stats): string => {
+    const headline = name
+      ? `<p><strong>${sanitizeHtml(name)}</strong></p>`
+      : '';
+    const statsArray = [
+      `Max: ${numberFormatter(stats.max)}`,
+      `3rd Quartile: ${numberFormatter(stats.q3)}`,
+      `Mean: ${numberFormatter(stats.mean)}`,
+      `Median: ${numberFormatter(stats.median)}`,
+      `1st Quartile: ${numberFormatter(stats.q1)}`,
+      `Min: ${numberFormatter(stats.min)}`,
+      `# Observations: ${stats.count}`,
+    ];
+    if (stats.outliers && stats.outliers.length > 0) {
+      statsArray.push(`# Outliers: ${stats.outliers.length}`);
+    }
+    return headline + statsArray.join('<br />');
+  };
+  // one item per group and metric, shared by the box, violin and outlier series
+  const items = data
     .map((datum: any) => {
       const groupbyLabel = extractGroupbyLabel({
         datum,
@@ -98,69 +190,79 @@ export default function transformProps(
         const isFiltered =
           filterState.selectedValues &&
           !filterState.selectedValues.includes(name);
+        const density = datum[`${metric}__density`] ?? [];
+
         return {
           name,
-          value: [
-            datum[`${metric}__min`],
-            datum[`${metric}__q1`],
-            datum[`${metric}__median`],
-            datum[`${metric}__q3`],
-            datum[`${metric}__max`],
-            datum[`${metric}__mean`],
-            datum[`${metric}__count`],
-            datum[`${metric}__outliers`],
-          ],
-          itemStyle: {
-            color: colorFn(groupbyLabel, sliceId),
-            opacity: isFiltered ? OpacityEnum.SemiTransparent : 0.6,
-            borderColor: colorFn(groupbyLabel, sliceId),
+          color: colorFn(groupbyLabel, sliceId),
+          isFiltered,
+          density,
+          stats: {
+            min: datum[`${metric}__min`],
+            q1: datum[`${metric}__q1`],
+            median: datum[`${metric}__median`],
+            q3: datum[`${metric}__q3`],
+            max: datum[`${metric}__max`],
+            mean: datum[`${metric}__mean`],
+            count: datum[`${metric}__count`],
+            outliers: (datum[`${metric}__outliers`] || []) as number[],
           },
         };
       });
     })
     .flatMap(row => row);
-  const outlierData = data
-    .map(datum =>
-      metricLabels.map(metric => {
-        const groupbyLabel = extractGroupbyLabel({
-          datum,
-          groupby: groupbyLabels,
-          coltypeMapping,
-          timeFormatter: getTimeFormatter(dateFormat),
-        });
-        const name =
-          metricLabels.length === 1
-            ? groupbyLabel
-            : `${groupbyLabel}, ${metric}`;
-        // Outlier data is a nested array of numbers (uncommon, therefore no need to add to DataRecordValue)
-        const outlierDatum = (datum[`${metric}__outliers`] || []) as number[];
-        const isFiltered =
-          filterState.selectedValues &&
-          !filterState.selectedValues.includes(name);
-        return {
-          name: 'outlier',
-          type: 'scatter',
-          data: outlierDatum.map(val => [name, val]),
-          tooltip: {
-            ...getDefaultTooltip(refs),
-            formatter: (param: { data: [string, number] }) => {
-              const [outlierName, stats] = param.data;
-              const headline = groupbyLabels.length
-                ? `<p><strong>${sanitizeHtml(outlierName)}</strong></p>`
-                : '';
-              return `${headline}${numberFormatter(stats)}`;
-            },
-          },
-          itemStyle: {
-            color: colorFn(groupbyLabel, sliceId),
-            opacity: isFiltered
-              ? OpacityEnum.SemiTransparent
-              : OpacityEnum.NonTransparent,
-          },
-        };
-      }),
-    )
-    .flat(2);
+
+  const violinItems = items.map(i => ({
+    ...i,
+    peak: Math.max(0, ...i.density.map((d: [number, number]) => d[1])),
+  }));
+  const transformedData = items.map(i => ({
+    name: i.name,
+    value: [
+      i.stats.min,
+      i.stats.q1,
+      i.stats.median,
+      i.stats.q3,
+      i.stats.max,
+      i.stats.mean,
+      i.stats.count,
+      i.stats.outliers,
+    ],
+    itemStyle: {
+      color: i.color,
+      opacity: i.isFiltered ? OpacityEnum.SemiTransparent : 0.6,
+      borderColor: i.color,
+    },
+  }));
+  const outlierData = items.map(i => ({
+    name: 'outlier',
+    type: 'scatter',
+    data: i.stats.outliers.map(val => [i.name, val]),
+    tooltip: {
+      ...getDefaultTooltip(refs),
+      formatter: (param: { data: [string, number] }) => {
+        const [outlierName, stats] = param.data;
+        const headline = groupbyLabels.length
+          ? `<p><strong>${sanitizeHtml(outlierName)}</strong></p>`
+          : '';
+        return `${headline}${numberFormatter(stats)}`;
+      },
+    },
+    itemStyle: {
+      color: i.color,
+      opacity: i.isFiltered
+        ? OpacityEnum.SemiTransparent
+        : OpacityEnum.NonTransparent,
+    },
+  }));
+
+  const peakForViolinItem = (violinItem: ViolinItem) => violinItem.peak;
+
+  const violinTooltip = (params: CallbackDataParams) => {
+    const item = violinItems[params.dataIndex];
+    if (!item) return '';
+    return statFormatter(item.name, item.stats);
+  };
 
   const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
     const label = extractGroupbyLabel({
@@ -195,54 +297,71 @@ export default function transformProps(
   else if (xTicksLayout === 'staggered') axisLabel = { rotate: -45 };
   else axisLabel = { show: true };
 
-  const series: BoxplotSeriesOption[] = [
-    {
-      name: 'boxplot',
-      type: 'boxplot',
-      data: transformedData,
-      tooltip: {
-        ...getDefaultTooltip(refs),
-        formatter: (param: CallbackDataParams) => {
-          // @ts-expect-error
-          const {
-            value,
-            name,
-          }: {
-            value: [
-              number,
-              number,
-              number,
-              number,
-              number,
-              number,
-              number,
-              number,
-              number[],
-            ];
-            name: string;
-          } = param;
-          const headline = name
-            ? `<p><strong>${sanitizeHtml(name)}</strong></p>`
-            : '';
-          const stats = [
-            `Max: ${numberFormatter(value[5])}`,
-            `3rd Quartile: ${numberFormatter(value[4])}`,
-            `Mean: ${numberFormatter(value[6])}`,
-            `Median: ${numberFormatter(value[3])}`,
-            `1st Quartile: ${numberFormatter(value[2])}`,
-            `Min: ${numberFormatter(value[1])}`,
-            `# Observations: ${value[7]}`,
+  const violinSeries = {
+    name: 'violin',
+    type: 'custom',
+    renderItem: renderViolin(violinItems, peakForViolinItem),
+    clip: true,
+    data: violinItems.map(violin => ({
+      name: violin.name,
+      value: [violin.name, violin.density[0]?.[0], violin.density.at(-1)?.[0]],
+    })),
+    encode: { x: 0, y: [1, 2] },
+    tooltip: {
+      ...getDefaultTooltip(refs),
+      formatter: violinTooltip,
+    },
+  };
+
+  const boxSeries: BoxplotSeriesOption = {
+    name: 'boxplot',
+    type: 'boxplot',
+    data: transformedData,
+    tooltip: {
+      ...getDefaultTooltip(refs),
+      formatter: (param: CallbackDataParams) => {
+        // @ts-expect-error
+        const {
+          value,
+          name,
+        }: {
+          value: [
+            number,
+            number,
+            number,
+            number,
+            number,
+            number,
+            number,
+            number,
+            number[],
           ];
-          if (value[8].length > 0) {
-            stats.push(`# Outliers: ${value[8].length}`);
-          }
-          return headline + stats.join('<br/>');
-        },
+          name: string;
+        } = param;
+        const stats = {
+          min: value[1],
+          q1: value[2],
+          median: value[3],
+          q3: value[4],
+          max: value[5],
+          mean: value[6],
+          count: value[7],
+          outliers: value[8],
+        };
+        return statFormatter(name, stats);
       },
     },
-    // @ts-expect-error
-    ...outlierData,
-  ];
+  };
+
+  // in violin mode, the inner box and outliers are drawn on top of the curve
+  const series = isViolin
+    ? [
+        violinSeries,
+        ...(showInnerBox ? [{ ...boxSeries, boxWidth: [4, 12] }] : []),
+        ...outlierData,
+      ]
+    : [boxSeries, ...outlierData];
+
   const addYAxisTitleOffset =
     !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
   const addXAxisTitleOffset =

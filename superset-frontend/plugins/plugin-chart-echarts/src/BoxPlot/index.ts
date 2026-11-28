@@ -23,6 +23,8 @@ import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import example from './images/BoxPlot.jpg';
 import exampleDark from './images/BoxPlot-dark.jpg';
+import violinExample from './images/violin.jpg';
+import violinExampleDark from './images/violin-dark.jpg';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import { BoxPlotQueryFormData, EchartsBoxPlotChartProps } from './types';
@@ -56,9 +58,16 @@ export default class EchartsBoxPlotChartPlugin extends EchartsChartPlugin<
         category: t('Distribution'),
         credits: ['https://echarts.apache.org'],
         description: t(
-          'Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.',
+          'Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles. Switch to the violin style to also show the full shape of each distribution.',
         ),
-        exampleGallery: [{ url: example, urlDark: exampleDark }],
+        exampleGallery: [
+          { url: example, urlDark: exampleDark },
+          {
+            url: violinExample,
+            urlDark: violinExampleDark,
+            caption: t('Violin style'),
+          },
+        ],
         name: t('Box Plot'),
         tags: [t('ECharts'), t('Range'), t('Statistical'), t('Featured')],
         thumbnail,

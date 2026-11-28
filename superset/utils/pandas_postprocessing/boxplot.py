@@ -19,11 +19,20 @@ from typing import Any, Callable, Optional, Union
 import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame, Series, to_numeric
-from pandas.api.types import is_numeric_dtype
+from pandas.api.types import (
+    is_datetime64_any_dtype,
+    is_numeric_dtype,
+    is_timedelta64_dtype,
+)
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
 from superset.utils.pandas_postprocessing.aggregate import aggregate
+from superset.utils.pandas_postprocessing.density import (
+    DENSITY_BANDWIDTH_DEFAULT,
+    make_density_operators,
+    validate_density_settings,
+)
 
 
 def boxplot(  # noqa: C901
@@ -34,6 +43,8 @@ def boxplot(  # noqa: C901
     percentiles: Optional[
         Union[list[Union[int, float]], tuple[Union[int, float], Union[int, float]]]
     ] = None,
+    density_points: Optional[int] = None,
+    density_bandwidth: float = DENSITY_BANDWIDTH_DEFAULT,
 ) -> DataFrame:
     """
     Calculate boxplot statistics. For each metric, the operation creates eight
@@ -50,12 +61,20 @@ def boxplot(  # noqa: C901
     - `__outliers`: the values that fall outside the minimum/maximum value
                     (see whisker type)
 
+    With density enabled, each metric also has a `__density` column containing
+    [value, density] pairs spanning its finite observations, including outliers.
+
     :param df: DataFrame containing all-numeric data (temporal column ignored)
     :param groupby: The categories to group by (x-axis)
     :param metrics: The metrics for which to calculate the distribution
     :param whisker_type: The confidence level type
+    :param density_points: Curve points (20-500); None disables density
+    :param density_bandwidth: Automatic bandwidth multiplier (0.1-5)
     :return: DataFrame with boxplot statistics per groupby
     """
+
+    if density_points is not None:
+        validate_density_settings(density_points, density_bandwidth)
 
     def quartile1(series: Series) -> float:
         return np.nanpercentile(series, 25, method="midpoint")
@@ -131,6 +150,8 @@ def boxplot(  # noqa: C901
         "count": count,
         "outliers": outliers,
     }
+    if density_points is not None:
+        operators.update(make_density_operators(density_points, density_bandwidth))
     aggregates: dict[str, dict[str, Union[str, Callable[..., Any]]]] = {
         f"{metric}__{operator_name}": {"column": metric, "operator": operator}
         for operator_name, operator in operators.items()
@@ -141,6 +162,11 @@ def boxplot(  # noqa: C901
     # that's used in the underlying function will fail. Non-numeric columns
     # include both legacy object dtype and pandas 3.0's default StringDtype.
     for column in metrics:
+        if density_points is not None and (
+            is_datetime64_any_dtype(df[column].dtype)
+            or is_timedelta64_dtype(df[column].dtype)
+        ):
+            raise InvalidPostProcessingError(_("Density requires numeric values"))
         if not is_numeric_dtype(df[column]):
             df[column] = to_numeric(df[column], errors="coerce")
 

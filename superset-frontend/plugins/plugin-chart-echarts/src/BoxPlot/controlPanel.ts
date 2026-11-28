@@ -22,6 +22,8 @@ import {
   isAdhocColumn,
   isPhysicalColumn,
   validateNonEmpty,
+  validateNumber,
+  withLabel,
 } from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
@@ -33,10 +35,33 @@ import {
   getStandardizedControls,
   ControlState,
   ControlPanelState,
+  ControlPanelsContainerProps,
   getTemporalColumns,
   sharedControls,
   DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
+import { DEFAULT_FORM_DATA } from './types';
+
+export const MIN_DENSITY_BANDWIDTH = 0.1;
+export const MAX_DENSITY_BANDWIDTH = 5;
+
+export const validateDensityBandwidth = (value: unknown): string | false => {
+  const notANumber = validateNumber(value);
+  if (notANumber) {
+    return notANumber;
+  }
+  if (Number(value) < MIN_DENSITY_BANDWIDTH) {
+    return t('must be at least %s', MIN_DENSITY_BANDWIDTH);
+  }
+  if (Number(value) > MAX_DENSITY_BANDWIDTH) {
+    return t('cannot exceed %s', MAX_DENSITY_BANDWIDTH);
+  }
+  return false;
+};
+
+const isViolin = ({ controls }: ControlPanelsContainerProps) =>
+  (controls?.distribution_style?.value ??
+    DEFAULT_FORM_DATA.distributionStyle) === 'violin';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -82,6 +107,23 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [
           {
+            name: 'distribution_style',
+            config: {
+              type: 'RadioButtonControl',
+              label: t('Distribution style'),
+              default: DEFAULT_FORM_DATA.distributionStyle,
+              options: [
+                ['box', t('Box')],
+                ['violin', t('Violin')],
+              ],
+              description: t(
+                'Box shows quartiles and whiskers. Violin also draws the shape of each distribution as a smoothed curve, which reveals clusters and multiple peaks that a box can hide.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'whiskerOptions',
             config: {
               clearable: false,
@@ -100,6 +142,48 @@ const config: ControlPanelConfig = {
                 ['9/91 percentiles', t('9/91 percentiles')],
                 ['10/90 percentiles', t('10/90 percentiles')],
               ],
+            },
+          },
+        ],
+        [
+          {
+            name: 'density_bandwidth',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              clearable: false,
+              label: t('Curve smoothness'),
+              default: DEFAULT_FORM_DATA.densityBandwidth,
+              choices: [
+                [0.5, t('0.5 (more detail)')],
+                [1, t('1 (default)')],
+                [1.5, '1.5'],
+                [2, t('2 (smoother)')],
+              ],
+              description: t(
+                'Multiplies the automatically chosen kernel bandwidth. Higher values give a smoother curve; lower values follow the data more closely. Must be between %s and %s.',
+                MIN_DENSITY_BANDWIDTH,
+                MAX_DENSITY_BANDWIDTH,
+              ),
+              validators: [
+                withLabel(validateDensityBandwidth, t('Curve smoothness')),
+              ],
+              visibility: isViolin,
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_inner_box',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show inner box'),
+              default: DEFAULT_FORM_DATA.showInnerBox,
+              renderTrigger: true,
+              description: t(
+                'Draws a narrow box plot inside each violin to mark the median and quartiles.',
+              ),
+              visibility: isViolin,
             },
           },
         ],

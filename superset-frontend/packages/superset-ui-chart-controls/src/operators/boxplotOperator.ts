@@ -31,7 +31,8 @@ export const boxplotOperator: PostProcessingFactory<PostProcessingBoxplot> = (
   formData,
   queryObject,
 ) => {
-  const { groupby, whiskerOptions } = formData;
+  const { groupby, whiskerOptions, distribution_style, density_bandwidth } =
+    formData;
 
   if (whiskerOptions) {
     let whiskerType: BoxPlotQueryObjectWhiskerType;
@@ -59,6 +60,12 @@ export const boxplotOperator: PostProcessingFactory<PostProcessingBoxplot> = (
         percentiles,
         groupby: ensureIsArray(groupby).map(getColumnLabel),
         metrics: ensureIsArray(queryObject.metrics).map(getMetricLabel),
+        ...(distribution_style === 'violin'
+          ? {
+              density_points: 100,
+              density_bandwidth: Number(density_bandwidth ?? 1),
+            }
+          : {}),
       },
     };
   }
