@@ -48,104 +48,101 @@ const renderComponent = (props: Partial<ColorBreakpointOptionProps> = {}) =>
     useDnd: true,
   });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ColorBreakpointOption', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
-  test('should render', async () => {
-    const { container } = renderComponent();
-    await waitFor(() => expect(container).toBeInTheDocument());
-  });
+test('should render', async () => {
+  const { container } = renderComponent();
+  await waitFor(() => expect(container).toBeInTheDocument());
+});
 
-  test('should render the breakpoint range text', async () => {
-    renderComponent();
-    expect(await screen.findByText('0 - 100')).toBeInTheDocument();
-  });
+test('should render the breakpoint range text', async () => {
+  renderComponent();
+  expect(await screen.findByText('0 - 100')).toBeInTheDocument();
+});
 
-  test('should render the remove button', async () => {
-    renderComponent();
-    const removeBtn = await screen.findByTestId('remove-control-button');
-    expect(removeBtn).toBeInTheDocument();
-  });
+test('should render the remove button', async () => {
+  renderComponent();
+  const removeBtn = await screen.findByTestId('remove-control-button');
+  expect(removeBtn).toBeInTheDocument();
+});
 
-  test('should render the color preview', async () => {
-    renderComponent();
-    const colorPreview = await screen.findByTestId('color-preview');
-    expect(colorPreview).toBeInTheDocument();
-  });
+test('should render the color preview', async () => {
+  renderComponent();
+  const colorPreview = await screen.findByTestId('color-preview');
+  expect(colorPreview).toBeInTheDocument();
+});
 
-  test('should call onClose when remove button is clicked', async () => {
-    const onClose = jest.fn();
-    renderComponent({ onClose });
+test('should call onClose when remove button is clicked', async () => {
+  const onClose = jest.fn();
+  renderComponent({ onClose });
 
-    const removeBtn = await screen.findByTestId('remove-control-button');
-    await userEvent.click(removeBtn);
+  const removeBtn = await screen.findByTestId('remove-control-button');
+  await userEvent.click(removeBtn);
 
-    expect(onClose).toHaveBeenCalledWith(0);
-  });
+  expect(onClose).toHaveBeenCalledWith(0);
+});
 
-  test('should open popover when clicked', async () => {
-    renderComponent();
+test('should open popover when clicked', async () => {
+  renderComponent();
 
-    const breakpointOption = await screen.findByTestId(
-      'color-breakpoint-trigger',
-    );
-    await userEvent.click(breakpointOption);
+  const breakpointOption = await screen.findByTestId(
+    'color-breakpoint-trigger',
+  );
+  await userEvent.click(breakpointOption);
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
 
-  test('should render different color values correctly', async () => {
-    const blueBreakpoint: ColorBreakpointType = {
-      id: 1,
-      color: { r: 0, g: 0, b: 255, a: 1 },
-      minValue: 50,
-      maxValue: 150,
-    };
+test('should render different color values correctly', async () => {
+  const blueBreakpoint: ColorBreakpointType = {
+    id: 1,
+    color: { r: 0, g: 0, b: 255, a: 1 },
+    minValue: 50,
+    maxValue: 150,
+  };
 
-    renderComponent({ breakpoint: blueBreakpoint });
-    expect(await screen.findByText('50 - 150')).toBeInTheDocument();
+  renderComponent({ breakpoint: blueBreakpoint });
+  expect(await screen.findByText('50 - 150')).toBeInTheDocument();
 
-    const colorPreview = await screen.findByTestId('color-preview');
-    expect(colorPreview).toBeInTheDocument();
-  });
+  const colorPreview = await screen.findByTestId('color-preview');
+  expect(colorPreview).toBeInTheDocument();
+});
 
-  test('should coerce non-numeric color channels instead of injecting CSS', async () => {
-    // Stored form_data is opaque JSON, so a saved chart can carry a string
-    // channel crafted to break out of the styled-component declaration.
-    const maliciousBreakpoint = {
-      id: 3,
-      color: {
-        r: '0,0,0,1); } body { display: none } .x { background: rgba(0' as unknown as number,
-        g: 0,
-        b: 0,
-        a: 1,
-      },
-      minValue: 0,
-      maxValue: 100,
-    };
+test('should coerce non-numeric color channels instead of injecting CSS', async () => {
+  // Stored form_data is opaque JSON, so a saved chart can carry a string
+  // channel crafted to break out of the styled-component declaration.
+  const maliciousBreakpoint = {
+    id: 3,
+    color: {
+      r: '0,0,0,1); } body { display: none } .x { background: rgba(0' as unknown as number,
+      g: 0,
+      b: 0,
+      a: 1,
+    },
+    minValue: 0,
+    maxValue: 100,
+  };
 
-    renderComponent({ breakpoint: maliciousBreakpoint });
+  renderComponent({ breakpoint: maliciousBreakpoint });
 
-    const colorPreview = await screen.findByTestId('color-preview');
-    expect(colorPreview).toBeInTheDocument();
-    // The malicious string is coerced to a safe numeric channel (0), so the
-    // rendered rule is a plain rgba() value with no injected CSS.
-    expect(colorPreview).toHaveStyle({ background: 'rgba(0, 0, 0, 1)' });
-    expect(document.body).toBeVisible();
-  });
+  const colorPreview = await screen.findByTestId('color-preview');
+  expect(colorPreview).toBeInTheDocument();
+  // The malicious string is coerced to a safe numeric channel (0), so the
+  // rendered rule is a plain rgba() value with no injected CSS.
+  expect(colorPreview).toHaveStyle({ background: 'rgba(0, 0, 0, 1)' });
+  expect(document.body).toBeVisible();
+});
 
-  test('should handle decimal values', async () => {
-    const decimalBreakpoint: ColorBreakpointType = {
-      id: 2,
-      color: { r: 128, g: 128, b: 128, a: 1 },
-      minValue: 0.5,
-      maxValue: 99.9,
-    };
+test('should handle decimal values', async () => {
+  const decimalBreakpoint: ColorBreakpointType = {
+    id: 2,
+    color: { r: 128, g: 128, b: 128, a: 1 },
+    minValue: 0.5,
+    maxValue: 99.9,
+  };
 
-    renderComponent({ breakpoint: decimalBreakpoint });
-    expect(await screen.findByText('0.5 - 99.9')).toBeInTheDocument();
-  });
+  renderComponent({ breakpoint: decimalBreakpoint });
+  expect(await screen.findByText('0.5 - 99.9')).toBeInTheDocument();
 });

@@ -60,85 +60,80 @@ const mockUser: UserWithPermissionsAndRoles = {
   },
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('UserInfo', () => {
-  const renderPage = async (user: UserWithPermissionsAndRoles = mockUser) =>
-    act(async () => {
-      render(
-        <MemoryRouter>
-          <QueryParamProvider adapter={ReactRouter5Adapter}>
-            <UserInfo user={user} />
-          </QueryParamProvider>
-        </MemoryRouter>,
-        { useRedux: true, store },
-      );
-    });
-
-  beforeEach(() => {
-    fetchMock.clearHistory().removeRoutes();
-    fetchMock.get(meEndpoint, {
-      result: {
-        ...mockUser,
-        first_name: 'John',
-        last_name: 'Doe',
-      },
-    });
+const renderPage = async (user: UserWithPermissionsAndRoles = mockUser) =>
+  act(async () => {
+    render(
+      <MemoryRouter>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <UserInfo user={user} />
+        </QueryParamProvider>
+      </MemoryRouter>,
+      { useRedux: true, store },
+    );
   });
 
-  afterEach(() => {
-    fetchMock.clearHistory().removeRoutes();
+beforeEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get(meEndpoint, {
+    result: {
+      ...mockUser,
+      first_name: 'John',
+      last_name: 'Doe',
+    },
+  });
+});
+
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+});
+
+test('renders the user info page', async () => {
+  await renderPage();
+
+  expect(await screen.findByText('Your user information')).toBeInTheDocument();
+  expect(screen.getByText('johndoe')).toBeInTheDocument();
+  expect(screen.getByText('Yes')).toBeInTheDocument();
+  expect(screen.getByText('Admin')).toBeInTheDocument();
+  expect(screen.getByText('Engineering, Analytics')).toBeInTheDocument();
+  expect(screen.getByText('12')).toBeInTheDocument();
+  expect(await screen.findByText('John')).toBeInTheDocument();
+  expect(screen.getByText('Doe')).toBeInTheDocument();
+  expect(screen.getByText('john@example.com')).toBeInTheDocument();
+});
+
+test('renders "None" when the user has no groups', async () => {
+  await renderPage({ ...mockUser, groups: [] });
+
+  expect(await screen.findByText('Groups')).toBeInTheDocument();
+  expect(screen.getByText('None')).toBeInTheDocument();
+});
+
+test('calls the /me endpoint on mount', async () => {
+  await renderPage();
+  await waitFor(() => {
+    expect(fetchMock.callHistory.called(meEndpoint)).toBe(true);
+  });
+});
+
+test('opens the reset password modal on button click', async () => {
+  await renderPage();
+
+  const button = await screen.findByTestId('reset-password-button');
+  await act(async () => {
+    fireEvent.click(button);
   });
 
-  test('renders the user info page', async () => {
-    await renderPage();
+  expect(await screen.findByText(/Reset password/i)).toBeInTheDocument();
+});
 
-    expect(
-      await screen.findByText('Your user information'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('johndoe')).toBeInTheDocument();
-    expect(screen.getByText('Yes')).toBeInTheDocument();
-    expect(screen.getByText('Admin')).toBeInTheDocument();
-    expect(screen.getByText('Engineering, Analytics')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument();
-    expect(await screen.findByText('John')).toBeInTheDocument();
-    expect(screen.getByText('Doe')).toBeInTheDocument();
-    expect(screen.getByText('john@example.com')).toBeInTheDocument();
+test('opens the edit user modal on button click', async () => {
+  await renderPage();
+
+  const button = await screen.findByTestId('edit-user-button');
+  await act(async () => {
+    fireEvent.click(button);
   });
 
-  test('renders "None" when the user has no groups', async () => {
-    await renderPage({ ...mockUser, groups: [] });
-
-    expect(await screen.findByText('Groups')).toBeInTheDocument();
-    expect(screen.getByText('None')).toBeInTheDocument();
-  });
-
-  test('calls the /me endpoint on mount', async () => {
-    await renderPage();
-    await waitFor(() => {
-      expect(fetchMock.callHistory.called(meEndpoint)).toBe(true);
-    });
-  });
-
-  test('opens the reset password modal on button click', async () => {
-    await renderPage();
-
-    const button = await screen.findByTestId('reset-password-button');
-    await act(async () => {
-      fireEvent.click(button);
-    });
-
-    expect(await screen.findByText(/Reset password/i)).toBeInTheDocument();
-  });
-
-  test('opens the edit user modal on button click', async () => {
-    await renderPage();
-
-    const button = await screen.findByTestId('edit-user-button');
-    await act(async () => {
-      fireEvent.click(button);
-    });
-
-    const modals = await screen.findAllByText(/Edit user/i);
-    expect(modals.length).toBeGreaterThan(0);
-  });
+  const modals = await screen.findAllByText(/Edit user/i);
+  expect(modals.length).toBeGreaterThan(0);
 });

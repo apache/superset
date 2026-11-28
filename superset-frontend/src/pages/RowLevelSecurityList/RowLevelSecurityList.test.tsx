@@ -156,161 +156,158 @@ function getLatestRuleApiCall() {
     : null;
 }
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('RuleList RTL', () => {
-  async function renderAndWait() {
-    const mounted = act(async () => {
-      const mockedProps = {};
-      render(
-        <MemoryRouter>
-          <QueryParamProvider adapter={ReactRouter5Adapter}>
-            <RowLevelSecurityList {...mockedProps} user={mockUser} />
-          </QueryParamProvider>
-        </MemoryRouter>,
-        { useRedux: true },
-      );
-    });
-    return mounted;
-  }
-
-  test('renders', async () => {
-    await renderAndWait();
-    expect(screen.getByText('Row Level Security')).toBeVisible();
-  });
-
-  test('renders a ListView', async () => {
-    await renderAndWait();
-    expect(screen.getByTestId('rls-list-view')).toBeInTheDocument();
-  });
-
-  test('fetched data', async () => {
-    fetchMock.clearHistory();
-    await renderAndWait();
-    const apiCalls = fetchMock.callHistory.calls(/rowlevelsecurity\/\?q/);
-    expect(apiCalls).toHaveLength(1);
-    expect(apiCalls[0].url).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+async function renderAndWait() {
+  const mounted = act(async () => {
+    const mockedProps = {};
+    render(
+      <MemoryRouter>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <RowLevelSecurityList {...mockedProps} user={mockUser} />
+        </QueryParamProvider>
+      </MemoryRouter>,
+      { useRedux: true },
     );
-    fetchMock.clearHistory();
+  });
+  return mounted;
+}
+
+test('renders', async () => {
+  await renderAndWait();
+  expect(screen.getByText('Row Level Security')).toBeVisible();
+});
+
+test('renders a ListView', async () => {
+  await renderAndWait();
+  expect(screen.getByTestId('rls-list-view')).toBeInTheDocument();
+});
+
+test('fetched data', async () => {
+  fetchMock.clearHistory();
+  await renderAndWait();
+  const apiCalls = fetchMock.callHistory.calls(/rowlevelsecurity\/\?q/);
+  expect(apiCalls).toHaveLength(1);
+  expect(apiCalls[0].url).toMatchInlineSnapshot(
+    `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+  );
+  fetchMock.clearHistory();
+});
+
+test('renders add rule button on empty state', async () => {
+  fetchMock.modifyRoute(ruleListEndpoint, {
+    response: { result: [], count: 0 },
+  });
+  await renderAndWait();
+
+  const emptyAddRuleButton = await screen.findByTestId('add-rule-empty');
+  expect(emptyAddRuleButton).toBeInTheDocument();
+  fetchMock.modifyRoute(ruleListEndpoint, {
+    response: { result: mockRules, count: 2 },
+  });
+});
+
+test('renders a "Rule" button to add a rule in bulk action', async () => {
+  await renderAndWait();
+
+  const addRuleButton = await screen.findByTestId('add-rule');
+  const emptyAddRuleButton = screen.queryByTestId('add-rule-empty');
+  expect(addRuleButton).toBeInTheDocument();
+  expect(emptyAddRuleButton).not.toBeInTheDocument();
+});
+
+test('renders filter options', async () => {
+  await renderAndWait();
+
+  // Compact filter UI: only the first search filter renders (Name),
+  // subsequent search filters (Group Key) are hidden — one search box per page.
+  const searchFilters = screen.queryAllByTestId('filters-search');
+  expect(searchFilters).toHaveLength(1);
+
+  // Select filters render as compact pill buttons (Filter Type, Subject, Modified by)
+  const selectContainers = screen.queryAllByTestId('select-filter-container');
+  expect(selectContainers).toHaveLength(3);
+});
+
+test('selecting Subject filter encodes rel_m_m subjects in API call', async () => {
+  await renderAndWait();
+  await screen.findByTestId('rls-list-view');
+
+  await selectPillOption('Alpha', 'Subject');
+
+  await waitFor(() => {
+    const latest = getLatestRuleApiCall();
+    expect(latest).not.toBeNull();
+    expect(latest!.query.filters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          col: 'subjects',
+          opr: 'rel_m_m',
+          value: 10,
+        }),
+      ]),
+    );
+  });
+});
+
+test('renders correct list columns', async () => {
+  await renderAndWait();
+
+  const table = screen.getByRole('table');
+  expect(table).toBeInTheDocument();
+
+  const nameColumn = await within(table).findByTitle('Name');
+  const filterTypeColumn = await within(table).findByTitle('Filter Type');
+  const subjectsColumn = await within(table).findByTitle('Subjects');
+  const groupKeyColumn = await within(table).findByTitle('Group Key');
+  const clauseColumn = await within(table).findByTitle('Clause');
+  const modifiedColumn = await within(table).findByTitle('Last modified');
+  const actionsColumn = await within(table).findByTitle('Actions');
+
+  expect(nameColumn).toBeInTheDocument();
+  expect(filterTypeColumn).toBeInTheDocument();
+  expect(subjectsColumn).toBeInTheDocument();
+  expect(groupKeyColumn).toBeInTheDocument();
+  expect(clauseColumn).toBeInTheDocument();
+  expect(modifiedColumn).toBeInTheDocument();
+  expect(actionsColumn).toBeInTheDocument();
+});
+
+test('renders correct action buttons with write permission', async () => {
+  await renderAndWait();
+
+  const deleteActionIcon = screen.queryAllByTestId('rls-list-trash-icon');
+  expect(deleteActionIcon).toHaveLength(2);
+
+  const editActionIcon = screen.queryAllByTestId('edit-alt');
+  expect(editActionIcon).toHaveLength(2);
+});
+
+test('should not renders correct action buttons without write permission', async () => {
+  fetchMock.modifyRoute(ruleInfoEndpoint, {
+    response: { permissions: ['can_read'] },
   });
 
-  test('renders add rule button on empty state', async () => {
-    fetchMock.modifyRoute(ruleListEndpoint, {
-      response: { result: [], count: 0 },
-    });
-    await renderAndWait();
+  await renderAndWait();
 
-    const emptyAddRuleButton = await screen.findByTestId('add-rule-empty');
-    expect(emptyAddRuleButton).toBeInTheDocument();
-    fetchMock.modifyRoute(ruleListEndpoint, {
-      response: { result: mockRules, count: 2 },
-    });
+  const deleteActionIcon = screen.queryByTestId('rls-list-trash-icon');
+  expect(deleteActionIcon).not.toBeInTheDocument();
+
+  const editActionIcon = screen.queryByTestId('edit-alt');
+  expect(editActionIcon).not.toBeInTheDocument();
+
+  fetchMock.modifyRoute(ruleInfoEndpoint, {
+    response: { permissions: ['can_read', 'can_write'] },
   });
+});
 
-  test('renders a "Rule" button to add a rule in bulk action', async () => {
-    await renderAndWait();
+test('renders popover on new clicking rule button', async () => {
+  await renderAndWait();
 
-    const addRuleButton = await screen.findByTestId('add-rule');
-    const emptyAddRuleButton = screen.queryByTestId('add-rule-empty');
-    expect(addRuleButton).toBeInTheDocument();
-    expect(emptyAddRuleButton).not.toBeInTheDocument();
-  });
+  const modal = screen.queryByTestId('rls-modal-title');
+  expect(modal).not.toBeInTheDocument();
 
-  test('renders filter options', async () => {
-    await renderAndWait();
+  const addRuleButton = await screen.findByTestId('add-rule');
+  await userEvent.click(addRuleButton);
 
-    // Compact filter UI: only the first search filter renders (Name),
-    // subsequent search filters (Group Key) are hidden — one search box per page.
-    const searchFilters = screen.queryAllByTestId('filters-search');
-    expect(searchFilters).toHaveLength(1);
-
-    // Select filters render as compact pill buttons (Filter Type, Subject, Modified by)
-    const selectContainers = screen.queryAllByTestId('select-filter-container');
-    expect(selectContainers).toHaveLength(3);
-  });
-
-  test('selecting Subject filter encodes rel_m_m subjects in API call', async () => {
-    await renderAndWait();
-    await screen.findByTestId('rls-list-view');
-
-    await selectPillOption('Alpha', 'Subject');
-
-    await waitFor(() => {
-      const latest = getLatestRuleApiCall();
-      expect(latest).not.toBeNull();
-      expect(latest!.query.filters).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            col: 'subjects',
-            opr: 'rel_m_m',
-            value: 10,
-          }),
-        ]),
-      );
-    });
-  });
-
-  test('renders correct list columns', async () => {
-    await renderAndWait();
-
-    const table = screen.getByRole('table');
-    expect(table).toBeInTheDocument();
-
-    const nameColumn = await within(table).findByTitle('Name');
-    const filterTypeColumn = await within(table).findByTitle('Filter Type');
-    const subjectsColumn = await within(table).findByTitle('Subjects');
-    const groupKeyColumn = await within(table).findByTitle('Group Key');
-    const clauseColumn = await within(table).findByTitle('Clause');
-    const modifiedColumn = await within(table).findByTitle('Last modified');
-    const actionsColumn = await within(table).findByTitle('Actions');
-
-    expect(nameColumn).toBeInTheDocument();
-    expect(filterTypeColumn).toBeInTheDocument();
-    expect(subjectsColumn).toBeInTheDocument();
-    expect(groupKeyColumn).toBeInTheDocument();
-    expect(clauseColumn).toBeInTheDocument();
-    expect(modifiedColumn).toBeInTheDocument();
-    expect(actionsColumn).toBeInTheDocument();
-  });
-
-  test('renders correct action buttons with write permission', async () => {
-    await renderAndWait();
-
-    const deleteActionIcon = screen.queryAllByTestId('rls-list-trash-icon');
-    expect(deleteActionIcon).toHaveLength(2);
-
-    const editActionIcon = screen.queryAllByTestId('edit-alt');
-    expect(editActionIcon).toHaveLength(2);
-  });
-
-  test('should not renders correct action buttons without write permission', async () => {
-    fetchMock.modifyRoute(ruleInfoEndpoint, {
-      response: { permissions: ['can_read'] },
-    });
-
-    await renderAndWait();
-
-    const deleteActionIcon = screen.queryByTestId('rls-list-trash-icon');
-    expect(deleteActionIcon).not.toBeInTheDocument();
-
-    const editActionIcon = screen.queryByTestId('edit-alt');
-    expect(editActionIcon).not.toBeInTheDocument();
-
-    fetchMock.modifyRoute(ruleInfoEndpoint, {
-      response: { permissions: ['can_read', 'can_write'] },
-    });
-  });
-
-  test('renders popover on new clicking rule button', async () => {
-    await renderAndWait();
-
-    const modal = screen.queryByTestId('rls-modal-title');
-    expect(modal).not.toBeInTheDocument();
-
-    const addRuleButton = await screen.findByTestId('add-rule');
-    await userEvent.click(addRuleButton);
-
-    const modalAfterClick = screen.queryByTestId('rls-modal-title');
-    expect(modalAfterClick).toBeInTheDocument();
-  });
+  const modalAfterClick = screen.queryByTestId('rls-modal-title');
+  expect(modalAfterClick).toBeInTheDocument();
 });

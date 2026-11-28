@@ -127,159 +127,152 @@ function createMockChartProps(
   return tableChartProps;
 }
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('TimeTable transformProps', () => {
-  test('should transform props correctly for metric rows', () => {
-    const props = createMockChartProps();
-    const result = transformProps(props);
+test('should transform props correctly for metric rows', () => {
+  const props = createMockChartProps();
+  const result = transformProps(props);
 
-    expect(result).toMatchObject({
-      height: 400,
-      data: [
-        { time: '2023-01-01', 'SUM(sales)': 1000 },
-        { time: '2023-01-02', 'SUM(sales)': 2000 },
-      ],
-      columnConfigs: [],
-      rowType: 'metric',
+  expect(result).toMatchObject({
+    height: 400,
+    data: [
+      { time: '2023-01-01', 'SUM(sales)': 1000 },
+      { time: '2023-01-02', 'SUM(sales)': 2000 },
+    ],
+    columnConfigs: [],
+    rowType: 'metric',
+    url: 'http://example.com',
+  });
+
+  expect(result.rows).toBeDefined();
+  expect(result.rows.length).toBe(1);
+  expect(result.rows[0]).toMatchObject({
+    metric_name: 'SUM(sales)',
+    label: 'SUM(sales)',
+  });
+});
+
+test('should transform props correctly for column rows (groupby)', () => {
+  const props = createMockChartProps({
+    formData: {
+      columnCollection: [],
+      groupby: ['category'],
+      metrics: [] as object[],
       url: 'http://example.com',
-    });
-
-    expect(result.rows).toBeDefined();
-    expect(result.rows.length).toBe(1);
-    expect(result.rows[0]).toMatchObject({
-      metric_name: 'SUM(sales)',
-      label: 'SUM(sales)',
-    });
+    },
+    queriesData: [
+      {
+        data: {
+          records: [
+            { time: '2023-01-01', category: 'A', value: 100 },
+            { time: '2023-01-02', category: 'B', value: 200 },
+          ],
+          columns: [
+            { column_name: 'category', id: 1 },
+            { column_name: 'value', id: 2 },
+          ],
+        },
+      },
+    ],
   });
 
-  test('should transform props correctly for column rows (groupby)', () => {
-    const props = createMockChartProps({
-      formData: {
-        columnCollection: [],
-        groupby: ['category'],
-        metrics: [] as object[],
-        url: 'http://example.com',
+  const result = transformProps(props);
+
+  expect(result.rowType).toBe('column');
+  expect(result.rows).toBeDefined();
+  expect(result.rows.length).toBe(2);
+});
+
+test('should handle string columns correctly', () => {
+  const props = createMockChartProps({
+    formData: {
+      columnCollection: [],
+      groupby: ['category'],
+      metrics: [{ label: 'SUM(sales)', metric_name: 'SUM(sales)' }] as object[],
+      url: 'http://example.com',
+    },
+    queriesData: [
+      {
+        data: {
+          records: [],
+          columns: ['category', 'value'], // string columns
+        },
       },
-      queriesData: [
+    ],
+  });
+
+  const result = transformProps(props);
+
+  expect(result.rows).toBeDefined();
+  expect(result.rows.length).toBe(2);
+  expect(result.rows[0]).toEqual({ label: 'category' });
+  expect(result.rows[1]).toEqual({ label: 'value' });
+});
+
+test('should handle column collection with time lag conversion', () => {
+  const props = createMockChartProps({
+    formData: {
+      columnCollection: [
         {
-          data: {
-            records: [
-              { time: '2023-01-01', category: 'A', value: 100 },
-              { time: '2023-01-02', category: 'B', value: 200 },
-            ],
-            columns: [
-              { column_name: 'category', id: 1 },
-              { column_name: 'value', id: 2 },
-            ],
-          },
+          key: 'test1',
+          timeLag: '5',
+        },
+        {
+          key: 'test2',
+          timeLag: 10,
+        },
+        {
+          key: 'test3',
+          timeLag: '',
         },
       ],
-    });
-
-    const result = transformProps(props);
-
-    expect(result.rowType).toBe('column');
-    expect(result.rows).toBeDefined();
-    expect(result.rows.length).toBe(2);
+      groupby: [],
+      metrics: [{ label: 'SUM(sales)', metric_name: 'SUM(sales)' }] as object[],
+      url: 'http://example.com',
+    },
   });
 
-  test('should handle string columns correctly', () => {
-    const props = createMockChartProps({
-      formData: {
-        columnCollection: [],
-        groupby: ['category'],
-        metrics: [
-          { label: 'SUM(sales)', metric_name: 'SUM(sales)' },
-        ] as object[],
-        url: 'http://example.com',
-      },
-      queriesData: [
-        {
-          data: {
-            records: [],
-            columns: ['category', 'value'], // string columns
-          },
-        },
-      ],
-    });
+  const result = transformProps(props);
 
-    const result = transformProps(props);
+  expect(result.columnConfigs).toBeDefined();
+  expect(result.columnConfigs.length).toBe(3);
+  expect(result.columnConfigs[0]).toHaveProperty('timeLag', 5);
+  expect(result.columnConfigs[1]).toHaveProperty('timeLag', 10);
+  expect(result.columnConfigs[2]).toHaveProperty('timeLag', '');
+});
 
-    expect(result.rows).toBeDefined();
-    expect(result.rows.length).toBe(2);
-    expect(result.rows[0]).toEqual({ label: 'category' });
-    expect(result.rows[1]).toEqual({ label: 'value' });
+test('should handle empty metrics array', () => {
+  const props = createMockChartProps({
+    formData: {
+      columnCollection: [],
+      groupby: [],
+      metrics: [] as object[],
+      url: 'http://example.com',
+    },
   });
 
-  test('should handle column collection with time lag conversion', () => {
-    const props = createMockChartProps({
-      formData: {
-        columnCollection: [
-          {
-            key: 'test1',
-            timeLag: '5',
-          },
-          {
-            key: 'test2',
-            timeLag: 10,
-          },
-          {
-            key: 'test3',
-            timeLag: '',
-          },
-        ],
-        groupby: [],
-        metrics: [
-          { label: 'SUM(sales)', metric_name: 'SUM(sales)' },
-        ] as object[],
-        url: 'http://example.com',
-      },
-    });
+  const result = transformProps(props);
 
-    const result = transformProps(props);
+  expect(result.rows).toBeDefined();
+  expect(result.rows.length).toBe(0);
+});
 
-    expect(result.columnConfigs).toBeDefined();
-    expect(result.columnConfigs.length).toBe(3);
-    expect(result.columnConfigs[0]).toHaveProperty('timeLag', 5);
-    expect(result.columnConfigs[1]).toHaveProperty('timeLag', 10);
-    expect(result.columnConfigs[2]).toHaveProperty('timeLag', '');
+test('should handle missing metrics in datasource', () => {
+  const props = createMockChartProps({
+    formData: {
+      columnCollection: [],
+      groupby: [],
+      metrics: [
+        { label: 'NONEXISTENT_METRIC', metric_name: 'NONEXISTENT_METRIC' },
+      ] as object[],
+      url: 'http://example.com',
+    },
   });
 
-  test('should handle empty metrics array', () => {
-    const props = createMockChartProps({
-      formData: {
-        columnCollection: [],
-        groupby: [],
-        metrics: [] as object[],
-        url: 'http://example.com',
-      },
-    });
+  const result = transformProps(props);
 
-    const result = transformProps(props);
-
-    expect(result.rows).toBeDefined();
-    expect(result.rows.length).toBe(0);
-  });
-
-  test('should handle missing metrics in datasource', () => {
-    const props = createMockChartProps({
-      formData: {
-        columnCollection: [],
-        groupby: [],
-        metrics: [
-          { label: 'NONEXISTENT_METRIC', metric_name: 'NONEXISTENT_METRIC' },
-        ] as object[],
-        url: 'http://example.com',
-      },
-    });
-
-    const result = transformProps(props);
-
-    expect(result.rows).toBeDefined();
-    expect(result.rows.length).toBe(1);
-    expect(result.rows[0]).toMatchObject({
-      label: 'NONEXISTENT_METRIC',
-      metric_name: 'NONEXISTENT_METRIC',
-    });
+  expect(result.rows).toBeDefined();
+  expect(result.rows.length).toBe(1);
+  expect(result.rows[0]).toMatchObject({
+    label: 'NONEXISTENT_METRIC',
+    metric_name: 'NONEXISTENT_METRIC',
   });
 });
