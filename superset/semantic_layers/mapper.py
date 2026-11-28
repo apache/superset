@@ -1608,10 +1608,58 @@ def _validate_metrics(
         )
 
     metric_names: set[str] = {metric.name for metric in metadata.metrics}
-    if not set(query_object.metrics or []) <= metric_names:
+    _refuse_missing_metrics(query_object.metrics or [], metric_names)
+
+
+def _missing_members(selected: Sequence[str], available: Collection[str]) -> str | None:
+    """Name the selected members a view no longer has, once each, in chart order."""
+    missing: list[str] = [
+        name for name in dict.fromkeys(selected) if name not in available
+    ]
+    return ", ".join(f"'{name}'" for name in missing) or None
+
+
+def _refuse_missing_metrics(
+    selected: Sequence[str], available: Collection[str]
+) -> None:
+    """Explain metrics a saved chart uses that the view no longer has."""
+    if missing := _missing_members(selected, available):
         raise SemanticQueryInputError(
-            "All metrics must be defined in the Semantic View."
+            _(
+                "Metrics not in this semantic view: %(names)s. They may have been "
+                "removed or renamed in the semantic layer. Select available "
+                "metrics or remove them.",
+                names=missing,
+            )
         )
+
+
+def _refuse_missing_dimensions(
+    selected: Sequence[str], available: Collection[str]
+) -> None:
+    """Explain dimensions a saved chart uses that the view no longer has."""
+    if missing := _missing_members(selected, available):
+        raise SemanticQueryInputError(
+            _(
+                "Dimensions not in this semantic view: %(names)s. They may have "
+                "been removed or renamed in the semantic layer. Select available "
+                "dimensions or remove them.",
+                names=missing,
+            )
+        )
+
+
+def _selected_member(column: str | AdhocColumn, dimension_names: set[str]) -> str:
+    """The member a column names, even one the view no longer has.
+
+    Time-series charts send their axis as a column reference. Name a missing one
+    rather than calling it an adhoc expression; real SQL expressions stay refused.
+    """
+    if isinstance(column, dict) and column.get("isColumnReference"):
+        sql_expr: object = column.get("sqlExpression")
+        if isinstance(sql_expr, str) and sql_expr:
+            return sql_expr
+    return _normalize_column(column, dimension_names)
 
 
 def _validate_dimensions(
@@ -1621,16 +1669,10 @@ def _validate_dimensions(
     Make sure all dimensions are defined in the semantic view.
     """
     dimension_names: set[str] = {dimension.name for dimension in metadata.dimensions}
-
-    # Normalize all columns to dimension names
-    normalized_columns = [
-        _normalize_column(column, dimension_names) for column in query_object.columns
-    ]
-
-    if not set(normalized_columns) <= dimension_names:
-        raise SemanticQueryInputError(
-            "All dimensions must be defined in the Semantic View."
-        )
+    _refuse_missing_dimensions(
+        [_selected_member(column, dimension_names) for column in query_object.columns],
+        dimension_names,
+    )
 
 
 def validate_filter_columns(
@@ -1715,12 +1757,8 @@ def _validate_granularity(
     )
     dimension_names = set(all_dimensions.keys())
 
-    if (legacy_time_column := query_object.granularity) and (
-        legacy_time_column not in dimension_names
-    ):
-        raise SemanticQueryInputError(
-            "The time column must be defined in the Semantic View dimensions."
-        )
+    if legacy_time_column := query_object.granularity:
+        _refuse_missing_dimensions([legacy_time_column], dimension_names)
 
     column_grains: dict[str, Grain | None] = _explicit_column_grains(
         query_object, all_dimensions, view_dimensions
@@ -1806,19 +1844,17 @@ def _validate_group_limit(
         )
 
     metric_names: set[str] = {metric.name for metric in metadata.metrics}
-    if query_object.series_limit_metric and (
-        not isinstance(query_object.series_limit_metric, str)
-        or query_object.series_limit_metric not in metric_names
+    if query_object.series_limit_metric and not isinstance(
+        query_object.series_limit_metric, str
     ):
         raise SemanticQueryInputError(
             "The series limit metric must be defined in the Semantic View."
         )
+    if query_object.series_limit_metric:
+        _refuse_missing_metrics([query_object.series_limit_metric], metric_names)
 
     dimension_names: set[str] = {dimension.name for dimension in metadata.dimensions}
-    if not set(query_object.series_columns) <= dimension_names:
-        raise SemanticQueryInputError(
-            "All series columns must be defined in the Semantic View."
-        )
+    _refuse_missing_dimensions(query_object.series_columns, dimension_names)
 
     if (
         query_object.group_others_when_limit_reached
@@ -1848,12 +1884,19 @@ def _validate_orderby(
             "Adhoc expressions in order by are not supported in this Semantic View."
         )
 
-    elements: set[str] = {
-        element for element, _ in query_object.orderby if isinstance(element, str)
-    }
+    elements: list[str] = [
+        element
+        for element, _ascending in query_object.orderby
+        if isinstance(element, str)
+    ]
     metric_names: set[str] = {metric.name for metric in metadata.metrics}
     dimension_names: set[str] = {dimension.name for dimension in metadata.dimensions}
-    if not elements <= metric_names | dimension_names:
+    if missing := _missing_members(elements, metric_names | dimension_names):
         raise SemanticQueryInputError(
-            "All order by elements must be defined in the Semantic View."
+            _(
+                "Sort members not in this semantic view: %(names)s. They may have "
+                "been removed or renamed in the semantic layer. Choose another "
+                "sort or remove it.",
+                names=missing,
+            )
         )

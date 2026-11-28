@@ -583,7 +583,7 @@ def test_unexpected_mapper_value_error_is_not_converted(
 @pytest.mark.parametrize(
     "selection,message",
     [
-        ({"columns": ["MISSING"]}, "All dimensions must be defined"),
+        ({"columns": ["MISSING"]}, "Dimensions not in this semantic view: 'MISSING'"),
         (
             {
                 "filters": [

@@ -1784,8 +1784,13 @@ def test_validate_query_object_undefined_metric_error(
         columns=["order_date"],
     )
 
-    with pytest.raises(QueryObjectValidationError, match="All metrics must be defined"):
+    with pytest.raises(QueryObjectValidationError) as captured:
         validate_query_object(query_object)
+    assert str(captured.value) == (
+        "Metrics not in this semantic view: 'undefined_metric'. They may have "
+        "been removed or renamed in the semantic layer. Select available "
+        "metrics or remove them."
+    )
 
 
 def test_validate_query_object_undefined_dimension_error(
@@ -1800,8 +1805,130 @@ def test_validate_query_object_undefined_dimension_error(
         columns=["undefined_dimension"],
     )
 
+    with pytest.raises(QueryObjectValidationError) as captured:
+        validate_query_object(query_object)
+    assert str(captured.value) == (
+        "Dimensions not in this semantic view: 'undefined_dimension'. They may "
+        "have been removed or renamed in the semantic layer. Select available "
+        "dimensions or remove them."
+    )
+
+
+def test_validate_query_object_names_only_missing_members_in_chart_order(
+    mock_datasource: MagicMock,
+) -> None:
+    """A chart saved before a metric was removed names exactly what is gone."""
+    metrics: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["zeta_removed", "total_sales", "alpha_renamed", "zeta_removed"],
+        columns=["category"],
+    )
+    captured: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError) as captured:
+        validate_query_object(metrics)
+    assert "view: 'zeta_removed', 'alpha_renamed'. They" in str(captured.value)
+    assert "total_sales" not in str(captured.value)
+
+    dimensions: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["region", "old_region", "category"],
+    )
+    with pytest.raises(QueryObjectValidationError) as captured:
+        validate_query_object(dimensions)
+    assert "not in this semantic view: 'old_region'. They" in str(captured.value)
+
+
+@pytest.mark.parametrize(
+    "selection,message",
+    [
+        pytest.param(
+            {
+                "columns": [
+                    {
+                        "columnType": "BASE_AXIS",
+                        "isColumnReference": True,
+                        "sqlExpression": "old_order_date",
+                        "label": "old_order_date",
+                        "expressionType": "SQL",
+                    }
+                ]
+            },
+            "Dimensions not in this semantic view: 'old_order_date'.",
+            id="time-series-x-axis",
+        ),
+        pytest.param(
+            {"granularity": "old_order_date"},
+            "Dimensions not in this semantic view: 'old_order_date'.",
+            id="legacy-time-column",
+        ),
+        pytest.param(
+            {
+                "series_limit_metric": "old_sales",
+                "series_columns": ["category"],
+                "series_limit": 10,
+            },
+            "Metrics not in this semantic view: 'old_sales'.",
+            id="series-limit-metric",
+        ),
+        pytest.param(
+            {
+                "series_columns": ["old_region"],
+                "columns": ["category"],
+                "series_limit": 10,
+            },
+            "Dimensions not in this semantic view: 'old_region'.",
+            id="series-column",
+        ),
+        pytest.param(
+            {"orderby": [("old_sales", False), ("total_sales", True)]},
+            "Sort members not in this semantic view: 'old_sales'.",
+            id="order-by",
+        ),
+    ],
+)
+def test_validate_query_object_names_members_removed_from_any_role(
+    mock_datasource: MagicMock,
+    selection: dict[str, Any],
+    message: str,
+) -> None:
+    """A saved chart names a removed member wherever the chart refers to it."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        **{"metrics": ["total_sales"], "columns": ["category"], **selection},
+    )
+    captured: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError) as captured:
+        validate_query_object(query_object)
+    assert str(captured.value).startswith(message)
+    assert "removed or renamed in the semantic layer" in str(captured.value)
+
+
+@pytest.mark.parametrize(
+    "column",
+    [
+        pytest.param({"sqlExpression": "upper(category)", "label": "upper"}, id="sql"),
+        pytest.param(
+            {"isColumnReference": True, "sqlExpression": "", "label": "empty"},
+            id="empty-reference",
+        ),
+        pytest.param(
+            {"isColumnReference": True, "sqlExpression": None, "label": "none"},
+            id="missing-reference",
+        ),
+    ],
+)
+def test_validate_query_object_still_refuses_true_adhoc_dimensions(
+    mock_datasource: MagicMock, column: dict[str, Any]
+) -> None:
+    """Only named column references name a missing member; the rest stay refused."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=[cast(AdhocColumn, column)],
+    )
     with pytest.raises(
-        QueryObjectValidationError, match="All dimensions must be defined"
+        QueryObjectValidationError, match="Adhoc dimensions are not supported"
     ):
         validate_query_object(query_object)
 
@@ -1979,7 +2106,8 @@ def test_validate_query_object_undefined_series_column_error(
     )
 
     with pytest.raises(
-        QueryObjectValidationError, match="All series columns must be defined"
+        QueryObjectValidationError,
+        match="Dimensions not in this semantic view: 'undefined_column'",
     ):
         validate_query_object(query_object)
 
@@ -3438,7 +3566,7 @@ def test_validate_query_object_granularity_not_in_dimensions_error(
 
     with pytest.raises(
         QueryObjectValidationError,
-        match="time column must be defined in the Semantic View",
+        match="Dimensions not in this semantic view: 'unknown_time_col'",
     ):
         validate_query_object(query_object)
 
@@ -3577,7 +3705,7 @@ def test_validate_query_object_supported_adhoc_orderby(
 
     if include_unknown_name:
         with pytest.raises(
-            QueryObjectValidationError, match="All order by elements must be defined"
+            QueryObjectValidationError, match="Sort members not in this semantic view"
         ):
             validate_query_object(query_object)
     else:
@@ -3600,7 +3728,7 @@ def test_validate_query_object_orderby_undefined_element_error(
     )
 
     with pytest.raises(
-        QueryObjectValidationError, match="All order by elements must be defined"
+        QueryObjectValidationError, match="Sort members not in this semantic view"
     ):
         validate_query_object(query_object)
 
@@ -5394,7 +5522,9 @@ def test_execution_reuses_members_but_next_query_fetches_fresh_metadata(
     )
     result: QueryResult = get_results(query)
     assert result.df.to_dict("records") == [{"category": "Books", "total_sales": 10.0}]
-    with pytest.raises(QueryObjectValidationError, match="All metrics must be defined"):
+    with pytest.raises(
+        QueryObjectValidationError, match="Metrics not in this semantic view"
+    ):
         get_results(query)
     assert (metrics.call_count, dimensions.call_count) == (2, 2)
     execute.assert_called_once()
@@ -5821,12 +5951,8 @@ def test_dormant_grain_still_refuses_unknown_metadata(
     )
     expected: str
     if unknown == "reference":
-        if shape == "axis":
-            expected = "Adhoc dimensions are not supported in Semantic Views"
-        elif shape == "legacy-unselected":
-            expected = "The time column must be defined in the Semantic View dimensions"
-        else:
-            expected = "All dimensions must be defined in the Semantic View"
+        # Every shape of a reference to a missing member names the member.
+        expected = "Dimensions not in this semantic view: 'missing'"
     elif shape == "query":
         expected = "A time column must be specified when a time grain is provided"
     else:
