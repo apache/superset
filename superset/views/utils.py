@@ -504,9 +504,10 @@ def apply_display_max_row_limit(
 CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 
 
-def get_dashboard_extra_filters(
+def get_dashboard_extra_filters_and_time_range(
     slice_id: int, dashboard_id: int
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Resolve a chart's dashboard default filter clauses and Time Range default."""
     dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
 
     # is chart in this dashboard?
@@ -516,7 +517,7 @@ def get_dashboard_extra_filters(
         or not dashboard.slices
         or not any(slc for slc in dashboard.slices if slc.id == slice_id)
     ):
-        return []
+        return [], None
 
     # Does the caller actually have access to this dashboard? A chart can
     # legitimately be reused across multiple dashboards, so passing chart
@@ -527,23 +528,28 @@ def get_dashboard_extra_filters(
     try:
         security_manager.raise_for_access(dashboard=dashboard)
     except SupersetSecurityException:
-        return []
+        return [], None
 
     with contextlib.suppress(json.JSONDecodeError):
         json_metadata = json.loads(dashboard.json_metadata)
+        extra_form_data = get_dashboard_filter_context(
+            dashboard_id=dashboard_id,
+            chart_id=slice_id,
+        ).extra_form_data
         native_filters = [
-            flt
-            for flt in get_dashboard_filter_context(
-                dashboard_id=dashboard_id,
-                chart_id=slice_id,
-            ).extra_form_data.get("filters", [])
-            if isinstance(flt, dict)
+            flt for flt in extra_form_data.get("filters", []) if isinstance(flt, dict)
         ]
+        saved_time_range = extra_form_data.get("time_range")
+        time_range = (
+            saved_time_range
+            if isinstance(saved_time_range, str) and saved_time_range
+            else None
+        )
 
         # does this dashboard have legacy default filters?
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
         if not default_filters:
-            return native_filters
+            return native_filters, time_range
 
         # are default filters applicable to the given slice?
         filter_scopes = json_metadata.get("filter_scopes", {})
@@ -562,8 +568,8 @@ def get_dashboard_extra_filters(
                     slice_id,
                 ),
                 *native_filters,
-            ]
-    return []
+            ], time_range
+    return [], None
 
 
 def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks  # noqa: C901
