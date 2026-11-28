@@ -40,12 +40,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
-import {
-  css,
-  styled,
-  themeObject,
-  useTheme,
-} from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
@@ -614,8 +609,9 @@ function CollectionTabTitle({
 }
 
 function FormContainer({ children }: FormContainerProps): JSX.Element {
+  const { colorBgLayout } = useTheme();
   return (
-    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
+    <Card padded style={{ backgroundColor: colorBgLayout }}>
       {children}
     </Card>
   );
