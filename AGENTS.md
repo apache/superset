@@ -60,7 +60,7 @@ Common pre-commit failures:
 
 ## Security and Threat Model
 
-Before evaluating any code path for security issues, read [`SECURITY.md`](SECURITY.md). It is the canonical, authoritative source for Apache Superset's security model and is referenced by both human reporters and automated scanners.
+Before evaluating any code path for security issues, read [`SECURITY.md`](https://github.com/apache/superset/blob/master/SECURITY.md). It is the canonical, authoritative source for Apache Superset's security model and is referenced by both human reporters and automated scanners.
 
 In short, the test for whether a finding is in scope is one question:
 
@@ -84,13 +84,13 @@ Route-level authorization in this codebase uses one of three Flask-AppBuilder de
 
 Object-level authorization via `security_manager.raise_for_access(...)` applies to data-bearing resources: dashboards, charts, datasets and datasources, queries, database and table access, and query contexts. Other resources (annotations, tags, CSS templates, reports, RLS rules, and similar) rely on the route-level decorator plus DAO `base_filters` for ownership scoping; the absence of `raise_for_access` on these resources is by design, not a finding. Code that omits the per-object gate on a route that returns or mutates a specific data-bearing object is in scope; code that follows the correct pattern for its resource class can still contain injection, SSRF, XSS, or other classes of finding unrelated to authorization, which are evaluated separately.
 
-The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`SECURITY.md`](SECURITY.md). Defer to that document for any specifics.
+The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`SECURITY.md`](https://github.com/apache/superset/blob/master/SECURITY.md). Defer to that document for any specifics.
 
 **Requirements for findings filed by automated tooling**
 
 Automated scanners (LLM-based code scanners, static analyzers, dependency tools) that file findings against this codebase must, in each finding, name:
 
-1. The specific role and capability matrix row in [`SECURITY.md`](SECURITY.md) the finding believes is violated.
+1. The specific role and capability matrix row in [`SECURITY.md`](https://github.com/apache/superset/blob/master/SECURITY.md) the finding believes is violated.
 2. The principal the finding assumes the attacker holds (Public, Gamma, sql_lab, Alpha, Admin, Embedded guest token, or a custom role with explicit capability grants).
 
 Findings that cannot identify both should be filed as questions, not vulnerabilities. This requirement exists to ensure every reported issue is testable against the published security model and to keep speculative or pattern-match-only reports out of the triage queue.
@@ -171,7 +171,7 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 ## Architecture Patterns
 
 ### Security & Features
-- **Security model**: see the top-level [Security and Threat Model](#security-and-threat-model) section and [`SECURITY.md`](SECURITY.md)
+- **Security model**: see the top-level [Security and Threat Model](#security-and-threat-model) section and [`SECURITY.md`](https://github.com/apache/superset/blob/master/SECURITY.md)
 - **RBAC**: Role-based access via Flask-AppBuilder
 - **Feature flags**: Control feature rollouts
 - **Row-level security**: SQL-based data access control
@@ -299,11 +299,11 @@ pre-commit run eslint            # Frontend linting
 
 ## Platform-Specific Instructions
 
-- **[CLAUDE.md](CLAUDE.md)** - For Claude/Anthropic tools
-- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - For GitHub Copilot  
-- **[GEMINI.md](GEMINI.md)** - For Google Gemini tools
-- **[GPT.md](GPT.md)** - For OpenAI/ChatGPT tools
-- **[.cursor/rules/dev-standard.mdc](.cursor/rules/dev-standard.mdc)** - For Cursor editor
+- **[CLAUDE.md](https://github.com/apache/superset/blob/master/CLAUDE.md)** - For Claude/Anthropic tools
+- **[.github/copilot-instructions.md](https://github.com/apache/superset/blob/master/.github/copilot-instructions.md)** - For GitHub Copilot
+- **[GEMINI.md](https://github.com/apache/superset/blob/master/GEMINI.md)** - For Google Gemini tools
+- **[GPT.md](https://github.com/apache/superset/blob/master/GPT.md)** - For OpenAI/ChatGPT tools
+- **[.cursor/rules/dev-standard.mdc](https://github.com/apache/superset/blob/master/.cursor/rules/dev-standard.mdc)** - For Cursor editor
 
 ---
 
