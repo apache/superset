@@ -255,11 +255,14 @@ export default function DrillDetailPane({
         result_type: 'drill_detail',
         result_format: exportType,
         force: false,
-        form_data: { viz_type: formData.viz_type },
+        form_data: {
+          viz_type: formData.viz_type,
+          ...(drillPayload.x_axis !== undefined && {
+            x_axis: drillPayload.x_axis,
+          }),
+          ...(dashboardId && { dashboardId }),
+        },
       };
-      if (dashboardId) {
-        payload.form_data = { viz_type: formData.viz_type, dashboardId };
-      }
       SupersetClient.postForm('/api/v1/chart/data', {
         form_data: safeStringify(payload),
       }).catch(error => {

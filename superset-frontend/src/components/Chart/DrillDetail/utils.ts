@@ -39,6 +39,8 @@ export function getDrillPayload(
   ];
   return {
     viz_type: queryFormData.viz_type,
+    // The backend scopes the time range to the chart's x-axis, as for the chart.
+    ...(queryFormData.x_axis !== undefined && { x_axis: queryFormData.x_axis }),
     granularity: queryObject.granularity,
     time_range: queryObject.time_range,
     filters,

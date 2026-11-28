@@ -84,6 +84,13 @@ class SamplesPayloadSchema(Schema):
         metadata={"description": "Extra parameters to add to the query."},
         allow_none=True,
     )
+    x_axis = fields.Raw(
+        metadata={
+            "description": "X-axis of the chart the samples are drilled from, which "
+            "scopes a time range to the chart's time column."
+        },
+        allow_none=True,
+    )
     url_params = fields.Dict(
         metadata={
             "description": "URL parameters of the dashboard or Explore view the "

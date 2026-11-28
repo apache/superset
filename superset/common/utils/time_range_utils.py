@@ -16,7 +16,8 @@
 # under the License.
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import re
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
@@ -30,7 +31,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.superset_typing import Column
 from superset.utils.core import (
     FilterOperator,
-    get_x_axis_label,
+    get_base_axis_columns,
 )
 from superset.utils.date_parser import get_since_until
 
@@ -39,8 +40,15 @@ def get_time_range_from_filters(
     time_range: str | None,
     filters: Sequence[Mapping[str, object]] | None,
     columns: list[Column] | None,
+    temporal_columns: Collection[str] | None = None,
 ) -> str:
-    """Select the original range expression without evaluating relative dates."""
+    """Select the original range expression without evaluating relative dates.
+
+    The x-axis takes the range that targets it, by label, then by expression,
+    then by a datetime column its expression reads. A temporal x-axis without
+    one has no range. Without an x-axis, or with one that reads none of
+    ``temporal_columns``, the first temporal range is used.
+    """
     if time_range is not None:
         return time_range
     temporal_filters: list[Mapping[str, object]] = [
@@ -51,12 +59,73 @@ def get_time_range_from_filters(
     ]
     if not temporal_filters:
         return NO_TIME_RANGE
-    x_axis_label: str | None = get_x_axis_label(columns)
-    selected: Mapping[str, object] = next(
-        (filter_ for filter_ in temporal_filters if filter_.get("col") == x_axis_label),
-        temporal_filters[0],
+    base_axes: list[Column] = get_base_axis_columns(columns)
+    if not base_axes:
+        return cast(str, temporal_filters[0].get("val"))
+    axis_columns: tuple[str, ...] = (
+        get_axis_temporal_columns(base_axes[0], temporal_columns)
+        if temporal_columns is not None
+        else ()
     )
-    return cast(str, selected.get("val"))
+    for identifier in (*get_column_identifiers(base_axes[0]), *axis_columns):
+        for filter_ in temporal_filters:
+            if identifier in get_column_identifiers(filter_.get("col")):
+                return cast(str, filter_.get("val"))
+    if temporal_columns is not None and not axis_columns:
+        return cast(str, temporal_filters[0].get("val"))
+    return NO_TIME_RANGE
+
+
+def get_column_identifiers(column: object) -> tuple[str, ...]:
+    """Return the names a column is referenced by: its label, then expression."""
+    if isinstance(column, str):
+        return (column,)
+    if isinstance(column, Mapping):
+        return tuple(
+            value
+            for key in ("label", "sqlExpression")
+            if isinstance(value := column.get(key), str) and value
+        )
+    return ()
+
+
+# Quoted names are length-bounded so an unterminated opener cannot make the scan
+# rescan the rest of the expression from every opener (quadratic backtracking).
+_SQL_IDENTIFIER = re.compile(
+    r'"([^"]{1,255})"|`([^`]{1,255})`|\[([^\]]{1,255})\]|([A-Za-z_]\w{0,254})'
+)
+
+
+def get_axis_temporal_columns(
+    axis: object, temporal_columns: Collection[str]
+) -> tuple[str, ...]:
+    """Return the datetime columns an x-axis reads: itself, or those its SQL names."""
+    if isinstance(axis, str):
+        return (axis,) if axis in temporal_columns else ()
+    expression: object = (
+        axis.get("sqlExpression") if isinstance(axis, Mapping) else None
+    )
+    if not isinstance(expression, str):
+        return ()
+    names: list[str] = [
+        next(group for group in match.groups() if group)
+        for match in _SQL_IDENTIFIER.finditer(expression)
+    ]
+    return tuple(dict.fromkeys(name for name in names if name in temporal_columns))
+
+
+def get_temporal_column_names(datasource: object) -> set[str]:
+    """Return the names of a datasource's datetime columns."""
+    columns: object = getattr(datasource, "columns", None)
+    return {
+        column["column_name"] if isinstance(column, dict) else column.column_name
+        for column in (columns if isinstance(columns, (list, tuple)) else [])
+        if (
+            column.get("is_dttm")
+            if isinstance(column, dict)
+            else getattr(column, "is_dttm", False)
+        )
+    }
 
 
 def get_since_until_from_time_range(

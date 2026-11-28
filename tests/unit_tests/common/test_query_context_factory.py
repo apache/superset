@@ -68,7 +68,6 @@ def test_ordinary_context_rewrites_reach_async_cache_values() -> None:
         "extras": {"where": "country = '{{ 'France' }}'", "time_grain_sqla": "P1D"},
     }
     expected = deepcopy(query)
-    expected["filters"][1]["val"] = query["time_range"]
     expected["extras"]["where"] = "country = 'France'"
     with (
         patch(
@@ -88,7 +87,7 @@ def test_ordinary_context_rewrites_reach_async_cache_values() -> None:
         )
         assert context.queries[0].filter == [query["filters"][1]]
         assert context.queries[0].filter[0] is query["filters"][1]
-        assert query["filters"][1]["val"] == query["time_range"]
+        assert query["filters"][1]["val"] == "2020-01-01 : 2021-01-01"
         assert context.queries[0].extras is query["extras"]
         unrendered_key = context._processor.cache_key()
         context.raise_for_access()
@@ -1463,3 +1462,324 @@ def test_saved_temporal_bindings_use_default_only_for_omitted_granularity(
         else set()
     )
     datasource.save.assert_not_called()
+
+
+def _two_datetime_dataset() -> SqlaTable:
+    return SqlaTable(
+        id=1,
+        table_name="events",
+        database=Database(database_name="test", sqlalchemy_uri="sqlite://"),
+        columns=[
+            TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="created_at", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="country", type="VARCHAR"),
+        ],
+        main_dttm_col="ds",
+    )
+
+
+@pytest.mark.parametrize(
+    ("x_axis", "expected_from"),
+    [("ds", None), ("country", datetime(2000, 1, 1))],
+)
+def test_time_bounds_come_from_the_temporal_x_axis(
+    x_axis: str, expected_from: datetime | None
+) -> None:
+    """Only a non-temporal x-axis takes its bounds from another column's range."""
+    query: dict[str, Any] = {
+        "columns": [
+            {"columnType": "BASE_AXIS", "label": x_axis, "sqlExpression": x_axis}
+        ],
+        "metrics": ["count"],
+        "filters": [
+            {
+                "col": "created_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2000-01-01 : 2001-01-01",
+            },
+        ],
+    }
+    with patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        return_value=_two_datetime_dataset(),
+    ):
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            queries=[query],
+            form_data={"x_axis": x_axis},
+        )
+    assert context.queries[0].from_dttm == expected_from
+
+
+def test_time_range_rewrites_only_the_granularity_filter() -> None:
+    """A dashboard time range leaves other datetime columns' ranges intact."""
+    secondary: QueryObjectFilterClause = {
+        "col": "created_at",
+        "op": "TEMPORAL_RANGE",
+        "val": "2000-01-01 : 2001-01-01",
+    }
+    axis_filter: QueryObjectFilterClause = {
+        "col": {"label": "ds", "sqlExpression": "ds"},
+        "op": "TEMPORAL_RANGE",
+        "val": "No filter",
+    }
+    query: QueryObject = QueryObject(
+        granularity="ds",
+        time_range="2024-01-01 : 2025-01-01",
+        filters=[axis_filter, secondary],
+    )
+    QueryContextFactory()._apply_filters(query)
+    assert axis_filter["val"] == "2024-01-01 : 2025-01-01"
+    assert secondary["val"] == "2000-01-01 : 2001-01-01"
+
+
+def _create_with_time_range(
+    columns: list[Any], filters: list[Any], x_axis: Any
+) -> QueryObject:
+    time_range = "2024-01-01 : 2025-01-01"
+    with patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        return_value=_two_datetime_dataset(),
+    ):
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            queries=[
+                {
+                    "columns": columns,
+                    "metrics": ["count"],
+                    "time_range": time_range,
+                    "filters": filters,
+                }
+            ],
+            form_data={"x_axis": x_axis, "extra_form_data": {"time_range": time_range}},
+        )
+    return context.queries[0]
+
+
+def test_time_range_bounds_the_x_axis_and_keeps_other_ranges() -> None:
+    """Without a Time Column, the range replaces only the x-axis filter."""
+    query = _create_with_time_range(
+        [{"columnType": "BASE_AXIS", "label": "ds", "sqlExpression": "ds"}],
+        [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            {
+                "col": "created_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2000-01-01 : 2001-01-01",
+            },
+        ],
+        "ds",
+    )
+    assert query.granularity is None
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("ds", "2024-01-01 : 2025-01-01"),
+        ("created_at", "2000-01-01 : 2001-01-01"),
+    ]
+
+
+def test_time_range_bounds_a_custom_sql_x_axis_on_another_column() -> None:
+    """An expression x-axis keeps the range when the main datetime differs."""
+    axis: dict[str, str] = {"sqlExpression": "created_at", "label": "created_at"}
+    query = _create_with_time_range(
+        [{"columnType": "BASE_AXIS", **axis}],
+        [{"col": "created_at", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+        {"expressionType": "SQL", **axis},
+    )
+    assert query.granularity == "ds"
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("created_at", "2024-01-01 : 2025-01-01"),
+    ]
+
+
+def test_time_range_adds_a_filter_for_a_temporal_x_axis_without_one() -> None:
+    """The range bounds the x-axis rather than another datetime column."""
+    query = _create_with_time_range(
+        [{"columnType": "BASE_AXIS", "label": "ds", "sqlExpression": "ds"}],
+        [
+            {
+                "col": "created_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2000-01-01 : 2001-01-01",
+            }
+        ],
+        "ds",
+    )
+    assert query.filter == [
+        {
+            "col": "ds",
+            "op": "TEMPORAL_RANGE",
+            "val": "2024-01-01 : 2025-01-01",
+            "isExtra": True,
+        },
+        {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "2000-01-01 : 2001-01-01"},
+    ]
+
+
+def test_time_range_rewrites_every_filter_for_a_categorical_x_axis() -> None:
+    """A non-temporal x-axis leaves no known time column to scope the range."""
+    query = _create_with_time_range(
+        [{"columnType": "BASE_AXIS", "label": "country", "sqlExpression": "country"}],
+        [
+            {
+                "col": "created_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2000-01-01 : 2001-01-01",
+            }
+        ],
+        "country",
+    )
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("created_at", "2024-01-01 : 2025-01-01"),
+    ]
+
+
+def _create(query: dict[str, Any], form_data: dict[str, Any]) -> QueryObject:
+    with patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        return_value=_two_datetime_dataset(),
+    ):
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            queries=[{"metrics": ["count"], **query}],
+            form_data=form_data,
+        )
+    return context.queries[0]
+
+
+def test_time_range_follows_the_x_axis_of_a_query_without_columns() -> None:
+    """Drill to Detail keeps the chart's other datetime ranges, as the chart does."""
+    query = _create(
+        {
+            "time_range": "2024-01-01 : 2025-01-01",
+            "filters": [
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+                {
+                    "col": "created_at",
+                    "op": "TEMPORAL_RANGE",
+                    "val": "2000-01-01 : 2001-01-01",
+                },
+            ],
+        },
+        {"x_axis": "ds", "viz_type": "echarts_timeseries_bar"},
+    )
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("ds", "2024-01-01 : 2025-01-01"),
+        ("created_at", "2000-01-01 : 2001-01-01"),
+    ]
+
+
+def test_time_range_ignores_a_temporal_groupby_without_an_x_axis() -> None:
+    """A table's temporal groupby is not its time column, as in its totals query."""
+    query = _create(
+        {
+            "columns": [
+                {
+                    "timeGrain": "P1D",
+                    "columnType": "BASE_AXIS",
+                    "label": "created_at",
+                    "sqlExpression": "created_at",
+                }
+            ],
+            "time_range": "2024-01-01 : 2025-01-01",
+            "filters": [{"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+        },
+        {"viz_type": "table"},
+    )
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("ds", "2024-01-01 : 2025-01-01"),
+    ]
+
+
+def test_time_column_on_a_table_takes_the_saved_range() -> None:
+    """Without an x-axis, a temporal groupby does not discard the saved range."""
+    query = _create(
+        {
+            "columns": [
+                {
+                    "timeGrain": "P1D",
+                    "columnType": "BASE_AXIS",
+                    "label": "created_at",
+                    "sqlExpression": "created_at",
+                }
+            ],
+            "granularity": "created_at",
+            "filters": [
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2000-01-01 : 2001-01-01"}
+            ],
+        },
+        {"viz_type": "table"},
+    )
+    assert query.from_dttm == datetime(2000, 1, 1)
+
+
+def test_time_range_bounds_the_column_under_a_custom_sql_x_axis() -> None:
+    """A Custom SQL x-axis takes the range on the datetime column it reads."""
+    axis: dict[str, str] = {"sqlExpression": "DATE(created_at)", "label": "day"}
+    query = _create(
+        {
+            "columns": [{"columnType": "BASE_AXIS", **axis}],
+            "time_range": "2024-01-01 : 2025-01-01",
+            "filters": [
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "No filter"}
+            ],
+        },
+        {"x_axis": {"expressionType": "SQL", **axis}},
+    )
+    assert query.granularity == "ds"
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("created_at", "2024-01-01 : 2025-01-01"),
+    ]
+
+
+def test_cross_filter_range_lands_on_the_cross_filtered_column() -> None:
+    """A clicked time bucket replaces ranges on its column, not the target's axis."""
+    bucket = "2024-03-01 00:00:00 : 2024-04-01 00:00:00"
+    cross_filter: dict[str, Any] = {"col": "ds", "op": "TEMPORAL_RANGE", "val": bucket}
+    query = _create(
+        {
+            "columns": [
+                {
+                    "columnType": "BASE_AXIS",
+                    "label": "created_at",
+                    "sqlExpression": "created_at",
+                }
+            ],
+            "time_range": bucket,
+            "filters": [
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2020-01-01 : 2021-01-01"},
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "Last year"},
+                {**cross_filter, "isExtra": True},
+            ],
+        },
+        {
+            "x_axis": "created_at",
+            "extra_form_data": {"filters": [cross_filter], "time_range": bucket},
+        },
+    )
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("ds", bucket),
+        ("created_at", "Last year"),
+        ("ds", bucket),
+    ]
+
+
+def test_stored_query_with_an_x_axis_key_is_accepted() -> None:
+    """A stored query dict carrying ``x_axis`` does not clash with the form data's."""
+    query = _create(
+        {
+            "x_axis": "created_at",
+            "columns": [
+                {"columnType": "BASE_AXIS", "label": "ds", "sqlExpression": "ds"}
+            ],
+            "time_range": "2024-01-01 : 2025-01-01",
+            "filters": [
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "Last year"},
+            ],
+        },
+        {"x_axis": "ds"},
+    )
+    assert [(flt["col"], flt["val"]) for flt in query.filter] == [
+        ("ds", "2024-01-01 : 2025-01-01"),
+        ("created_at", "Last year"),
+    ]

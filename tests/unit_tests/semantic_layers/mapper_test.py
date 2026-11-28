@@ -6144,3 +6144,39 @@ def test_group_limit_requires_projected_enum_grant(
         QueryObjectValidationError, match="Group limit is not supported"
     ):
         validate_query_object(query)
+
+
+def test_axis_range_matches_the_factory_for_a_categorical_axis(
+    app_context: None,
+) -> None:
+    """The range the factory took for a categorical x-axis is not applied twice."""
+    from types import SimpleNamespace
+
+    from superset.semantic_layers.mapper import _get_adhoc_filters
+
+    query = QueryObject(
+        columns=[
+            {
+                "columnType": "BASE_AXIS",
+                "label": "category",
+                "sqlExpression": "category",
+            }
+        ],
+        filters=[{"col": "order_date", "op": "TEMPORAL_RANGE", "val": "Last week"}],
+    )
+    query.datasource = cast(
+        Any,
+        SimpleNamespace(
+            columns=[
+                SimpleNamespace(column_name="order_date", is_dttm=True),
+                SimpleNamespace(column_name="category", is_dttm=False),
+            ]
+        ),
+    )
+    dimensions = {
+        "order_date": Dimension("orders.order_date", "order_date", pa.date32())
+    }
+    assert (
+        _get_adhoc_filters(cast(ValidatedQueryObject, query), dimensions, "order_date")
+        == set()
+    )

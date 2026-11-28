@@ -61,6 +61,7 @@ from superset.common.query_object import QueryObject, selection_version_error
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
+    get_temporal_column_names,
     get_time_range_from_filters,
 )
 from superset.connectors.sqla.models import BaseDatasource
@@ -766,6 +767,7 @@ def _get_adhoc_filters(
             query_object.time_range,
             query_object.filter,
             query_object.columns,
+            get_temporal_column_names(query_object.datasource),
         )
         if replaced_time_axis is not None
         else None

@@ -23,6 +23,7 @@ from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import DEPRECATED_FIELDS, QueryObject
 from superset.common.utils.time_range_utils import (
     get_since_until_from_time_range,
+    get_temporal_column_names,
     get_time_range_from_filters,
 )
 from superset.superset_typing import Column
@@ -30,6 +31,7 @@ from superset.utils.core import (
     apply_max_row_limit,
     DatasourceDict,
     DatasourceType,
+    get_base_axis_columns,
     QueryObjectFilterClause,
 )
 
@@ -61,6 +63,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         server_pagination: bool | None = None,
         datasource_model_instance: BaseDatasource | None = None,
         preserve_null_row_limit: bool = False,
+        x_axis: Column | None = None,
         **kwargs: Any,
     ) -> QueryObject:
         if datasource_model_instance is None and datasource:
@@ -101,8 +104,21 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             preserve_null_row_limit=preserve_null_row_limit,
         )
 
+        # Only a chart's x-axis is its time column: a temporal groupby that a
+        # table sends as the base axis is not.
+        temporal_columns: set[str] | None = None
+        if (
+            time_range is None
+            and datasource_model_instance is not None
+            and get_base_axis_columns(kwargs.get("columns"))
+        ):
+            temporal_columns = (
+                get_temporal_column_names(datasource_model_instance)
+                if x_axis is not None
+                else set()
+            )
         processed_time_range = self._process_time_range(
-            time_range, kwargs.get("filters"), kwargs.get("columns")
+            time_range, kwargs.get("filters"), kwargs.get("columns"), temporal_columns
         )
         from_dttm, to_dttm = get_since_until_from_time_range(
             processed_time_range, time_shift, processed_extras
@@ -164,8 +180,11 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         time_range: str | None,
         filters: list[QueryObjectFilterClause] | None = None,
         columns: list[Column] | None = None,
+        temporal_columns: set[str] | None = None,
     ) -> str:
-        return get_time_range_from_filters(time_range, filters, columns)
+        return get_time_range_from_filters(
+            time_range, filters, columns, temporal_columns
+        )
 
     # light version of the view.utils.core
     # import view.utils require application context

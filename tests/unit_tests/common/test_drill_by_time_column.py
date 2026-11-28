@@ -233,13 +233,15 @@ SETUPS: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     ),
 }
 EXPECTED_BARS = {
-    "range_and_ship_filter": [0, 3, 2, 2],
-    "time_column_and_x_axis_no_filter": [0, 0, 2, 2],
-    "time_column_and_dashboard_x_axis_filter": [0, 0, 2, 2],
+    # The time range bounds order_date; ship_date keeps its own range, which drops
+    # the February order shipped in July.
+    "range_and_ship_filter": [0, 0, 2, 1],
+    "time_column_and_x_axis_no_filter": [0, 0, 2, 1],
+    "time_column_and_dashboard_x_axis_filter": [0, 0, 2, 1],
     # Bars count ship_date months: the Time Column replaces the x-axis.
     "time_column_overrides_x_axis": [0, 0, 3, 2],
-    "custom_sql_x_axis": [0, 0, 2, 2],
-    "custom_sql_x_axis_with_own_label": [0, 0, 2, 2],
+    "custom_sql_x_axis": [0, 0, 2, 1],
+    "custom_sql_x_axis_with_own_label": [0, 0, 2, 1],
 }
 
 

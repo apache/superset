@@ -99,9 +99,12 @@ from superset.common.grouping_sets import (
 )
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
+    get_axis_temporal_columns,
+    get_column_identifiers,
     get_since_until_from_query_object,
     get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
+    get_temporal_column_names,
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
@@ -2252,6 +2255,22 @@ WEEK_GRAINS = (
 )
 
 
+def _carries_compared_range(
+    flt: QueryObjectFilterClause, query_object: QueryObject, temporal_col: str | None
+) -> bool:
+    """Whether a temporal filter holds the range a time comparison replaces.
+
+    That is the time column's range, or the query's time range wherever it was
+    applied. Ranges of other datetime columns hold for every period, as they do
+    in the main query; without a time range, every temporal filter is replaced.
+    """
+    return flt.get("op") == FilterOperator.TEMPORAL_RANGE and (
+        query_object.time_range is None
+        or flt.get("val") == query_object.time_range
+        or temporal_col in get_column_identifiers(flt.get("col"))
+    )
+
+
 class ExploreMixin:  # pylint: disable=too-many-public-methods
     """
     Allows any flask_appbuilder.Model (Query, Table, etc.)
@@ -3573,17 +3592,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # Create a completely new filter list to preserve original filters
                 query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
-                # Remove any existing temporal filters that might conflict
-                query_object_clone.filter = [
-                    flt
-                    for flt in query_object_clone.filter
-                    if not (flt.get("op") == FilterOperator.TEMPORAL_RANGE)
-                ]
-
                 # Determine the temporal column with multiple fallback strategies
                 temporal_col = self._get_temporal_column_for_filter(
                     query_object, x_axis_label
                 )
+
+                # Remove the temporal filters carrying the compared range
+                query_object_clone.filter = [
+                    flt
+                    for flt in query_object_clone.filter
+                    if not _carries_compared_range(flt, query_object, temporal_col)
+                ]
 
                 # Always add a temporal filter for date range offsets
                 if temporal_col:
@@ -3612,14 +3631,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # the temporal filter so we run the query with the correct time range
                 if not dataframe_utils.is_datetime_series(df.get(index)):
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
+                    temporal_col = self._get_temporal_column_for_filter(
+                        query_object, x_axis_label
+                    )
 
                     # Find and update temporal filters
                     for flt in query_object_clone.filter:
-                        if flt.get(
-                            "op"
-                        ) == FilterOperator.TEMPORAL_RANGE and isinstance(
-                            flt.get("val"), str
-                        ):
+                        if _carries_compared_range(
+                            flt, query_object, temporal_col
+                        ) and isinstance(flt.get("val"), str):
                             time_range = cast(str, flt.get("val"))
                             (
                                 new_outer_from_dttm,
@@ -3839,30 +3859,57 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Helper method to reliably determine the temporal column for filtering.
 
-        This method tries multiple strategies to find the correct temporal column:
-        1. Use the column from existing TEMPORAL_RANGE filter
+        The column is the query's time column, chosen as the main query chooses
+        it, so that a comparison shifts the range the main query applied:
+        1. The column of a TEMPORAL_RANGE filter on the time column (granularity),
+           the x-axis, or a datetime column the x-axis expression reads
         2. Use explicitly set granularity
-        3. Use x_axis_label if it exists
+        3. The column of a TEMPORAL_RANGE filter carrying the query's time range
+        4. The column of the first TEMPORAL_RANGE filter
+        5. Use x_axis_label if it exists
 
         :param query_object: The query object
         :param x_axis_label: The x-axis label from the query
         :return: The name of the temporal column, or None if not found
         """
-        # Strategy 1: Use the column from existing TEMPORAL_RANGE filter
-        if query_object.filter:
-            for flt in query_object.filter:
-                if flt.get("op") == FilterOperator.TEMPORAL_RANGE:
-                    col = flt.get("col")
-                    if isinstance(col, str):
-                        return col
-                    elif isinstance(col, dict) and col.get("sqlExpression"):
-                        return str(col.get("label") or col.get("sqlExpression"))
-
-        # Strategy 2: Use explicitly set granularity
-        if query_object.granularity:
+        temporal_filters: list[QueryObjectFilterClause] = [
+            flt
+            for flt in query_object.filter or []
+            if flt.get("op") == FilterOperator.TEMPORAL_RANGE
+        ]
+        base_axes = get_base_axis_columns(query_object.columns)
+        time_columns: set[str] = {
+            *get_column_identifiers(query_object.granularity),
+            *(
+                identifier
+                for axis in base_axes[:1]
+                for identifier in (
+                    *get_column_identifiers(axis),
+                    *get_axis_temporal_columns(axis, get_temporal_column_names(self)),
+                )
+            ),
+        }
+        candidates: list[QueryObjectFilterClause] = [
+            flt
+            for flt in temporal_filters
+            if time_columns.intersection(get_column_identifiers(flt.get("col")))
+        ]
+        if not candidates and query_object.granularity:
             return query_object.granularity
+        if not candidates and query_object.time_range:
+            candidates = [
+                flt
+                for flt in temporal_filters
+                if flt.get("val") == query_object.time_range
+            ]
+        for flt in candidates or temporal_filters:
+            col = flt.get("col")
+            if isinstance(col, str):
+                return col
+            elif isinstance(col, dict) and col.get("sqlExpression"):
+                return str(col.get("label") or col.get("sqlExpression"))
 
-        # Strategy 3: Use x_axis_label if it exists
+        # Use x_axis_label if it exists
         if x_axis_label:
             return x_axis_label
 

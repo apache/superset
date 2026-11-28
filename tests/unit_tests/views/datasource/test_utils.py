@@ -766,3 +766,19 @@ def test_get_samples_failure_without_error_text_keeps_the_default_message(
     assert "None" not in str(excinfo.value)
     assert str(excinfo.value) == DatasetSamplesFailedError.message
     datasource.database.db_engine_spec.extract_errors.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "x_axis", ["ds", {"label": "day", "sqlExpression": "DATE(created_at)"}]
+)
+def test_samples_form_data_carries_the_chart_x_axis(x_axis: object) -> None:
+    """Drill to Detail scopes a time range to the chart's x-axis, as the chart does."""
+    from superset.views.datasource import utils
+    from superset.views.datasource.schemas import SamplesPayloadSchema
+
+    payload = SamplesPayloadSchema().load(
+        {"x_axis": x_axis, "time_range": "Last week", "filters": []}
+    )
+    query, form_data = utils._split_samples_form_data(payload, None)
+    assert query == {"time_range": "Last week", "filters": []}
+    assert form_data == {"x_axis": x_axis}
