@@ -461,6 +461,16 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
+- The SQL Lab extension API includes unvisited persisted tabs in `getTabs()`.
+  The `core.sqlLab__get_editor_sql` client tool requires `editor_id` and returns
+  an error for unloaded tabs, directing callers to `switch_editor_tab` first.
+  `Tab.databaseId` can be `undefined` until the tab's state has loaded; consumers
+  must handle this case before using the ID. `Tab.getEditor()` rejects if the
+  tab's state is not loaded or its tab closes before the editor mounts.
+  `createTab()` inherits omitted catalog
+  and schema values only when reusing the same database, and accepts `null` to
+  clear them explicitly.
+
 - **Guest token identities are validated (warn-first).** The `username`,
   `first_name` and `last_name` in a guest token's `user` claim are expected to be
   strings of at most 255 characters with no control characters (including tab,

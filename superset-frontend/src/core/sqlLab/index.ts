@@ -136,20 +136,61 @@ const createEditorProxy = (tabId: string): sqlLabApi.Editor =>
   });
 
 /**
- * Gets the editor for a tab, waiting for it to be registered if necessary.
+ * Gets the editor for a loaded tab, waiting for it to be registered if necessary.
+ * Rejects if the tab's saved state has not loaded, or if the tab is inactive
+ * and has no registered editor.
  * Returns a Proxy that always delegates to the current handle.
  */
 const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
+  const queryEditor = findQueryEditor(tabId);
+  if (!queryEditor) {
+    return Promise.reject(new Error(`Tab ${tabId} has been closed`));
+  }
+  if (!queryEditor.loaded) {
+    return Promise.reject(
+      new Error(
+        `SQL editor "${tabId}" is not loaded. Switch to this tab to load it, then retry.`,
+      ),
+    );
+  }
   const existingHandle = editorHandleRegistry.get(tabId);
   if (existingHandle) {
     // Editor already registered, return proxy immediately
     return Promise.resolve(createEditorProxy(tabId));
   }
+  if (activeEditorId() !== tabId) {
+    // Only the active tab mounts an editor, so an inactive tab's handle cannot
+    // register until it is activated and waiting would never settle.
+    return Promise.reject(
+      new Error(
+        `SQL editor "${tabId}" is not active. Switch to this tab to mount its editor, then retry.`,
+      ),
+    );
+  }
 
   // Wait for the editor to be registered
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
+    let closed: Disposable | undefined;
+    const onReady = () => {
+      closed?.dispose();
+      resolve(createEditorProxy(tabId));
+    };
+    closed = createActionListener(
+      action =>
+        action.type === REMOVE_QUERY_EDITOR && action.queryEditor?.id === tabId,
+      () => {
+        closed?.dispose();
+        const remaining = (pendingEditorPromises.get(tabId) ?? []).filter(
+          waiter => waiter !== onReady,
+        );
+        if (remaining.length) pendingEditorPromises.set(tabId, remaining);
+        else pendingEditorPromises.delete(tabId);
+        reject(new Error(`Tab ${tabId} has been closed`));
+      },
+      () => true,
+    );
     const pending = pendingEditorPromises.get(tabId) ?? [];
-    pending.push(() => resolve(createEditorProxy(tabId)));
+    pending.push(onReady);
     pendingEditorPromises.set(tabId, pending);
   });
 };
@@ -157,7 +198,7 @@ const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
 const makeTab = (
   id: string,
   name: string,
-  dbId: number,
+  dbId: number | undefined,
   catalog: string | null = null,
   schema: string | null = null,
   closed: boolean = false,
@@ -171,7 +212,7 @@ const makeTab = (
 
 const getTab = (id: string): Tab | undefined => {
   const queryEditor = findQueryEditor(id);
-  if (queryEditor?.dbId !== undefined) {
+  if (queryEditor) {
     const { name, dbId, catalog, schema } = queryEditor;
     return makeTab(id, name, dbId, catalog, schema);
   }
@@ -211,13 +252,7 @@ function extractBaseData(action: QueryAction): {
     queryLimit,
   } = query;
 
-  const tab = makeTab(
-    sqlEditorId ?? '',
-    tabName ?? '',
-    dbId ?? 0,
-    catalog,
-    schema,
-  );
+  const tab = makeTab(sqlEditorId ?? '', tabName ?? '', dbId, catalog, schema);
 
   return {
     baseParams: [id, tab, runAsync ?? false, startDttm ?? 0],
@@ -437,7 +472,7 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
       makeTab(
         action.queryEditor.id,
         action.queryEditor.name ?? '',
-        action.queryEditor.dbId ?? 0,
+        action.queryEditor.dbId,
         action.queryEditor.catalog,
         action.queryEditor.schema,
         true, // closed
@@ -504,7 +539,7 @@ const onDidCreateTab: typeof sqlLabApi.onDidCreateTab = (
       makeTab(
         action.queryEditor.id!,
         action.queryEditor.name ?? '',
-        action.queryEditor.dbId ?? 0,
+        action.queryEditor.dbId,
         action.queryEditor.catalog,
         action.queryEditor.schema ?? undefined,
       ),
@@ -547,11 +582,17 @@ const createTab: typeof sqlLabApi.createTab = async (
       })) || [],
     );
 
+  const dbId =
+    options?.databaseId ?? inheritedValues.dbId ?? defaultDbId ?? firstDbId;
+  const namespace: Partial<QueryEditor> =
+    dbId === inheritedValues.dbId ? inheritedValues : {};
   const newQueryEditor: Partial<QueryEditor> = {
-    dbId:
-      options?.databaseId ?? inheritedValues.dbId ?? defaultDbId ?? firstDbId,
-    catalog: options?.catalog ?? inheritedValues.catalog,
-    schema: options?.schema ?? inheritedValues.schema,
+    dbId,
+    catalog:
+      options?.catalog !== undefined ? options.catalog : namespace.catalog,
+    schema:
+      (options?.schema !== undefined ? options.schema : namespace.schema) ??
+      undefined,
     sql: options?.sql ?? 'SELECT ...',
     queryLimit:
       inheritedValues.queryLimit ?? common?.conf?.DEFAULT_SQLLAB_LIMIT,
@@ -571,7 +612,7 @@ const createTab: typeof sqlLabApi.createTab = async (
   return makeTab(
     newTab.id,
     newTab.name ?? '',
-    newTab.dbId ?? 0,
+    newTab.dbId,
     newTab.catalog,
     newTab.schema ?? undefined,
   );
@@ -598,6 +639,11 @@ const executeQuery: typeof sqlLabApi.executeQuery = async options => {
 
   if (!queryEditor) {
     throw new Error('No active query editor');
+  }
+  if (queryEditor.loaded === false) {
+    throw new Error(
+      'SQL editor is still loading. Retry once the tab has loaded.',
+    );
   }
 
   const { databases, unsavedQueryEditor } = state.sqlLab;
