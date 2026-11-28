@@ -92,6 +92,13 @@ assists people when migrating to a new version.
   `navigation.getApplicationRoot()` reports the prefix for callers that need
   it, such as a `fetch` built by hand.
 
+- The `lean` Docker image, and the `py311`/`py312` variants built from the same
+  stage, no longer ship the `libpq-dev`, `libsasl2-dev` and `libldap2-dev`
+  header packages; only the runtime libraries remain. Images built on top of
+  them that compile native drivers (for example `python-ldap`, or `psycopg2`
+  from source) must install the headers they need themselves, for instance with
+  `apt-get install`.
+
 - Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
 
 - Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series

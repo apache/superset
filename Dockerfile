@@ -266,13 +266,23 @@ COPY scripts/check-env.py scripts/
 # keeping for backward compatibility
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
 
-# Some debian libs
-RUN /app/docker/apt-install.sh \
+# Some debian libs. Only runtime shared libraries belong here: the matching
+# `-dev` header packages pull in libc6-dev, linux-libc-dev, libssl-dev and
+# similar build-time files that no final image needs. Stages that compile
+# native Python extensions install the headers they require themselves. The
+# LDAP library name differs per Debian release, so it is chosen below.
+RUN . /etc/os-release && \
+    if [ "$VERSION_CODENAME" = "bookworm" ]; then \
+        ldap_runtime_package=libldap-2.5-0; \
+    else \
+        ldap_runtime_package=libldap2; \
+    fi && \
+    /app/docker/apt-install.sh \
       curl \
-      libsasl2-dev \
+      libsasl2-2 \
       libsasl2-modules-gssapi-mit \
-      libpq-dev \
-      libldap2-dev
+      libpq5 \
+      "$ldap_runtime_package"
 
 # Create data directory for DuckDB examples database
 # The database file will be created at runtime when examples are loaded from Parquet files
@@ -381,11 +391,17 @@ USER superset
 ######################################################################
 FROM python-common AS dev
 
-# Debian libs needed for dev
+# Debian libs needed for dev, including the headers required to build the
+# native extensions in requirements/development.txt (python-ldap needs
+# libldap2-dev/libsasl2-dev, mysqlclient needs default-libmysqlclient-dev) and
+# to let contributors build source distributions such as psycopg2.
 RUN /app/docker/apt-install.sh \
     git \
     pkg-config \
-    default-libmysqlclient-dev
+    default-libmysqlclient-dev \
+    libsasl2-dev \
+    libldap2-dev \
+    libpq-dev
 
 # Copy development requirements and install them *before* the application
 # source is copied below, so source-only edits don't bust this cache layer.
