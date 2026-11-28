@@ -1273,6 +1273,18 @@ error notice. This does not authorize replay of data-bearing notifications.
   unchanged since the upgrade and imported connections carrying the conversion
   marker, not connections created natively with the new scheme.
 
+- Saved Databricks ODBC connections (`databricks+pyodbc://`) are automatically
+  migrated to the native `databricks://` scheme by `superset db upgrade`. Only
+  the URI prefix changes; the credentials, host, port, path, query parameters,
+  separately encrypted token and connection settings are preserved. This changes
+  the driver these connections use, from `pyodbc` and the Databricks ODBC driver
+  to the Databricks SQL connector, so deployments that only have `pyodbc` set up
+  must install the `databricks` extra (`pip install apache-superset[databricks]`)
+  before these connections work again after the upgrade. ODBC-only settings such
+  as `driver_path` are left in place and ignored. Downgrade restores only the
+  connections this migration converted, not connections created natively with
+  `databricks://` or converted from `databricks+connector://`.
+
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
