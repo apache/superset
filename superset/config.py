@@ -1340,7 +1340,9 @@ _THEME_DEFAULT_BASE: Theme = {
         "brandSpinnerSvg": None,
         # Default colors
         "colorPrimary": "#2893B3",  # NOTE: previous lighter primary color was #20a7c9 # noqa: E501
-        "colorLink": "#2893B3",
+        # WCAG 1.4.3: #2893B3 is ~3.5:1 on white, below the 4.5:1 minimum for
+        # link text; #0d7090 keeps the hue at ~5.6:1.
+        "colorLink": "#0d7090",
         "colorError": "#e04355",
         "colorWarning": "#fcc700",
         "colorSuccess": "#5ac189",
@@ -1384,6 +1386,9 @@ _THEME_DARK_BASE: Theme = {
         **_THEME_DEFAULT_BASE["token"],
         # Darker selection color for dark mode
         "colorEditorSelection": "#5c4d1a",
+        # The darker light-mode link color would lose contrast on dark
+        # backgrounds, so dark mode keeps the primary color for links.
+        "colorLink": "#2893B3",
     },
     "algorithm": "dark",
 }
