@@ -214,6 +214,7 @@ export type DashboardInfo = {
   changed_by?: User;
   created_by?: User;
   editors: Subject[];
+  viewers?: Subject[];
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;
