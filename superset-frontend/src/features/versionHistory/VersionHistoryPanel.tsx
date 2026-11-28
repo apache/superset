@@ -48,8 +48,7 @@ import RelatedUpdateRow from './RelatedUpdateRow';
 import CurrentVersionSection, {
   hasCurrentVersionContent,
 } from './CurrentVersionSection';
-
-const VERSION_HISTORY_PANEL_WIDTH = 320;
+import { VERSION_HISTORY_PANEL_WIDTH } from './constants';
 
 const Panel = styled.aside`
   ${({ theme }) => `

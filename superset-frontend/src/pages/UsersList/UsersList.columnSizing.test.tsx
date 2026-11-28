@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, screen } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
@@ -77,7 +77,7 @@ test('every column fits at a 1440px viewport', async () => {
         <UsersList user={mockUser} />
       </QueryParamProvider>
     </MemoryRouter>,
-    { useRedux: true, store: configureStore([thunk])({}) },
+    { useRedux: true, store: createMockStore([thunk])({}) },
   );
   await screen.findByText('ada@example.com');
   const table = screen.getByTestId('listview-table').querySelector('table')!;

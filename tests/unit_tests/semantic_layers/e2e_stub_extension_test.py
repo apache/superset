@@ -17,7 +17,9 @@
 
 """The Playwright semantic stub loads as an extension and serves host queries."""
 
+import sys
 from collections.abc import Callable, Iterator
+from dataclasses import replace
 from typing import Any, TypeVar
 from uuid import uuid4
 
@@ -34,6 +36,7 @@ from superset_core.semantic_layers.types import (
     Filter,
     Metric,
     Operator,
+    OrderDirection,
     OrFilter,
     PredicateType,
     SemanticQuery,
@@ -231,8 +234,8 @@ def test_supported_filter_can_return_an_empty_result(
     assert response.json["result"][0]["data"] == []
 
 
-def test_or_filter_group_is_rejected(stub_view: SemanticViewABC) -> None:
-    """The stub cannot evaluate OR groups, so it refuses instead of crashing."""
+def test_or_filter_group_is_supported(stub_view: SemanticViewABC) -> None:
+    """OR leaves combine inside a group, with top-level filters still ANDed."""
     region: Dimension = next(d for d in stub_view.get_dimensions() if d.id == "region")
     group: OrFilter = OrFilter(
         frozenset(
@@ -243,8 +246,105 @@ def test_or_filter_group_is_rejected(stub_view: SemanticViewABC) -> None:
         )
     )
     query: SemanticQuery = SemanticQuery(
-        metrics=list(stub_view.get_metrics()), dimensions=[region], filters={group}
+        metrics=[],
+        dimensions=[region],
+        filters={group},
+        order=[(region, OrderDirection.ASC)],
     )
-    with pytest.raises(SemanticQueryRejectedError) as excinfo:
-        stub_view.get_table(query)
-    assert excinfo.value.code == SemanticQueryErrorCode.UNSUPPORTED_QUERY
+    assert stub_view.get_table(query).results.to_pylist() == [
+        {"region": "East"},
+        {"region": "West"},
+    ]
+
+
+@pytest.mark.parametrize(
+    "operator,value",
+    [
+        (Operator.NOT_IN, frozenset({"Books", "Games"})),
+        (Operator.NOT_EQUALS, "Books"),
+        (Operator.NOT_LIKE, "B%"),
+        (Operator.NOT_ILIKE, "b%"),
+    ],
+)
+def test_exclusion_group_retains_nulls_and_outer_filter(
+    stub_view: SemanticViewABC,
+    monkeypatch: pytest.MonkeyPatch,
+    operator: Operator,
+    value: str | frozenset[str],
+) -> None:
+    """NULLs survive user exclusions but cannot bypass an outer region filter."""
+    monkeypatch.setattr(
+        sys.modules[type(stub_view).__module__],
+        "ROWS",
+        (
+            {"category": None, "region": "West", "amount": 11},
+            {"category": None, "region": "East", "amount": 100},
+            {"category": "Books", "region": "West", "amount": 5},
+            {"category": "Music", "region": "West", "amount": 3},
+            {"category": "Music", "region": "East", "amount": 1000},
+        ),
+    )
+    dimensions: dict[str, Dimension] = {d.id: d for d in stub_view.get_dimensions()}
+    total: Metric = next(m for m in stub_view.get_metrics() if m.name == "total_amount")
+    exclusion: Filter = Filter(
+        PredicateType.WHERE, dimensions["category"], operator, value
+    )
+    null: Filter = Filter(
+        PredicateType.WHERE, dimensions["category"], Operator.IS_NULL, None
+    )
+    outer: Filter = Filter(
+        PredicateType.WHERE, dimensions["region"], Operator.EQUALS, "West"
+    )
+    query: SemanticQuery = SemanticQuery(
+        [total], [], filters={OrFilter(frozenset({exclusion, null})), outer}
+    )
+    assert stub_view.get_table(query).results.to_pylist() == [{"total_amount": 14}]
+    query = replace(query, filters={exclusion, outer})
+    assert stub_view.get_table(query).results.to_pylist() == [{"total_amount": 3}]
+
+
+def test_invalid_or_leaf_is_validated_before_matching(
+    stub_view: SemanticViewABC,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A matching OR sibling must not hide an unsupported operator."""
+    monkeypatch.setattr(
+        sys.modules[type(stub_view).__module__],
+        "_matches",
+        lambda row, leaf: pytest.fail("a row was matched before validation"),
+    )
+    region: Dimension = next(d for d in stub_view.get_dimensions() if d.id == "region")
+    group: OrFilter = OrFilter(
+        frozenset(
+            {
+                Filter(PredicateType.WHERE, region, Operator.NOT_IN, frozenset()),
+                Filter(PredicateType.WHERE, region, Operator.LIKE, "%"),
+            }
+        )
+    )
+    with pytest.raises(SemanticQueryRejectedError) as error:
+        stub_view.get_table(SemanticQuery([], [region], filters={group}))
+    assert error.value.code == SemanticQueryErrorCode.UNSUPPORTED_QUERY
+
+
+@pytest.mark.parametrize(
+    "operator,value",
+    [("NOT IN", ["Books"]), ("!=", "Books"), ("NOT LIKE", "B%"), ("NOT ILIKE", "b%")],
+)
+def test_exclusion_through_host_mapper(
+    client: FlaskClient,
+    full_api_access: None,
+    stub_view: SemanticViewABC,
+    operator: str,
+    value: str | list[str],
+) -> None:
+    """The actual chart-data mapper sends normalized exclusion groups to the stub."""
+    response: TestResponse = _chart_data(
+        client, [{"col": "category", "op": operator, "val": value}]
+    )
+    assert response.status_code == 200, response.json
+    assert response.json is not None
+    assert response.json["result"][0]["data"] == [
+        {"category": "Games", "total_amount": 7},
+        {"category": "Music", "total_amount": 3},
+    ]

@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
+  hasValidPreviousData,
 } from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
 import {
@@ -198,6 +199,46 @@ test('enables the no-results state by default for a chart without enableNoResult
     'true',
   );
 });
+
+test.each(['aggregate', 'raw', 'tree'])(
+  'Table V2 %s selects the mode-specific empty-result policy',
+  queryMode => {
+    const formData = {
+      datasource: '1__table',
+      viz_type: VizType.TableAgGrid,
+      query_mode: queryMode,
+    };
+    render(
+      <ChartRenderer
+        {...requiredProps}
+        vizType={VizType.TableAgGrid}
+        formData={formData}
+        latestQueryFormData={formData}
+        queriesResponse={[{ data: [] }, { data: [{ rowcount: 0 }] }]}
+      />,
+    );
+    expect(screen.getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-enable-no-results',
+      queryMode === 'tree' ? 'false' : 'true',
+    );
+    expect(hasValidPreviousData([], formData, VizType.TableAgGrid)).toBe(
+      queryMode === 'tree',
+    );
+    expect(
+      hasValidPreviousData([{ data: [] }], formData, VizType.TableAgGrid),
+    ).toBe(true);
+    expect(hasValidPreviousData(undefined, formData, VizType.TableAgGrid)).toBe(
+      false,
+    );
+    expect(
+      hasValidPreviousData(
+        [{ error: 'failed' }],
+        formData,
+        VizType.TableAgGrid,
+      ),
+    ).toBe(false);
+  },
+);
 
 test('honors enableNoResults: false from the chart metadata (e.g. self-fetching charts like deck.gl Multiple Layers)', () => {
   getChartMetadataRegistry().registerValue(

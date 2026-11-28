@@ -31,7 +31,7 @@ from typing import Any, Callable, Generator, Iterable, Iterator, TypeVar
 
 from flask import current_app as app, g
 from flask.globals import _cv_app, _cv_request
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect
 from sqlalchemy.orm import InstanceState
 from werkzeug.local import LocalProxy
 
@@ -347,8 +347,8 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 session.commit()  # pylint: disable=consider-using-transaction
                 with engine.connect() as connection:
                     result_proxy = connection.execution_options(
-                        stream_results=True
-                    ).execute(text(mutated_sql))
+                        stream_results=True, no_parameters=True
+                    ).exec_driver_sql(mutated_sql)
 
                     columns = list(result_proxy.keys())
 
