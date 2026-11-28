@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   fireEvent,
   render,
@@ -391,4 +391,189 @@ test('saved masked key does not gain a PEM error or change its value', async () 
     'XXXXXXXXXX',
   );
   expect(onChange.mock.calls.at(-1)[0].errors).toEqual([]);
+});
+
+const anyDatabaseSchema = (values: string[] = ['ZZZ', 'AAA']) =>
+  sanitizeSchema({
+    type: 'object',
+    properties: {
+      database: {
+        type: 'string',
+        title: 'Database',
+        enum: values,
+        'x-dynamic': true,
+        'x-anyOption': {
+          label: 'Any database',
+          description: 'choose when adding views',
+        },
+        'x-allowCustomValue': true,
+        'x-pairedFlag': 'allow_changing_database',
+        'x-dependsOn': ['account'],
+      },
+      allow_changing_database: { type: 'boolean', default: false },
+    },
+  } as JsonSchema);
+
+function AnyDatabaseForm({
+  initial = { database: 'ZZZ', allow_changing_database: true },
+  values,
+  onChange = jest.fn(),
+  refreshingSchema = false,
+}: {
+  initial?: Record<string, unknown>;
+  refreshingSchema?: boolean;
+  values?: string[];
+  onChange?: jest.Mock;
+}) {
+  const [data, setData] = useState(initial);
+  const schema = useMemo(() => anyDatabaseSchema(values), [values]);
+  return (
+    <JsonForms
+      schema={schema}
+      uischema={buildUiSchema(schema)}
+      data={data}
+      renderers={renderers}
+      cells={cellRegistryEntries}
+      config={{ refreshingSchema, formData: data }}
+      onChange={event => {
+        setData(event.data);
+        onChange(event);
+      }}
+    />
+  );
+}
+
+test('Any stays first before AAA and a selected value; selecting it writes the pair', async () => {
+  const onChange = jest.fn();
+  render(<AnyDatabaseForm onChange={onChange} />);
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.getByText('choose when adding views')).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('combobox', { name: 'Database' }));
+  const options = await screen.findAllByRole('option');
+  expect(options[0]).toHaveTextContent('Any database');
+  await userEvent.click(
+    screen.getByText('Any database', {
+      selector: '.ant-select-item-option-content',
+    }),
+  );
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { database: '', allow_changing_database: true },
+        errors: [],
+      }),
+    ),
+  );
+});
+
+test.each([{ values: [] }, { values: ['AAA'] }])(
+  'manual names pass AJV with discovery $values',
+  async ({ values }) => {
+    const onChange = jest.fn();
+    render(<AnyDatabaseForm values={values} onChange={onChange} />);
+    const input = screen.getByRole('combobox', { name: 'Database' });
+    await userEvent.clear(input);
+    await userEvent.type(input, 'Any');
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: { database: 'Any', allow_changing_database: false },
+          errors: [],
+        }),
+      ),
+    );
+    expect(
+      onChange.mock.calls.every(
+        ([event]) =>
+          event.data.database === 'ZZZ' ||
+          event.data.allow_changing_database === (event.data.database === ''),
+      ),
+    ).toBe(true);
+  },
+);
+
+test('untouched legacy pair survives schema refresh; explicit same-name selection fixes it', async () => {
+  const onChange = jest.fn();
+  const { rerender } = render(<AnyDatabaseForm onChange={onChange} />);
+  rerender(
+    <AnyDatabaseForm values={['ZZZ', 'AAA', 'BBB']} onChange={onChange} />,
+  );
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { database: 'ZZZ', allow_changing_database: true },
+      }),
+    ),
+  );
+  await userEvent.click(screen.getByRole('combobox', { name: 'Database' }));
+  await userEvent.click(
+    await screen.findByText('ZZZ', {
+      selector: '.ant-select-item-option-content',
+    }),
+  );
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { database: 'ZZZ', allow_changing_database: false },
+      }),
+    ),
+  );
+});
+
+test('Any control shows discovery loading without blocking manual input', async () => {
+  render(
+    <AnyDatabaseForm
+      initial={{ database: '', allow_changing_database: true, account: 'test' }}
+      refreshingSchema
+    />,
+  );
+  expect(screen.getByPlaceholderText('Loading...')).toBeEnabled();
+  await userEvent.type(
+    screen.getByRole('combobox', { name: 'Database' }),
+    'manual',
+  );
+  expect(screen.getByRole('combobox', { name: 'Database' })).toHaveValue(
+    'manual',
+  );
+});
+
+test('Any remains first while typing filters suggestions case-insensitively', async () => {
+  render(<AnyDatabaseForm values={['ANALYTICS', 'REPORTING']} />);
+  const input = screen.getByRole('combobox', { name: 'Database' });
+  await userEvent.clear(input);
+  await userEvent.type(input, 'aNa');
+  const options = await screen.findAllByRole('option');
+  expect(options.map(option => option.textContent)).toEqual([
+    'Any database',
+    'ANALYTICS',
+  ]);
+});
+
+test('nested opted-in fields never write a dotted property at the data root', async () => {
+  const child = anyDatabaseSchema([]).properties!.database;
+  const schema = {
+    type: 'object',
+    properties: { nested: { type: 'object', properties: { database: child } } },
+  } as JsonSchema;
+  const onChange = jest.fn();
+  render(
+    <JsonForms
+      schema={schema}
+      uischema={{
+        type: 'Control',
+        scope: '#/properties/nested/properties/database',
+      }}
+      data={{ nested: { database: 'OLD' } }}
+      renderers={renderers}
+      cells={cellRegistryEntries}
+      onChange={onChange}
+    />,
+  );
+  const input = screen.getByRole('textbox', { name: /Database/ });
+  fireEvent.change(input, { target: { value: 'NEW' } });
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { nested: { database: 'NEW' } } }),
+    ),
+  );
 });

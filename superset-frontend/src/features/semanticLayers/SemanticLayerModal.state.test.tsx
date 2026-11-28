@@ -523,3 +523,66 @@ test('create mode still clears dependent selections on a real edit after backfil
   });
   await settle();
 });
+
+const pairedSchema: JsonSchema = {
+  ...schema,
+  properties: {
+    ...schema.properties,
+    database: {
+      type: 'string',
+      title: 'Database',
+      'x-dynamic': true,
+      enum: [],
+      'x-anyOption': { label: 'Any database' },
+      'x-allowCustomValue': true,
+      'x-pairedFlag': 'allow_changing_database',
+    } as JsonSchema,
+    allow_changing_database: { type: 'boolean', default: false },
+    schema: {
+      type: 'string',
+      title: 'Schema',
+      'x-dynamic': true,
+      enum: [],
+      'x-dependsOn': ['database'],
+      'x-anyOption': { label: 'Any schema' },
+      'x-allowCustomValue': true,
+      'x-pairedFlag': 'allow_changing_schema',
+    } as JsonSchema,
+    allow_changing_schema: { type: 'boolean', default: false },
+  },
+} as JsonSchema;
+
+test.each([false, true])(
+  'edit preserves legacy pairs; changed database resets schema to Any (%s)',
+  async changeDatabase => {
+    expect.hasAssertions();
+    const stored = {
+      account: 'initial',
+      warehouse: 'wh',
+      database: 'DB',
+      allow_changing_database: true,
+      schema: 'PUBLIC',
+      allow_changing_schema: false,
+    };
+    await setup(stored, pairedSchema);
+    if (changeDatabase) {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Database' }), {
+        target: { value: 'OTHER' },
+      });
+      // An unrelated edit before the debounced notification must retain the pair.
+      change('Warehouse', 'changed');
+    }
+    await save(
+      changeDatabase
+        ? {
+            ...stored,
+            warehouse: 'changed',
+            database: 'OTHER',
+            allow_changing_database: false,
+            schema: '',
+            allow_changing_schema: true,
+          }
+        : stored,
+    );
+  },
+);

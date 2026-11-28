@@ -1228,3 +1228,122 @@ test('canceling schema loading does not leave a reopened type picker spinning', 
     screen.queryByRole('button', { name: 'Create' }),
   ).not.toBeInTheDocument();
 });
+
+const pairedSchema: JsonSchema = {
+  type: 'object',
+  properties: {
+    database: {
+      type: 'string',
+      'x-dynamic': true,
+      enum: [],
+      'x-anyOption': {
+        label: 'Any database',
+        description: 'choose when adding views',
+      },
+      'x-allowCustomValue': true,
+      'x-pairedFlag': 'allow_changing_database',
+    },
+    allow_changing_database: { type: 'boolean', default: false },
+    schema: {
+      type: 'string',
+      'x-dynamic': true,
+      enum: [],
+      'x-dependsOn': ['database'],
+      'x-anyOption': {
+        label: 'Any schema',
+        description: 'choose when adding views',
+      },
+      'x-allowCustomValue': true,
+      'x-pairedFlag': 'allow_changing_schema',
+    },
+    allow_changing_schema: { type: 'boolean', default: false },
+  },
+} as JsonSchema;
+
+test('new Any defaults are sent in the create payload', async () => {
+  mockJsonFormsChangeTriggered = true;
+  mockedPost.mockReset().mockResolvedValue({ json: { result: pairedSchema } });
+  render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+  fireEvent.mouseDown(
+    await screen.findByRole('combobox', { name: 'Semantic layer type' }),
+  );
+  fireEvent.click(await screen.findByText('Example'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  await screen.findByRole('button', { name: 'Create' });
+  act(() => capturedOnChange?.({ data: {}, errors: [] }));
+  fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+  await waitFor(() =>
+    expect(mockedPost).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_layer/',
+      jsonPayload: {
+        name: 'Example',
+        type: 'example',
+        configuration: {
+          database: '',
+          allow_changing_database: true,
+          schema: '',
+          allow_changing_schema: true,
+        },
+      },
+    }),
+  );
+});
+
+test('partial manual database refresh preserves discovered database suggestions without a warning', async () => {
+  mockJsonFormsChangeTriggered = true;
+  const configuration = {
+    database: 'ANALYTICS',
+    allow_changing_database: false,
+    schema: '',
+    allow_changing_schema: true,
+  };
+  const discoverySchema = {
+    ...pairedSchema,
+    properties: {
+      ...pairedSchema.properties,
+      database: {
+        ...pairedSchema.properties!.database,
+        enum: ['ANALYTICS', 'REPORTING'],
+      },
+    },
+  } as JsonSchema;
+  mockedGet
+    .mockReset()
+    .mockResolvedValueOnce({
+      json: { result: [{ id: 'example', name: 'Example' }] },
+    })
+    .mockResolvedValueOnce({
+      json: { result: { name: 'Layer 1', type: 'example', configuration } },
+    });
+  // Provider contract: unknown database -> known database suggestions, empty schemas, no warning.
+  mockedPost
+    .mockReset()
+    .mockResolvedValue({ json: { result: discoverySchema } });
+  render(<SemanticLayerModal {...props} />);
+  await waitFor(() => expect(capturedOnChange).not.toBeNull());
+  act(() =>
+    capturedOnChange?.({
+      data: { ...configuration, database: 'ANAL' },
+      errors: [],
+    }),
+  );
+  await act(async () => {
+    jest.advanceTimersByTime(501);
+  });
+  await waitFor(() =>
+    expect(mockedPost).toHaveBeenLastCalledWith({
+      endpoint: '/api/v1/semantic_layer/schema/configuration',
+      jsonPayload: {
+        type: 'example',
+        configuration: { ...configuration, database: 'ANAL' },
+      },
+    }),
+  );
+  expect(mockFormSchema?.properties?.database).toMatchObject({
+    'x-suggestions': ['ANALYTICS', 'REPORTING'],
+  });
+  expect(mockFormSchema?.properties?.schema).toMatchObject({
+    'x-suggestions': [],
+  });
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});

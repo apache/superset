@@ -59,6 +59,7 @@ import {
   sanitizeSchema,
   buildUiSchema,
   getDynamicDependencies,
+  initializeAnyOptions,
   areDependenciesSatisfied,
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
@@ -533,7 +534,10 @@ export default function SemanticLayerModal({
           }
         }
         if (Object.keys(cleared).length > 0) {
-          const data = { ...next.data, ...cleared };
+          const clearedData = { ...next.data, ...cleared };
+          const data = configSchema
+            ? initializeAnyOptions(configSchema, clearedData)
+            : clearedData;
           next = reduce(
             next,
             Actions.update('', () => data),
@@ -543,7 +547,7 @@ export default function SemanticLayerModal({
       if (isRecord(next.data)) formSnapshots.add(next.data);
       return next;
     },
-    [formSnapshots],
+    [formSnapshots, configSchema],
   );
 
   const handleFormChange = useCallback(
@@ -556,12 +560,16 @@ export default function SemanticLayerModal({
     }) => {
       // A notification queued by a dismissed form must not undo its reset.
       if (formSession !== formSessionRef.current) return;
-      setFormData(data);
+      const nextData =
+        !isEditMode && configSchema
+          ? initializeAnyOptions(configSchema, data)
+          : data;
+      setFormData(nextData);
       errorsRef.current = errors ?? [];
       setHasErrors(errorsRef.current.length > 0);
-      maybeRefreshSchema(data);
+      maybeRefreshSchema(nextData);
     },
-    [maybeRefreshSchema, formSession],
+    [maybeRefreshSchema, formSession, configSchema, isEditMode],
   );
 
   const selectedProvider = types.find(type => type.id === selectedType);
