@@ -97,7 +97,6 @@ function CssTemplatesList({
   const canImport = hasPerm('can_write');
 
   const handleCssTemplatesImport = (message: string) => {
-    setImportingCssTemplates(false);
     refreshData();
     addSuccessToast(message);
   };

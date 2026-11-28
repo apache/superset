@@ -22,6 +22,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset.css_templates.utils import CSS_IMPORT_MAX_FILES
 from superset.models.core import CssTemplate
 
 IMPORT_URL = "/api/v1/css_template/import/"
@@ -144,6 +145,27 @@ def test_import_css_templates_requires_form_data(
     response = client.post(IMPORT_URL, json={"css": "h1 { color: red; }"})
 
     assert response.status_code == 400
+
+
+def test_import_css_templates_rejects_too_many_files(
+    client: Any,
+    full_api_access: None,
+    can_write: None,
+    session_with_schema: Session,
+) -> None:
+    response = client.post(
+        IMPORT_URL,
+        data={
+            "formData": [
+                css_file(f"theme_{i}.css", "a { color: red; }")
+                for i in range(CSS_IMPORT_MAX_FILES + 1)
+            ]
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 422
+    assert session_with_schema.query(CssTemplate).count() == 0
 
 
 def test_import_css_templates_rejects_non_css_file(

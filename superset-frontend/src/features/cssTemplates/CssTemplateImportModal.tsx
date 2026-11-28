@@ -93,10 +93,9 @@ const CssTemplateImportModal: FunctionComponent<
       headers: { Accept: 'application/json' },
     }).then(
       ({ json = {} }) => {
-        if (importId !== importIdRef.current) {
-          return;
+        if (importId === importIdRef.current) {
+          hide();
         }
-        clearModal();
         onCssTemplatesImport(json.message ?? t('CSS templates imported'));
       },
       createErrorHandler(errMsg => {
