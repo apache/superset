@@ -216,6 +216,10 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             try:
                 with closing(engine.raw_connection()) as conn:
                     alive = engine.dialect.do_ping(conn)
+                    if alive:
+                        database.db_engine_spec.validate_connection_target(
+                            database, conn
+                        )
             except Exception as ex:
                 # If the connection failed because OAuth2 is needed, we can save the
                 # database and trigger the OAuth2 flow whenever a user tries to run a

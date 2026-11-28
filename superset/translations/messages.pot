@@ -3138,6 +3138,9 @@ msgstr ""
 msgid "Catalog"
 msgstr ""
 
+msgid "Catalog name"
+msgstr ""
+
 msgid "Categorical"
 msgstr ""
 
@@ -7920,6 +7923,9 @@ msgstr ""
 msgid "HTTPS will be used to connect to the Druid SQL endpoint."
 msgstr ""
 
+msgid "HTTPS will be used to connect to the Trino coordinator."
+msgstr ""
+
 #. do-not-translate
 msgid "Handlebars"
 msgstr ""
@@ -10681,6 +10687,9 @@ msgstr ""
 msgid "Only exact match is available for non-string columns."
 msgstr ""
 
+msgid "Only needed when the server uses a private CA or a self-signed certificate. Paste the CA_BUNDLE contents."
+msgstr ""
+
 msgid "Only proceed if you trust the destination or its source."
 msgstr ""
 
@@ -10830,6 +10839,9 @@ msgstr ""
 
 #, no-python-format
 msgid "Optional. When set together with Low color, Mid color, and High color below, colors diverge from Mid color at this value toward Low color below it and High color above it, instead of a single color fading in and out. For % of column with Column sum, the resolved center must still fall inside the color range; otherwise the rule uses its single color."
+msgstr ""
+
+msgid "Optional: CA certificate (PEM)"
 msgstr ""
 
 msgid "Options"
@@ -14877,6 +14889,12 @@ msgstr ""
 msgid "The Snowflake connection could not be established. Check the account identifier, connection address, network access, and authentication settings, then retry the import."
 msgstr ""
 
+msgid "The Trino catalog to connect to (e.g. hive, iceberg). To also set a default schema, enter it as catalog/schema (e.g. hive/sales)."
+msgstr ""
+
+msgid "The Trino server's SSL certificate could not be verified. If it was issued by a private CA or is self-signed, add the CA certificate under Root certificate."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr ""
 
@@ -14921,6 +14939,9 @@ msgstr ""
 
 #, python-format
 msgid "The bundle is missing a %(asset_type)s required by an imported asset. Re-export the dashboard with its dependencies from a compatible Superset version, then retry."
+msgstr ""
+
+msgid "The catalog does not exist on this Trino server. Check the Catalog name."
 msgstr ""
 
 msgid "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used."
@@ -16944,6 +16965,12 @@ msgid "Trigger Alert If..."
 msgstr ""
 
 msgid "Trigger now"
+msgstr ""
+
+msgid "Trino denied access. Check that the username and password are correct."
+msgstr ""
+
+msgid "Trino requires an encrypted connection when a password is used. Turn on SSL and check that the port serves HTTPS (usually 443)."
 msgstr ""
 
 msgid "True"
@@ -19147,6 +19174,9 @@ msgstr ""
 msgid "e.g. 5432"
 msgstr ""
 
+msgid "e.g. 8080 (443 for HTTPS)"
+msgstr ""
+
 msgid "e.g. 8082 (8888 for the router)"
 msgstr ""
 
@@ -19166,6 +19196,9 @@ msgid "e.g. default"
 msgstr ""
 
 msgid "e.g. embedded_viewer"
+msgstr ""
+
+msgid "e.g. hive or hive/sales"
 msgstr ""
 
 msgid "e.g. hive_metastore"
