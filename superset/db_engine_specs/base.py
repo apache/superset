@@ -23,6 +23,7 @@ import re
 import warnings
 from collections.abc import Collection, Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -148,6 +149,26 @@ _TRAILING_LIMIT_OFFSET = re.compile(
 )
 
 logger = logging.getLogger()
+
+_reuse_discovered_schema: ContextVar[bool] = ContextVar(
+    "reuse_discovered_schema", default=False
+)
+
+
+@contextmanager
+def reuse_discovered_default_schema() -> Iterator[None]:
+    """Reuse engine schema discovery only while collecting chart cache keys.
+
+    Execution and metadata inspection retain their engine-specific inspector
+    behavior. Context-local state keeps nested collectors and concurrent requests
+    from changing each other's schema policy.
+    """
+    token = _reuse_discovered_schema.set(True)
+    try:
+        yield
+    finally:
+        _reuse_discovered_schema.reset(token)
+
 
 # When connecting to a database it's hard to catch specific exceptions, since we support
 # more than 50 different database drivers. Usually the try/except block will catch the
@@ -871,6 +892,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # editor offers no pre-fill and the owner writes the transform themselves.
     partition_value_transform_default: str | None = None
 
+    # Whether the dataset editor should offer partition filter mapping at all.
+    # This is a structural property of the engine, not a pre-fill: mapping a
+    # filter onto a physical partition column only prunes work on engines whose
+    # tables are laid out as partition directories (Hive-family). Elsewhere the
+    # concept either does not exist (Postgres) or is handled invisibly by the
+    # engine (Snowflake micro-partitions, BigQuery/Redshift internals), so the
+    # dropdown would be clutter that maps to nothing. Default `False` so an
+    # engine only advertises the feature by opting in, rather than inheriting it
+    # and having to remember to opt out.
+    supports_partition_filter_mapping: bool = False
+
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
     # the connection is created.
@@ -1381,7 +1413,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_default_schema(cls, database: Database, catalog: str | None) -> str | None:
         """
         Return the default schema for a catalog in a given database.
+
+        Cache-key collection can reuse an initialized engine's discovery without
+        changing the inspector policy of execution and metadata callers.
         """
+        if _reuse_discovered_schema.get():
+            return database.get_default_schema_from_engine(catalog)
         with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
 
@@ -3656,6 +3693,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            # Read by the dataset editor to re-derive whether partition filter
+            # mapping applies when the owner points a dataset at another
+            # database, without a round trip through the dataset endpoint.
+            "supports_partition_filter_mapping": (
+                cls.supports_partition_filter_mapping
+            ),
+            "partition_value_transform_default": (
+                cls.partition_value_transform_default
+            ),
             "encrypted_extra_sensitive_fields": (
                 cls.encrypted_extra_sensitive_field_labels()
             ),
@@ -3693,15 +3739,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return name
 
     @classmethod
-    def prepare_identifier(
-        cls,
-        name: str,
-        normalize_columns: bool = False,
-    ) -> str:
+    def prepare_identifier(cls, name: str, exact_case: bool = False) -> str:
         """
-        Prepare a physical identifier for SQLAlchemy column construction.
+        Prepare a column name for SQLAlchemy ``column()`` construction.
 
-        The default preserves SQLAlchemy's automatic identifier-quoting behavior.
+        ``exact_case`` is True when the stored name is known to be the exact
+        identifier returned by the database cursor (virtual datasets and SQL Lab
+        queries). The default keeps SQLAlchemy's automatic identifier quoting.
         """
         return name
 
