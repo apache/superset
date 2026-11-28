@@ -19,180 +19,177 @@
 import { render, screen } from '@superset-ui/core/spec';
 import LeftCell from './LeftCell';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('LeftCell', () => {
-  test('should render column label for column row type', () => {
-    const columnRow = {
-      label: 'Test Column',
-      column_name: 'test_column',
-    };
+test('should render column label for column row type', () => {
+  const columnRow = {
+    label: 'Test Column',
+    column_name: 'test_column',
+  };
 
-    render(<LeftCell row={columnRow} rowType="column" />);
+  render(<LeftCell row={columnRow} rowType="column" />);
 
-    expect(screen.getByText('Test Column')).toBeInTheDocument();
-  });
+  expect(screen.getByText('Test Column')).toBeInTheDocument();
+});
 
-  test('should render link for column row type with URL', () => {
-    const columnRow = {
-      label: 'Test Column',
-      column_name: 'test_column',
-    };
+test('should render link for column row type with URL', () => {
+  const columnRow = {
+    label: 'Test Column',
+    column_name: 'test_column',
+  };
 
-    const url = 'http://example.com/{{metric.column_name}}';
+  const url = 'http://example.com/{{metric.column_name}}';
 
-    render(<LeftCell row={columnRow} rowType="column" url={url} />);
+  render(<LeftCell row={columnRow} rowType="column" url={url} />);
 
-    const link = screen.getByRole('link');
+  const link = screen.getByRole('link');
 
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', 'http://example.com/test_column');
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(link).toHaveAttribute('target', '_blank');
-    expect(link).toHaveTextContent('Test Column');
-  });
+  expect(link).toBeInTheDocument();
+  expect(link).toHaveAttribute('href', 'http://example.com/test_column');
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(link).toHaveAttribute('target', '_blank');
+  expect(link).toHaveTextContent('Test Column');
+});
 
-  test('should render MetricOption for metric row type', () => {
-    const metricRow = {
-      metric_name: 'SUM(sales)',
-      label: 'Sum of Sales',
-      verbose_name: 'Total Sales',
-      description: 'Sum of all sales',
-    };
+test('should render MetricOption for metric row type', () => {
+  const metricRow = {
+    metric_name: 'SUM(sales)',
+    label: 'Sum of Sales',
+    verbose_name: 'Total Sales',
+    description: 'Sum of all sales',
+  };
 
-    const { container } = render(<LeftCell row={metricRow} rowType="metric" />);
+  const { container } = render(<LeftCell row={metricRow} rowType="metric" />);
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should render MetricOption with URL for metric row type', () => {
-    const metricRow = {
-      metric_name: 'SUM(sales)',
-      label: 'Sum of Sales',
-    };
+test('should render MetricOption with URL for metric row type', () => {
+  const metricRow = {
+    metric_name: 'SUM(sales)',
+    label: 'Sum of Sales',
+  };
 
-    const url = 'http://example.com/metrics/{{metric.metric_name}}';
+  const url = 'http://example.com/metrics/{{metric.metric_name}}';
 
-    const { container } = render(
-      <LeftCell row={metricRow} rowType="metric" url={url} />,
-    );
+  const { container } = render(
+    <LeftCell row={metricRow} rowType="metric" url={url} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should handle empty column label', () => {
-    const columnRow = {
-      label: '',
-      column_name: 'empty_column',
-    };
+test('should handle empty column label', () => {
+  const columnRow = {
+    label: '',
+    column_name: 'empty_column',
+  };
 
-    const { container } = render(<LeftCell row={columnRow} rowType="column" />);
+  const { container } = render(<LeftCell row={columnRow} rowType="column" />);
 
-    expect(container).toBeTruthy();
-    expect(container).toHaveTextContent('');
-  });
+  expect(container).toBeTruthy();
+  expect(container).toHaveTextContent('');
+});
 
-  test('should handle undefined values in row', () => {
-    const columnRow = {
-      label: undefined,
-      column_name: 'test_column',
-    };
+test('should handle undefined values in row', () => {
+  const columnRow = {
+    label: undefined,
+    column_name: 'test_column',
+  };
 
-    const element = document.body;
+  const element = document.body;
 
-    render(<LeftCell row={columnRow} rowType="column" />);
-    expect(element).toBeTruthy();
-  });
+  render(<LeftCell row={columnRow} rowType="column" />);
+  expect(element).toBeTruthy();
+});
 
-  test('should properly template URL with metric context', () => {
-    const metricRow = {
-      metric_name: 'AVG(price)',
-      label: 'Average Price',
-      id: 123,
-    };
+test('should properly template URL with metric context', () => {
+  const metricRow = {
+    metric_name: 'AVG(price)',
+    label: 'Average Price',
+    id: 123,
+  };
 
-    const url = 'http://example.com/{{metric.metric_name}}/{{metric.id}}';
+  const url = 'http://example.com/{{metric.metric_name}}/{{metric.id}}';
 
-    render(<LeftCell row={metricRow} rowType="metric" url={url} />);
+  render(<LeftCell row={metricRow} rowType="metric" url={url} />);
 
-    const { container } = render(
-      <LeftCell row={metricRow} rowType="metric" url={url} />,
-    );
+  const { container } = render(
+    <LeftCell row={metricRow} rowType="metric" url={url} />,
+  );
 
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  expect(container.firstChild).toBeInTheDocument();
+});
 
-  test('should handle complex templating patterns', () => {
-    const columnRow = {
-      label: 'Sales Data',
-      column_name: 'sales',
-      type: 'numeric',
-    };
+test('should handle complex templating patterns', () => {
+  const columnRow = {
+    label: 'Sales Data',
+    column_name: 'sales',
+    type: 'numeric',
+  };
 
-    const complexUrl =
-      'http://example.com/{{metric.column_name}}?type={{metric.type}}&label={{metric.label}}';
+  const complexUrl =
+    'http://example.com/{{metric.column_name}}?type={{metric.type}}&label={{metric.label}}';
 
-    render(<LeftCell row={columnRow} rowType="column" url={complexUrl} />);
+  render(<LeftCell row={columnRow} rowType="column" url={complexUrl} />);
 
-    const link = screen.getByRole('link');
+  const link = screen.getByRole('link');
 
-    expect(link).toHaveAttribute(
-      'href',
-      'http://example.com/sales?type=numeric&label=Sales Data',
-    );
-  });
+  expect(link).toHaveAttribute(
+    'href',
+    'http://example.com/sales?type=numeric&label=Sales Data',
+  );
+});
 
-  test('should not render javascript: URLs as links for column rows', () => {
-    const columnRow = {
-      label: 'Test Column',
-      column_name: 'test_column',
-    };
+test('should not render javascript: URLs as links for column rows', () => {
+  const columnRow = {
+    label: 'Test Column',
+    column_name: 'test_column',
+  };
 
-    render(
-      <LeftCell
-        row={columnRow}
-        rowType="column"
-        url="javascript:alert(document.domain)" // eslint-disable-line no-script-url
-      />,
-    );
+  render(
+    <LeftCell
+      row={columnRow}
+      rowType="column"
+      url="javascript:alert(document.domain)" // eslint-disable-line no-script-url
+    />,
+  );
 
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    expect(screen.getByText('Test Column')).toBeInTheDocument();
-  });
+  expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  expect(screen.getByText('Test Column')).toBeInTheDocument();
+});
 
-  test('should not render script-bearing schemes assembled via templating', () => {
-    const columnRow = {
-      label: 'Test Column',
-      column_name: 'alert(1)',
-    };
+test('should not render script-bearing schemes assembled via templating', () => {
+  const columnRow = {
+    label: 'Test Column',
+    column_name: 'alert(1)',
+  };
 
-    render(
-      <LeftCell
-        row={columnRow}
-        rowType="column"
-        url="javascript:{{metric.column_name}}" // eslint-disable-line no-script-url
-      />,
-    );
+  render(
+    <LeftCell
+      row={columnRow}
+      rowType="column"
+      url="javascript:{{metric.column_name}}" // eslint-disable-line no-script-url
+    />,
+  );
 
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
-  });
+  expect(screen.queryByRole('link')).not.toBeInTheDocument();
+});
 
-  test('should keep relative URLs as links', () => {
-    const columnRow = {
-      label: 'Test Column',
-      column_name: 'test_column',
-    };
+test('should keep relative URLs as links', () => {
+  const columnRow = {
+    label: 'Test Column',
+    column_name: 'test_column',
+  };
 
-    render(
-      <LeftCell
-        row={columnRow}
-        rowType="column"
-        url="/superset/dashboard/{{metric.column_name}}/"
-      />,
-    );
+  render(
+    <LeftCell
+      row={columnRow}
+      rowType="column"
+      url="/superset/dashboard/{{metric.column_name}}/"
+    />,
+  );
 
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      '/superset/dashboard/test_column/',
-    );
-  });
+  expect(screen.getByRole('link')).toHaveAttribute(
+    'href',
+    '/superset/dashboard/test_column/',
+  );
 });

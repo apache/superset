@@ -539,7 +539,7 @@ assists people when migrating to a new version.
   validation errors. Semantic result keys include a
   filter-protocol version, and chart-backed annotation results also receive a new
   cache discriminator: expect a one-time cold cache after upgrading. See the
-  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  [semantic filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions)
   for NULL value typing, mandatory `OrFilter` rendering and guarded loading on
   older SDKs.
 
