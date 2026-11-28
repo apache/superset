@@ -19,11 +19,11 @@ from __future__ import annotations
 import calendar
 import logging
 import re
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from time import struct_time
 
-import pandas as pd
 import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -48,6 +48,7 @@ from superset.commands.chart.exceptions import (
     TimeRangeParseFailError,
 )
 from superset.constants import InstantTimeComparison, LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
+from superset.utils.dates import normalize_time_bound
 
 ParserElement.enable_packrat()
 
@@ -154,7 +155,9 @@ def get_past_or_future(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
     human_readable = _rewrite_quarters_as_months(human_readable)
-    return dttm_from_timetuple(cal.parse(human_readable, source_dttm)[0])
+    return dttm_from_timetuple(cal.parse(human_readable, source_dttm)[0]).replace(
+        tzinfo=source_time.tzinfo if source_time else None
+    )
 
 
 def is_parseable_human_timedelta(human_readable: str | None) -> bool:
@@ -209,7 +212,9 @@ def parse_human_timedelta(
     source_dttm = dttm_from_timetuple(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
-    return get_past_or_future(human_readable, source_time) - source_dttm
+    return get_past_or_future(human_readable, source_time) - source_dttm.replace(
+        tzinfo=source_time.tzinfo if source_time else None
+    )
 
 
 def parse_past_timedelta(
@@ -495,6 +500,17 @@ def is_no_time_range(time_range: str | None) -> bool:
     return time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE)
 
 
+def get_comparable_bounds(
+    since: datetime, until: datetime
+) -> tuple[datetime, datetime]:
+    """Use legacy wall-clock ordering for mixed bounds without mutating them."""
+    if (since.utcoffset() is None) != (until.utcoffset() is None):
+        # No common timezone exists at the parser layer. The query layer
+        # resolves naive bounds in the dataset timezone.
+        return since.replace(tzinfo=None), until.replace(tzinfo=None)
+    return since, until
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -503,6 +519,8 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     relative_start: str | None = None,
     relative_end: str | None = None,
     instant_time_comparison_range: str | None = None,
+    time_range_normalizer: Callable[[datetime, datetime], tuple[datetime, datetime]]
+    | None = None,
 ) -> tuple[datetime | None, datetime | None]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -739,32 +757,57 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             elif instant_time_comparison_range == InstantTimeComparison.WEEK:
                 time_unit = "WEEK"
             elif instant_time_comparison_range == InstantTimeComparison.INHERITED:
-                delta_in_days = (_until - _since).days if _since and _until else None
+                if _since and _until:
+                    if _since.utcoffset() is not None or _until.utcoffset() is not None:
+                        _since, _until = (
+                            time_range_normalizer(_since, _until)
+                            if time_range_normalizer
+                            else (
+                                normalize_time_bound(_since).replace(
+                                    tzinfo=timezone.utc
+                                ),
+                                normalize_time_bound(_until).replace(
+                                    tzinfo=timezone.utc
+                                ),
+                            )
+                        )
+                        duration = _until - _since
+                        if duration < timedelta(0):
+                            raise ValueError(
+                                _("From date cannot be larger than to date")
+                            )
+                        _since, _until = _since - duration, _since
+                        time_unit = ""
+                        # Explicit ranges use exact SQL instants, including sub-day
+                        # spans. The calendar/day fallback below is for naive input.
+                        return _since, _until
+                    since_comparison, until_comparison = get_comparable_bounds(
+                        _since, _until
+                    )
+                    delta_in_days = (until_comparison - since_comparison).days
                 time_unit = "DAY"
 
             if time_unit:
-                strtfime_since = (
-                    _since.strftime("%Y-%m-%dT%H:%M:%S") if _since else relative_start
-                )
-                strtfime_until = (
-                    _until.strftime("%Y-%m-%dT%H:%M:%S") if _until else relative_end
-                )
+                iso_since = _since.isoformat() if _since else relative_start
+                iso_until = _until.isoformat() if _until else relative_end
 
                 since_and_until = [
                     (
-                        f"DATEADD(DATETIME('{strtfime_since}'), "
+                        f"DATEADD(DATETIME('{iso_since}'), "
                         f"-{delta_in_days or 1}, {time_unit})"
                     ),
                     (
-                        f"DATEADD(DATETIME('{strtfime_until}'), "
+                        f"DATEADD(DATETIME('{iso_until}'), "
                         f"-{delta_in_days or 1}, {time_unit})"
                     ),
                 ]
 
                 _since, _until = map(datetime_eval, since_and_until)
 
-    if _since and _until and _since > _until:
-        raise ValueError(_("From date cannot be larger than to date"))
+    if _since and _until:
+        since_comparison, until_comparison = get_comparable_bounds(_since, _until)
+        if since_comparison > until_comparison:
+            raise ValueError(_("From date cannot be larger than to date"))
 
     return _since, _until
 
@@ -821,16 +864,14 @@ class EvalDateDiffFunc:  # pylint: disable=too-few-public-methods
         self.value = tokens[1]
 
     def eval(self) -> int:
-        if len(self.value) == 2:
-            _dttm_from, _dttm_to = self.value
-            return (_dttm_to.eval() - _dttm_from.eval()).days
-
-        if len(self.value) == 3:
-            _dttm_from, _dttm_to, _unit = self.value
-            if _unit == "year":
-                return _dttm_to.eval().year - _dttm_from.eval().year
-            if _unit == "day":
-                return (_dttm_to.eval() - _dttm_from.eval()).days
+        if len(self.value) in (2, 3):
+            dttm_from, dttm_to = get_comparable_bounds(
+                self.value[0].eval(), self.value[1].eval()
+            )
+            if len(self.value) == 2 or self.value[2] == "day":
+                return (dttm_to - dttm_from).days
+            if self.value[2] == "year":
+                return dttm_to.year - dttm_from.year
         raise ValueError(_("Unable to calculate such a date delta"))
 
 
@@ -846,8 +887,13 @@ class EvalDateTruncFunc:  # pylint: disable=too-few-public-methods
                 month=1, day=1, hour=0, minute=0, second=0, microsecond=0
             )
         if unit == "quarter":
-            dttm = (
-                pd.Period(pd.Timestamp(dttm), freq="Q").to_timestamp().to_pydatetime()
+            dttm = dttm.replace(
+                month=3 * ((dttm.month - 1) // 3) + 1,
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
         elif unit == "month":
             dttm = dttm.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

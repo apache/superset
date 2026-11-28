@@ -4760,6 +4760,8 @@ def _raw_query_object() -> MagicMock:
     query_object.columns = ["ts"]
     query_object.granularity = None
     query_object.time_shift = None
+    query_object.time_offsets = []
+    query_object.inner_from_dttm = None
     return query_object
 
 

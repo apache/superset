@@ -20,9 +20,10 @@ from __future__ import annotations
 import inspect
 import logging
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pprint import pformat
 from typing import Any, cast, NamedTuple, TYPE_CHECKING
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import current_app
 from flask_babel import gettext as _
@@ -47,8 +48,10 @@ from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     format_list,
+    get_base_axis_columns,
     get_column_names,
     get_metric_names,
+    get_x_axis_label,
     is_adhoc_metric,
     QueryObjectFilterClause,
 )
@@ -832,7 +835,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     func = extra_ops[operation]
                 options = post_process.get("options", {})
                 if operation == "resample":
-                    options = self._resolve_resample_options(options)
+                    options = self._resolve_resample_options(options, df)
                 df = self._exec_operation(func, operation, is_builtin, df, options)
             return df
 
@@ -908,7 +911,52 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
             ) from ex
 
-    def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
+    def _is_resample_calendar_column(self) -> bool:
+        """Resolve physical temporal metadata for legacy and base-axis charts."""
+        if self.datasource is None:
+            return False
+        names = [self.granularity or get_x_axis_label(self.columns)]
+        if not self.granularity:
+            names.extend(
+                col.get("sqlExpression")
+                for col in get_base_axis_columns(self.columns)[:1]
+                if isinstance(col, dict)
+            )
+        time_col = next(
+            (col for col in self.datasource.columns if col.column_name in names), None
+        )
+        is_calendar = getattr(self.datasource, "is_calendar_date_column", None)
+        return bool(callable(is_calendar) and is_calendar(time_col))
+
+    def _resample_display_bound(
+        self, bound: datetime | None, df: DataFrame
+    ) -> datetime | None:
+        """Align explicit instants with a datasource's normalized display frame."""
+        if bound is None or bound.utcoffset() is None or self.datasource is None:
+            return bound
+        if self._is_resample_calendar_column():
+            return bound.replace(tzinfo=None)
+        get_timezone = getattr(self.datasource, "get_dataset_timezone", None)
+        dataset_timezone = get_timezone() if callable(get_timezone) else None
+        if isinstance(dataset_timezone, str) and dataset_timezone:
+            try:
+                return bound.astimezone(ZoneInfo(dataset_timezone)).replace(tzinfo=None)
+            except ZoneInfoNotFoundError:
+                pass
+        # normalize_dttm_col applies the legacy display offset after reading
+        # UTC timestamps. Padding must use that same frame, exactly once.
+        offset = getattr(self.datasource, "offset", 0) or 0
+        if index_timezone := getattr(df.index, "tz", None):
+            return (
+                bound.astimezone(timezone.utc) + timedelta(hours=offset)
+            ).astimezone(index_timezone)
+        return bound.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(
+            hours=offset
+        )
+
+    def _resolve_resample_options(
+        self, options: dict[str, Any], df: DataFrame
+    ) -> dict[str, Any]:
         """
         Translate the `fill_time_range` flag into explicit resample boundaries.
 
@@ -928,6 +976,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             for key, value in options.items()
             if key not in ("fill_time_range", "time_range_start", "time_range_end")
         }
-        resolved["time_range_start"] = self.from_dttm
-        resolved["time_range_end"] = self.to_dttm
+        resolved["time_range_start"] = self._resample_display_bound(self.from_dttm, df)
+        resolved["time_range_end"] = self._resample_display_bound(self.to_dttm, df)
         return resolved
