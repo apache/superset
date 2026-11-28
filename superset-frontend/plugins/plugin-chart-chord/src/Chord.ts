@@ -22,11 +22,14 @@ import d3 from 'd3';
 import {
   getNumberFormatter,
   CategoricalColorNamespace,
+  type DataRecordValue,
 } from '@superset-ui/core';
+
+const NULL_LABEL = '<NULL>';
 
 interface ChordData {
   matrix: number[][];
-  nodes: string[];
+  nodes: (DataRecordValue | undefined)[];
 }
 
 interface ChordProps {
@@ -38,6 +41,25 @@ interface ChordProps {
   sliceId: number;
 }
 
+/** Keep literal and already quoted spellings distinct from the SQL NULL label. */
+function formatNodeLabel(node: DataRecordValue | undefined): string {
+  if (node == null) {
+    return NULL_LABEL;
+  }
+
+  const label = String(node);
+  let unquotedLabel = label.trim();
+  while (unquotedLabel.startsWith('"')) {
+    try {
+      unquotedLabel = (JSON.parse(unquotedLabel) as string).trim();
+    } catch {
+      return label;
+    }
+  }
+
+  return unquotedLabel === NULL_LABEL ? JSON.stringify(label) : label;
+}
+
 function Chord(element: HTMLElement, props: ChordProps) {
   const { data, width, height, numberFormat, colorScheme, sliceId } = props;
 
@@ -46,6 +68,7 @@ function Chord(element: HTMLElement, props: ChordProps) {
   const div = d3.select(element);
   div.classed('superset-legacy-chart-chord', true);
   const { nodes, matrix } = data;
+  const labels = nodes.map(formatNodeLabel);
   const f = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
@@ -92,7 +115,7 @@ function Chord(element: HTMLElement, props: ChordProps) {
     });
 
   // Add a mouseover title.
-  group.append('title').text((d, i) => `${nodes[i]}: ${f(d.value)}`);
+  group.append('title').text((d, i) => `${labels[i]}: ${f(d.value)}`);
 
   // Add the group arc.
   const groupPath = group
@@ -100,7 +123,7 @@ function Chord(element: HTMLElement, props: ChordProps) {
     .attr('id', (d, i) => `group${i}`)
     // @ts-expect-error -- d3 v3 arc layout is callable at runtime but not typed as Primitive
     .attr('d', arc)
-    .style('fill', (d, i) => colorFn(nodes[i], sliceId));
+    .style('fill', (d, i) => colorFn(String(nodes[i]), sliceId));
 
   // Add a text label.
   const groupText = group.append('text').attr('x', 6).attr('dy', 15);
@@ -108,7 +131,7 @@ function Chord(element: HTMLElement, props: ChordProps) {
   groupText
     .append('textPath')
     .attr('xlink:href', (d, i) => `#group${i}`)
-    .text((d, i) => nodes[i]);
+    .text((d, i) => labels[i]);
   // Remove the labels that don't fit. :(
   groupText
     .filter(function filter(this: SVGTextElement, d, i) {
@@ -129,7 +152,7 @@ function Chord(element: HTMLElement, props: ChordProps) {
     .on('mouseover', d => {
       chord.classed('fade', p => p !== d);
     })
-    .style('fill', d => colorFn(nodes[d.source.index], sliceId))
+    .style('fill', d => colorFn(String(nodes[d.source.index]), sliceId))
     // @ts-expect-error -- d3 v3 chord layout is callable at runtime but not typed as Primitive
     .attr('d', path);
 
@@ -138,9 +161,9 @@ function Chord(element: HTMLElement, props: ChordProps) {
     .append('title')
     .text(
       d =>
-        `${nodes[d.source.index]} \u2192 ${nodes[d.target.index]}: ${f(
+        `${labels[d.source.index]} \u2192 ${labels[d.target.index]}: ${f(
           d.target.value,
-        )}\n${nodes[d.target.index]} \u2192 ${nodes[d.source.index]}: ${f(
+        )}\n${labels[d.target.index]} \u2192 ${labels[d.source.index]}: ${f(
           d.source.value,
         )}`,
     );
