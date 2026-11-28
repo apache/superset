@@ -43,9 +43,17 @@ jest.mock('src/components/DatabaseSelector', () => ({
   ),
 }));
 jest.mock('src/SqlLab/components/TableExploreTree', () => ({
-  TableBrowser: ({ dbId, catalog, onPreviewTable }: TableBrowserProps) => (
+  TableBrowser: ({
+    dbId,
+    catalog,
+    existingTableKeys,
+    onPreviewTable,
+  }: TableBrowserProps) => (
     <>
       <span>{`Browser ${dbId}:${catalog ?? ''}`}</span>
+      <span data-test="existing-keys">
+        {Array.from(existingTableKeys ?? []).join(',')}
+      </span>
       <button
         type="button"
         onClick={() =>
@@ -100,4 +108,13 @@ test('changing the schema dispatches the existing table-reset action', async () 
     type: DatasetActionType.SelectSchema,
     payload: { name: 'schema', value: 'sales' },
   });
+});
+
+test('passes existingTableKeys for datasetNames to TableBrowser', () => {
+  render(<LeftPanel {...props} datasetNames={['orders', null]} />, {
+    useRedux: true,
+  });
+  expect(screen.getByTestId('existing-keys')).toHaveTextContent(
+    '1:main:public:orders',
+  );
 });

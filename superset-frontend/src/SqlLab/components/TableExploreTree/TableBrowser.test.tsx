@@ -435,3 +435,17 @@ test('keeps the parent table selected when clicking a column in preview mode', a
     'true',
   );
 });
+
+test('collapses the previously previewed table when selecting a different table', async () => {
+  render(<TableBrowser dbId={1} onPreviewTable={jest.fn()} />, {
+    useRedux: true,
+  });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(await screen.findByText('orders'));
+  expect(await screen.findByText('order_id')).toBeVisible();
+
+  await userEvent.click(screen.getByText('sales'));
+  const ordersNodes = await screen.findAllByText('orders');
+  await userEvent.click(ordersNodes[ordersNodes.length - 1]);
+  await waitFor(() => expect(screen.getAllByText('order_id')).toHaveLength(1));
+});
