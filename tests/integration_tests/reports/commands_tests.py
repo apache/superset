@@ -71,6 +71,7 @@ from superset.commands.report.execute import (
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
     ReportScheduleDAO,
 )
 from superset.exceptions import SupersetException
@@ -2469,10 +2470,87 @@ def test_same_execution_replay_write_failure_does_not_claim_active_row(
 
 
 @pytest.mark.usefixtures("create_report_slack_chart_working")
-def test_report_schedule_working_timeout(create_report_slack_chart_working):
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_report_schedule_working_timeout(
+    screenshot_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+    create_report_slack_chart_working,
+    slack_raw_upload_mock,
+):
     """
-    ExecuteReport Command: Test report schedule still working but should timed out
+    ExecuteReport Command: a report stuck in WORKING past its timeout is reset
+    and retried immediately, and the retry delivers.
     """
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    _configure_v2_upload_client(slack_client_mock.return_value)
+    get_channels_with_search_mock.return_value = (
+        [
+            {
+                "id": "slack_channel_id",
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        False,
+    )
+    stuck_log = db.session.query(ReportExecutionLog).one()
+    current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
+        seconds=create_report_slack_chart_working.working_timeout + 1
+    )
+    with freeze_time(current_time):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_slack_chart_working.id,
+            datetime.utcnow(),
+        ).run()
+
+    db.session.commit()
+    logs = db.session.query(ReportExecutionLog).order_by(ReportExecutionLog.id).all()
+    # The stuck execution's row is left as it was, followed by this
+    # invocation's reset row and the retry's terminal row.
+    assert [(log.uuid, log.state, log.error_message) for log in logs] == [
+        (stuck_log.uuid, ReportState.WORKING, None),
+        (UUID(TEST_ID), ReportState.NOOP, REPORT_SCHEDULE_STUCK_RESET_MESSAGE),
+        (UUID(TEST_ID), ReportState.SUCCESS, None),
+    ]
+    assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
+    assert create_report_slack_chart_working.last_state == ReportState.SUCCESS
+    assert create_report_slack_chart_working.execution_owner == TEST_ID
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_report_schedule_working_timeout_after_reset_retry(
+    screenshot_mock,
+    email_mock,
+    create_report_slack_chart_working,
+):
+    """
+    ExecuteReport Command: when the stuck execution was itself a reset retry,
+    recovery stops retrying and falls back to ERROR.
+    """
+    stuck_log = db.session.query(ReportExecutionLog).one()
+    db.session.add(
+        ReportExecutionLog(
+            scheduled_dttm=stuck_log.scheduled_dttm,
+            start_dttm=stuck_log.start_dttm,
+            end_dttm=stuck_log.end_dttm - timedelta(seconds=1),
+            state=ReportState.NOOP,
+            error_message=REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+            report_schedule=create_report_slack_chart_working,
+            uuid=stuck_log.uuid,
+        )
+    )
+    db.session.commit()
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
@@ -2484,15 +2562,125 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
                 datetime.utcnow(),
             ).run()
 
-    logs = db.session.query(ReportExecutionLog).all()
-    # Two logs, first is created by fixture
-    assert len(logs) == 2
-    assert ReportScheduleWorkingTimeoutError.message in [
-        log.error_message for log in logs
-    ]
-    assert sum(log.state == ReportState.WORKING for log in logs) == 1
-    assert sum(log.state == ReportState.ERROR for log in logs) == 1
+    db.session.commit()
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .order_by(ReportExecutionLog.id)
+        .all()
+    )
+    assert [(log.state, log.error_message) for log in logs][0] == (
+        ReportState.ERROR,
+        ReportScheduleWorkingTimeoutError.message,
+    )
+    assert all(log.state == ReportState.ERROR for log in logs)
+    # The fallback never re-executes the report.
+    screenshot_mock.assert_not_called()
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
+    assert create_report_slack_chart_working.execution_owner is None
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=False)
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_report_schedule_working_timeout_takes_over_owned_execution(
+    screenshot_mock,
+    slack_should_use_v2_api_mock,
+    create_report_slack_chart_working,
+    monkeypatch,
+):
+    """
+    ExecuteReport Command: a stuck execution that holds an owner claim and a
+    window is taken over by a newer window, and a retry that dies after the
+    takeover is terminalized at the command boundary.
+    """
+    original_update = BaseReportState.update_report_schedule_and_log
+
+    def fail_error_transition(
+        state: BaseReportState,
+        report_state: ReportState,
+        error_message: Optional[str] = None,
+    ) -> None:
+        # The retry's own handler cannot persist its Error state, so only the
+        # command-boundary write can terminalize the schedule.
+        if report_state == ReportState.ERROR:
+            raise OperationalError(
+                "UPDATE report_schedule",
+                {},
+                RuntimeError("connection lost before terminal commit"),
+            )
+        original_update(state, report_state, error_message)
+
+    monkeypatch.setattr(
+        BaseReportState,
+        "update_report_schedule_and_log",
+        fail_error_transition,
+    )
+    screenshot_mock.side_effect = Exception("screenshot failed")
+    stuck_log = db.session.query(ReportExecutionLog).one()
+    create_report_slack_chart_working.execution_owner = str(stuck_log.uuid)
+    create_report_slack_chart_working.execution_window = datetime(2020, 1, 1, 0, 0)
+    db.session.commit()
+    current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
+        seconds=create_report_slack_chart_working.working_timeout + 1
+    )
+    with freeze_time(current_time):
+        with pytest.raises(Exception):  # noqa: B017, PT011
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID,
+                create_report_slack_chart_working.id,
+                datetime.utcnow(),
+            ).run()
+
+    db.session.commit()
+    db.session.refresh(create_report_slack_chart_working)
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .all()
+    )
+    assert any(
+        log.state == ReportState.NOOP
+        and log.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE
+        for log in logs
+    )
+    assert create_report_slack_chart_working.last_state == ReportState.ERROR
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_prune_keeps_latest_stuck_reset_marker(create_report_slack_chart_working):
+    """
+    Log pruning never deletes the newest stuck-reset marker, even when it is
+    older than the retention window.
+    """
+    old = datetime(2019, 1, 1, 0, 0)
+    for offset in (0, 1):
+        db.session.add(
+            ReportExecutionLog(
+                scheduled_dttm=old,
+                start_dttm=old,
+                end_dttm=old + timedelta(days=offset),
+                state=ReportState.NOOP,
+                error_message=REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+                report_schedule=create_report_slack_chart_working,
+                uuid=uuid4(),
+            )
+        )
+    db.session.commit()
+    latest_marker = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE)
+        .order_by(ReportExecutionLog.id.desc())
+        .first()
+    )
+
+    ReportScheduleDAO.bulk_delete_logs(
+        create_report_slack_chart_working, datetime(2021, 1, 1)
+    )
+    db.session.commit()
+
+    remaining = db.session.query(ReportExecutionLog).all()
+    assert [log.id for log in remaining] == [latest_marker.id]
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_success")

@@ -102,6 +102,15 @@ assists people when migrating to a new version.
   for time series or Table with an explicit time dimension;
   use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
   are unaffected.
+- An alert or report stuck in `Working` past its working timeout (its worker
+  died, for example from OOM or pod eviction) is no longer moved straight to
+  `Error`. The next scheduled run takes over the stuck execution, records a
+  `Not triggered` execution-log row with the message "Working timeout reached:
+  previous execution appears stuck ...", and runs the schedule immediately. If
+  that retried execution gets stuck too, the following run sets `Error` and
+  emails the schedule's editors (subject to the error grace period) rather than
+  retrying again. Monitoring that counted working-timeout `Error` rows should
+  also watch for the new log message.
 
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard

@@ -75,6 +75,7 @@ from superset.commands.report.slack_upgrade import SlackV1UpgradeCoordinator
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
     ReportConfigDAO,
     ReportScheduleDAO,
 )
@@ -2605,16 +2606,118 @@ class ReportNotTriggeredErrorState(BaseReportState):
 
 class ReportWorkingState(BaseReportState):
     """
-    Handle Working state
+    Handle Working state.
+
+    When a report is found in WORKING state, one of three things happened:
+
+    1. The report is genuinely still running (``working_timeout`` has not
+       elapsed).
+       → Record a refused-duplicate audit row and raise
+         ``ReportSchedulePreviousWorkingError`` so this tick is skipped.
+
+    2. The worker died (OOM, pod eviction, etc.) and the execution is stuck
+       past its ``working_timeout``.
+       → Take over the stuck execution's ownership in one compare-and-set,
+         write a **NOOP** log row carrying
+         ``REPORT_SCHEDULE_STUCK_RESET_MESSAGE`` and re-execute immediately
+         via ``ReportNotTriggeredErrorState``, so the schedule delivers on
+         this tick instead of skipping it. Taking over ownership fences the
+         old worker out of delivery should it still be alive.
+
+    3. As in 2, but an immediate retry is not safe or has already been tried:
+       the stuck execution was itself such a retry (its id has a stuck-reset
+       log row), this invocation is not for a newer schedule window than the
+       stuck one, or it has no execution context to claim ownership with.
+       → Set **ERROR**, notify the owners (subject to the error grace period)
+         and raise ``ReportScheduleWorkingTimeoutError``.
+
+    Rule 3 bounds recovery to a single immediate retry per stuck execution:
+    a report whose worker is killed every time alternates between one retry
+    and one ERROR, so owners are told about it rather than the schedule
+    resetting itself silently forever.
+
     next states:
-    - Error
-    - Working
+    - WORKING → immediate retry (stuck execution, first time)
+    - ERROR (stuck execution, retry not allowed)
+    - WORKING (genuinely still running)
     """
 
     current_states = [ReportState.WORKING]
 
+    def _stuck_execution_id(
+        self, last_working: ReportExecutionLog | None
+    ) -> UUID | None:
+        """Identify the stuck execution, preferring the schedule's owner claim."""
+        if owner := self._report_schedule.execution_owner:
+            try:
+                return UUID(str(owner))
+            except ValueError:
+                return None
+        return last_working.uuid if last_working else None
+
+    def _stuck_retry_context(
+        self, last_working: ReportExecutionLog | None
+    ) -> ReportExecutionContext | None:
+        """
+        Return the claimed context for an immediate retry of a stuck execution,
+        or None when the recovery must fall back to ERROR instead.
+        """
+        if self._report_execution_context is None:
+            return None
+        window = normalize_window(self._scheduled_dttm)
+        previous_window = normalize_window(self._report_schedule.execution_window)
+        if window is None or (
+            previous_window is not None and window <= previous_window
+        ):
+            return None
+        stuck_execution_id = self._stuck_execution_id(last_working)
+        if stuck_execution_id == self._execution_id or (
+            stuck_execution_id is not None
+            and ReportScheduleDAO.find_stuck_reset_log(
+                self._report_schedule, stuck_execution_id
+            )
+        ):
+            return None
+        return replace(self._report_execution_context, execution_claimed=True)
+
+    def _notify_working_timeout(self, error_message: str) -> None:
+        """Tell the owners about a working timeout without masking it."""
+        try:
+            if self.is_in_error_grace_period():
+                return
+            self.send_error(
+                f"Error occurred for {self._report_schedule.type}:"
+                f" {self._report_schedule.name}",
+                error_message,
+            )
+            self.create_log(
+                REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                log_state=ReportState.ERROR,
+                reuse_working_log=False,
+            )
+        except Exception:  # noqa: BLE001  # pylint: disable=broad-except
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.warning(
+                "Failed to send working timeout notification - execution_id: %s",
+                self._execution_id,
+                exc_info=True,
+            )
+
     def next(self) -> None:
         if self.is_on_working_timeout():
+            last_working = ReportScheduleDAO.find_last_entered_working_log(
+                self._report_schedule
+            )
+            retry_context = self._stuck_retry_context(last_working)
+            takeover: dict[Any, Any] = {ReportSchedule.execution_owner: None}
+            if retry_context is not None:
+                takeover = {
+                    ReportSchedule.execution_owner: str(self._execution_id),
+                    ReportSchedule.execution_window: normalize_window(
+                        self._scheduled_dttm
+                    ),
+                    ReportSchedule.last_eval_dttm: naive_utcnow(),
+                }
             with db.session.no_autoflush:
                 recovered = (
                     db.session.query(ReportSchedule)
@@ -2626,22 +2729,41 @@ class ReportWorkingState(BaseReportState):
                         ReportSchedule.last_eval_dttm
                         == self._report_schedule.last_eval_dttm,
                     )
-                    .update(
-                        {ReportSchedule.execution_owner: None},
-                        synchronize_session=False,
-                    )
+                    .update(takeover, synchronize_session=False)
                 )
             if recovered != 1:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
                 raise ReportSchedulePreviousWorkingError()
-            last_working = ReportScheduleDAO.find_last_entered_working_log(
-                self._report_schedule
-            )
             elapsed_seconds = (
                 (naive_utcnow() - last_working.end_dttm).total_seconds()
-                if last_working
+                if last_working and last_working.end_dttm
                 else None
             )
+            if retry_context is not None:
+                logger.warning(
+                    "Working state timeout after %.2fs, resetting and retrying "
+                    "immediately - execution_id: %s",
+                    elapsed_seconds if elapsed_seconds else 0,
+                    self._execution_id,
+                )
+                # The schedule stays WORKING, now owned by this invocation, so
+                # no other worker can claim it between the reset and the retry.
+                # The NOOP row records the reset and marks this execution id as
+                # a recovery retry for the next working-timeout check.
+                self._report_execution_context = retry_context
+                self.create_log(
+                    REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+                    include_execution_warnings=False,
+                    log_state=ReportState.NOOP,
+                    reuse_working_log=False,
+                )
+                ReportNotTriggeredErrorState(
+                    self._report_schedule,
+                    self._scheduled_dttm,
+                    self._execution_id,
+                    retry_context,
+                ).next()
+                return
             logger.error(
                 "Working state timeout after %.2fs - execution_id: %s",
                 elapsed_seconds if elapsed_seconds else 0,
@@ -2658,6 +2780,7 @@ class ReportWorkingState(BaseReportState):
                 ReportState.ERROR,
                 error_message=str(exception_timeout),
             )
+            self._notify_working_timeout(str(exception_timeout))
             raise exception_timeout
         logger.warning(
             "Report still in working state, refusing to re-compute - execution_id: %s",
@@ -2902,6 +3025,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         monotonic_started_at = time.monotonic()
         report_execution_context: ReportExecutionContext | None = None
         owns_working_state = False
+        recovery_prior_owner: str | None = None
         try:
             self.validate()
             if not self._model:
@@ -3061,6 +3185,17 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         report_execution_context = replace(
                             report_execution_context, execution_claimed=True
                         )
+                elif (
+                    report_execution_context is not None
+                    and self._model.execution_owner != str(self._execution_id)
+                ):
+                    # Entering on WORKING: the state machine may take the
+                    # stuck execution over for an immediate retry. Remember
+                    # the owner it would replace so the boundary below can
+                    # tell a genuine takeover from a replayed UUID. A
+                    # redelivery of the running task itself (same id) never
+                    # takes over, so it must not reach the boundary write.
+                    recovery_prior_owner = self._model.execution_owner or ""
                 ReportScheduleStateMachine(
                     self._execution_id,
                     self._model,
@@ -3077,25 +3212,56 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self._execution_id,
             )
         except (CommandException, SoftTimeLimitExceeded) as ex:
-            if self._model and owns_working_state:
+            if self._model and (owns_working_state or recovery_prior_owner is not None):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
                     str(ex) or type(ex).__name__,
                     type(ex).__name__,
-                    report_execution_context,
+                    self._boundary_context(
+                        report_execution_context,
+                        owns_working_state,
+                        recovery_prior_owner,
+                    ),
                 )
             raise
         except Exception as ex:
-            if self._model and owns_working_state:
+            if self._model and (owns_working_state or recovery_prior_owner is not None):
                 persist_owned_report_execution_terminal_error(
                     self._model.id,
                     self._execution_id,
                     str(ex) or type(ex).__name__,
                     type(ex).__name__,
-                    report_execution_context,
+                    self._boundary_context(
+                        report_execution_context,
+                        owns_working_state,
+                        recovery_prior_owner,
+                    ),
                 )
             raise ReportScheduleUnexpectedError(str(ex)) from ex
+
+    def _boundary_context(
+        self,
+        context: ReportExecutionContext | None,
+        owns_working_state: bool,
+        recovery_prior_owner: str | None,
+    ) -> ReportExecutionContext | None:
+        """
+        Context for the terminal-error write at the command boundary.
+
+        A recovery entered on WORKING owns the schedule only if its takeover
+        committed, which the terminal write verifies by comparing the owner to
+        this execution id. A replayed UUID never matches, since recovery
+        retries are refused when the stuck execution has the same id.
+        """
+        if (
+            context is not None
+            and not owns_working_state
+            and recovery_prior_owner is not None
+            and recovery_prior_owner != str(self._execution_id)
+        ):
+            return replace(context, execution_claimed=True)
+        return context
 
     def validate(self) -> None:
         # Validate/populate model exists

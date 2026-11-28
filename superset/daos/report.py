@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any, cast, Literal
+from uuid import UUID
 
 from flask import current_app
 from sqlalchemy import func, or_, select
@@ -52,6 +53,14 @@ logger = logging.getLogger(__name__)
 
 
 REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
+
+# Execution-log message for a stuck WORKING execution that was reset and retried
+# immediately. The working-timeout recovery looks for it to avoid retrying an
+# execution that was itself such a retry.
+REPORT_SCHEDULE_STUCK_RESET_MESSAGE = (
+    "Working timeout reached: previous execution appears stuck "
+    "(possibly due to a worker crash). Resetting and retrying."
+)
 
 
 class ReportScheduleDAO(BaseDAO[ReportSchedule]):
@@ -362,6 +371,26 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         )
 
     @staticmethod
+    def find_stuck_reset_log(
+        report_schedule: ReportSchedule,
+        execution_id: UUID,
+    ) -> ReportExecutionLog | None:
+        """
+        Finds the stuck-reset log written when ``execution_id`` was started as
+        an immediate retry of an earlier stuck execution
+        """
+        return (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule == report_schedule,
+                ReportExecutionLog.uuid == execution_id,
+                ReportExecutionLog.state == ReportState.NOOP,
+                ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+            )
+            .first()
+        )
+
+    @staticmethod
     def find_last_error_notification(
         report_schedule: ReportSchedule,
     ) -> ReportExecutionLog | None:
@@ -397,14 +426,25 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def bulk_delete_logs(model: ReportSchedule, from_date: datetime) -> int | None:
-        return (
-            db.session.query(ReportExecutionLog)
+        # The newest stuck-reset marker is kept regardless of retention: stuck
+        # recovery reads it to avoid retrying a failing execution forever, and
+        # retention can be shorter than the time to the next scheduled run.
+        latest_marker_id = (
+            db.session.query(func.max(ReportExecutionLog.id))
             .filter(
                 ReportExecutionLog.report_schedule == model,
-                ReportExecutionLog.end_dttm < from_date,
+                ReportExecutionLog.state == ReportState.NOOP,
+                ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
             )
-            .delete(synchronize_session="fetch")
+            .scalar()
         )
+        query = db.session.query(ReportExecutionLog).filter(
+            ReportExecutionLog.report_schedule == model,
+            ReportExecutionLog.end_dttm < from_date,
+        )
+        if latest_marker_id is not None:
+            query = query.filter(ReportExecutionLog.id != latest_marker_id)
+        return query.delete(synchronize_session="fetch")
 
     @staticmethod
     def find_with_email_recipients() -> list[ReportSchedule]:
