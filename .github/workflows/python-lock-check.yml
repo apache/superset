@@ -1,0 +1,120 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Checks the pinned requirements locks against every supported Python minor:
+# `lock-wheels` proves each pin has a prebuilt wheel for each minor on both
+# Linux architectures (apart from the source-only packages the script names),
+# and `lock-install` installs the locks on a real interpreter of each minor.
+# Pull requests install on `current` only, as the rest of branch CI does;
+# `lock-wheels` still covers every minor on each PR, and pushes to master and
+# manual runs install on the full range. Keep that range in sync with
+# PYTHON_VERSIONS in scripts/check-lock-wheels.sh.
+# Scoped via `paths` so unrelated PRs are not
+# affected.
+name: Python lock check
+
+on:
+  push:
+    branches:
+      - "master"
+    paths:
+      - "requirements/**"
+      - "pyproject.toml"
+      - "superset-core/pyproject.toml"
+      - "superset-extensions-cli/pyproject.toml"
+      - "scripts/uv-pip-compile.sh"
+      - "scripts/check-lock-wheels.sh"
+      - ".github/actions/setup-backend/**"
+      - ".github/workflows/python-lock-check.yml"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "requirements/**"
+      - "pyproject.toml"
+      - "superset-core/pyproject.toml"
+      - "superset-extensions-cli/pyproject.toml"
+      - "scripts/uv-pip-compile.sh"
+      - "scripts/check-lock-wheels.sh"
+      - ".github/actions/setup-backend/**"
+      - ".github/workflows/python-lock-check.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lock-wheels:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install uv
+        # The version matches the one scripts/uv-pip-compile.sh compiles the
+        # locks with.
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.3"
+          enable-cache: false
+
+      - name: Check every locked package has a wheel on each supported Python
+        run: scripts/check-lock-wheels.sh
+
+  lock-install:
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["3.11", "3.12", "3.13", "3.14"]') }}
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      # Installs requirements/development.txt and Superset itself into the
+      # interpreter, along with the system packages the lock needs.
+      - name: Install development.txt on Python ${{ matrix.python-version }}
+        uses: $/.github/actions/setup-backend/
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # The matrix entry can be an alias such as `current`, so take the minor
+      # from the interpreter setup-backend installed.
+      - name: Resolve the interpreter version
+        run: |
+          version="$(python -c 'import sys; print("{}.{}".format(*sys.version_info[:2]))')"
+          echo "PYTHON_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Install base.txt into a fresh environment
+        run: |
+          uv venv --python "$PYTHON_VERSION" /tmp/lock-base
+          uv pip install --python /tmp/lock-base/bin/python -r requirements/base.txt
+
+      - name: Install translations.txt into a fresh environment
+        run: |
+          uv venv --python "$PYTHON_VERSION" /tmp/lock-translations
+          uv pip install --python /tmp/lock-translations/bin/python -r requirements/translations.txt
