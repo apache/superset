@@ -16,9 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import {
+  Children,
+  ReactElement,
+  ReactNode,
+  RefAttributes,
+  cloneElement,
+  forwardRef,
+  isValidElement,
+  useId,
+} from 'react';
 import { css, styled } from '@apache-superset/core/theme';
-import { InfoTooltip } from '@superset-ui/core/components';
+import { FormItem, InfoTooltip } from '@superset-ui/core/components';
 
 interface ModalFormFieldProps {
   label: string;
@@ -30,6 +39,31 @@ interface ModalFormFieldProps {
   children: ReactNode;
   testId?: string;
 }
+
+type FieldAriaProps = {
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
+  children?: ReactNode;
+};
+
+type DescribedControlProps = {
+  control: ReactElement<FieldAriaProps & RefAttributes<unknown>>;
+  errorId?: string;
+  'aria-invalid'?: boolean;
+};
+
+// A named FormItem gives its child an aria-describedby pointing at its own
+// help element, which it does not render when noStyle is set. Rendering the
+// control through this component receives the FormItem props and re-applies
+// the field error id after them.
+const DescribedControl = forwardRef<unknown, DescribedControlProps>(
+  ({ control, errorId, ...formItemProps }, ref) =>
+    cloneElement(control, {
+      ...formItemProps,
+      ref,
+      ...(errorId ? { 'aria-describedby': errorId } : {}),
+    }),
+);
 
 const StyledFieldContainer = styled.div<{ bottomSpacing: boolean }>`
   ${({ theme, bottomSpacing }) => css`
@@ -124,6 +158,38 @@ export function ModalFormField({
   children,
   testId,
 }: ModalFormFieldProps) {
+  const errorId = useId();
+  const ariaProps: FieldAriaProps = error
+    ? { 'aria-invalid': true, 'aria-describedby': errorId }
+    : {};
+
+  // Associate the error with the field input. Call sites may wrap the input
+  // in a FormItem, so the attributes are applied to its single child.
+  // Children.map always runs so the element tree keeps its shape and the
+  // input is not remounted when the error toggles.
+  const applyAria = (element: ReactElement<FieldAriaProps>) => {
+    if (element.type !== FormItem) {
+      return cloneElement(element, ariaProps);
+    }
+    const wrappedChild = element.props.children;
+    return isValidElement<FieldAriaProps>(wrappedChild)
+      ? cloneElement(element, {
+          children: (
+            <DescribedControl
+              control={wrappedChild}
+              errorId={ariaProps['aria-describedby']}
+              aria-invalid={ariaProps['aria-invalid']}
+            />
+          ),
+        })
+      : element;
+  };
+  const fieldChildren = Children.map(children, (child, index) =>
+    index === 0 && isValidElement<FieldAriaProps>(child)
+      ? applyAria(child)
+      : child,
+  );
+
   return (
     <StyledFieldContainer bottomSpacing={bottomSpacing} data-test={testId}>
       <div className="control-label">
@@ -131,9 +197,13 @@ export function ModalFormField({
         {tooltip && <InfoTooltip tooltip={tooltip} />}
         {required && <span className="required">*</span>}
       </div>
-      <div className="input-container">{children}</div>
+      <div className="input-container">{fieldChildren}</div>
       {helperText && <div className="helper">{helperText}</div>}
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div className="error" id={errorId} role="alert">
+          {error}
+        </div>
+      )}
     </StyledFieldContainer>
   );
 }

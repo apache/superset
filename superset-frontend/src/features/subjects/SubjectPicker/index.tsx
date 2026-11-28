@@ -56,6 +56,10 @@ interface SubjectPickerProps {
   header?: ReactNode;
   /** data-test attribute */
   dataTest?: string;
+  /** Marks the picker invalid for assistive technology */
+  'aria-invalid'?: boolean;
+  /** Id of the element describing the picker, e.g. its error message */
+  'aria-describedby'?: string;
 }
 
 const SubjectPicker = ({
@@ -68,6 +72,8 @@ const SubjectPicker = ({
   allowClear,
   header,
   dataTest,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }: SubjectPickerProps) => {
   const handleChange = useCallback(
     (
@@ -131,6 +137,8 @@ const SubjectPicker = ({
       allowClear={allowClear}
       header={header}
       data-test={dataTest}
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedBy}
       optionFilterProps={SUBJECT_OPTION_FILTER_PROPS}
     />
   );

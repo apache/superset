@@ -1725,6 +1725,9 @@ msgstr ""
 msgid "Alert name"
 msgstr ""
 
+msgid "Alert name is required"
+msgstr ""
+
 msgid "Alert on grace period"
 msgstr ""
 
@@ -2585,6 +2588,9 @@ msgid "Associated alerts and reports"
 msgstr ""
 
 msgid "Asynchronous query execution"
+msgstr ""
+
+msgid "At least one editor is required"
 msgstr ""
 
 msgid "Athena work group to run queries against"
@@ -12123,6 +12129,9 @@ msgid "Report minimum interval"
 msgstr ""
 
 msgid "Report name"
+msgstr ""
+
+msgid "Report name is required"
 msgstr ""
 
 msgid "Report not yet run"

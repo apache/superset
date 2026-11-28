@@ -40,6 +40,9 @@ export type ControlHeaderProps = {
   warning?: string;
   danger?: string;
   onDescriptionHoverChange?: (hovered: boolean) => void;
+  // Id of the element describing validationErrors, shared with the control
+  // input aria-describedby so the error is programmatically associated.
+  errorId?: string;
   // Allow extra props from control spread patterns (e.g. {...this.props})
   [key: string]: unknown;
 };
@@ -60,6 +63,17 @@ const iconStyles = css`
   }
 `;
 
+// Keeps the error text available to assistive technology while the visual
+// presentation stays the error icon and its tooltip.
+const screenReaderOnly = css`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+`;
+
 const ControlHeader: FC<ControlHeaderProps> = ({
   name,
   inputId,
@@ -75,9 +89,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   warning,
   danger,
   onDescriptionHoverChange,
+  errorId,
 }) => {
   const theme = useTheme();
   const descriptionId = useId();
+  const fallbackErrorId = useId();
 
   if (!label) {
     return null;
@@ -226,6 +242,15 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             </span>
           )}
         </FormLabel>
+        {validationErrors?.length > 0 && (
+          <span
+            id={errorId ?? fallbackErrorId}
+            role="alert"
+            css={screenReaderOnly}
+          >
+            {validationErrors.join(' ')}
+          </span>
+        )}
         {renderOptionalIcons()}
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}
