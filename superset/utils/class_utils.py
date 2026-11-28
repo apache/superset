@@ -19,6 +19,10 @@ from importlib import import_module
 from typing import Any
 
 
+class _Unset:
+    """Sentinel used to distinguish 'None' value from an omitted value."""
+
+
 def load_class_from_name(fq_class_name: str) -> Any:
     """
     Given a string representing a fully qualified class name, attempts to load

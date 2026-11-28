@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.utils import json
+from superset.utils.class_utils import _Unset
 
 TOOL = "get_dashboard_data"
 EXEC = "superset.mcp_service.dashboard.tool.get_dashboard_data.execute_chart_data"
@@ -69,19 +70,16 @@ def _dashboard(
     return dashboard
 
 
-_UNSET = object()
-
-
 def _chart_data(
     chart_id: int,
     name: str,
     viz: str = "table",
     rows: list[dict[str, Any]] | None = None,
     query_results: list[ChartQueryResult] | None = None,
-    total_rows: Any = _UNSET,
+    total_rows: Any = _Unset,
 ) -> ChartData:
     rows = rows if rows is not None else [{"country": "US", "cnt": 10}]
-    resolved_total = len(rows) if total_rows is _UNSET else total_rows
+    resolved_total = len(rows) if total_rows is _Unset else total_rows
     return ChartData(
         query_results=query_results,
         chart_id=chart_id,
