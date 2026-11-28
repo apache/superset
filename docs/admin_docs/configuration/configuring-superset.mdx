@@ -145,6 +145,34 @@ D3_TIME_FORMAT = {
 Restart Superset after changing `superset_config.py` so the frontend receives
 the updated formatter configuration.
 
+## CSV decimal separators
+
+CSV exports contain data values rather than the chart's D3 display strings.
+Configure the export delimiter and decimal separator independently of the UI
+language in `superset_config.py`, for example:
+
+```python
+CSV_EXPORT = {"encoding": "utf-8-sig", "sep": ";", "decimal": ","}
+```
+
+This writes `12,3400` for a database decimal value of `12.3400` and `1,25` for
+a floating-point value of `1.25`, including numeric cells in mixed object
+columns. Direct CSV serialization preserves Decimal precision and trailing zeros.
+CSV reports for table and pivot table charts, and pivoted CSV exports, pass
+through client-side post-processing that re-reads CSV data and infers numeric
+types. Those paths can drop trailing zeros (for example, `12.3400` becomes
+`12.34`, or `12,3400` becomes `12,34` with `decimal=","`). Text values
+such as `"1.25"` keep their contents, and spreadsheet formula protection
+still applies to strings. Streaming CSV exports use the same decimal
+separator. The default separator remains `.`.
+Duplicate row labels and repeated verbose column names preserve each cell's
+value independently when formatting and escaping CSV exports.
+
+Changing `BABEL_DEFAULT_LOCALE` or a chart's number format does not set these
+CSV options. These settings also do not convert numeric XLSX cells into
+localized text; spreadsheet applications render numeric cells according to
+the workbook and application settings.
+
 ## Serving translated language packs
 
 Non-English page loads need the frontend translation catalog (the "language
@@ -228,6 +256,66 @@ authorization, contribution-total work before the per-query loop, client
 post-processing, JSON serialization, network transfer, and background async
 producer execution. Additive optional fields can preserve version 1; a field
 rename, removal, or semantic change requires a new version.
+
+## Tagging queries in the database's query log
+
+Set `QUERY_LOG_COMMENT_FUNC` to tag each query Superset sends with the user,
+dashboard and chart it ran for. ClickHouse (`clickhousedb://`) stores the tag in
+`system.query_log.log_comment`, including on the shard queries of Distributed
+tables, and shows it on running queries in `system.processes`.
+
+```python
+# superset_config.py
+import json
+
+
+def QUERY_LOG_COMMENT_FUNC(database, context):
+    return json.dumps({"app": "superset", **context})
+```
+
+The function receives the `Database` and a dict with whichever of these keys
+apply:
+
+- `user`: the Superset username
+- `dashboard_id` and `chart_id`: from dashboards, Explore, chart exports,
+  reports and cache warm-up
+- `report_id`: the alert or report that ran the query, including its alert SQL,
+  CSV and screenshot queries
+- `sqllab_query_id`: the SQL Lab query
+
+Async chart queries (`GLOBAL_ASYNC_QUERIES`) carry the same context into the
+Celery worker.
+
+It returns the string to send, or `None` to send nothing for that query. The
+setting defaults to `None`, which sends nothing.
+
+```sql
+SELECT
+    event_time,
+    JSONExtractString(log_comment, 'user') AS superset_user,
+    JSONExtractUInt(log_comment, 'dashboard_id') AS dashboard_id,
+    JSONExtractUInt(log_comment, 'chart_id') AS chart_id,
+    JSONExtractUInt(log_comment, 'report_id') AS report_id,
+    query_duration_ms,
+    read_rows
+FROM system.query_log
+WHERE type = 'QueryFinish' AND JSONExtractString(log_comment, 'app') = 'superset'
+ORDER BY event_time DESC
+```
+
+- The user is the logged-in Superset user. The dashboard and chart ids come
+  from the request, so treat them as a hint rather than an audit record.
+- Anyone who can read `system.query_log` can see these values, so leave `user`
+  out of the returned string if usernames shouldn't be visible there.
+- Results served from Superset's cache never reach the database, so the log
+  shows the queries that ran, not every chart view.
+- Metadata queries (schema, table and column lists) are not tagged.
+- ClickHouse refuses the setting for a user with `readonly = 1`, so Superset
+  skips it and logs a warning. To allow only this setting, give the user a
+  settings profile with
+  `SETTINGS readonly = 1, log_comment CHANGEABLE_IN_READONLY`.
+- When the function returns a value, it replaces a `log_comment` set in the
+  connection URI.
 
 ## Specifying a SECRET_KEY
 
@@ -314,10 +402,10 @@ queries instead; measure pruning cost on the selected backend before enabling it
 
 Superset supports the following database engines/versions:
 
-| Database Engine                           | Supported Versions                             |
-| ----------------------------------------- | ---------------------------------------------- |
-| [PostgreSQL](https://www.postgresql.org/) | 10.X, 11.X, 12.X, 13.X, 14.X, 15.X, 16.X, 17.X |
-| [MySQL](https://www.mysql.com/)           | 5.7, 8.X                                       |
+| Database Engine                           | Supported Versions                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [PostgreSQL](https://www.postgresql.org/) | Regularly tested against PostgreSQL 17 (see docker-compose.yml). Other actively-supported PostgreSQL versions are expected to work but aren't covered by CI. |
+| [MySQL](https://www.mysql.com/)           | 5.7, 8.X                                                                                                        |
 
 Use the following database drivers and connection strings:
 
@@ -544,6 +632,12 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 - The redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
   When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
   be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+
+- When `OAUTH_PROVIDERS` contains exactly one provider, the login page skips the provider choice and
+  sends users straight to that provider's sign-in. After logging out, users land on the login page
+  and are sent to the provider again, which may sign them straight back in while their provider
+  session is active. Set `LOGOUT_REDIRECT_URL`, or override `logout` in a custom OAuth view as in
+  [OAuth Configuration](/admin-docs/security/oauth), to send them elsewhere or end the provider session.
 
 - If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
   document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other

@@ -14,19 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.db_engine_specs.ascend import AscendEngineSpec
-from tests.integration_tests.base_tests import SupersetTestCase
+from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.db_engine_specs.vertica import VerticaEngineSpec
 
 
-class TestAscendDbEngineSpec(SupersetTestCase):
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
+def test_vertica_properties() -> None:
+    assert VerticaEngineSpec.engine == "vertica"
+    assert VerticaEngineSpec.engine_name == "Vertica"
+    assert issubclass(VerticaEngineSpec, PostgresBaseEngineSpec)
+    assert VerticaEngineSpec._extended_aggregations == {}
 
-        assert (
-            AscendEngineSpec.convert_dttm("DATE", dttm) == "CAST('2019-01-02' AS DATE)"
-        )
 
-        assert (
-            AscendEngineSpec.convert_dttm("TIMESTAMP", dttm)
-            == "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)"
-        )
+def test_vertica_metadata() -> None:
+    metadata = VerticaEngineSpec.metadata
+    assert "Vertica is a column-oriented analytics database" in metadata["description"]
+    assert metadata["logo"] == "vertica.png"
+    assert "sqlalchemy-vertica-python" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 5433

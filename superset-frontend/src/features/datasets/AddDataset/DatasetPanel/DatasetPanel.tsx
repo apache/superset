@@ -22,7 +22,8 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
 import type { SupersetError } from '@superset-ui/core';
-import Table, {
+import {
+  Table,
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';
@@ -30,7 +31,7 @@ import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import { openInNewTab, stripAppRoot } from 'src/utils/navigationUtils';
 import { ITableColumn } from './types';
-import MessageContent from './MessageContent';
+import { MessageContent } from './MessageContent';
 
 /**
  * Enum defining CSS position options

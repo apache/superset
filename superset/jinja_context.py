@@ -89,6 +89,11 @@ ALLOWED_TYPES = (
     "tuple",
     "set",
     "TimeFilter",
+    # SQLSafeList is a list subclass returned by the value macros when a
+    # dialect is configured. It is intentionally kept out of COLLECTION_TYPES
+    # below so it bypasses the json round-trip, which would otherwise rebuild
+    # it as a plain list and discard its whole-container rendering.
+    "SQLSafeList",
 )
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
@@ -202,7 +207,8 @@ class ExtraCache:
         r"current_user_roles\([^)]*\)|"
         r"cache_key_wrapper\([^)]*\)|"
         r"url_param\([^)]*\)|"
-        r"get_guest_user_attribute\([^)]*\)"
+        r"get_guest_user_attribute\([^)]*\)|"
+        r"i18n\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -475,7 +481,11 @@ class ExtraCache:
         return result
 
     def filter_values(
-        self, column: str, default: str | None = None, remove_filter: bool = False
+        self,
+        column: str,
+        default: str | None = None,
+        remove_filter: bool = False,
+        escape_result: bool = False,
     ) -> list[Any]:
         """Gets a values for a particular filter as a list
 
@@ -485,12 +495,12 @@ class ExtraCache:
             - you want to have the ability for filter inside the main query for speed
             purposes
 
-        Usage example::
+        For list membership, pipe the result through the ``where_in`` filter,
+        which renders the values with the dialect's own quoting::
 
             SELECT action, count(*) as times
             FROM logs
-            WHERE
-                action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+            WHERE action IN {{ filter_values('action_type') | where_in }}
             GROUP BY action
 
         :param column: column/filter name to lookup
@@ -498,6 +508,16 @@ class ExtraCache:
         :param remove_filter: When set to true, mark the filter as processed,
             removing it from the outer query. Useful when a filter should
             only apply to the inner query
+        :param escape_result: Render each returned value through the database
+            dialect's literal processor so it is safe to interpolate directly
+            into the SQL text, mirroring the sibling value macros
+            (``current_username``, ``get_guest_user_attribute``, and the
+            ``escaped_val`` companion on ``get_filters``). Disabled by default:
+            the documented list-membership pattern pipes the raw values through
+            the ``where_in`` filter, which applies its own dialect-safe quoting,
+            so leaving escaping on would quote every value twice. Enable it only
+            when interpolating the values manually, where the template author is
+            otherwise responsible for quoting.
         :return: returns a list of filter values
         """
         return_val: list[Any] = []
@@ -513,6 +533,15 @@ class ExtraCache:
             # If no values are found, return the default provided.
             return_val = [default]
 
+        if escape_result:
+            # Opt-in path for manual interpolation: render through the dialect's
+            # literal processor, consistent with the sibling value macros.
+            # _escape_value returns a SQLSafeList so the whole container also
+            # renders without re-introducing raw delimiters; without a
+            # configured dialect it returns the raw list unchanged. Off by
+            # default so the documented ``| where_in`` pattern (which quotes on
+            # its own) is not rendered twice.
+            return self._escape_value(return_val)
         return return_val
 
     def _escape_value(self, val: Any) -> Any:
@@ -789,7 +818,7 @@ class ExtraCache:
         time_range = time_range or NO_TIME_RANGE
         if time_range == NO_TIME_RANGE and default:
             time_range = default
-        from_expr, to_expr = get_since_until_from_time_range(time_range)
+        from_expr, to_expr = self._resolve_since_until(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
             if strftime and dttm:
@@ -805,6 +834,18 @@ class ExtraCache:
             to_expr=_format_dttm(to_expr),
             time_range=time_range,
         )
+
+    @staticmethod
+    def _resolve_since_until(
+        time_range: str,
+    ) -> tuple[datetime | None, datetime | None]:
+        # A ValueError from the date parser (e.g. a deeply nested expression)
+        # must surface as a handled template error instead of escaping the
+        # render as a 500.
+        try:
+            return get_since_until_from_time_range(time_range)
+        except ValueError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
 
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -1378,6 +1419,22 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             }
         )
 
+        def i18n_with_cache_key(default_text: str) -> str:
+            # The rendered value varies by locale, so it has to vary the query
+            # cache key too -- otherwise one viewer's translated SQL result is
+            # served to a viewer in another locale within the cache timeout.
+            # Keyed on the resolved text rather than the locale so locales that
+            # resolve alike still share a cache entry.
+            return extra_cache.cache_key_wrapper(i18n_macro(default_text))
+
+        # Yields to JINJA_CONTEXT_ADDONS only. The macro is new, so an addon
+        # bound to this name predates it and has to keep working across the
+        # upgrade. Testing the whole context instead would also let a dataset
+        # template_param called ``i18n`` -- merged into the same dict before
+        # this runs -- unbind the macro and leave a non-callable in its place.
+        if "i18n" not in context_addons():
+            self._context["i18n"] = partial(safe_proxy, i18n_with_cache_key)
+
         # The `metric` filter needs the env and full context to expand other
         # filters. Bind them through a closure rather than positional args so the
         # template environment is not reachable via the macro's public
@@ -1525,6 +1582,30 @@ def get_template_processor(
     else:
         template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
+
+
+def i18n_macro(default_text: str) -> str:
+    """Jinja macro for translating asset metadata into the viewer's locale.
+
+    Usage in SQL-templated content (e.g. virtual dataset SQL or a metric expression)::
+
+        {{ i18n('Sales') }}
+
+    Resolution is delegated to the configured ``TRANSLATION_HOOK`` and gated by
+    the ``ENABLE_I18N_ASSET_TRANSLATIONS`` feature flag; when the feature is off
+    or no translation exists, the original text is returned unchanged. See
+    ``superset.utils.i18n`` and SIP-161.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.utils.i18n import translate
+
+    # ``or default_text`` rather than ``or ""``: translate() already promises to
+    # return the original text on every fallback path, and mirroring that promise
+    # here means a future change to it cannot blank out a label.
+    return (
+        translate(default_text, model_name="template", field_name="i18n")
+        or default_text
+    )
 
 
 def dataset_macro(

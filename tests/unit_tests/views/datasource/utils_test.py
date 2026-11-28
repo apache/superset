@@ -276,3 +276,66 @@ def test_get_limit_clause_caps_per_page_at_sql_max_row(
             "row_offset": 2000,
             "row_limit": 2000,
         }
+
+
+@patch("superset.views.datasource.utils.get_limit_clause")
+def test_get_samples_exposes_url_params_to_jinja(mock_get_limit_clause: MagicMock):
+    """
+    Drill to detail must render ``url_param()`` with the dashboard's URL
+    params, so they are lifted out of the payload into the form data that
+    ``set_query_context_form_data`` exposes to the Jinja macros.
+    """
+    mock_get_limit_clause.return_value = {"row_offset": 0, "row_limit": 100}
+
+    mock_datasource = MagicMock()
+    mock_datasource.type = "table"
+    mock_datasource.id = 1
+    mock_datasource.columns = []
+
+    mock_samples_context = MagicMock()
+    mock_count_context = MagicMock()
+    mock_count_context.get_payload.return_value = {
+        "queries": [{"data": [{"COUNT(*)": 1}], "status": "success"}]
+    }
+    mock_samples_context.get_payload.return_value = {
+        "queries": [{"data": [{"col1": "val1"}], "status": "success"}]
+    }
+
+    with (
+        patch(
+            "superset.views.datasource.utils.DatasourceDAO.get_datasource",
+            return_value=mock_datasource,
+        ),
+        patch(
+            "superset.views.datasource.utils.QueryContextFactory"
+        ) as mock_factory_class,
+        patch(
+            "superset.views.datasource.utils.set_query_context_form_data"
+        ) as mock_set_form_data,
+    ):
+        mock_factory = MagicMock()
+        mock_factory_class.return_value = mock_factory
+        mock_factory.create.side_effect = [mock_samples_context, mock_count_context]
+
+        from superset.views.datasource.utils import get_samples
+
+        get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            page=1,
+            per_page=100,
+            payload={
+                "filters": [],
+                "url_params": {"tenant": "zenda"},
+            },
+            dashboard_id=7,
+        )
+
+        samples_call, count_call = mock_factory.create.call_args_list
+        for call in (samples_call, count_call):
+            assert call.kwargs["form_data"] == {
+                "dashboardId": 7,
+                "url_params": {"tenant": "zenda"},
+            }
+            assert "url_params" not in call.kwargs["queries"][0]
+        mock_set_form_data.assert_called_once_with(mock_samples_context, 1, "table")

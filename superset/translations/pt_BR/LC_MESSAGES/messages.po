@@ -144,50 +144,12 @@ msgid " at line %(line)d"
 msgstr " na linha %(line)d"
 
 #, fuzzy
-msgid " expression which needs to adhere to the "
-msgstr " expressão que precisa aderir ao "
-
-#, fuzzy
 msgid " for details."
 msgstr " para detalhes."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " perto de '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" padrão para garantir que a ordenação lexicográfica\n"
-"                      coincida com a ordenação cronológica. Se o\n"
-"                      formato do timestamp não seguir o padrão ISO 8601,\n"
-"                      você precisará definir uma expressão e um tipo para"
-"\n"
-"                      transformar a string em uma data ou timestamp. "
-"Observe que\n"
-"                      atualmente os fusos horários não são suportados. Se"
-" o tempo for armazenado\n"
-"                      no formato epoch, informe `epoch_s`, `epoch_ms` ou "
-"`epoch_us`. Se nenhum padrão\n"
-"                      for especificado, usamos como alternativa os "
-"padrões opcionais por\n"
-"                      nome de banco de dados/coluna por meio do parâmetro"
-" extra."
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -232,22 +194,22 @@ msgid "% calculation"
 msgstr "cálculo %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% de"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "% da coluna"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "% do total da coluna"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "% do total geral"
 
@@ -256,7 +218,7 @@ msgid "% of parent"
 msgstr "porcentagem do pai"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "% do total da linha"
 
@@ -302,6 +264,16 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s não pode ser usado como uma fonte de dados por motivos de "
 "segurança."
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s ou %(lastSuggestion)s em vez de "
+"\"%(undefinedParameter)s?\""
 
 #, python-format
 msgid "%(label)s file"
@@ -406,15 +378,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d linhas retornadas"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s em vez de \"%(undefinedParameter)s?\""
-msgstr[1] ""
-"%(firstSuggestions)s or %(lastSuggestion)s em vez de "
-"\"%(undefinedParameter)s?\""
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s em vez de \"%(undefinedParameter)s?\""
 
 #, python-format
 msgid ""
@@ -6460,7 +6427,7 @@ msgstr "DEZ"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "APAGAR"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10311,7 +10278,7 @@ msgstr "Personalizar ainda mais como exibir cada métrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR POR"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10535,6 +10502,7 @@ msgstr "O usuário convidado não pode modificar a carga útil do gráfico"
 msgid "HTTP Path"
 msgstr "Caminho HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10704,9 +10672,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Códigos ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13163,7 +13128,7 @@ msgstr "N/D"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NÃO AGRUPADO POR"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13993,7 +13958,7 @@ msgstr "OU"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBRESCREVER"
+msgstr ""
 
 msgid "October"
 msgstr "Outubro"
@@ -14306,7 +14271,7 @@ msgid "Optional warning about use of this metric"
 msgstr "Aviso opcional sobre o uso dessa métrica"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -15346,9 +15311,6 @@ msgstr "Colocar rótulos no exterior da torta?"
 
 msgid "Put your code here"
 msgstr "Coloque seu código here"
-
-msgid "Python datetime string pattern"
-msgstr "Padrão de String de data e hora em Python"
 
 msgid "Quarter"
 msgstr "Trimestre"
@@ -19373,7 +19335,7 @@ msgstr "TABELAS"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "INTERVALO TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "QUI"
@@ -20506,6 +20468,13 @@ msgstr[1] ""
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -20593,9 +20562,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "As senhas dos bancos de dados abaixo são necessárias para importá-los."
 
-#, fuzzy
-msgid "The pattern of timestamp format. For strings use "
-msgstr "O padrão do formato do carimbo de data/hora. Para uso de cordas"
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24158,7 +24140,7 @@ msgid "Value transform"
 msgstr "Transformação de valor"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -24172,7 +24154,7 @@ msgstr ""
 "paginação no servidor estiver ativada."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
@@ -25994,7 +25976,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "parafuso"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26299,7 +26281,7 @@ msgstr "entradas"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "mensagem de erro"
+msgstr ""
 
 msgid "every"
 msgstr "todos"
@@ -26697,9 +26679,8 @@ msgid "permalink state not found"
 msgstr "estado do permalink não encontrado"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "pivotado_xlsx"
+msgstr ""
 
 #, fuzzy
 msgid "pixels"
@@ -26806,7 +26787,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "esquema1, esquema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
@@ -26891,7 +26872,7 @@ msgstr "soma"
 
 #. do-not-translate
 msgid "superset.example.com"
-msgstr "Superset.exemplo.com"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -27034,7 +27015,7 @@ msgstr "ano"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "seu-projeto-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "área de zoom"

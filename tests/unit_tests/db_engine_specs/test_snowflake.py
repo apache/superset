@@ -26,7 +26,6 @@ from unittest import mock
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url, URL
-from sqlalchemy.sql import quoted_name
 
 from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -322,32 +321,6 @@ def test_connection_catalogs_celery_task_context(mocker: MockerFixture) -> None:
 
     Context().run(run_tasks)
     assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
-
-
-@pytest.mark.parametrize("name", ["lowercase", "UPPERCASE"])
-def test_prepare_identifier_quotes_exact_case_names(name: str) -> None:
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
-
-    identifier = SnowflakeEngineSpec.prepare_identifier(
-        name,
-        normalize_columns=False,
-    )
-
-    assert isinstance(identifier, quoted_name)
-    assert str(identifier) == name
-    assert identifier.quote is True
-
-
-def test_prepare_identifier_preserves_normalized_name() -> None:
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
-
-    name = "lowercase"
-    identifier = SnowflakeEngineSpec.prepare_identifier(
-        name,
-        normalize_columns=True,
-    )
-
-    assert identifier is name
 
 
 @pytest.mark.parametrize(

@@ -90,6 +90,8 @@ export interface ChartProps {
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
+  /** False when the chart's cross-filter scope reaches no other chart */
+  hasCrossFilterTargets?: boolean;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   /** Whether to suppress the loading spinner (during auto-refresh) */
   suppressLoadingSpinner?: boolean;
@@ -212,6 +214,7 @@ function Chart({
     triggerQuery,
     postTransformProps,
     emitCrossFilters,
+    hasCrossFilterTargets,
     onChartStateChange,
     suppressLoadingSpinner,
     filterState,
@@ -321,6 +324,17 @@ function Chart({
     }
   }, [triggerQuery, runQuery]);
 
+  const isAwaitingDatasource = useCallback(
+    (queryResponse: ChartErrorType) =>
+      !queryResponse?.errors?.[0] &&
+      !queryResponse?.message &&
+      chartAlert !== undefined &&
+      chartAlert !== NONEXISTENT_DATASET &&
+      datasource === PLACEHOLDER_DATASOURCE &&
+      datasetsStatus !== ResourceStatus.Error,
+    [chartAlert, datasetsStatus, datasource],
+  );
+
   const renderErrorMessage = useCallback(
     (queryResponse: ChartErrorType) => {
       const error = queryResponse?.errors?.[0];
@@ -329,14 +343,7 @@ function Chart({
       // if datasource is still loading, don't render JS errors
       // but always show backend API errors (structured or message-only)
       // so users can see real issues like auth failures
-      if (
-        !error &&
-        !queryResponse?.message &&
-        chartAlert !== undefined &&
-        chartAlert !== NONEXISTENT_DATASET &&
-        datasource === PLACEHOLDER_DATASOURCE &&
-        datasetsStatus !== ResourceStatus.Error
-      ) {
+      if (isAwaitingDatasource(queryResponse)) {
         return (
           <Styles
             key={chartId}
@@ -367,9 +374,8 @@ function Chart({
       chartId,
       chartStackTrace,
       dashboardId,
-      datasetsStatus,
-      datasource,
       height,
+      isAwaitingDatasource,
     ],
   );
 
@@ -421,6 +427,7 @@ function Chart({
             ownState={ownState}
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
+            hasCrossFilterTargets={hasCrossFilterTargets}
             onChartStateChange={onChartStateChange}
             latestQueryFormData={latestQueryFormData}
             filterState={filterState}
@@ -447,6 +454,7 @@ function Chart({
       emitCrossFilters,
       filterState,
       formData,
+      hasCrossFilterTargets,
       height,
       initialValues,
       latestQueryFormData,
@@ -501,18 +509,26 @@ function Chart({
 
   if (datasource?.metadata_error) {
     return (
-      <ErrorContainer height={height}>
+      <ErrorContainer className="chart-container" height={height}>
         {renderErrorMessage({ message: datasource.metadata_error })}
       </ErrorContainer>
     );
   }
 
   if (chartStatus === 'failed') {
+    const failedResponses = (
+      queriesResponse?.length ? queriesResponse : [{}]
+    ) as ChartErrorType[];
     return (
-      <ErrorContainer height={height}>
-        {queriesResponse?.map(item =>
-          renderErrorMessage(item as ChartErrorType),
-        )}
+      <ErrorContainer
+        className={
+          failedResponses.some(item => isAwaitingDatasource(item))
+            ? undefined
+            : 'chart-container'
+        }
+        height={height}
+      >
+        {failedResponses.map(item => renderErrorMessage(item))}
       </ErrorContainer>
     );
   }

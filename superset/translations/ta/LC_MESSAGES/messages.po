@@ -146,47 +146,12 @@ msgstr " புதிய ஒன்று"
 msgid " at line %(line)d"
 msgstr " வரிசை %(line)d இல்"
 
-msgid " expression which needs to adhere to the "
-msgstr " இதனுடன் இணங்க வேண்டிய எக்ஸ்பிரஷன் (expression) "
-
 msgid " for details."
 msgstr " விவரங்களுக்கு."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " '%(highlight)s' அருகில்"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" தரநிலையைப் பயன்படுத்தி, அகரவரிசை வரிசைமுறை காலவரிசை வரிசைமுறையுடன் "
-"ஒத்துப்போவதை உறுதிசெய்யவும். நேர முத்திரை வடிவம்\n"
-"                      ISO 8601 தரநிலைக்கு இணங்கவில்லை என்றால், சரத்தை "
-"தேதி அல்லது நேர முத்திரையாக\n"
-"                      மாற்றுவதற்கான ஒரு கோவையையும் வகையையும் நீங்கள் "
-"வரையறுக்க வேண்டும். குறிப்பு:\n"
-"                      தற்போது நேர மண்டலங்கள் ஆதரிக்கப்படவில்லை. நேரம் "
-"epoch வடிவத்தில் சேமிக்கப்பட்டிருந்தால், `epoch_s`, `epoch_ms` அல்லது "
-"`epoch_us` என்று உள்ளிடவும். எந்த வடிவமும்\n"
-"                      குறிப்பிடப்படவில்லை என்றால், extra அளவுரு வழியாக "
-"ஒவ்வொரு\n"
-"                      தரவுத்தளம்/நெடுவரிசை பெயர் மட்டத்திலும் உள்ள "
-"விருப்ப இயல்புநிலைகளைப் பயன்படுத்துவோம்."
 
 msgid " to add calculated columns"
 msgstr " கணக்கிடப்பட்ட நெடுவரிசைகளைச் சேர்க்க"
@@ -227,22 +192,22 @@ msgid "% calculation"
 msgstr "% கணக்கீடு"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of"
 msgstr "% இல்"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column"
 msgstr "நெடுவரிசையின் %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of column total"
 msgstr "நெடுவரிசை மொத்தத்தின் %"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of grand total"
 msgstr "மொத்தத் தொகையின் %"
 
@@ -251,7 +216,7 @@ msgid "% of parent"
 msgstr "முதன்மை உறுப்பில் % (parent %)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of row total"
 msgstr "வரிசை மொத்தத்தின் %"
 
@@ -299,6 +264,16 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "பாதுகாப்பு காரணங்களுக்காக %(dialect)s-ஐ ஒரு தரவு மூலமாகப் பயன்படுத்த "
 "முடியாது."
+
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"\"%(undefinedParameter)s\" என்பதற்குப் பதிலாக %(firstSuggestions)s அல்லது"
+" %(lastSuggestion)s"
 
 #, python-format
 msgid "%(label)s file"
@@ -405,15 +380,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d வரிசைகள் கிடைத்தன"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "\"%(undefinedParameter)s?\" என்பதற்குப் பதிலாக %(suggestion)s"
-msgstr[1] ""
-"\"%(undefinedParameter)s\" என்பதற்குப் பதிலாக %(firstSuggestions)s அல்லது"
-" %(lastSuggestion)s"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "\"%(undefinedParameter)s?\" என்பதற்குப் பதிலாக %(suggestion)s"
 
 #, python-format
 msgid ""
@@ -6207,7 +6177,7 @@ msgstr "டிசம்பர் (DEC)"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "நீக்கு (DELETE)"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -7873,7 +7843,7 @@ msgstr "ECharts விருப்பங்கள் (JS பொருள் ல�
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "மின்னஞ்சல் அறிக்கைகள் CTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "பிழை"
@@ -9800,7 +9770,7 @@ msgstr "ஒவ்வொரு அளவீட்டையும் எவ்வ�
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "இதன் படி குழுவாக்கு (GROUP BY)"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "கேண்ட் சார்ட் (Gantt Chart)"
@@ -9999,6 +9969,7 @@ msgstr "விருந்தினர் பயனர் சார்ட் த
 msgid "HTTP Path"
 msgstr "HTTP பாதை"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10151,9 +10122,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 குறியீடுகள்"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12420,7 +12388,7 @@ msgstr "இல்லை"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "இதன்படி குழுவாக்கப்படவில்லை"
+msgstr ""
 
 msgid "NOV"
 msgstr "நவ"
@@ -13199,7 +13167,7 @@ msgstr "அல்லது (OR)"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "மேலெழுது (OVERWRITE)"
+msgstr ""
 
 msgid "October"
 msgstr "அக்டோபர்"
@@ -13482,7 +13450,7 @@ msgid "Optional warning about use of this metric"
 msgstr "இந்த அளவீட்டைப் பயன்படுத்துவது குறித்த விருப்பத்தேர்வு எச்சரிக்கை"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -14429,9 +14397,6 @@ msgstr "லேபிள்களை பை சார்ட்டிற்கு 
 
 msgid "Put your code here"
 msgstr "உங்கள் குறியீட்டை இங்கே இடவும்"
-
-msgid "Python datetime string pattern"
-msgstr "Python datetime வடிவமைப்பு"
 
 msgid "Quarter"
 msgstr "கால் ஆண்டு"
@@ -18201,7 +18166,7 @@ msgstr "அட்டவணைகள்"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "நேர_வரம்பு"
+msgstr ""
 
 msgid "THU"
 msgstr "வியா"
@@ -19224,6 +19189,13 @@ msgstr[1] ""
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr ""
@@ -19291,8 +19263,22 @@ msgstr "சார்ட்டுகளுடன் தரவுத்தளங�
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "கீழுள்ள தரவுத்தளங்களை இறக்குமதி செய்ய அவற்றின் கடவுச்சொற்கள் தேவை."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "நேர முத்திரை வடிவத்தின் முறை. சரங்களுக்கு (Strings) இதைப் பயன்படுத்தவும் "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22615,7 +22601,7 @@ msgid "Value transform"
 msgstr "மதிப்பு உருமாற்றம்"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -22629,7 +22615,7 @@ msgstr ""
 "தானியங்கி தரவு வரம்பைப் பயன்படுத்தும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
@@ -24046,6 +24032,11 @@ msgstr ""
 "உங்கள் கணக்கு செயல்படுத்தப்பட்டது. உங்கள் அங்கீகாரத் தகவல்களுடன் "
 "உள்நுழையலாம்."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
+"உங்கள் கணக்கு செயல்படுத்தப்பட்டது. உங்கள் அங்கீகாரத் தகவல்களுடன் "
+"உள்நுழையலாம்."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "சேமிக்காமல் வெளியேறினால் உங்கள் மாற்றங்கள் இழக்கப்படும்."
 
@@ -24386,7 +24377,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "மின்னல்"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es, fr,
 # it, ja, pt, ru, sl, sr, sr_Latn]
@@ -24674,7 +24665,7 @@ msgstr "உள்ளீடுகள்"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "பிழை_செய்தி"
+msgstr ""
 
 msgid "every"
 msgstr "ஒவ்வொரு"
@@ -25157,7 +25148,7 @@ msgstr "அட்டவணை \"%s\" குறைந்தபட்ச இடை
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "ஸ்கீமா1,ஸ்கீமா2"
+msgstr ""
 
 msgid "seconds"
 msgstr "விநாடிகள்"

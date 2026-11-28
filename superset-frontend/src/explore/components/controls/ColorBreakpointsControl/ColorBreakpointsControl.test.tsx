@@ -46,181 +46,178 @@ const renderComponent = (props: Partial<Props> = {}) =>
     useDnd: true,
   });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ColorBreakpointsControl', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
-  test('should render with default props', () => {
-    renderComponent();
-    expect(screen.getByText('Click to add new breakpoint')).toBeInTheDocument();
-  });
+test('should render with default props', () => {
+  renderComponent();
+  expect(screen.getByText('Click to add new breakpoint')).toBeInTheDocument();
+});
 
-  test('should render existing breakpoints', () => {
-    const existingBreakpoint: ColorBreakpointType = {
+test('should render existing breakpoints', () => {
+  const existingBreakpoint: ColorBreakpointType = {
+    id: 0,
+    color: { r: 255, g: 0, b: 0, a: 1 },
+    minValue: 0,
+    maxValue: 100,
+  };
+
+  renderComponent({ value: [existingBreakpoint] });
+  expect(screen.getByText('0 - 100')).toBeInTheDocument();
+});
+
+test('should handle empty breakpoints array', () => {
+  renderComponent({ value: [] });
+  expect(screen.getByText('Click to add new breakpoint')).toBeInTheDocument();
+});
+
+test('should handle multiple breakpoints', () => {
+  const breakpoints: ColorBreakpointType[] = [
+    {
       id: 0,
       color: { r: 255, g: 0, b: 0, a: 1 },
       minValue: 0,
+      maxValue: 50,
+    },
+    {
+      id: 1,
+      color: { r: 0, g: 255, b: 0, a: 1 },
+      minValue: 50,
       maxValue: 100,
-    };
+    },
+  ];
 
-    renderComponent({ value: [existingBreakpoint] });
-    expect(screen.getByText('0 - 100')).toBeInTheDocument();
+  renderComponent({ value: breakpoints });
+  expect(screen.getByText('0 - 50')).toBeInTheDocument();
+  expect(screen.getByText('50 - 100')).toBeInTheDocument();
+});
+
+test('should call onChange when component state updates', () => {
+  const onChange = jest.fn();
+  renderComponent({ onChange });
+
+  expect(onChange).toHaveBeenCalledWith([]);
+});
+
+test('should show new breakpoint button when no breakpoints exist', () => {
+  renderComponent();
+  const ghostButton = screen.getByText('Click to add new breakpoint');
+  expect(ghostButton).toBeInTheDocument();
+});
+
+test('should handle new breakpoint button click and popover visibility state', async () => {
+  renderComponent();
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  const addButton = screen.getByText('Click to add new breakpoint');
+  await userEvent.click(addButton);
+
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
+
+test('should save new breakpoint and update state', async () => {
+  const onChange = jest.fn();
+  renderComponent({ onChange });
+
+  const addButton = screen.getByText('Click to add new breakpoint');
+  await userEvent.click(addButton);
+
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
+
+  await userEvent.type(minInput, '10');
+  await userEvent.type(maxInput, '90');
+
+  await waitFor(() => {
+    const saveButton = screen.getByTestId('save-button');
+    expect(saveButton).toBeEnabled();
   });
 
-  test('should handle empty breakpoints array', () => {
-    renderComponent({ value: [] });
-    expect(screen.getByText('Click to add new breakpoint')).toBeInTheDocument();
-  });
+  const saveButton = screen.getByTestId('save-button');
+  await userEvent.click(saveButton);
 
-  test('should handle multiple breakpoints', () => {
-    const breakpoints: ColorBreakpointType[] = [
-      {
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({
+        minValue: 10,
+        maxValue: 90,
         id: 0,
-        color: { r: 255, g: 0, b: 0, a: 1 },
-        minValue: 0,
-        maxValue: 50,
-      },
-      {
-        id: 1,
-        color: { r: 0, g: 255, b: 0, a: 1 },
-        minValue: 50,
-        maxValue: 100,
-      },
-    ];
+      }),
+    ]),
+  );
 
-    renderComponent({ value: breakpoints });
-    expect(screen.getByText('0 - 50')).toBeInTheDocument();
-    expect(screen.getByText('50 - 100')).toBeInTheDocument();
-  });
-
-  test('should call onChange when component state updates', () => {
-    const onChange = jest.fn();
-    renderComponent({ onChange });
-
-    expect(onChange).toHaveBeenCalledWith([]);
-  });
-
-  test('should show new breakpoint button when no breakpoints exist', () => {
-    renderComponent();
-    const ghostButton = screen.getByText('Click to add new breakpoint');
-    expect(ghostButton).toBeInTheDocument();
-  });
-
-  test('should handle new breakpoint button click and popover visibility state', async () => {
-    renderComponent();
-
+  await waitFor(() => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    const addButton = screen.getByText('Click to add new breakpoint');
-    await userEvent.click(addButton);
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
+});
 
-  test('should save new breakpoint and update state', async () => {
-    const onChange = jest.fn();
-    renderComponent({ onChange });
+test('should remove breakpoint when delete is triggered', async () => {
+  const existingBreakpoint: ColorBreakpointType = {
+    id: 0,
+    color: { r: 255, g: 0, b: 0, a: 1 },
+    minValue: 0,
+    maxValue: 100,
+  };
+  const onChange = jest.fn();
 
-    const addButton = screen.getByText('Click to add new breakpoint');
-    await userEvent.click(addButton);
+  renderComponent({ value: [existingBreakpoint], onChange });
 
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
+  const removeButton = screen.getByTestId('remove-control-button');
+  await userEvent.click(removeButton);
 
-    await userEvent.type(minInput, '10');
-    await userEvent.type(maxInput, '90');
+  expect(onChange).toHaveBeenCalledWith([]);
+});
 
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
+test('should edit existing breakpoint when clicked', async () => {
+  const existingBreakpoint: ColorBreakpointType = {
+    id: 0,
+    color: { r: 255, g: 0, b: 0, a: 1 },
+    minValue: 0,
+    maxValue: 100,
+  };
+  const onChange = jest.fn();
 
+  renderComponent({ value: [existingBreakpoint], onChange });
+
+  const breakpointOption = screen.getByText('0 - 100');
+  await userEvent.click(breakpointOption);
+
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByDisplayValue('0')).toBeInTheDocument();
+  expect(screen.getByDisplayValue('100')).toBeInTheDocument();
+});
+
+test('should handle DndSelectLabel props correctly', () => {
+  renderComponent();
+
+  const dndSelectLabel = screen
+    .getByText('Click to add new breakpoint')
+    .closest('div');
+  expect(dndSelectLabel).toBeInTheDocument();
+});
+
+test('should assign incremental IDs to new breakpoints', async () => {
+  const onChange = jest.fn();
+  renderComponent({ onChange });
+
+  const addButton = screen.getByText('Click to add new breakpoint');
+  await userEvent.click(addButton);
+
+  const minInput = screen.getByTestId('min-value-input');
+  const maxInput = screen.getByTestId('max-value-input');
+
+  await userEvent.type(minInput, '0');
+  await userEvent.type(maxInput, '50');
+
+  await waitFor(() => {
     const saveButton = screen.getByTestId('save-button');
-    await userEvent.click(saveButton);
-
-    expect(onChange).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          minValue: 10,
-          maxValue: 90,
-          id: 0,
-        }),
-      ]),
-    );
-
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
+    expect(saveButton).toBeEnabled();
   });
 
-  test('should remove breakpoint when delete is triggered', async () => {
-    const existingBreakpoint: ColorBreakpointType = {
-      id: 0,
-      color: { r: 255, g: 0, b: 0, a: 1 },
-      minValue: 0,
-      maxValue: 100,
-    };
-    const onChange = jest.fn();
+  const saveButton = screen.getByTestId('save-button');
+  await userEvent.click(saveButton);
 
-    renderComponent({ value: [existingBreakpoint], onChange });
-
-    const removeButton = screen.getByTestId('remove-control-button');
-    await userEvent.click(removeButton);
-
-    expect(onChange).toHaveBeenCalledWith([]);
-  });
-
-  test('should edit existing breakpoint when clicked', async () => {
-    const existingBreakpoint: ColorBreakpointType = {
-      id: 0,
-      color: { r: 255, g: 0, b: 0, a: 1 },
-      minValue: 0,
-      maxValue: 100,
-    };
-    const onChange = jest.fn();
-
-    renderComponent({ value: [existingBreakpoint], onChange });
-
-    const breakpointOption = screen.getByText('0 - 100');
-    await userEvent.click(breakpointOption);
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('0')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('100')).toBeInTheDocument();
-  });
-
-  test('should handle DndSelectLabel props correctly', () => {
-    renderComponent();
-
-    const dndSelectLabel = screen
-      .getByText('Click to add new breakpoint')
-      .closest('div');
-    expect(dndSelectLabel).toBeInTheDocument();
-  });
-
-  test('should assign incremental IDs to new breakpoints', async () => {
-    const onChange = jest.fn();
-    renderComponent({ onChange });
-
-    const addButton = screen.getByText('Click to add new breakpoint');
-    await userEvent.click(addButton);
-
-    const minInput = screen.getByTestId('min-value-input');
-    const maxInput = screen.getByTestId('max-value-input');
-
-    await userEvent.type(minInput, '0');
-    await userEvent.type(maxInput, '50');
-
-    await waitFor(() => {
-      const saveButton = screen.getByTestId('save-button');
-      expect(saveButton).toBeEnabled();
-    });
-
-    const saveButton = screen.getByTestId('save-button');
-    await userEvent.click(saveButton);
-
-    expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ id: 0 })]);
-  });
+  expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ id: 0 })]);
 });
