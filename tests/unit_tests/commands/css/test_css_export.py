@@ -139,3 +139,17 @@ def test_export_zip_numbered_name_does_not_collide_with_id_fallback(
     names = _export_zip_names(client, [unnamed.id, clashing.id])
 
     assert names == {f"{unnamed.id}.css", f"{unnamed.id} (1).css"}
+
+
+def test_export_single_template_returns_css(
+    client: Any, full_api_access: None, session: Session
+) -> None:
+    CssTemplate.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    template = CssTemplate(template_name="Dark", css=".a { color: black; }")
+    session.add(template)
+    session.flush()
+
+    response = client.get(f"/api/v1/css_template/export/?q=!({template.id})")
+
+    assert response.status_code == 200
+    assert response.data.decode() == template.css
