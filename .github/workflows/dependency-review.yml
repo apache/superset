@@ -6,10 +6,6 @@
 # Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
 name: "Dependency Review"
 on:
-  push:
-    branches:
-      - "master"
-      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -24,7 +20,6 @@ permissions:
 
 jobs:
   dependency-review:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-slim
     steps:
       - name: "Checkout Repository"
