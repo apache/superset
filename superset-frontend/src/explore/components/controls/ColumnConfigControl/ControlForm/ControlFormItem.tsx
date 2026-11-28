@@ -18,7 +18,10 @@
  */
 import { useState, FunctionComponentElement, ChangeEvent } from 'react';
 import { JsonValue } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
+import { Button } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ControlFormItemComponents } from './controls';
 import ControlHeader, { ControlHeaderProps } from '../../../ControlHeader';
 import { ControlFormItemDefaultSpec } from '../types';
@@ -28,6 +31,7 @@ export * from './controls';
 export type ControlFormItemProps = ControlFormItemDefaultSpec & {
   name: string;
   onChange?: (fieldValue: JsonValue) => void;
+  onReset?: () => void;
 };
 
 export type ControlFormItemNode =
@@ -47,16 +51,25 @@ export function ControlFormItem({
   width,
   validators,
   onChange,
+  onReset,
   value: initialValue,
   defaultValue,
   controlType,
+  resettable = false,
   ...props
 }: ControlFormItemProps) {
-  const { sizeUnit } = useTheme();
+  const { sizeUnit, fontSizeXS } = useTheme();
   const [hovered, setHovered] = useState(false);
   const [value, setValue] = useState(
     initialValue === undefined ? defaultValue : initialValue,
   );
+  const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
+  if (initialValue !== prevInitialValue) {
+    // the parent value changed outside this item (e.g. the reset action
+    // removed the key) — follow it instead of keeping the stale local state
+    setPrevInitialValue(initialValue);
+    setValue(initialValue === undefined ? defaultValue : initialValue);
+  }
   const [validationErrors, setValidationErrors] =
     useState<ControlHeaderProps['validationErrors']>();
 
@@ -81,6 +94,12 @@ export function ControlFormItem({
   };
 
   const Control = ControlFormItemComponents[controlType];
+  // A resettable field shows the reset action only when this column carries
+  // an explicit value in its config; without one it already follows the
+  // chart-level option. The internal checkbox state falls back to the spec
+  // default after a reset, so the marker must come from the config value.
+  const hasOverride =
+    resettable && controlType === 'Checkbox' && initialValue !== undefined;
 
   return (
     <div
@@ -94,15 +113,35 @@ export function ControlFormItem({
       onMouseLeave={() => setHovered(false)}
     >
       {controlType === 'Checkbox' ? (
-        <ControlFormItemComponents.Checkbox
-          value={value as boolean}
-          onChange={handleChange}
-          name={name}
-          label={label}
-          description={description}
-          validationErrors={validationErrors}
-          {...props}
-        />
+        <>
+          <ControlFormItemComponents.Checkbox
+            value={value as boolean}
+            onChange={handleChange}
+            name={name}
+            label={label}
+            description={description}
+            validationErrors={validationErrors}
+            {...props}
+          />
+          {hasOverride && onReset && (
+            <div
+              css={{
+                marginTop: sizeUnit,
+                paddingLeft: sizeUnit * 6,
+              }}
+            >
+              <Button
+                type="link"
+                size="small"
+                css={{ padding: 0, height: 'auto', fontSize: fontSizeXS }}
+                onClick={onReset}
+              >
+                <Icons.RollbackOutlined iconSize="s" />{' '}
+                {t('Use the chart-level setting')}
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <>
           {label && (
