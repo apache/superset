@@ -355,16 +355,20 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   if (isThumbnailsEnabled) {
     menuData.buttons = [
       {
-        name: (
+        name: t('Thumbnails'),
+        buttonStyle: 'link',
+        component: (
           <WelcomeNav>
             <div className="switch">
-              <Switch checked={checked} onClick={handleToggle} />
+              <Switch
+                checked={checked}
+                onClick={handleToggle}
+                aria-label={t('Thumbnails')}
+              />
               <span>{t('Thumbnails')}</span>
             </div>
           </WelcomeNav>
         ),
-        onClick: handleToggle,
-        buttonStyle: 'link',
       },
     ];
   }
