@@ -1262,6 +1262,64 @@ def test_admin_request_reports_a_failed_send(
     assert payload["requested_by_user_id"] == admin.id
 
 
+def test_admin_request_retry_after_a_failed_send(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """A failed send must not leave the cooldown behind: the retry the
+    error message asks for would otherwise be refused with a 429."""
+    admin = users["db"]
+    target = users["target"]
+    _login_as(client, admin)
+    attempts: list[str] = []
+
+    def _fail_once(to: str, subject: str, html: str) -> None:
+        attempts.append(to)
+        if len(attempts) == 1:
+            raise smtplib.SMTPException("SMTP down")
+        sent_emails.append({"to": to, "subject": subject, "html": html})
+
+    mocker.patch.object(password_recovery, "send_email", side_effect=_fail_once)
+
+    first = _admin_request(client, target.id)
+    assert first.status_code == 500
+    assert "could not be sent" in first.json["message"]
+    assert sent_emails == []
+    # Nothing from the failed attempt is left behind: no dangling token
+    # nobody received, and no cooldown blocking the retry.
+    assert _token_entries() == []
+    assert (
+        KeyValueDAO.get_entry(
+            KeyValueResource.PASSWORD_RECOVERY_THROTTLE,
+            password_recovery.throttle_key(target.email),
+        )
+        is None
+    )
+
+    second = _admin_request(client, target.id)
+    assert second.status_code == 200
+    assert second.json == {
+        "message": "A password reset link has been sent to the user."
+    }
+    assert len(sent_emails) == 1
+    assert len(_token_entries()) == 1
+
+    outcomes = [
+        json.loads(entry.json)["outcome"]
+        for entry in (
+            db.session.query(Log)
+            .filter(Log.action == "PasswordRecoveryRequested")
+            .order_by(Log.id.desc())
+            .limit(2)
+            .all()
+        )
+    ]
+    assert outcomes == ["sent", "failed"]
+
+
 def test_admin_request_requires_sign_in(
     recovery_enabled: None,
     users: dict[str, User],

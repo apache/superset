@@ -270,6 +270,28 @@ class AdminRequestPasswordRecoveryCommand(RequestPasswordRecoveryCommand):
         self._user = user
         self._email = user.email
 
+    def _clear_failed_attempt(self, token: str) -> None:
+        """Drop the cooldown and the undelivered token of a failed send.
+
+        The link never reached anyone, so the token is useless, and the
+        cooldown would refuse the retry the failure message asks for.
+        A failure here must not mask the send error, so the caller logs
+        it and carries on with the original failure.
+        """
+        try:
+            KeyValueDAO.delete_entry(
+                THROTTLE_RESOURCE, password_recovery.throttle_key(self._email)
+            )
+            KeyValueDAO.delete_entry(TOKEN_RESOURCE, password_recovery.token_key(token))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Could not clear the cooldown after a failed admin "
+                "password reset send to user %s; a retry may be refused "
+                "until it expires",
+                self._user.id,
+                exc_info=True,
+            )
+
     def run(self) -> None:
         self.validate()
         base_url = password_recovery.reset_base_url()
@@ -307,10 +329,13 @@ class AdminRequestPasswordRecoveryCommand(RequestPasswordRecoveryCommand):
                 self._send(self._user, reset_url)
             except Exception as ex:  # pylint: disable=broad-except
                 # The send runs inline for the admin endpoint, so a delivery
-                # failure is reported instead of being logged as "sent": the
-                # token and the resend cooldown are already committed, so the
-                # link stays usable and a retry is possible once the
-                # cooldown ends.
+                # failure is reported instead of being logged as "sent". The
+                # token and the resend cooldown were already committed by
+                # _issue, so clear both: the link was never delivered, and
+                # leaving the cooldown would refuse the retry the error
+                # message below asks for. The audit event logged right after
+                # this commits the deletes.
+                self._clear_failed_attempt(token)
                 logger.warning(
                     "Failed to send admin-requested password reset email to user %s",
                     self._user.id,
