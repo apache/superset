@@ -29,7 +29,7 @@ import {
   getSequentialSchemeRegistry,
 } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
-import countries, { countryOptions } from './countries';
+import { countries, countryOptions } from './countries';
 
 /**
  * Escape HTML special characters to prevent XSS attacks

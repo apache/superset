@@ -144,3 +144,21 @@ def test_a_chart_missing_from_the_map_is_resolved_by_the_builder(
     _build(workbook_path, query_contexts={})
 
     mocks["resolve_query_context"].assert_called_once_with(chart)
+
+
+def test_unsupported_semantic_chart_is_listed_without_running(
+    mocks: dict[str, Any], workbook_path: str
+) -> None:
+    """A chart type semantic views refuse is an expected skip, not an error."""
+    exported = _chart(10, "Sales")
+    refused = _chart(20, "Rose")
+    refused.datasource_type = "semantic_view"
+    refused.viz_type = "rose"
+    mocks["get_charts_in_layout_order"].return_value = [exported, refused]
+
+    with mock.patch(f"{MODULE}.logger") as logger:
+        errored = _build(workbook_path)
+
+    assert errored == {email.ERROR_UNSUPPORTED_CHART_TYPE: ["20 - Rose"]}
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+    logger.exception.assert_not_called()

@@ -1,0 +1,59 @@
+name: SIP steward
+
+# Keeps SIP issues in step with the dev@ mailing list (scripts/sip_steward.py):
+# numbers new `[SIP]` issues, adds the `sip` label, moves SIPs forward through
+# the sip:in-discussion / sip:voting / sip:approved labels as DISCUSS, VOTE and
+# RESULT threads appear, closes approved SIPs, and labels approved SIPs that
+# have pull requests with sip:in-development. The run summary lists what it
+# did, plus the project board moves to make by hand (the workflow token cannot
+# edit the org-level board) and anything it wasn't confident about.
+#
+# Scheduled runs are dry runs unless the repository variable
+# SIP_STEWARD_LIVE is "true". Manual runs choose with the `live` input.
+on:
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Make changes (unchecked = dry run, report only)"
+        type: boolean
+        default: false
+      model:
+        description: "Apache LLMAO model for ambiguous cases (blank = gemma4-26b)"
+        required: false
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: sip-steward
+  cancel-in-progress: false
+
+jobs:
+  sip-steward:
+    name: SIP steward
+    if: github.repository == 'apache/superset'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read # check out the script
+      issues: write # number, label, comment on and close SIP issues
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run the SIP steward
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LLMAO_KEY: ${{ secrets.LLMAO_KEY }}
+          LLMAO_MODEL: ${{ inputs.model }}
+          SIP_STEWARD_LIVE: ${{ (github.event_name == 'workflow_dispatch' && inputs.live) || (github.event_name == 'schedule' && vars.SIP_STEWARD_LIVE == 'true') }}
+        run: python scripts/sip_steward.py

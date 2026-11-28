@@ -191,7 +191,7 @@ test('supports bulk select and deselect all', async () => {
   });
 
   // Select all
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const selectAllCheckbox = screen.getAllByLabelText('Select current page')[0];
   expect(selectAllCheckbox).not.toBeChecked();
   await userEvent.click(selectAllCheckbox);
 
@@ -242,7 +242,7 @@ test('supports bulk export of selected dashboards', async () => {
     );
   });
 
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const selectAllCheckbox = screen.getAllByLabelText('Select current page')[0];
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
@@ -287,7 +287,7 @@ test('supports bulk delete of selected dashboards', async () => {
     );
   });
 
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const selectAllCheckbox = screen.getAllByLabelText('Select current page')[0];
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {

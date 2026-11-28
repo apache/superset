@@ -2069,6 +2069,27 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
+    def test_get_table_metadata_reflection_error(self):
+        """
+        Database API: Test get table metadata returns 422, not 500, when the
+        target database's reflection (pk/fk/index/comment introspection) raises
+        a SQLAlchemyError, e.g. a postgres-wire-protocol engine missing catalog
+        columns SQLAlchemy's postgres dialect queries.
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        uri = (
+            f"api/v1/database/{example_db.id}/table_metadata/"
+            "?name=birth_names&schema=null"
+        )
+        with mock.patch.object(
+            example_db.db_engine_spec,
+            "get_table_metadata",
+            side_effect=SQLAlchemyError("Binder Error: Referenced table not found"),
+        ):
+            rv = self.client.get(uri)
+        assert rv.status_code == 422
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_table_extra_metadata_deprecated(self):
         """

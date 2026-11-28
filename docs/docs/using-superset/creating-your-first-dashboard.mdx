@@ -150,6 +150,26 @@ for how the column should be treated in the Explore workflow:
 
 <img src={useBaseUrl('/img/tutorial/tutorial_column_properties.png')} />
 
+#### Snowflake column name casing
+
+For physical Snowflake datasets, Superset uses the dialect's automatic identifier
+quoting, regardless of **Normalize column names**. Lowercase metadata such as
+`species` is referenced unquoted and resolves to Snowflake's uppercase `SPECIES`.
+Uppercase and mixed-case names retain the dialect's quoting. If a physical column
+was created with a case-sensitive lowercase name, use a calculated column with an
+explicitly quoted expression such as `"species"`.
+
+For virtual datasets and SQL Lab query datasources, Superset quotes exact result
+column names in column references, adhoc metric fallbacks, and the `TableColumn`
+timestamp paths (column-based time grains, legacy timeseries, and temporal
+filters). This preserves case-sensitive aliases such as
+`SELECT species AS "species" FROM iris` in those paths.
+
+The Explore x-axis (`BASE_AXIS`) on a SQL Lab `Query` uses a separate path,
+`Query.adhoc_column_to_sqla`, which builds the expression with `literal_column`.
+That path is unchanged from master: a lowercase timestamp expression such as
+`ts` still compiles to unquoted `DATE_TRUNC('MONTH', ts)` for a monthly grain.
+
 ### Superset semantic layer
 
 Superset has a thin semantic layer that adds many quality of life improvements for analysts.

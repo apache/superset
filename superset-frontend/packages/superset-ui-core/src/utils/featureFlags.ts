@@ -77,6 +77,7 @@ export enum FeatureFlag {
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
   TableV2TimeComparisonEnabled = 'TABLE_V2_TIME_COMPARISON_ENABLED',
   AgGridTableEnabled = 'AG_GRID_TABLE_ENABLED',
+  TableV2TreeModeEnabled = 'TABLE_V2_TREE_MODE_ENABLED',
 }
 
 export type ScheduleQueriesProps = {

@@ -156,7 +156,7 @@
     "@visx/xychart": "^4.0.0",
     "ag-grid-community": "36.3.0",
     "ag-grid-react": "36.3.0",
-    "antd": "^6.6.8",
+    "antd": "^6.7.0",
     "chrono-node": "^2.10.2",
     "classnames": "^2.2.5",
     "content-disposition": "^3.0.0",
@@ -190,7 +190,7 @@
     "mustache": "^4.2.0",
     "nanoid": "^6.0.2",
     "ol": "^10.11.0",
-    "postcss": "^8.5.31",
+    "postcss": "^8.5.33",
     "query-string": "10.0.0",
     "re-resizable": "^6.11.2",
     "react": "^18.3.0",
@@ -359,16 +359,22 @@
     "@luma.gl/gltf": "~9.4.0",
     "@luma.gl/shadertools": "~9.4.0",
     "@luma.gl/webgl": "~9.4.0",
+    "@storybook/react-webpack5": {
+      "webpack-dev-middleware": "^7.4.6"
+    },
+    "cheerio": {
+      "undici": "^7.30.2"
+    },
     "core-js": "^3.38.1",
     "fast-xml-parser": "^5.8.0",
+    "glob": "^14.0.2",
     "jspdf": "^4.2.0",
     "minimatch": "^11.0.1",
     "nwsapi": "^2.2.24",
-    "puppeteer": "^22.4.1",
     "texture-compressor": {
       "image-size": "^2.0.3"
     },
-    "typescript-json-schema": "^0.68.0"
+    "undici": "^8.12.4"
   },
   "browserslist": [
     "last 3 chrome versions",
