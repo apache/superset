@@ -345,7 +345,11 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         a validation error) keep their status and JSON body whatever the
         ``Accept`` header says.
         """
-        logger.warning("CommandException", exc_info=True)
+        # Only attach the traceback (which Sentry's logging integration
+        # forwards as an event regardless of the HTTP status returned below)
+        # for unexpected 5xx failures; 4xx command errors are expected,
+        # client-caused validation failures and shouldn't page as errors.
+        logger.warning("CommandException", exc_info=ex.status >= 500)
 
         if (
             ex.status >= 500
