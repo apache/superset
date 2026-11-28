@@ -28,6 +28,9 @@ import { useRealTimeDashboard } from 'src/dashboard/hooks/useRealTimeDashboard';
 import { useAutoRefreshContext } from 'src/dashboard/contexts/AutoRefreshContext';
 import { AutoRefreshStatus } from 'src/dashboard/types/autoRefresh';
 import { RootState } from 'src/dashboard/types';
+import type { DashboardLayout } from 'src/dashboard/types';
+import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 
 // Fallback applied only when the backend does not provide the manual stagger
 // value at all (e.g. an older backend that predates the config key, or it is
@@ -44,6 +47,12 @@ type ChartCollection = Record<number, ChartState> & Record<string, ChartState>;
 
 type AutoRefreshStoreState = {
   charts: ChartCollection;
+  dashboardState?: {
+    activeTabs?: string[];
+  };
+  dashboardLayout?: {
+    present?: DashboardLayout;
+  };
 };
 
 type HeaderAutoRefreshProps = {
@@ -340,6 +349,40 @@ export const useHeaderAutoRefresh = ({
     startPeriodicRender(refreshFrequency * 1000);
   }, [isPaused, refreshFrequency, startPeriodicRender, stopPeriodicRender]);
 
+  // Charts on hidden tabs are refreshed by the tab itself when it becomes
+  // visible (see Tab.tsx), so a manual Refresh only needs the charts the
+  // user can see right now: those on the active tabs, plus any chart that
+  // is not under a tab at all. When the layout or the active tabs are
+  // unavailable, fall back to refreshing every chart.
+  const getVisibleChartIds = useCallback(
+    (allChartIds: number[]): number[] => {
+      const state = store.getState();
+      const activeTabs = state.dashboardState?.activeTabs;
+      const layout = state.dashboardLayout?.present;
+      if (!activeTabs || activeTabs.length === 0 || !layout) {
+        return allChartIds;
+      }
+      const visibleTabCharts = new Set<number>();
+      activeTabs.forEach(tabId => {
+        getChartIdsFromComponent(tabId, layout).forEach(chartId =>
+          visibleTabCharts.add(chartId),
+        );
+      });
+      const allTabCharts = new Set<number>();
+      Object.values(layout).forEach(component => {
+        if (component.type === TAB_TYPE) {
+          getChartIdsFromComponent(component.id, layout).forEach(chartId =>
+            allTabCharts.add(chartId),
+          );
+        }
+      });
+      return allChartIds.filter(
+        chartId => visibleTabCharts.has(chartId) || !allTabCharts.has(chartId),
+      );
+    },
+    [store],
+  );
+
   const forceRefresh = useCallback(() => {
     if (refreshInFlightRef.current && refreshPromiseRef.current) {
       return refreshPromiseRef.current;
@@ -347,15 +390,28 @@ export const useHeaderAutoRefresh = ({
     if (isLoading) {
       return Promise.resolve();
     }
-    return executeRefresh(chartIds, true, false, manualRefreshStaggerMs, {
-      action: LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
-      metadata: {
-        force: true,
-        interval: manualRefreshStaggerMs,
-        chartCount: chartIds.length,
+    const visibleChartIds = getVisibleChartIds(chartIds);
+    return executeRefresh(
+      visibleChartIds,
+      true,
+      false,
+      manualRefreshStaggerMs,
+      {
+        action: LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+        metadata: {
+          force: true,
+          interval: manualRefreshStaggerMs,
+          chartCount: visibleChartIds.length,
+        },
       },
-    });
-  }, [chartIds, executeRefresh, isLoading, manualRefreshStaggerMs]);
+    );
+  }, [
+    chartIds,
+    executeRefresh,
+    getVisibleChartIds,
+    isLoading,
+    manualRefreshStaggerMs,
+  ]);
 
   const handlePauseToggle = useCallback(() => {
     if (isPaused) {
