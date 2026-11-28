@@ -1331,8 +1331,11 @@ def test_execute_multi_statement_updates_query_progress(
     mock_db_session: MagicMock,
 ) -> None:
     """Test that multi-statement execution updates Query.progress."""
+    from sqlalchemy import inspect
+
     from superset.models.sql_lab import Query as QueryModel
     from superset.result_set import SupersetResultSet
+    from superset.sql.execution.executor import SQLExecutor
 
     # Mock raw connection for multi-statement execution
     mock_cursor = MagicMock()
@@ -1374,12 +1377,23 @@ def test_execute_multi_statement_updates_query_progress(
     mock_query = MagicMock(spec=QueryModel)
     mock_query.limit = None
     mock_query.id = 123
-    mocker.patch("superset.models.sql_lab.Query", return_value=mock_query)
+    # Replace only the tracking record, not the mapped schema-resolution probe.
+    create_record = mocker.patch.object(
+        SQLExecutor, "_create_query_record", return_value=mock_query
+    )
+    resolve_schema = mocker.spy(database, "get_default_schema_for_query")
 
     # Execute multiple statements
     result = database.execute("SELECT 1; SELECT 2;")
 
     assert result.status == QueryStatus.SUCCESS
+    create_record.assert_called_once()
+    resolve_schema.assert_called_once()
+    probe = resolve_schema.call_args.args[0]
+    assert isinstance(probe, QueryModel)
+    assert inspect(probe).transient
+    assert probe.database is database
+    assert result.query_id == mock_query.id
     # Query.progress should have been updated
     assert mock_query.progress == 100  # Final progress after completion
     # set_extra_json_key should have been called for progress messages

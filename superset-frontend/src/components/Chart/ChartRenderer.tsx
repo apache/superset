@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isTreeQueryMode } from '@superset-ui/plugin-chart-ag-grid-table';
 import { snakeCase, cloneDeep, isEqual } from 'lodash-es';
 import {
   useCallback,
@@ -209,10 +210,12 @@ export function hasValidPreviousData(
   const hasAnyErrors = queriesResponse?.some(item => item?.error);
   // The response of a chart that fetches its own data stays empty once it has
   // loaded, so for those any response that landed counts as previous data.
-  const hasPreviousResponse =
-    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true)
-      ? (queriesResponse?.length ?? 0) > 0
-      : Array.isArray(queriesResponse);
+  const usesEmptyState =
+    !isTreeQueryMode(formData) &&
+    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true);
+  const hasPreviousResponse = usesEmptyState
+    ? (queriesResponse?.length ?? 0) > 0
+    : Array.isArray(queriesResponse);
   return hasPreviousResponse && !hasAnyErrors;
 }
 
@@ -331,7 +334,8 @@ function ChartRendererComponent({
   // is expected and shouldn't trigger the no-results state. Honor the chart's
   // own enableNoResults metadata (defaults to true).
   const chartEnableNoResults =
-    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
+    !isTreeQueryMode(currentFormData) &&
+    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true);
 
   // A dashboard keeps the chart on screen while its query is in flight, be it
   // an auto-refresh, a manual refresh or a filter change. The store holds the

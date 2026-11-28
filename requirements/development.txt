@@ -68,7 +68,9 @@ attrs==25.3.0
     #   referencing
     #   requests-cache
 authlib==1.9.10
-    # via fastmcp-slim
+    # via
+    #   apache-superset
+    #   fastmcp-slim
 babel==2.17.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1278,7 +1280,7 @@ vine==5.1.0
     #   kombu
 virtualenv==20.36.1
     # via pre-commit
-watchdog==6.0.0
+watchdog==7.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
