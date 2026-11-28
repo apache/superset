@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   report:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     if: >
       github.event.workflow_run.conclusion == 'success' ||
@@ -60,7 +60,7 @@ jobs:
 
       - name: Publish test results
         if: steps.download.outcome == 'success' && steps.download-event.outcome == 'success'
-        uses: EnricoMi/publish-unit-test-result-action@da5b7be67623cd59bbbd1a0ce4f022050a55605f # v2.26.0
+        uses: EnricoMi/publish-unit-test-result-action/linux@da5b7be67623cd59bbbd1a0ce4f022050a55605f # v2.26.0
         with:
           commit: ${{ github.event.workflow_run.head_sha }}
           event_file: event/event.json
