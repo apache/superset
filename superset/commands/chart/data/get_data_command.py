@@ -48,7 +48,7 @@ class ChartDataCommand(BaseCommand):
     def query_context(self) -> QueryContext:
         return self._query_context
 
-    def _query_failed(self, ex: SQLAlchemyError) -> ChartDataQueryFailedError:
+    def _query_failed(self, ex: Exception) -> ChartDataQueryFailedError:
         """
         Report a database error raised while the query is being built, not run.
 
@@ -64,6 +64,33 @@ class ChartDataCommand(BaseCommand):
         )
         return ChartDataQueryFailedError(_("Error: %(error)s", error=message))
 
+    @staticmethod
+    def _is_mssql_resource_governor_error(ex: Exception) -> bool:
+        """
+        Recognize SQL Server error 10928: the customer's own Azure SQL/Synapse
+        resource governor rejected a connection because *their* database hit
+        its configured request limit.
+
+        This is raised by pymssql's C extension (``_mssql``/``pymssql``) while
+        SQLAlchemy's connection pool performs a rollback-on-checkin
+        (``Pool._reset`` -> ``Dialect.do_rollback``), which calls the DBAPI
+        connection's ``rollback()`` directly rather than through
+        ``Connection.execute()``. That path is never wrapped into a
+        ``sqlalchemy.exc.SQLAlchemyError``/``DBAPIError``, so it would
+        otherwise propagate past the ``SQLAlchemyError`` handling above as an
+        unhandled 500. It's a customer-side capacity condition (their own
+        resource-governor cap), not a Superset bug, so it's deliberately not
+        matched via a hard ``import pymssql`` -- that driver is an optional
+        extra -- and instead by class module + the well-known SQL Server
+        error text, mirroring ``PrestoEngineSpec``'s driver-exception checks
+        by ``type(ex).__name__``.
+        """
+        module_root = type(ex).__module__.split(".", 1)[0]
+        if module_root not in ("pymssql", "_mssql"):
+            return False
+        message = str(ex)
+        return "10928" in message or "request limit for the database" in message
+
     def run(self, **kwargs: Any) -> dict[str, Any]:
         # caching is handled in query_context.get_df_payload
         # (also evals `force` property)
@@ -76,6 +103,16 @@ class ChartDataCommand(BaseCommand):
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
         except SQLAlchemyError as ex:
+            raise self._query_failed(ex) from ex
+        except Exception as ex:
+            if not self._is_mssql_resource_governor_error(ex):
+                raise
+            logger.warning(
+                "MSSQL resource governor rejected a connection (error 10928); "
+                "this is a customer-side database capacity limit, not a "
+                "Superset error: %s",
+                ex,
+            )
             raise self._query_failed(ex) from ex
 
         for query in payload["queries"]:
@@ -102,6 +139,16 @@ class ChartDataCommand(BaseCommand):
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
         except SQLAlchemyError as ex:
+            raise self._query_failed(ex) from ex
+        except Exception as ex:
+            if not self._is_mssql_resource_governor_error(ex):
+                raise
+            logger.warning(
+                "MSSQL resource governor rejected a connection (error 10928); "
+                "this is a customer-side database capacity limit, not a "
+                "Superset error: %s",
+                ex,
+            )
             raise self._query_failed(ex) from ex
 
         for query in result.queries:
