@@ -40,6 +40,7 @@ from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from decimal import Decimal
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -84,7 +85,7 @@ from flask_babel import gettext as __
 from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
-from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.common import is_numeric_dtype, is_object_dtype
 from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import LONGTEXT, MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -2115,6 +2116,12 @@ def _process_datetime_column(
     """Process a single datetime column with format detection."""
     if col.timestamp_format in EPOCH_FORMATS:
         dttm_series = df[col.col_label]
+        # A DECIMAL or NUMERIC column arrives as ``Decimal`` objects, which pandas
+        # keeps in an object column and ``pd.Timestamp`` rejects.
+        if is_object_dtype(dttm_series) and any(
+            isinstance(value, Decimal) for value in dttm_series
+        ):
+            dttm_series = pd.to_numeric(dttm_series)
         if is_numeric_dtype(dttm_series):
             # Column is formatted as a numeric value
             unit = col.timestamp_format.replace("epoch_", "")

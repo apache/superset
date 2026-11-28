@@ -16,6 +16,7 @@
 # under the License.
 import os
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, Optional
 from unittest.mock import MagicMock, patch
 
@@ -334,6 +335,35 @@ def test_normalize_dttm_col_epoch(timestamp_format: str, values: list[int]) -> N
     assert df["epoch_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
     assert df["epoch_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
     assert df["epoch_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+@pytest.mark.parametrize(
+    "timestamp_format,values",
+    [
+        ("epoch_s", ["1577836800.5", "1640995200"]),
+        ("epoch_ms", ["1577836800500", "1640995200000"]),
+        ("epoch_us", ["1577836800500000", "1640995200000000"]),
+    ],
+)
+def test_normalize_dttm_col_decimal_epoch(
+    timestamp_format: str, values: list[str]
+) -> None:
+    """
+    An epoch stored in a ``DECIMAL`` or ``NUMERIC`` column arrives as ``Decimal``
+    objects in an object column, and is converted with the epoch unit.
+    """
+    first, last = (Decimal(value) for value in values)
+    df = pd.DataFrame({"epoch_col": pd.Series([first, None, last], dtype=object)})
+    dttm_cols = (DateColumn(col_label="epoch_col", timestamp_format=timestamp_format),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["epoch_col"])
+    assert df["epoch_col"].tolist() == [
+        pd.Timestamp("2020-01-01 00:00:00.5"),
+        pd.NaT,
+        pd.Timestamp("2022-01-01"),
+    ]
 
 
 def test_normalize_dttm_col_formatted_date() -> None:
