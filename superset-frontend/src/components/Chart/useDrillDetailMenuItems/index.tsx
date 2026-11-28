@@ -34,6 +34,7 @@ import {
   QueryFormData,
   removeHTMLTags,
 } from '@superset-ui/core';
+import { isTreeQueryMode } from '@superset-ui/plugin-chart-ag-grid-table';
 import { css, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { type ItemType } from '@superset-ui/core/components/Menu';
@@ -153,6 +154,7 @@ export const useDrillDetailMenuItems = ({
   // Check metrics to see if chart's current configuration lacks
   // aggregations, in which case Drill to Detail should be disabled.
   const noAggregations = useMemo(() => {
+    if (isTreeQueryMode(formData)) return false;
     const { metrics } = extractQueryFields(formData);
     return isEmpty(metrics);
   }, [formData]);

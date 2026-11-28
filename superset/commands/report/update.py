@@ -403,7 +403,8 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             self._properties["last_state"] = ReportState.NOOP
 
         # For reports created from charts or dashboards the recipient must always
-        # be the requesting user's own email address.
+        # be the requesting user's own email address. Admins can manage these
+        # reports from the Alerts & Reports list, so keep the recipients they set.
         if (
             self._model.creation_method
             in (
@@ -411,6 +412,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                 ReportCreationMethod.DASHBOARDS,
             )
             and "recipients" in self._properties
+            and not security_manager.is_admin()
         ):
             if user_email := get_user_email():
                 self._properties["recipients"] = [

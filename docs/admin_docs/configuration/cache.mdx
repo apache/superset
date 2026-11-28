@@ -75,6 +75,69 @@ FILTER_STATE_CACHE_CONFIG = {
 }
 ```
 
+## Database outages and chart caches
+
+Chart cache keys can depend on template macros and row-level security. If
+collecting template macro keys fails, Superset raises the underlying error
+instead of looking up a result using an incomplete macro cache key.
+While collecting chart cache keys for virtual datasets without a schema,
+including the datasources of chart-reference annotation layers,
+Superset reuses the default schema that
+SQLAlchemy has already discovered on the selected engine, without opening an
+inspector connection. It publishes that discovery in `CACHE_CONFIG` with a
+one-hour expiry. Warm cache-key lookups renew the entry at most once per
+half-hour per engine, so long-lived engines can keep discovery available to
+restarted workers. Shared entries retain the discovery time, rather than the
+renewal time: an older engine cannot replace a differing, newer shared discovery.
+Worker wall clocks must be synchronized for this comparison. If execution discovers a different schema than the
+shared value used to build a chart key, Superset recomputes the key before
+storing the result, including the live schema's RLS predicates. Backends supporting
+add-if-absent use it for missing entries. Renewals and replacements require an
+atomic conditional update: Redis (including Sentinel), process-local SimpleCache,
+and backends exposing `compare_and_set` support this. Other backends do not renew
+or replace existing discoveries; entries expire after one hour and must be
+rediscovered. Backends without add-if-absent or conditional updates do not publish
+shared discoveries. FileSystemCache does not publish discoveries because its
+add-if-absent implementation is not atomic across workers. Discovery is
+keyed by the database, catalog, and a hash of the effective connection URL and
+engine parameters. Engine parameters whose representations contain process-local
+memory addresses (such as creator callables or credential objects) do not provide
+stable cross-worker identities, so they can prevent discovery reuse across workers.
+Configure a shared cache backend (such as Redis) so a restarted
+or previously unused worker can reuse the discovery during an outage. Cache
+backend failures fall back to the selected engine's local discovery or an inspector
+lookup and are logged at debug level; they do not themselves prevent cache-key
+construction. Each shared-schema read or publication waits at most 200 ms for
+cache I/O. Reads of different entries run independently, including while an
+unrelated engine renews its discovery. Concurrent reads of the same entry share
+its result and original deadline. Warm engines skip publications while cache I/O
+is busy. Cold readers skip an in-flight publication for the same entry without
+waiting, since publication cannot supply a schema result to readers. Once a flight
+exceeds its deadline, further lookups fall back to local discovery or an inspector without waiting for that flight. A successful late read
+is available to every lookup for up to 60 seconds after completion, unless evicted
+to admit another key. Reuse does not extend that expiry, and a live engine's
+publication replaces a contradictory retained result.
+A process retains at most 16 schema-cache flights (including completed late
+results, which can be evicted to admit other keys). Hung operations retain their
+slots until I/O returns, so retries cannot accumulate unbounded background
+threads. A cache read that exceeds the budget can still require a live database
+for the first cold-engine lookup. Cached results remain
+available under the same security and template context when that schema (or the
+connection configuration) is sufficient to build the complete key.
+Query execution and metadata inspection retain their engine-specific schema
+discovery behavior.
+
+A warm chart cache alone does not guarantee availability during a database
+outage. A cold engine with no unexpired shared discovery, including one selected
+for a different connection identity, still needs to discover its default schema.
+Engines with per-call pre-session SQL and databases behind SSH tunnels do not
+share schema discovery. Tunnel connection URLs contain ephemeral local ports, so
+publishing them would create a different shared-cache key for each tunnel. Those
+session-specific lookups, query-specific search paths, database-backed macros, and
+other operations needed to build the complete key can require a live connection.
+If collecting template macro keys fails, Superset raises rather than using a
+partial macro key. Cache misses and forced refreshes still require query execution.
+
 ## Dependencies
 
 In order to use dedicated cache stores, additional python libraries must be installed

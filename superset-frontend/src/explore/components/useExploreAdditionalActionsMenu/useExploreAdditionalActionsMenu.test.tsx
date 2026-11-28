@@ -103,7 +103,11 @@ const defaultProps = {
   setCurrentReportDeleting: jest.fn(),
 };
 
-type TestComponentProps = typeof defaultProps;
+type TestComponentProps = Omit<typeof defaultProps, 'latestQueryFormData'> & {
+  latestQueryFormData: typeof defaultProps.latestQueryFormData & {
+    query_mode?: string;
+  };
+};
 type HookParams = Parameters<typeof useExploreAdditionalActionsMenu>;
 
 const TestComponent = (props: TestComponentProps) => {
@@ -121,6 +125,32 @@ const TestComponent = (props: TestComponentProps) => {
 
   return <div>{menu}</div>;
 };
+
+test.each(['aggregate', 'raw', 'tree'])(
+  'Table V2 %s Export Current View availability',
+  async queryMode => {
+    render(
+      <TestComponent
+        {...defaultProps}
+        latestQueryFormData={{
+          datasource: '1__table',
+          viz_type: 'ag-grid-table',
+          query_mode: queryMode,
+        }}
+      />,
+      { useRedux: true },
+    );
+    expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('Data Export Options'));
+    await screen.findByText('Export All Data');
+    if (queryMode === 'tree')
+      expect(screen.queryByText('Export Current View')).not.toBeInTheDocument();
+    else
+      expect(
+        await screen.findByText('Export Current View'),
+      ).toBeInTheDocument();
+  },
+);
 
 test('View query uses the saved Explore chart when form data omits slice_id', async () => {
   const request = '-- SQL\nSELECT saved_explore_chart';
