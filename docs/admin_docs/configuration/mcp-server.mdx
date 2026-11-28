@@ -1094,12 +1094,29 @@ MCP_STORE_CONFIG = {
 }
 ```
 
-| Key                      | Default | Description                                              |
-| ------------------------ | ------- | -------------------------------------------------------- |
-| `enabled`                | `False` | Enable Redis-backed store                                |
-| `CACHE_REDIS_URL`        | `None`  | Redis connection URL (e.g., `redis://redis-host:6379/0`) |
-| `event_store_max_events` | `100`   | Maximum events retained per session                      |
-| `event_store_ttl`        | `3600`  | Event TTL in seconds                                     |
+| Key                                  | Default      | Description                                                                                                                                                  |
+| ------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`                            | `False`      | Enable Redis-backed store                                                                                                                                    |
+| `CACHE_REDIS_URL`                    | `None`       | Redis connection URL (e.g., `redis://redis-host:6379/0`). Use `rediss://` for TLS.                                                                           |
+| `CACHE_REDIS_SSL_CERT_REQS`          | `"required"` | TLS certificate verification for `rediss://` URLs: `"required"`, `"optional"`, `"none"`, or the equivalent Python `ssl.CERT_REQUIRED`, `ssl.CERT_OPTIONAL`, `ssl.CERT_NONE` constants (integers 2, 1, 0). Booleans are rejected. `"none"` / `ssl.CERT_NONE` disables verification and should only be used knowingly. |
+| `CACHE_REDIS_SSL_CA_CERTS`           | `None`       | Path to a CA bundle (PEM) used to verify the Redis server certificate, e.g. for a private CA                                                                |
+| `CACHE_REDIS_SOCKET_TIMEOUT`         | `5.0`        | Seconds before a Redis read or write is abandoned                                                                                                            |
+| `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT` | `5.0`        | Seconds before a Redis connection attempt is abandoned                                                                                                       |
+| `event_store_max_events`             | `100`        | Maximum events retained per session                                                                                                                          |
+| `event_store_ttl`                    | `3600`       | Event TTL in seconds                                                                                                                                         |
+
+For a TLS-enabled Redis (for example a managed service that requires
+in-transit encryption), use a `rediss://` URL. The server certificate and
+hostname are verified against the system CA store by default; set
+`CACHE_REDIS_SSL_CA_CERTS` when the certificate is issued by a private CA:
+
+```python
+MCP_STORE_CONFIG = {
+    "enabled": True,
+    "CACHE_REDIS_URL": "rediss://:password@redis-host:6380/0",
+    "CACHE_REDIS_SSL_CA_CERTS": "/etc/superset/redis-ca.pem",
+}
+```
 
 ### Tool discovery modes
 

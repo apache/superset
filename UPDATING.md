@@ -24,6 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The MCP service verifies the Redis server certificate and hostname for
+  `rediss://` URLs in `MCP_STORE_CONFIG["CACHE_REDIS_URL"]`. Previously
+  verification was disabled. Deployments whose Redis uses a certificate from a
+  private CA should set `MCP_STORE_CONFIG["CACHE_REDIS_SSL_CA_CERTS"]` to that
+  CA bundle; `MCP_STORE_CONFIG["CACHE_REDIS_SSL_CERT_REQS"] = "none"` restores
+  the old unverified behavior as an explicit opt-out. MCP Redis connections
+  also gain bounded socket and connect timeouts (5 seconds each), configurable
+  with `CACHE_REDIS_SOCKET_TIMEOUT` and `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`.
+  A Redis certificate that cannot be verified makes MCP response-cache Redis
+  operations fail with an SSL error, so check the CA setup
+  before upgrading.
+
+- `superset.mcp_service.server.run_server()` no longer accepts
+  `use_factory_config`, and `MCP_FACTORY_CONFIG` / `get_mcp_factory_config()`
+  are removed from `superset.mcp_service.mcp_config`. That path served a
+  separate FastMCP instance with no registered tools and no authentication.
+  `superset mcp run` never used it. To customize authentication, use
+  `MCP_AUTH_ENABLED` / `MCP_AUTH_FACTORY`; to customize the instance in code,
+  call `superset.mcp_service.app.init_fastmcp_server()`.
+
 - MCP `get_table` query failures now populate `error_code`. Untyped dataset
   engine failures use `GENERIC_DB_ENGINE_ERROR`; signed-in users retain the
   specific `SupersetErrorType` code for typed errors, while guests receive
