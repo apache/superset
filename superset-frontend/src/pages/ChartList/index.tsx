@@ -1073,7 +1073,11 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+          <Icons.DownloadOutlined
+            iconSize="l"
+            data-test="import-button"
+            aria-label={t('Import charts')}
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',

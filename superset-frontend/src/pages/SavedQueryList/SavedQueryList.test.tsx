@@ -133,6 +133,13 @@ test('renders', async () => {
   expect(await screen.findByText('Saved queries')).toBeInTheDocument();
 });
 
+test('names the Import button after its action', async () => {
+  renderList();
+  expect(
+    await screen.findByRole('button', { name: 'Import queries' }),
+  ).toBeInTheDocument();
+});
+
 test('renders a ListView', async () => {
   renderList();
   expect(

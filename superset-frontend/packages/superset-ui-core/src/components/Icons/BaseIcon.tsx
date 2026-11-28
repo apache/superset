@@ -55,6 +55,10 @@ export const BaseIconComponent = forwardRef<
     const theme = useTheme();
     const whatRole = rest?.onClick ? 'button' : 'img';
     const ariaLabel = genAriaLabel(fileName || '');
+    // An icon marked aria-hidden is decorative: it gets no role or name, so
+    // assistive technology ignores it.
+    const isDecorative =
+      rest['aria-hidden'] === true || rest['aria-hidden'] === 'true';
     const style = {
       color: iconColor,
       fontSize: iconSize
@@ -71,8 +75,9 @@ export const BaseIconComponent = forwardRef<
     return customIcons ? (
       <span
         ref={ref as React.Ref<HTMLSpanElement>}
-        role={whatRole}
-        aria-label={ariaLabel}
+        role={isDecorative ? undefined : whatRole}
+        aria-label={isDecorative ? undefined : ariaLabel}
+        aria-hidden={isDecorative || undefined}
         data-test={ariaLabel}
         css={[
           css`
@@ -102,9 +107,9 @@ export const BaseIconComponent = forwardRef<
     ) : (
       <AntdComponent
         ref={ref}
-        role={whatRole}
+        role={isDecorative ? undefined : whatRole}
         style={style}
-        aria-label={ariaLabel}
+        aria-label={isDecorative ? undefined : ariaLabel}
         data-test={ariaLabel}
         {...(rest as AntdIconType)}
       />

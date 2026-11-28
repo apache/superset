@@ -402,6 +402,16 @@ test('should have correct redo button structure', () => {
   expect(redoButton).toBeDisabled();
 });
 
+test('names the undo and redo buttons after their actions', () => {
+  setup(editableState);
+  expect(
+    screen.getByRole('button', { name: 'Undo the action' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Redo the action' }),
+  ).toBeInTheDocument();
+});
+
 test('should enable undo button when past actions exist', async () => {
   setup(undoState);
 

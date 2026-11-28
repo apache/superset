@@ -18,7 +18,11 @@
  */
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom';
-import { DatasourceType } from '@superset-ui/core';
+import {
+  ChartMetadata,
+  DatasourceType,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import Chart from './Chart';
@@ -401,4 +405,39 @@ test('replaces an Explore chart with the spinner while it refreshes', () => {
   );
   expect(screen.queryByTestId('slice-container')).not.toBeInTheDocument();
   expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
+});
+
+test('labels the rendered chart with its name without hiding its content', () => {
+  render(
+    <Chart
+      {...baseProps}
+      formData={{ ...baseProps.formData, slice_name: 'Revenue by region' }}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  // A named region rather than a leaf role such as img, so interactive
+  // chart content (table cells, links) stays reachable.
+  const region = screen.getByRole('region', { name: 'Revenue by region' });
+  expect(region).toContainElement(screen.getByTestId('slice-container'));
+});
+
+test('labels an unsaved chart with the name of its chart type', () => {
+  getChartMetadataRegistry().registerValue(
+    'accessible-name-test',
+    new ChartMetadata({ name: 'Accessible name test', thumbnail: '' }),
+  );
+  render(
+    <Chart
+      {...baseProps}
+      formData={{ datasource: '1__table', viz_type: 'accessible-name-test' }}
+      vizType="accessible-name-test"
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(
+    screen.getByRole('region', { name: 'Accessible name test' }),
+  ).toBeInTheDocument();
+  getChartMetadataRegistry().remove('accessible-name-test');
 });

@@ -729,6 +729,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                       onClick={
                         undoLength > 0 ? boundActionCreators.onUndo : undefined
                       }
+                      aria-label={t('Undo the action')}
                     >
                       <Icons.Undo
                         css={[
@@ -738,6 +739,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                         ]}
                         data-test="undo-action"
                         iconSize="xl"
+                        aria-hidden
                       />
                     </StyledUndoRedoButton>
                   </Tooltip>
@@ -751,6 +753,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                       onClick={
                         redoLength > 0 ? boundActionCreators.onRedo : undefined
                       }
+                      aria-label={t('Redo the action')}
                     >
                       <Icons.Redo
                         css={[
@@ -760,6 +763,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                         ]}
                         data-test="redo-action"
                         iconSize="xl"
+                        aria-hidden
                       />
                     </StyledUndoRedoButton>
                   </Tooltip>

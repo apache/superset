@@ -1224,6 +1224,34 @@ test('A Big Number chart offers image exports only, without CSV, Excel or PDF', 
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
 });
 
+test('Exit fullscreen is a named button that works from the keyboard', async () => {
+  const props = { ...createProps(), isFullSize: true };
+  renderWrapper(props);
+  const exitButton = screen.getByRole('button', { name: 'Exit fullscreen' });
+  exitButton.focus();
+  expect(exitButton).toHaveFocus();
+  await userEvent.keyboard('{Enter}');
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+});
+
+test('Download menu icons do not add to the menu item names', async () => {
+  renderWrapper(createProps());
+  await openMenu();
+  await userEvent.hover(screen.getByText('Download'));
+  expect(
+    await screen.findByRole('menuitem', { name: 'Export to .CSV' }),
+  ).toBeInTheDocument();
+});
+
+test('Exit fullscreen keeps the bare icon footprint and leaves More Options in place', () => {
+  renderWrapper({ ...createProps(), isFullSize: true });
+  const exitButton = screen.getByRole('button', { name: 'Exit fullscreen' });
+  expect(exitButton).toHaveStyle({ padding: '0px', color: 'inherit' });
+  // Superset's Button adds a left margin to a .superset-button that follows
+  // another one, which would push the More Options trigger to the right.
+  expect(exitButton).not.toHaveClass('superset-button');
+});
+
 test('menu strings the viewer reads use the displayed name', async () => {
   // The header can show a translation or a panel title override while
   // slice_name stays canonical for edits and download filenames, so these two

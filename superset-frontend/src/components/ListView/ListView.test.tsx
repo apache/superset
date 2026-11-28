@@ -404,6 +404,26 @@ test('calls fetchData on card view sort', async () => {
   }
 });
 
+test('names the view toggle buttons after the view they show', () => {
+  setupListView();
+  try {
+    factory({
+      renderCard: jest.fn(),
+      data: [],
+      count: 0,
+      initialSort: [{ id: 'something' }],
+    });
+    expect(
+      screen.getByRole('button', { name: 'Grid view' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'List view' }),
+    ).toBeInTheDocument();
+  } finally {
+    cleanupListView();
+  }
+});
+
 test('switches view mode via click of the toggle buttons', async () => {
   setupListView();
   try {

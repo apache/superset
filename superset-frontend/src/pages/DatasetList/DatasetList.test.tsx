@@ -141,9 +141,9 @@ test('"New Dataset" button hidden (when canCreate=false)', async () => {
 test('"Import" button exists (when canCreate=true)', async () => {
   renderDatasetList(mockAdminUser);
 
-  // Note: Using testId - import button lacks accessible text content
-  // TODO: Add aria-label or text to import button
-  expect(await screen.findByTestId('import-button')).toBeInTheDocument();
+  expect(
+    await screen.findByRole('button', { name: 'Import datasets' }),
+  ).toBeInTheDocument();
 });
 
 test('"Import" button opens import modal', async () => {

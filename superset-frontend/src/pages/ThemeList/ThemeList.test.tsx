@@ -228,6 +228,25 @@ test('renders themes list with all theme names', async () => {
   });
 });
 
+test('names the Import button after its action', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+  expect(
+    await screen.findByRole('button', { name: 'Import themes' }),
+  ).toBeInTheDocument();
+});
+
 test('shows system tag for system themes', async () => {
   render(
     <ThemesList

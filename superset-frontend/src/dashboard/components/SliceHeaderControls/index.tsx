@@ -91,6 +91,19 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
+// A bare button around the exit icon, so it keeps the icon's footprint and
+// inherited color while staying focusable and keyboard-operable.
+const ExitFullscreenButton = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  line-height: 0;
+`;
+
 const VerticalDotsTrigger = () => (
   <Icons.EllipsisOutlined
     css={css`
@@ -698,7 +711,9 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportCsv,
                 label: t('Export to .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]),
         ...(isPivotTable
@@ -706,12 +721,16 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportPivotCsv,
                 label: t('Export to Pivoted .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
               {
                 key: MenuKeys.ExportPivotXlsx,
                 label: t('Export to Pivoted Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]
           : []),
@@ -721,7 +740,9 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportXlsx,
                 label: t('Export to Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]),
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
@@ -731,25 +752,33 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportFullCsv,
                 label: t('Export to full .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
               {
                 key: MenuKeys.ExportFullXlsx,
                 label: t('Export to full Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]
           : []),
         {
           key: MenuKeys.DownloadAsImage,
           label: t('Export screenshot (jpeg)'),
-          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          icon: (
+            <Icons.FileImageOutlined css={dropdownIconsStyles} aria-hidden />
+          ),
         },
         {
           type: 'submenu',
           key: 'download_as_png_submenu',
           label: t('Export screenshot (png)'),
-          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          icon: (
+            <Icons.FileImageOutlined css={dropdownIconsStyles} aria-hidden />
+          ),
           children: [
             {
               key: MenuKeys.DownloadAsPngTransparent,
@@ -767,7 +796,9 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.DownloadAsPdf,
                 label: t('Export as PDF'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: (
+                  <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden />
+                ),
               },
             ]),
       ],
@@ -804,8 +835,8 @@ const SliceHeaderControls = (
   return (
     <>
       {isFullSize && (
-        <Icons.FullscreenExitOutlined
-          style={{ fontSize: `${theme.fontSizeXL / theme.fontSize}em` }}
+        <ExitFullscreenButton
+          type="button"
           aria-label={t('Exit fullscreen')}
           onClick={() => {
             if (document.fullscreenElement) {
@@ -815,7 +846,12 @@ const SliceHeaderControls = (
               queueChartResize();
             }
           }}
-        />
+        >
+          <Icons.FullscreenExitOutlined
+            style={{ fontSize: `${theme.fontSizeXL / theme.fontSize}em` }}
+            aria-hidden
+          />
+        </ExitFullscreenButton>
       )}
       <NoAnimationDropdown
         popupRender={() => sliceMenu}
