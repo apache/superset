@@ -99,6 +99,12 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.tool_errors import (
+    log_tool_exception,
+    MCPValidationError,
+    safe_error,
+    tool_error_message,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.models.slice import Slice
 from superset.semantic_layers.access import SemanticLayersDisabledError
@@ -287,7 +293,7 @@ def _chart_datasource_type(chart: Slice) -> str:
         DatasourceType.QUERY.value,
         DatasourceType.SAVEDQUERY.value,
     ):
-        raise ValueError(f"Unsupported chart datasource type: {value}")
+        raise MCPValidationError(f"Unsupported chart datasource type: {value}")
     return value
 
 
@@ -904,7 +910,7 @@ def _validate_update_against_target(
             run_compile_check=run_compile_check,
         )
     if target_type != DatasourceType.TABLE.value:
-        raise ValueError(f"Unsupported chart datasource type: {target_type}")
+        raise MCPValidationError(f"Unsupported chart datasource type: {target_type}")
     if _chart_datasource_type(chart) == DatasourceType.SEMANTIC_VIEW.value:
         target_access: DatasetValidationResult = validate_chart_dataset(
             target_id, check_access=True
@@ -1641,13 +1647,15 @@ async def update_chart(  # noqa: C901
                 "Database rollback failed during error handling", exc_info=True
             )
         execution_time = int((time.time() - start_time) * 1000)
+        log_tool_exception("Chart update failed", e, identifier=request.identifier)
+        client_error = safe_error(e)
         return _finalize_response(
             {
                 "chart": None,
                 "error": {
-                    "error_type": type(e).__name__,
-                    "message": f"Chart update failed: {e}",
-                    "details": str(e),
+                    "error_type": client_error.code,
+                    "message": tool_error_message("Chart update failed", e),
+                    "details": client_error.message,
                 },
                 "performance": {
                     "query_duration_ms": execution_time,

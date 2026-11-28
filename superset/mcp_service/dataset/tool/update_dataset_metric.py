@@ -32,6 +32,10 @@ from superset.mcp_service.dataset.schemas import (
     UpdateDatasetMetricRequest,
     UpdateDatasetMetricResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    report_tool_error,
+    tool_error_message,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -264,13 +268,17 @@ async def update_dataset_metric(  # noqa: C901
         await ctx.warning("Dataset metric validation failed: %s" % (messages,))
         return UpdateDatasetMetricResponse(error=str(messages))
     except DatasetUpdateFailedError as exc:
-        await ctx.error("Dataset metric update failed: %s" % (str(exc),))
+        await report_tool_error(
+            ctx, "Dataset metric update failed", exc, dataset_id=request.dataset_id
+        )
         return UpdateDatasetMetricResponse(
-            error=f"Failed to update metric: {exc}",
+            error=tool_error_message("Failed to update metric", exc)
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error updating dataset metric: %s: %s"
-            % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error updating dataset metric",
+            exc,
+            dataset_id=request.dataset_id,
         )
         raise

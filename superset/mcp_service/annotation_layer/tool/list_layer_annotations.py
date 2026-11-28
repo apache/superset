@@ -34,6 +34,7 @@ from superset.mcp_service.annotation_layer.schemas import (
     serialize_annotation,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -138,8 +139,7 @@ async def list_layer_annotations(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Annotation listing failed: layer_id=%s, error=%s, error_type=%s"
-            % (request.layer_id, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx, "Failed to list annotations", e, layer_id=request.layer_id
         )
         raise

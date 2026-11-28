@@ -59,6 +59,7 @@ from superset.mcp_service.utils.response_size_utils import (
     get_response_size_bytes,
     UNMEASURABLE_RESPONSE_BYTES,
 )
+from superset.mcp_service.utils.tool_errors import UNEXPECTED_ERROR_MESSAGE
 from superset.mcp_service.utils.validation import validation_message
 from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
@@ -2249,7 +2250,75 @@ class TestGlobalErrorHandlerLogLevels:
         message = str(exc_info.value)
         assert "hunter2" not in message
         assert "db.internal" not in message
-        assert "Invalid config" in message
+        assert "Invalid config" not in message
+        assert message == (
+            f"Invalid parameter in execute_sql: {UNEXPECTED_ERROR_MESSAGE}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_host_validation_value_error_keeps_its_guidance(self) -> None:
+        """A ValueError Superset raised about the caller's arguments is the one
+        ValueError whose text reaches the client."""
+        from superset.utils.date_parser import get_since_until
+
+        try:
+            get_since_until(time_range="2025-01-01 : 2024-01-01")
+        except ValueError as ex:
+            error = ex
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=error)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_message(context, call_next)
+
+        assert str(exc_info.value) == (
+            "Invalid parameter in get_chart_data: From date cannot be larger "
+            "than to date"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "make_error",
+        [
+            pytest.param(lambda text: ConnectionError(text), id="connection"),
+            pytest.param(lambda text: SupersetException(text), id="superset"),
+            pytest.param(lambda text: CommandInvalidError(text), id="invalid"),
+            pytest.param(lambda text: ForbiddenError(text), id="forbidden"),
+            pytest.param(lambda text: ObjectNotFoundError(text), id="not-found"),
+        ],
+    )
+    async def test_guest_response_never_carries_exception_text(
+        self, make_error: Callable[[str], Exception]
+    ) -> None:
+        """An embedded guest gets the generic message, whichever branch renders
+        the error."""
+        middleware = GlobalErrorHandlerMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.method = "tools/call"
+        call_next = AsyncMock(side_effect=make_error("REVIEW_SENTINEL_INTERNAL"))
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger"),
+            patch(
+                "superset.utils.error_sanitization.is_sanitization_required",
+                return_value=True,
+            ),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_message(context, call_next)
+
+        assert "REVIEW_SENTINEL_INTERNAL" not in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_http_exception_detail_is_sanitized(self) -> None:
@@ -2281,7 +2350,10 @@ class TestGlobalErrorHandlerLogLevels:
         message = str(exc_info.value)
         assert "hunter2" not in message
         assert "db.internal" not in message
-        assert "Upstream failed" in message
+        assert "Upstream failed" not in message
+        assert message == (
+            f"Service error in get_chart_preview: {UNEXPECTED_ERROR_MESSAGE}"
+        )
 
 
 class TestSanitizeParams:
@@ -3031,7 +3103,36 @@ class TestToolResultCompatibilityErrorHook:
         ):
             result = await middleware.on_call_tool(context, call_next)
 
-        assert result.content[0].text == "Error: HostileStrError"
+        # Classification never formats an exception Superset did not write.
+        assert result.content[0].text == f"Error: {UNEXPECTED_ERROR_MESSAGE}"
+
+    @pytest.mark.asyncio
+    async def test_failing_classification_does_not_escape_last_resort_handler(
+        self,
+    ) -> None:
+        """When rendering the client text itself raises, the handler falls back
+        to the exception class name instead of propagating."""
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=SupersetException("boom"))
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            patch(
+                "superset.mcp_service.middleware.safe_error",
+                side_effect=RuntimeError("classification failed"),
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        assert result.content[0].text == "Error: SupersetException"
 
     @pytest.mark.asyncio
     async def test_classification_failure_does_not_escape_last_resort_handler(
@@ -3077,16 +3178,22 @@ class TestToolResultCompatibilityErrorHook:
         context.message.name = "execute_sql"
         # Connection string with embedded credentials — must be redacted.
         call_next = AsyncMock(
-            side_effect=ValueError(
+            side_effect=SupersetException(
                 "connect failed: postgresql://user:s3cret@db.internal:5432/prod"
             )
         )
         mock_flask_app = MagicMock()
         mock_flask_app.config.get.return_value = None
 
-        with patch(
-            "superset.mcp_service.flask_singleton.get_flask_app",
-            return_value=mock_flask_app,
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            patch(
+                "superset.utils.error_sanitization.is_sanitization_required",
+                return_value=False,
+            ),
         ):
             result = await middleware.on_call_tool(context, call_next)
 
@@ -3095,6 +3202,43 @@ class TestToolResultCompatibilityErrorHook:
         assert "s3cret" not in text
         assert "db.internal" not in text
         assert "[REDACTED]" in text
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("guest", [False, True])
+    async def test_client_facing_text_uses_the_shared_classification(
+        self, guest: bool
+    ) -> None:
+        """An exception Superset did not write never reaches the client, and a
+        guest gets no Superset text either."""
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        for error in (
+            ValueError("REVIEW_SENTINEL_INTERNAL"),
+            ConnectionError("REVIEW_SENTINEL_INTERNAL"),
+            SupersetException("REVIEW_SENTINEL_INTERNAL"),
+        ):
+            with (
+                patch(
+                    "superset.mcp_service.flask_singleton.get_flask_app",
+                    return_value=mock_flask_app,
+                ),
+                patch(
+                    "superset.utils.error_sanitization.is_sanitization_required",
+                    return_value=guest,
+                ),
+            ):
+                result = await middleware.on_call_tool(
+                    context, AsyncMock(side_effect=error)
+                )
+
+            text = result.content[0].text
+            assert result.is_error is True
+            leaked = "REVIEW_SENTINEL_INTERNAL" in text
+            assert leaked is (not guest and isinstance(error, SupersetException))
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -3151,6 +3295,8 @@ class TestToolResultCompatibilityErrorHook:
         assert result.is_error is True
         if isinstance(error, (ValidationError, FastMCPValidationError)):
             expected = await validation_message(error, context)
+        elif isinstance(error, ValueError):
+            expected = UNEXPECTED_ERROR_MESSAGE
         else:
             expected = _sanitize_error_for_logging(error)
         assert result.content[0].text == f"Error: {expected}"

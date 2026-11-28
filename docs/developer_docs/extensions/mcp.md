@@ -346,6 +346,17 @@ validation formatter does not reinterpret domain-error payloads.
 2. **Field constraints**: Check min/max values and string lengths are reasonable
 3. **Required fields**: Verify which parameters are required vs optional
 
+### Tool-owned Validation Guidance
+
+For deliberate input, credential or feature-availability refusals, raise
+`MCPValidationError` from `superset.mcp_service.utils.tool_errors`. Its message
+must be written by Superset, not copied from a caught exception, query engine,
+or provider. Signed-in callers receive this guidance (for example, allowed sort
+columns or how to restart pagination). Embedded guests still receive sanitized
+errors, and provider-originated failures remain generic even if they use this
+exception type. Unexpected `ValueError` exceptions are not caller-facing
+validation and retain a generic error response.
+
 ### Runtime Issues
 
 1. **Error handling**: Add try/catch blocks with clear error messages

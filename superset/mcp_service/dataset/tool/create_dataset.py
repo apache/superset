@@ -43,6 +43,7 @@ from superset.mcp_service.dataset.schemas import (
     DatasetInfo,
     serialize_dataset_object,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 from superset.subjects.utils import get_or_create_user_subject
 
 logger = logging.getLogger(__name__)
@@ -221,6 +222,10 @@ async def create_dataset(
             error="Dataset creation failed", error_type="CreateFailedError"
         )
     except Exception as exc:
-        logger.exception("Unexpected error in create_dataset")
-        await ctx.error("Unexpected error: %s" % (type(exc).__name__,))
+        await report_tool_error(
+            ctx,
+            "Unexpected error in create_dataset",
+            exc,
+            database_id=request.database_id,
+        )
         raise

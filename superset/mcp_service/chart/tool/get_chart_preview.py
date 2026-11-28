@@ -94,6 +94,11 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    MCPValidationError,
+    report_tool_error,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
 from superset.utils.core import DatasourceType
@@ -253,6 +258,20 @@ class PreviewFormatStrategy:
     def generate(self) -> ChartPreview | ChartError:
         """Generate preview in the specific format."""
         raise NotImplementedError
+
+    def _query_error(
+        self, summary: str, exc: BaseException, error_type: str
+    ) -> ChartError:
+        """Report a failed preview query with the chart-data API's rule."""
+        return internal_error_response(
+            ChartError,
+            summary,
+            exc,
+            query=True,
+            semantic=getattr(self.chart, "datasource_type", None)
+            == DatasourceType.SEMANTIC_VIEW.value,
+            error_type=error_type,
+        )
 
     def _authorize_guest_query(self, query_context: Any) -> None:
         """For a guest, attach the dashboard context so raise_for_access
@@ -415,10 +434,8 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             AttributeError,
             TypeError,
         ) as e:
-            logger.error("ASCII preview generation failed: %s", e)
-            return ChartError(
-                error=f"Failed to generate ASCII preview: {str(e)}",
-                error_type="ASCIIError",
+            return self._query_error(
+                "Failed to generate ASCII preview", e, "ASCIIError"
             )
 
 
@@ -491,10 +508,8 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             AttributeError,
             TypeError,
         ) as e:
-            logger.error("Table preview generation failed: %s", e)
-            return ChartError(
-                error=f"Failed to generate table preview: {str(e)}",
-                error_type="TableError",
+            return self._query_error(
+                "Failed to generate table preview", e, "TableError"
             )
 
 
@@ -644,12 +659,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             AttributeError,
             TypeError,
         ) as e:
-            logger.exception(
-                "Error generating Vega-Lite preview for chart %s", self.chart.id
-            )
-            return ChartError(
-                error=f"Failed to generate Vega-Lite preview: {str(e)}",
-                error_type="VegaLiteGenerationError",
+            return self._query_error(
+                "Failed to generate Vega-Lite preview", e, "VegaLiteGenerationError"
             )
 
     def _create_vega_lite_spec(self, data: List[Any]) -> Dict[str, Any]:
@@ -664,7 +675,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             data, {**form_data, "viz_type": viz_type}
         )
         if isinstance(plugin_preview, ChartError):
-            raise ValueError(plugin_preview.error)
+            raise MCPValidationError(plugin_preview.error)
         if plugin_preview is not None:
             return plugin_preview.specification
 
@@ -1606,9 +1617,13 @@ async def _get_chart_preview_internal(  # noqa: C901
                         )
                 except (CommandException, ValueError, KeyError) as e:
                     request = request.model_copy(update={"form_data_key": None})
-                    await ctx.warning(
-                        "Failed to retrieve cached form_data: %s. "
-                        "Using saved chart configuration." % (str(e),)
+                    await report_tool_error(
+                        ctx,
+                        "Failed to retrieve cached form_data; using saved chart "
+                        "configuration",
+                        e,
+                        level="warning",
+                        identifier=request.identifier,
                     )
 
         import time
@@ -1694,12 +1709,12 @@ async def _get_chart_preview_internal(  # noqa: C901
     except SQLAlchemyError as e:
         # Catch DetachedInstanceError and other SQLAlchemy errors that can
         # surface when the ORM session expires or commits mid-request.
-        await ctx.error(
-            "Chart preview failed due to database session error: "
-            "identifier=%s, error_type=%s, error=%s"
-            % (request.identifier, type(e).__name__, str(e))
+        await report_tool_error(
+            ctx,
+            "Database session error while generating chart preview",
+            e,
+            identifier=request.identifier,
         )
-        logger.exception("SQLAlchemy error in get_chart_preview: %s", e)
         return ChartError(
             error="Database session error while generating chart preview. "
             "Please retry the request.",
@@ -1713,19 +1728,19 @@ async def _get_chart_preview_internal(  # noqa: C901
         AttributeError,
         TypeError,
     ) as e:
-        await ctx.error(
-            "Chart preview generation failed: identifier=%s, format=%s, error=%s, "
-            "error_type=%s"
-            % (
-                request.identifier,
-                request.format,
-                str(e),
-                type(e).__name__,
-            )
+        await report_tool_error(
+            ctx,
+            "Failed to get chart preview",
+            e,
+            identifier=request.identifier,
+            format=request.format,
         )
-        logger.error("Error in get_chart_preview: %s", e)
-        return ChartError(
-            error=f"Failed to get chart preview: {str(e)}", error_type="InternalError"
+        return internal_error_response(
+            ChartError,
+            "Failed to get chart preview",
+            e,
+            log=False,
+            error_type="InternalError",
         )
 
 
@@ -1825,17 +1840,18 @@ async def get_chart_preview(
         TypeError,
         AttributeError,
     ) as e:
-        await ctx.error(
-            "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"
-            % (
-                request.identifier,
-                str(e),
-                type(e).__name__,
-            )
+        await report_tool_error(
+            ctx,
+            "Failed to generate chart preview",
+            e,
+            identifier=request.identifier,
         )
         return _finalize_response(
-            ChartError(
-                error=f"Failed to generate chart preview: {str(e)}",
+            internal_error_response(
+                ChartError,
+                "Failed to generate chart preview",
+                e,
+                log=False,
                 error_type="InternalError",
             )
         )

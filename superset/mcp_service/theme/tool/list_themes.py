@@ -37,6 +37,7 @@ from superset.mcp_service.theme.schemas import (
     ThemeInfo,
     ThemeList,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -157,8 +158,11 @@ async def list_themes(
             )
 
     except Exception as e:
-        await ctx.error(
-            "Theme listing failed: page=%s, page_size=%s, error=%s, error_type=%s"
-            % (request.page, request.page_size, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx,
+            "Failed to list themes",
+            e,
+            page=request.page,
+            page_size=request.page_size,
         )
         raise

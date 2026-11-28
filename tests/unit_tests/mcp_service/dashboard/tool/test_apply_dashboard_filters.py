@@ -61,6 +61,7 @@ from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
 )
 from superset.models.core import Database
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
 DATASET_GET = "superset.daos.dataset.DatasetDAO.find_by_id"
@@ -4594,3 +4595,129 @@ async def test_filter_wrong_value_error_names_supplied_field(
         f"provide '{expected_field}', not '{field}'."
     )
     permalink.assert_not_called()
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+async def _call_with_notifications(
+    mcp_server: object, request: dict[str, Any]
+) -> tuple[dict[str, Any] | None, list[str], Exception | None]:
+    """Invoke the tool, returning its JSON, ctx notifications and any ToolError."""
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        try:
+            result = await client.call_tool(
+                "apply_dashboard_filters", {"request": request}
+            )
+        except ToolError as exc:
+            return None, notifications, exc
+    return json.loads(result.content[0].text), notifications, None
+
+
+@pytest.mark.parametrize(
+    "raised",
+    [
+        json.JSONDecodeError(_LEAK_MARKER, "doc", 0),
+        ValueError(_LEAK_MARKER),
+    ],
+    ids=["decode", "value"],
+)
+@pytest.mark.asyncio
+async def test_base_permalink_decode_error_text_is_not_returned(
+    mcp_server: object, raised: ValueError
+) -> None:
+    """A ValueError the permalink helper did not raise keeps its text
+    server-side."""
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])),
+        patch(GET_PERMALINK) as get_command,
+        patch(CREATE_PERMALINK) as create,
+    ):
+        get_command.return_value.run.side_effect = raised
+        result, notifications, error = await _call_with_notifications(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "base_permalink_key": "base-key",
+                "filters": [{"filter_name_or_id": "Region", "values": ["EMEA"]}],
+            },
+        )
+    assert error is None
+    assert result is not None
+    assert "Failed to use the base permalink" in result["error"]
+    assert _LEAK_MARKER not in json.dumps(result)
+    assert all(_LEAK_MARKER not in note for note in notifications)
+    create.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("guest", "expected"),
+    [(False, _LEAK_MARKER), (True, str(GENERIC_ERROR_MESSAGE))],
+)
+@pytest.mark.asyncio
+async def test_permalink_create_failure_error_text(
+    mcp_server: object, guest: bool, expected: str
+) -> None:
+    """A permalink storage failure reports Superset's message to a signed-in
+    user and the generic message to an embedded guest."""
+    from superset.dashboards.permalink.exceptions import (
+        DashboardPermalinkCreateFailedError,
+    )
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([TIME_FILTER])),
+        patch(CREATE_PERMALINK) as create,
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        create.return_value.run.side_effect = DashboardPermalinkCreateFailedError(
+            _LEAK_MARKER
+        )
+        result, notifications, error = await _call_with_notifications(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Time Range", "time_range": "Last day"}
+                ],
+            },
+        )
+    assert error is None
+    assert result is not None
+    assert result["error"].startswith(
+        f"Failed to store the filtered dashboard state: {expected}"
+    )
+    assert result["permalink_key"] is None
+    assert any(
+        "Failed to store the filtered dashboard state" in note for note in notifications
+    )
+    if guest:
+        assert _LEAK_MARKER not in json.dumps(result)
+        assert all(_LEAK_MARKER not in note for note in notifications)
+
+
+@pytest.mark.asyncio
+async def test_unexpected_error_text_is_not_sent_to_client(
+    mcp_server: object,
+) -> None:
+    """An unexpected failure is re-raised without notifying its text."""
+    with patch(DAO_GET, side_effect=RuntimeError(_LEAK_MARKER)):
+        _, notifications, error = await _call_with_notifications(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": ["EMEA"]}],
+            },
+        )
+    assert error is not None
+    assert any(
+        "Unexpected error applying dashboard filters" in note for note in notifications
+    )
+    assert all(_LEAK_MARKER not in note for note in notifications)

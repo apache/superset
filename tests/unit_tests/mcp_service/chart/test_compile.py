@@ -57,6 +57,22 @@ from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
 )
 
 
+def _assert_host_owned_failure(result: Any, raw_text: str) -> None:
+    """A failed compile check carries the host message, never the raw text."""
+    assert result.error_obj is not None
+    client_text = " ".join(
+        [
+            result.error or "",
+            result.error_obj.message or "",
+            result.error_obj.details or "",
+            *result.error_obj.suggestions,
+        ]
+    )
+    assert raw_text not in client_text
+    assert "The details were logged on the server." in (result.error or "")
+    assert "The details were logged on the server." in result.error_obj.details
+
+
 def _orm_dataset(
     *,
     column_names: list[str] | None = None,
@@ -605,6 +621,7 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     assert result.error_obj is not None
     assert result.error_obj.error_type == "database_connection_error"
     assert result.error_obj.error_code == "DATABASE_CONNECTION_ERROR"
+    assert "10.0.0.1" in result.error_obj.details
     mock_db.db_engine_spec.extract_errors.assert_called_once()
 
 
@@ -641,6 +658,7 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
     assert result.error_obj is not None
     assert result.error_obj.error_type == "database_connection_error"
     assert result.error_obj.error_code == "DATABASE_CONNECTION_ERROR"
+    _assert_host_owned_failure(result, "10.0.0.1")
 
 
 @pytest.mark.parametrize(
@@ -1136,6 +1154,58 @@ def test_compile_chart_returns_structured_error_for_malformed_gantt_form_data(
     assert result.error_obj.error_type == "compile_error"
     assert "tooltip_columns must contain at most 50 entries" in (result.error or "")
     mock_cmd_cls.assert_not_called()
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+def test_compile_chart_query_error_is_redacted_for_guests(
+    mocker: MockerFixture, guest: bool
+) -> None:
+    """A failed compile query reports its text to signed-in users only."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    engine_text = 'relation "secret_schema.orders" does not exist'
+    context = Mock()
+    context.get_payload.return_value = {
+        "queries": [
+            {
+                "error": QueryObjectValidationMessage(
+                    QueryObjectValidationError(engine_text)
+                )
+            }
+        ]
+    }
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = BaseEngineSpec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+    mocker.patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
+    )
+
+    result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    client_text = " ".join(
+        [result.error or "", result.error_obj.message, result.error_obj.details]
+    )
+    if guest:
+        assert "secret_schema" not in client_text
+        assert str(GENERIC_ERROR_MESSAGE) in (result.error or "")
+    else:
+        assert engine_text in (result.error or "")
+        assert engine_text in result.error_obj.details
 
 
 @pytest.mark.parametrize(

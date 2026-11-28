@@ -25,6 +25,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -567,6 +568,66 @@ def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
 
     assert isinstance(preview, ChartError)
     assert preview.error_type == "NonNumericGaugeMetric"
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_late_plugin_preview_error_keeps_guidance_for_signed_in_user(
+    mock_build_query_context: MagicMock, mock_command: MagicMock, guest: bool
+) -> None:
+    """A plugin refusal found while building the spec keeps its text.
+
+    The spec builder re-resolves the plugin from the chart's own viz_type and
+    raises the plugin's message; the preview reports it like the direct path
+    does for a signed-in user, and gives an embedded guest the generic text.
+    """
+    from superset.mcp_service.chart.schemas import ChartError
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": 88}]}]
+    }
+    guidance = "Gauge metric 'saved_sla' must be numeric"
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "plugin_vega_lite_preview",
+            side_effect=[
+                None,
+                ChartError(error=guidance, error_type="NonNumericGaugeMetric"),
+            ],
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "fallback_vega_lite_preview",
+            return_value=None,
+        ),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        preview = VegaLitePreviewStrategy(
+            _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+        ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "VegaLiteGenerationError"
+    if guest:
+        assert guidance not in preview.error
+        assert str(GENERIC_ERROR_MESSAGE) in preview.error
+    else:
+        assert preview.error.startswith(
+            f"Failed to generate Vega-Lite preview: {guidance}"
+        )
 
 
 class TestPreviewXAxisInQueryContext:
@@ -2851,3 +2912,134 @@ def test_transient_url_preview_without_cached_state_is_rejected() -> None:
     ).generate()
     assert isinstance(result, ChartError)
     assert result.error_type == "UnsupportedFormat"
+
+
+async def _call_preview_raising(
+    exc: Exception, *, guest: bool = False
+) -> tuple[str, list[str]]:
+    """Call get_chart_preview with a preview generator that raises ``exc``.
+
+    Returns the response text and the ctx notifications the client received.
+    """
+    from contextlib import nullcontext
+
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+
+    get_chart_preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    mock_chart = MagicMock(
+        id=7,
+        slice_name="Broken Chart",
+        viz_type="bar",
+        datasource_id=3,
+        datasource_type="table",
+        params="{}",
+    )
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with (
+        patch.object(
+            get_chart_preview_module,
+            "find_chart_by_identifier",
+            return_value=mock_chart,
+        ),
+        patch.object(get_chart_preview_module.db, "session"),
+        patch.object(
+            get_chart_preview_module,
+            "validate_chart_dataset",
+            return_value=MagicMock(is_valid=True, warnings=[]),
+        ),
+        patch.object(
+            get_chart_preview_module.event_logger,
+            "log_context",
+            return_value=nullcontext(),
+        ),
+        patch.object(
+            get_chart_preview_module.PreviewFormatGenerator,
+            "generate",
+            side_effect=exc,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost",
+        ),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+        patch("superset.mcp_service.auth.get_user_from_request") as mock_user,
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+    ):
+        mock_user.return_value = MagicMock(id=1, username="admin")
+        async with Client(mcp, log_handler=log_handler) as client:
+            response = await client.call_tool(
+                "get_chart_preview",
+                {
+                    "request": GetChartPreviewRequest(
+                        identifier=7, format="ascii"
+                    ).model_dump()
+                },
+            )
+    return response.content[0].text, notifications
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("exc", "host_text"),
+    [
+        (
+            ValueError("password=hunter2 host=db.internal"),
+            "An unexpected error occurred",
+        ),
+        (
+            OperationalError(
+                "password=hunter2 host=db.internal", None, Exception("boom")
+            ),
+            "Database session error while generating chart preview",
+        ),
+    ],
+)
+async def test_chart_preview_failure_hides_exception_text(
+    exc: Exception, host_text: str
+) -> None:
+    """Non-Superset failures reach the client and ctx only as host messages."""
+    text, notifications = await _call_preview_raising(exc)
+
+    data = utils_json.loads(text)
+    assert data["error_type"] == "InternalError"
+    assert host_text in data["error"]
+    assert notifications
+    for client_text in [text, *notifications]:
+        assert "hunter2" not in client_text
+        assert "db.internal" not in client_text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+async def test_chart_preview_engine_error_is_redacted_for_guests(
+    guest: bool,
+) -> None:
+    """Engine error text reaches a signed-in user but never an embedded guest."""
+    from superset.commands.chart.exceptions import ChartDataQueryFailedError
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    engine_text = 'relation "secret_schema.orders" does not exist'
+    text, notifications = await _call_preview_raising(
+        ChartDataQueryFailedError(f"Error: {engine_text}"), guest=guest
+    )
+
+    data = utils_json.loads(text)
+    assert data["error_type"] == "InternalError"
+    assert notifications
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in data["error"]
+        for client_text in [text, *notifications]:
+            assert "secret_schema" not in client_text
+    else:
+        assert engine_text in data["error"]

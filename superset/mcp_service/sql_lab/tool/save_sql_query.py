@@ -36,6 +36,7 @@ from superset.mcp_service.sql_lab.schemas import (
     SaveSqlQueryRequest,
     SaveSqlQueryResponse,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -137,8 +138,10 @@ async def save_sql_query(
         from superset import db
 
         db.session.rollback()  # pylint: disable=consider-using-transaction
-        await ctx.error(
-            "Failed to save SQL query: error=%s, database_id=%s"
-            % (str(e), request.database_id)
+        await report_tool_error(
+            ctx,
+            "Failed to save SQL query",
+            e,
+            database_id=request.database_id,
         )
         raise

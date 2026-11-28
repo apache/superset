@@ -55,6 +55,7 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.governance_utils import (
     managed_dashboard_refusal,
 )
+from superset.mcp_service.utils.tool_errors import internal_error_response
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -1033,9 +1034,11 @@ def manage_native_filters(
             error=f"Invalid dashboard update: {exc.normalized_messages()}",
         )
     except DashboardNativeFiltersUpdateFailedError as exc:
-        return ManageNativeFiltersResponse(
+        return internal_error_response(
+            ManageNativeFiltersResponse,
+            "Failed to update native filters",
+            exc,
             dashboard_id=request.dashboard_id,
-            error=f"Failed to update native filters: {exc}",
         )
     except Exception as exc:
         logger.exception(

@@ -37,6 +37,7 @@ from superset.mcp_service.rls.schemas import (
     serialize_rls_filter_object,
     SORTABLE_RLS_COLUMNS,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,5 @@ async def list_rls_filters(
             )
 
     except Exception as e:
-        await ctx.error(
-            "RLS filter listing failed: error=%s, error_type=%s"
-            % (str(e), type(e).__name__)
-        )
+        await report_tool_error(ctx, "Failed to list RLS filters", e)
         raise

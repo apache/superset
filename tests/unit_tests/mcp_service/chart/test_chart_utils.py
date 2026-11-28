@@ -2424,6 +2424,25 @@ class TestValidateChartDataset:
         assert result.dataset_id == 42
         assert "deleted" in (result.error or "").lower()
 
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_database_error_hides_exception_text(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """A database failure returns a host message, not the driver text."""
+        from sqlalchemy.exc import OperationalError
+
+        mock_find.side_effect = OperationalError(
+            "password=hunter2 host=db.internal", None, Exception("boom")
+        )
+        result = validate_chart_dataset(42)
+        assert not result.is_valid
+        assert result.dataset_id == 42
+        assert "hunter2" not in (result.error or "")
+        assert "db.internal" not in (result.error or "")
+        assert "Error validating dataset (ID: 42)" in (result.error or "")
+        assert "A database error occurred" in (result.error or "")
+
     @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     def test_validate_chart_dataset_valid(

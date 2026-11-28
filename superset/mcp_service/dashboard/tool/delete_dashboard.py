@@ -42,6 +42,10 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.governance_utils import (
     managed_dashboard_refusal,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -269,15 +273,16 @@ async def delete_dashboard(
             )
         except (CommandException, SQLAlchemyError, ValueError) as ex:
             _rollback()
-            await ctx.error("Dashboard delete failed: %s: %s" % (type(ex).__name__, ex))
-            # Raw SQLAlchemy text can leak SQL or connection details; command
-            # and validation messages are user-facing by design.
-            if isinstance(ex, SQLAlchemyError):
-                client_error = "Dashboard delete failed due to a database error."
-            else:
-                client_error = f"Dashboard delete failed: {ex}"
-            return DeleteDashboardResponse(
+            await report_tool_error(
+                ctx,
+                "Dashboard delete failed",
+                ex,
+                dashboard_id=dashboard_id,
+            )
+            return internal_error_response(
+                DeleteDashboardResponse,
+                "Dashboard delete failed",
+                ex,
+                log=False,
                 success=False,
-                error=client_error,
-                error_type=type(ex).__name__,
             )

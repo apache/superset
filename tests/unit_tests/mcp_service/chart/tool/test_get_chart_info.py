@@ -869,3 +869,22 @@ async def test_validate_dataset_access_skips_perm_check_for_guest() -> None:
 
     assert outcome is None
     mock_validate.assert_not_called()
+
+
+def test_build_unsaved_chart_info_parse_error_hides_exception_text() -> None:
+    """A cached form_data parse failure returns a host message, not its text."""
+    with (
+        patch.object(
+            get_chart_info_module, "get_cached_form_data", return_value="{bad"
+        ),
+        patch(
+            "superset.utils.json.loads",
+            side_effect=ValueError("password=hunter2 host=db.internal"),
+        ),
+    ):
+        result = get_chart_info_module._build_unsaved_chart_info("cached-key")
+
+    assert result.error_type == "ParseError"
+    assert "hunter2" not in result.error
+    assert "db.internal" not in result.error
+    assert "Failed to parse cached form_data" in result.error

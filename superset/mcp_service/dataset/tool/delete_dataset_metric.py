@@ -35,6 +35,10 @@ from superset.mcp_service.dataset.tool.update_dataset_metric import (
     _metric_not_found_message,
     _serialize_metric,
 )
+from superset.mcp_service.utils.tool_errors import (
+    report_tool_error,
+    tool_error_message,
+)
 
 
 def _references_metric(value: Any, metric_name: str) -> bool:
@@ -242,13 +246,17 @@ async def delete_dataset_metric(
         await ctx.warning("Dataset metric validation failed: %s" % (messages,))
         return DeleteDatasetMetricResponse(error=str(messages))
     except DatasetUpdateFailedError as exc:
-        await ctx.error("Dataset metric delete failed: %s" % (str(exc),))
+        await report_tool_error(
+            ctx, "Dataset metric delete failed", exc, dataset_id=request.dataset_id
+        )
         return DeleteDatasetMetricResponse(
-            error=f"Failed to delete metric: {exc}",
+            error=tool_error_message("Failed to delete metric", exc)
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error deleting dataset metric: %s: %s"
-            % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error deleting dataset metric",
+            exc,
+            dataset_id=request.dataset_id,
         )
         raise

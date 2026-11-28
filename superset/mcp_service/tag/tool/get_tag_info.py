@@ -36,6 +36,10 @@ from superset.mcp_service.tag.schemas import (
     TagError,
     TagInfo,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -100,15 +104,14 @@ async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | Ta
         return result
 
     except Exception as e:
-        logger.exception(
-            "Tag information retrieval failed: identifier=%s", request.identifier
+        await report_tool_error(
+            ctx, "Failed to get tag info", e, identifier=request.identifier
         )
-        await ctx.error(
-            "Tag information retrieval failed: identifier=%s, error=%s, error_type=%s"
-            % (request.identifier, str(e), type(e).__name__)
-        )
-        return TagError(
-            error=f"Failed to get tag info: {str(e)}",
+        return internal_error_response(
+            TagError,
+            "Failed to get tag info",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

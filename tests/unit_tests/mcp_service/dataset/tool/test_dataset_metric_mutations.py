@@ -48,6 +48,7 @@ from superset.mcp_service.dataset.tool.delete_dataset_metric import (
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 TOOLS = ["create_dataset_metric", "delete_dataset_metric"]
 UUID = "a1b2c3d4-5678-90ab-cdef-1234567890ab"
@@ -115,6 +116,27 @@ async def call(tool: str, request: dict[str, Any]) -> dict[str, Any]:
     async with Client(mcp) as client:
         result = await client.call_tool(tool, {"request": request})
         return json.loads(result.content[0].text)
+
+
+LEAK_MARKER = "password=hunter2 host=db.internal"
+SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
+
+
+async def call_capturing_logs(
+    tool: str, request: dict[str, Any]
+) -> tuple[str, list[str]]:
+    """Call a tool and return its raw response text and the ctx notifications."""
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp, log_handler=log_handler) as client:
+        result = await client.call_tool(
+            tool, {"request": request}, raise_on_error=False
+        )
+    text = "".join(block.text for block in result.content if hasattr(block, "text"))
+    return text, notifications
 
 
 @pytest.mark.parametrize("field", ["metric_name", "expression"])
@@ -301,6 +323,55 @@ async def test_command_errors(
     assert result["metric"] is None
     assert message in result["error"]
     assert not result.get("affected_charts")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", TOOLS)
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+async def test_command_failure_text_for_principal(
+    tool: str, guest: bool, dataset: MagicMock, references: MagicMock
+) -> None:
+    """A failed command's message reaches a signed-in user; a guest gets the
+    generic text in both the response and the ctx notification."""
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch("superset.commands.dataset.update.UpdateDatasetCommand") as command,
+        patch(SANITIZATION_REQUIRED, return_value=guest),
+    ):
+        command.return_value.run.side_effect = DatasetUpdateFailedError(LEAK_MARKER)
+        text, notifications = await call_capturing_logs(tool, request_for(tool))
+    error = json.loads(text)["error"]
+    assert error.startswith("Failed to ")
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in error
+        assert LEAK_MARKER not in text
+        assert all(LEAK_MARKER not in notification for notification in notifications)
+        assert any(str(GENERIC_ERROR_MESSAGE) in n for n in notifications)
+    else:
+        assert LEAK_MARKER in error
+        assert any(LEAK_MARKER in notification for notification in notifications)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", TOOLS)
+async def test_unexpected_error_text_not_sent(
+    tool: str, dataset: MagicMock, references: MagicMock
+) -> None:
+    """A non-Superset exception's text stays in the server log.
+
+    The tool re-raises it for the server's error middleware, which owns the
+    response text; the tool's own notification must not carry it.
+    """
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch("superset.commands.dataset.update.UpdateDatasetCommand") as command,
+        patch(SANITIZATION_REQUIRED, return_value=False),
+    ):
+        command.return_value.run.side_effect = RuntimeError(LEAK_MARKER)
+        _, notifications = await call_capturing_logs(tool, request_for(tool))
+    assert notifications
+    assert all(LEAK_MARKER not in notification for notification in notifications)
+    assert any("details were logged on the server" in n for n in notifications)
 
 
 @pytest.mark.parametrize(

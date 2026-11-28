@@ -34,6 +34,11 @@ from superset.mcp_service.dataset.schemas import (
     UpdateDatasetRequest,
     UpdateDatasetResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    report_tool_error,
+    safe_error,
+    tool_error_message,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,14 +56,6 @@ def _rollback() -> None:
         db.session.rollback()  # pylint: disable=consider-using-transaction
     except SQLAlchemyError:
         logger.warning("Database rollback failed during update_dataset error handling")
-
-
-def _sync_error_message(ex: Exception) -> str:
-    # Raw SQLAlchemy text can leak SQL or connection details; Superset
-    # exception messages are user-facing by design.
-    if isinstance(ex, SQLAlchemyError):
-        return "a database error occurred"
-    return str(ex)
 
 
 @tool(
@@ -250,12 +247,17 @@ async def update_dataset(  # noqa: C901
                         "the dataset's SQL."
                     )
             except (SupersetException, SQLAlchemyError) as ex:
-                await ctx.warning(
-                    "Dataset column sync failed: %s: %s" % (type(ex).__name__, ex)
+                await report_tool_error(
+                    ctx,
+                    "Dataset column sync failed",
+                    ex,
+                    level="warning",
+                    dataset_id=dataset_id,
                 )
+                reason = safe_error(ex).message
                 warnings.append(
                     "The update was saved, but re-syncing columns failed "
-                    f"({_sync_error_message(ex)}). The column list may not "
+                    f"({reason}). The column list may not "
                     "match the dataset's SQL; retry with sync_columns=true."
                 )
 
@@ -280,12 +282,17 @@ async def update_dataset(  # noqa: C901
                 except (SupersetException, SQLAlchemyError) as ex:
                     # The earlier update and the column re-sync are already
                     # committed, so this is a partial success, not a failure.
-                    await ctx.warning(
-                        "Setting main_dttm_col failed: %s: %s" % (type(ex).__name__, ex)
+                    await report_tool_error(
+                        ctx,
+                        "Setting main_dttm_col failed",
+                        ex,
+                        level="warning",
+                        dataset_id=dataset_id,
                     )
+                    reason = safe_error(ex).message
                     warnings.append(
                         f"main_dttm_col was not changed to '{pending_dttm_col}' "
-                        f"({_sync_error_message(ex)}); the rest of the update "
+                        f"({reason}); the rest of the update "
                         "was saved."
                     )
         elif (
@@ -341,10 +348,17 @@ async def update_dataset(  # noqa: C901
         await ctx.warning("Dataset validation failed: %s" % (messages,))
         return UpdateDatasetResponse(error=str(messages))
     except DatasetUpdateFailedError as exc:
-        await ctx.error("Dataset update failed: %s" % (str(exc),))
-        return UpdateDatasetResponse(error=f"Failed to update dataset: {exc}")
+        await report_tool_error(
+            ctx, "Dataset update failed", exc, dataset_id=request.dataset_id
+        )
+        return UpdateDatasetResponse(
+            error=tool_error_message("Failed to update dataset", exc)
+        )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error updating dataset: %s: %s" % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error updating dataset",
+            exc,
+            dataset_id=request.dataset_id,
         )
         raise

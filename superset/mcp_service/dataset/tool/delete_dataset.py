@@ -37,6 +37,10 @@ from superset.mcp_service.dataset.schemas import (
     DeleteDatasetRequest,
     DeleteDatasetResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -212,15 +216,13 @@ async def delete_dataset(
             )
         except (CommandException, SQLAlchemyError, ValueError) as ex:
             _rollback()
-            await ctx.error("Dataset delete failed: %s: %s" % (type(ex).__name__, ex))
-            # Raw SQLAlchemy text can leak SQL or connection details; command
-            # and validation messages are user-facing by design.
-            if isinstance(ex, SQLAlchemyError):
-                client_error = "Dataset delete failed due to a database error."
-            else:
-                client_error = f"Dataset delete failed: {ex}"
-            return DeleteDatasetResponse(
+            await report_tool_error(
+                ctx, "Dataset delete failed", ex, dataset_id=dataset_id
+            )
+            return internal_error_response(
+                DeleteDatasetResponse,
+                "Dataset delete failed",
+                ex,
+                log=False,
                 success=False,
-                error=client_error,
-                error_type=type(ex).__name__,
             )

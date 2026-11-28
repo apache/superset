@@ -18,6 +18,7 @@
 """Unit tests for create_dataset MCP tool."""
 
 import importlib
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -383,7 +384,7 @@ class TestCreateDataset:
                 {
                     "request": {
                         "database_id": 1,
-                        "schema": "secret",
+                        "schema": "marker",
                         "table_name": "restricted_table",
                     }
                 },
@@ -398,12 +399,21 @@ class TestCreateDataset:
     async def test_create_dataset_unexpected_error(
         self, mock_command_class, mcp_server
     ) -> None:
-        """Unexpected exceptions are re-raised as ToolError (handled by middleware)."""
-        mock_command = MagicMock()
-        mock_command.run.side_effect = RuntimeError("DB connection lost")
-        mock_command_class.return_value = mock_command
+        """Unexpected exceptions are re-raised as ToolError (handled by middleware).
 
-        async with Client(mcp_server) as client:
+        The tool's own ctx notification carries a host-owned message, never
+        the exception text.
+        """
+        marker = "password=hunter2 host=db.internal"
+        mock_command = MagicMock()
+        mock_command.run.side_effect = RuntimeError(f"DB connection lost: {marker}")
+        mock_command_class.return_value = mock_command
+        notifications: list[str] = []
+
+        async def log_handler(message: Any) -> None:
+            notifications.append(str(message.data))
+
+        async with Client(mcp_server, log_handler=log_handler) as client:
             with pytest.raises(ToolError):
                 await client.call_tool(
                     "create_dataset",
@@ -415,6 +425,10 @@ class TestCreateDataset:
                         }
                     },
                 )
+
+        assert any("details were logged on the server" in n for n in notifications)
+        assert all(marker not in notification for notification in notifications)
+        assert all("RuntimeError" not in notification for notification in notifications)
 
     @pytest.mark.asyncio
     async def test_create_dataset_missing_required_fields(self, mcp_server) -> None:

@@ -25,6 +25,7 @@ from typing import Any, Awaitable, Callable, Sequence
 
 import mcp.types as mt
 from fastmcp.exceptions import (
+    FastMCPError,
     NotFoundError,
     ToolError,
     ValidationError as FastMCPValidationError,
@@ -54,6 +55,7 @@ from superset.exceptions import (
 from superset.extensions import event_logger, stats_logger_manager
 from superset.mcp_service.auth import (
     _get_app_context_manager,
+    _mcp_guest_var,
     _mcp_user_id_var,
     get_user_from_request,
     is_tool_visible_to_current_user,
@@ -84,6 +86,7 @@ from superset.mcp_service.utils.response_size_utils import (
     truncate_query_result,
     truncate_string_field_response,
 )
+from superset.mcp_service.utils.tool_errors import safe_error
 from superset.mcp_service.utils.validation import validation_message
 from superset.mcp_service.worker import (
     _worker_context,
@@ -141,8 +144,39 @@ _MINIMAL_IDENTITY_FIELDS = (
 
 def _sanitize_error_for_logging(error: Exception) -> str:
     """Sanitize error messages to prevent information disclosure in logs."""
-    error_str = str(error)
+    if (generic := _generic_error_text(error)) is not None:
+        return generic
+    return _redact_error_text(str(error))
 
+
+def _generic_error_text(error: Exception) -> str | None:
+    """Return the fixed message for error types whose text is never shown."""
+    if isinstance(error, (OperationalError, TimeoutError)):
+        return "Database operation failed"
+    if isinstance(error, PermissionError):
+        return "Access denied"
+    if isinstance(error, (ValidationError, FastMCPValidationError)):
+        return "Request validation failed"
+    return None
+
+
+def _client_error_text(error: Exception) -> str:
+    """Return the text of ``error`` that may be sent to the current principal.
+
+    Applies the classification the tools use (:func:`safe_error`): the message
+    Superset wrote for a signed-in user, a generic one for an embedded guest,
+    and a fixed one for any exception Superset did not write. The result is
+    still scrubbed for connection strings and tokens.
+    """
+    if (generic := _generic_error_text(error)) is not None:
+        return generic
+    return _redact_error_text(
+        safe_error(error, guest=_mcp_guest_var.get(False)).message
+    )
+
+
+def _redact_error_text(error_str: str) -> str:
+    """Redact secrets and internal locations from ``error_str``."""
     # SECURITY FIX: Limit error message length FIRST to prevent ReDoS attacks
     if len(error_str) > 500:
         error_str = error_str[:500] + "...[truncated]"
@@ -197,14 +231,6 @@ def _sanitize_error_for_logging(error: Exception) -> str:
 
     # IP addresses - already safe pattern, keep as-is
     error_str = re.sub(r"\b(\d+)\.\d+\.\d+\.\d+\b", r"\1.xxx.xxx.xxx", error_str)
-
-    # For certain error types, provide generic messages
-    if isinstance(error, (OperationalError, TimeoutError)):
-        return "Database operation failed"
-    elif isinstance(error, PermissionError):
-        return "Access denied"
-    elif isinstance(error, (ValidationError, FastMCPValidationError)):
-        return "Request validation failed"
 
     return error_str
 
@@ -982,6 +1008,7 @@ class LoggingMiddleware(Middleware):
             # never calls _setup_user_context()) doesn't inherit this call's
             # resolved user id.
             _mcp_user_id_var.set(None)
+            _mcp_guest_var.set(False)
             duration_ms = int((time.time() - start_time) * 1000)
             # The audit write needs a metadata connection. Tool workers can hold
             # every pooled connection while they wait on this loop, so the loop
@@ -1040,6 +1067,7 @@ class LoggingMiddleware(Middleware):
                 user_id = resolved_user_id
             # See the matching reset in on_call_tool.
             _mcp_user_id_var.set(None)
+            _mcp_guest_var.set(False)
             # See the matching audit write in on_call_tool.
             try:
                 await run_in_metadata_thread(
@@ -1095,6 +1123,22 @@ class LoggingMiddleware(Middleware):
             user_id,
             context.method,
         )
+
+
+def _compat_error_text(error: Exception) -> str:
+    """Return the client text for an exception that escaped the error handler.
+
+    A ``ToolError`` or another FastMCP error (such as the unknown-tool
+    ``NotFoundError``) is text a tool, FastMCP or
+    :class:`GlobalErrorHandlerMiddleware` already wrote, so it is only
+    scrubbed. FastMCP's own wrapper around a
+    tool failure carries that failure's text; the failure behind it is
+    classified instead. Any other exception goes through :func:`safe_error`.
+    """
+    error = _unwrap_fastmcp_wrapped_error(error)
+    if isinstance(error, (FastMCPError, NotFoundError)):
+        return _sanitize_error_for_logging(error)
+    return _client_error_text(error)
 
 
 class ToolResultCompatibilityMiddleware(Middleware):
@@ -1160,15 +1204,15 @@ class ToolResultCompatibilityMiddleware(Middleware):
             # bypasses GlobalErrorHandlerMiddleware could otherwise leak
             # raw internals (SQL fragments, connection strings, tokens) to
             # the caller; every other client-facing error path already
-            # runs through _sanitize_error_for_logging. That call (and
-            # str(e) inside it) can itself raise on a pathological
-            # __str__, so guard it and fall back to the exception class
+            # runs through _client_error_text. That call (and the
+            # classification inside it) can itself raise on a pathological
+            # exception, so guard it and fall back to the exception class
             # name, which never propagates.
             try:
                 sanitized_message = (
                     await validation_message(e, context)
                     if isinstance(e, (ValidationError, FastMCPValidationError))
-                    else _sanitize_error_for_logging(e)
+                    else _compat_error_text(e)
                 )
             except Exception:  # noqa: BLE001
                 sanitized_message = type(e).__name__
@@ -1460,7 +1504,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
             raise ToolError(
-                f"Service error in {tool_name}: {_sanitize_error_for_logging(error)}"
+                f"Service error in {tool_name}: {_client_error_text(error)}"
             ) from error
         elif isinstance(error, MCPPermissionDeniedError):
             # MCP RBAC permission denied. Rendered from the exception's own
@@ -1481,21 +1525,21 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"You don't have access to this resource."
             ) from error
         elif isinstance(error, ValueError):
-            # Value/parameter errors from tool code
+            # Value/parameter errors from tool code. Only a ValueError Superset
+            # raised about the caller's arguments keeps its text; any other
+            # (a driver, pandas, a library) can carry data.
             raise ToolError(
-                f"Invalid parameter in {tool_name}: "
-                f"{_sanitize_error_for_logging(error)}"
+                f"Invalid parameter in {tool_name}: {_client_error_text(error)}"
             ) from error
         elif isinstance(error, (ObjectNotFoundError, CommandInvalidError)):
             # Superset command: not found (404) or validation (422)
             raise ToolError(
-                f"Invalid request for {tool_name}: {_sanitize_error_for_logging(error)}"
+                f"Invalid request for {tool_name}: {_client_error_text(error)}"
             ) from error
         elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
             # Superset access denied — agent tried a tool it can't use
             raise ToolError(
-                f"Permission denied for {tool_name}: "
-                f"{_sanitize_error_for_logging(error)}"
+                f"Permission denied for {tool_name}: {_client_error_text(error)}"
             ) from error
         elif _is_datasource_error(error):
             # The query behind the tool failed. The caller must NOT be told to
@@ -1525,14 +1569,14 @@ class GlobalErrorHandlerMiddleware(Middleware):
             # classified by _is_user_error above for log level)
             msg = "Invalid request" if error.status < 500 else "Internal error"
             raise ToolError(
-                f"{msg} in {tool_name}: {_sanitize_error_for_logging(error)}"
+                f"{msg} in {tool_name}: {_client_error_text(error)}"
             ) from error
         elif isinstance(error, ConnectionError):
             # Network errors — transient, expected during pod restarts
             # (ConnectionRefusedError, ConnectionResetError, BrokenPipeError
             # are all subclasses of ConnectionError)
             raise ToolError(
-                f"Connection error in {tool_name}: {_sanitize_error_for_logging(error)}"
+                f"Connection error in {tool_name}: {_client_error_text(error)}"
             ) from error
         else:
             # Generic internal errors — truly unexpected. Reuse the per-call

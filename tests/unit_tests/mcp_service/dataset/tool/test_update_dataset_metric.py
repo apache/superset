@@ -33,6 +33,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import UpdateDatasetMetricRequest
 from superset.models.core import Database
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 
 def _wrapped(value: str) -> str:
@@ -697,13 +698,25 @@ async def test_update_dataset_metric_soft_deleted_twin(mcp_server: FastMCP) -> N
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_metric_update_failed(mcp_server: FastMCP) -> None:
-    """A persistence failure surfaces as a "Failed to update" error response."""
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+async def test_update_dataset_metric_update_failed(
+    mcp_server: FastMCP, guest: bool
+) -> None:
+    """A persistence failure surfaces as a "Failed to update" error response.
+
+    The command's message reaches a signed-in user; an embedded guest gets the
+    generic message in the response and the notification.
+    """
     from superset.commands.dataset.exceptions import DatasetUpdateFailedError
 
+    marker = "password=hunter2 host=db.internal"
     dataset = make_dataset()
     mock_command = MagicMock()
-    mock_command.run.side_effect = DatasetUpdateFailedError()
+    mock_command.run.side_effect = DatasetUpdateFailedError(marker)
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
 
     with (
         patch(
@@ -714,8 +727,12 @@ async def test_update_dataset_metric_update_failed(mcp_server: FastMCP) -> None:
             "superset.commands.dataset.update.UpdateDatasetCommand",
             return_value=mock_command,
         ),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
     ):
-        async with Client(mcp_server) as client:
+        async with Client(mcp_server, log_handler=log_handler) as client:
             result = await client.call_tool(
                 "update_dataset_metric",
                 {
@@ -729,4 +746,11 @@ async def test_update_dataset_metric_update_failed(mcp_server: FastMCP) -> None:
             data = json.loads(result.content[0].text)
 
     assert data["metric"] is None
-    assert "Failed to update" in data["error"]
+    assert notifications
+    if guest:
+        assert data["error"] == f"Failed to update metric: {GENERIC_ERROR_MESSAGE}"
+        assert marker not in result.content[0].text
+        assert all(marker not in notification for notification in notifications)
+    else:
+        assert data["error"] == f"Failed to update metric: {marker}"
+        assert any(marker in notification for notification in notifications)

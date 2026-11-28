@@ -32,6 +32,10 @@ from superset.mcp_service.task.schemas import (
     TaskError,
     TaskInfo,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,12 +101,14 @@ async def get_task_info(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Task retrieval failed: identifier=%s, error=%s, error_type=%s"
-            % (request.identifier, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx, "Failed to get task info", e, identifier=request.identifier
         )
-        return TaskError(
-            error=f"Failed to get task info: {str(e)}",
+        return internal_error_response(
+            TaskError,
+            "Failed to get task info",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

@@ -41,6 +41,10 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_chart_summary,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -408,9 +412,14 @@ async def duplicate_dashboard(
         )
     except DashboardCopyError as exc:
         _safe_rollback("dashboard duplication")
-        await ctx.error("Dashboard duplication failed: %s" % (str(exc),))
-        return DuplicateDashboardResponse(
-            error=f"Failed to duplicate dashboard: {exc}",
+        await report_tool_error(
+            ctx,
+            "Failed to duplicate dashboard",
+            exc,
+            dashboard_id=request.dashboard_id,
+        )
+        return internal_error_response(
+            DuplicateDashboardResponse, "Failed to duplicate dashboard", exc, log=False
         )
     except (ValueError, TypeError, KeyError) as exc:
         # Malformed stored metadata surfaces as a parse error from
@@ -420,10 +429,11 @@ async def duplicate_dashboard(
         # SQLAlchemyError, so ValueError/TypeError/KeyError escape unhandled.
         # Return a structured response instead of a hard tool failure.
         _safe_rollback("dashboard duplication")
-        await ctx.error(
-            "Dashboard duplication failed parsing source metadata for "
-            "dashboard_id=%s: %s: %s"
-            % (request.dashboard_id, type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Dashboard duplication failed parsing source metadata",
+            exc,
+            dashboard_id=request.dashboard_id,
         )
         return DuplicateDashboardResponse(
             error=(
@@ -433,8 +443,10 @@ async def duplicate_dashboard(
             ),
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error duplicating dashboard: %s: %s"
-            % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error duplicating dashboard",
+            exc,
+            dashboard_id=request.dashboard_id,
         )
         raise

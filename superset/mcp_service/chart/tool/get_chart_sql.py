@@ -59,6 +59,10 @@ from superset.mcp_service.chart.schemas import (
     GetChartSqlRequest,
     resolve_chart_datasource_name,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -268,10 +272,10 @@ def _sql_from_saved_query_context(
                         datasource_type,
                     )
             except (AttributeError, KeyError, TypeError) as ex:
-                return ChartError(
-                    error=(
-                        f"Invalid extra_form_data filter: {_safe_exception_message(ex)}"
-                    ),
+                return internal_error_response(
+                    ChartError,
+                    "Invalid extra_form_data filter",
+                    ex,
                     error_type="ValidationError",
                 )
 
@@ -378,8 +382,10 @@ def _sql_from_form_data(
             form_data, chart, extra_form_data=extra_form_data
         )
     except (AttributeError, KeyError, TypeError, MarshmallowValidationError) as ex:
-        return ChartError(
-            error=f"Invalid chart query data: {_safe_exception_message(ex)}",
+        return internal_error_response(
+            ChartError,
+            "Invalid chart query data",
+            ex,
             error_type="ValidationError",
         )
     set_query_context_form_data(
@@ -583,28 +589,23 @@ async def get_chart_sql(
     try:
         response = await _handle_chart_sql_request(request, ctx)
     except SQLAlchemyError as e:
-        await ctx.error(
-            "Chart SQL retrieval failed due to database session error: "
-            "identifier=%s, error_type=%s" % (request.identifier, type(e).__name__)
-        )
-        logger.exception("SQLAlchemy error in get_chart_sql: %s", e)
-        response = ChartError(
-            error="Chart SQL retrieval failed due to a database session error: "
-            f"{type(e).__name__}",
-            error_type="DatabaseError",
+        summary = "Chart SQL retrieval failed due to a database session error"
+        await report_tool_error(ctx, summary, e, identifier=request.identifier)
+        response = internal_error_response(
+            ChartError, summary, e, log=False, error_type="DatabaseError"
         )
     except SupersetException as e:
-        error_text = _safe_exception_message(e)
-        logger.error("Superset error in get_chart_sql: %s", error_text)
-        response = ChartError(
-            error=f"Superset error: {error_text}",
+        response = internal_error_response(
+            ChartError,
+            "Superset error",
+            e,
             error_type="SupersetError",
         )
     except (ValueError, TypeError) as e:
-        error_text = _safe_exception_message(e)
-        logger.error("Unexpected error in get_chart_sql: %s", error_text)
-        response = ChartError(
-            error=f"Failed to generate chart SQL: {error_text}",
+        response = internal_error_response(
+            ChartError,
+            "Failed to generate chart SQL",
+            e,
             error_type="QueryGenerationFailed",
         )
     return response_json_failure(response) or response
@@ -708,10 +709,18 @@ async def _sql_from_chart_form_data(
             )
         return _sql_from_form_data(form_data, chart, extra_form_data)
     except (SupersetException, CommandException, ValueError) as e:
-        error_text = _safe_exception_message(e)
-        await ctx.warning("Failed to build SQL from form_data: %s" % error_text)
-        return ChartError(
-            error="Failed to generate SQL for chart %s: %s" % (chart.id, error_text),
+        await report_tool_error(
+            ctx,
+            "Failed to build SQL from form_data",
+            e,
+            level="warning",
+            chart_id=chart.id,
+        )
+        return internal_error_response(
+            ChartError,
+            f"Failed to generate SQL for chart {chart.id}",
+            e,
+            log=False,
             error_type="QueryGenerationFailed",
         )
 
@@ -739,10 +748,10 @@ async def _handle_unsaved_chart_sql(
         try:
             form_data = utils_json.loads(cached_form_data)
         except (TypeError, ValueError) as e:
-            return ChartError(
-                error=(
-                    f"Failed to parse cached form_data: {_safe_exception_message(e)}"
-                ),
+            return internal_error_response(
+                ChartError,
+                "Failed to parse cached form_data",
+                e,
                 error_type="ParseError",
             )
         if not isinstance(form_data, dict):
@@ -763,9 +772,17 @@ async def _handle_unsaved_chart_sql(
                 form_data, chart=None, extra_form_data=extra_form_data
             )
         except (SupersetException, CommandException, ValueError) as e:
-            error_text = _safe_exception_message(e)
-            await ctx.warning("Failed to generate SQL from form_data: %s" % error_text)
-            return ChartError(
-                error="Failed to generate SQL from cached form_data: %s" % error_text,
+            await report_tool_error(
+                ctx,
+                "Failed to generate SQL from form_data",
+                e,
+                level="warning",
+                form_data_key=form_data_key,
+            )
+            return internal_error_response(
+                ChartError,
+                "Failed to generate SQL from cached form_data",
+                e,
+                log=False,
                 error_type="QueryGenerationFailed",
             )

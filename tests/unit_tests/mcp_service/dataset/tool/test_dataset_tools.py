@@ -19,6 +19,7 @@
 import importlib
 import logging
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import fastmcp
@@ -27,6 +28,7 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from jsonschema import validate
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import (
     CreateVirtualDatasetRequest,
@@ -38,6 +40,7 @@ from superset.mcp_service.privacy import (
     tool_requires_data_model_metadata_access,
 )
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -2149,64 +2152,105 @@ async def test_create_virtual_dataset_invalid_error(mcp_server: object) -> None:
     assert data["error"] is not None
 
 
-@pytest.mark.asyncio
-async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
-    """DatasetCreateFailedError is caught and returned as an error response."""
-    from superset.commands.dataset.exceptions import DatasetCreateFailedError
+_VIRTUAL_DATASET_MARKER = "password=hunter2 host=db.internal"
 
+
+async def _create_virtual_dataset_failing_with(
+    mcp_server: object, exception: Exception, guest: bool = False
+) -> tuple[str, list[str]]:
+    """Call create_virtual_dataset with CreateDatasetCommand raising
+    ``exception``; return the response text and the ctx notifications."""
     mock_command = MagicMock()
-    mock_command.run.side_effect = DatasetCreateFailedError()
+    mock_command.run.side_effect = exception
+    notifications: list[str] = []
 
-    with patch(
-        "superset.commands.dataset.create.CreateDatasetCommand",
-        return_value=mock_command,
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            return_value=mock_command,
+        ),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
     ):
-        async with Client(mcp_server) as client:
-            request = CreateVirtualDatasetRequest(
-                database_id=1, sql="SELECT 1", dataset_name="Test"
-            )
-            result = await client.call_tool(
-                "create_virtual_dataset", {"request": request.model_dump()}
-            )
-            data = json.loads(result.content[0].text)
-
-    assert data["id"] is None
-    assert data["columns"] == []
-    assert data["error"] is not None
-    assert "Failed to create dataset" in data["error"]
-
-
-@pytest.mark.asyncio
-async def test_create_virtual_dataset_sql_error_is_actionable(
-    mcp_server: object,
-) -> None:
-    """Warehouse SQL errors are recoverable tool results, not adapter crashes."""
-    from superset.exceptions import SupersetGenericDBErrorException
-
-    mock_command = MagicMock()
-    mock_command.run.side_effect = SupersetGenericDBErrorException(
-        "Invalid column name 'missing_value'"
-    )
-
-    with patch(
-        "superset.commands.dataset.create.CreateDatasetCommand",
-        return_value=mock_command,
-    ):
-        async with Client(mcp_server) as client:
+        async with Client(mcp_server, log_handler=log_handler) as client:
             request = CreateVirtualDatasetRequest(
                 database_id=1,
                 sql="SELECT missing_value FROM sample_events",
                 dataset_name="Test",
             )
             result = await client.call_tool(
-                "create_virtual_dataset", {"request": request.model_dump()}
+                "create_virtual_dataset",
+                {"request": request.model_dump()},
+                raise_on_error=False,
             )
-            data = json.loads(result.content[0].text)
+    return result.content[0].text, notifications
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
+    """DatasetCreateFailedError is caught and returned as an error response."""
+    from superset.commands.dataset.exceptions import DatasetCreateFailedError
+
+    text, _ = await _create_virtual_dataset_failing_with(
+        mcp_server, DatasetCreateFailedError()
+    )
+    data = json.loads(text)
 
     assert data["id"] is None
     assert data["columns"] == []
-    assert data["error"] is not None
-    assert "Invalid column name" in data["error"]
+    assert data["error"] == "Failed to create dataset: Dataset could not be created."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+async def test_create_virtual_dataset_sql_error_is_actionable(
+    mcp_server: object, guest: bool
+) -> None:
+    """Warehouse SQL errors are recoverable tool results, not adapter crashes.
+
+    A signed-in user gets the engine error text to fix the SQL; an embedded
+    guest gets the generic message in the response and the notification.
+    """
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    engine_error = f"Invalid column name 'missing_value' ({_VIRTUAL_DATASET_MARKER})"
+    text, notifications = await _create_virtual_dataset_failing_with(
+        mcp_server, SupersetGenericDBErrorException(engine_error), guest=guest
+    )
+    data = json.loads(text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"].startswith("Dataset SQL could not be executed: ")
+    assert notifications
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in data["error"]
+        assert "Invalid column name" not in text
+        assert _VIRTUAL_DATASET_MARKER not in text
+        assert all(_VIRTUAL_DATASET_MARKER not in n for n in notifications)
+    else:
+        assert engine_error in data["error"]
+        assert any(engine_error in n for n in notifications)
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_unexpected_error_text_not_sent(
+    mcp_server: object,
+) -> None:
+    """A non-Superset exception is re-raised for the error middleware; the
+    tool's own notification carries only the fixed message."""
+    _, notifications = await _create_virtual_dataset_failing_with(
+        mcp_server, RuntimeError(_VIRTUAL_DATASET_MARKER)
+    )
+
+    assert notifications
+    assert all(_VIRTUAL_DATASET_MARKER not in n for n in notifications)
+    assert any("details were logged on the server" in n for n in notifications)
 
 
 @pytest.mark.asyncio
@@ -2937,3 +2981,99 @@ def test_scope_filter_restricts_the_query_to_the_allowlist() -> None:
             1
         ]
         assert scope_filter.apply(query, frozenset()).count() == 0
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+_TOOL_ERROR_CASES = pytest.mark.parametrize(
+    ("dao_target", "tool_name", "arguments", "summary", "raises"),
+    [
+        (
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            "get_dataset_info",
+            {"request": {"identifier": 1}},
+            "Failed to get dataset info",
+            False,
+        ),
+        (
+            "superset.daos.dataset.DatasetDAO.list",
+            "list_datasets",
+            {},
+            "Failed to list datasets",
+            True,
+        ),
+    ],
+)
+
+
+@_TOOL_ERROR_CASES
+@pytest.mark.asyncio
+async def test_tool_errors_hide_exception_text(
+    mcp_server, dao_target, tool_name, arguments, summary, raises
+):
+    """Exception text goes to the server log, never to the client."""
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with patch(dao_target, side_effect=RuntimeError(_LEAK_MARKER)):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            if raises:
+                # The tool re-raises; rendering the raised error is the job
+                # of the error-handling middleware, not of the tool.
+                with pytest.raises(ToolError):
+                    await client.call_tool(tool_name, arguments)
+            else:
+                result = await client.call_tool(tool_name, arguments)
+                response = result.content[0].text
+                assert _LEAK_MARKER not in response
+                data = json.loads(response)
+                assert data["error_type"] == "InternalError"
+                assert data["error"].startswith(f"{summary}: ")
+                assert "logged on the server" in data["error"]
+
+    assert not any(_LEAK_MARKER in text for text in notifications)
+    assert any(
+        summary in text and "logged on the server" in text for text in notifications
+    )
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@_TOOL_ERROR_CASES
+@pytest.mark.asyncio
+async def test_tool_errors_report_superset_message_to_signed_in_users_only(
+    mcp_server, dao_target, tool_name, arguments, summary, raises, guest
+):
+    """A Superset exception's message reaches signed-in users, not guests."""
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch(dao_target, side_effect=CommandException(_LEAK_MARKER)),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            if raises:
+                with pytest.raises(ToolError):
+                    await client.call_tool(tool_name, arguments)
+                texts = list(notifications)
+            else:
+                result = await client.call_tool(tool_name, arguments)
+                data = json.loads(result.content[0].text)
+                assert data["error_type"] == "InternalError"
+                texts = [*notifications, data["error"]]
+
+    reported = [text for text in texts if summary in text]
+    assert reported
+    if guest:
+        assert not any(_LEAK_MARKER in text for text in texts)
+        assert all(str(GENERIC_ERROR_MESSAGE) in text for text in reported)
+    else:
+        assert all(f"{summary}: {_LEAK_MARKER}" in text for text in reported)

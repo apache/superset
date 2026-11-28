@@ -29,10 +29,12 @@ from pydantic import ValidationError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import UpdateDatasetRequest
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 _FIND = "superset.daos.dataset.DatasetDAO.find_by_id"
 _UPDATE = "superset.commands.dataset.update.UpdateDatasetCommand"
 _REFRESH = "superset.commands.dataset.refresh.RefreshDatasetCommand"
+_SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
 
 
 @pytest.fixture
@@ -107,6 +109,23 @@ async def call_update(mcp_server: FastMCP, **request: Any) -> dict[str, Any]:
     async with Client(mcp_server) as client:
         result = await client.call_tool("update_dataset", {"request": request})
     return json.loads(result.content[0].text)
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+async def call_update_capturing_logs(
+    mcp_server: FastMCP, **request: Any
+) -> tuple[str, list[str]]:
+    """Call update_dataset; return its raw response text and ctx notifications."""
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        result = await client.call_tool("update_dataset", {"request": request})
+    return result.content[0].text, notifications
 
 
 # ---------------------------------------------------------------------------
@@ -357,6 +376,101 @@ async def test_update_dataset_sync_db_error_does_not_leak(mcp_server: FastMCP) -
     assert "database error" in data["warnings"][0]
 
 
+def assert_failure_text_for_principal(
+    text: str, notifications: list[str], guest: bool
+) -> None:
+    """A Superset exception's message reaches a signed-in user; an embedded
+    guest gets the generic message in the response and the notification."""
+    assert notifications
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in text
+        assert _LEAK_MARKER not in text
+        assert all(_LEAK_MARKER not in notification for notification in notifications)
+    else:
+        assert _LEAK_MARKER in text
+        assert any(_LEAK_MARKER in notification for notification in notifications)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+async def test_update_dataset_sync_failure_text_for_principal(
+    mcp_server: FastMCP, guest: bool
+) -> None:
+    """A column sync failure is a warning carrying the Superset message."""
+    from superset.exceptions import SupersetException
+
+    dataset = make_dataset()
+    refresh = MagicMock()
+    refresh.run.side_effect = SupersetException(_LEAK_MARKER)
+    with (
+        patch(_FIND, return_value=dataset),
+        patch(_UPDATE, return_value=command_returning(dataset)),
+        patch(_REFRESH, return_value=refresh),
+        patch(_SANITIZATION_REQUIRED, return_value=guest),
+    ):
+        text, notifications = await call_update_capturing_logs(
+            mcp_server, dataset_id=1, sql="SELECT a FROM t"
+        )
+
+    data = json.loads(text)
+    assert data["error"] is None
+    assert data["warnings"][0].startswith(
+        "The update was saved, but re-syncing columns failed ("
+    )
+    assert_failure_text_for_principal(text, notifications, guest)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+async def test_update_dataset_update_failed_text_for_principal(
+    mcp_server: FastMCP, guest: bool
+) -> None:
+    """A failed update returns the command's message to a signed-in user."""
+    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+
+    failing = MagicMock()
+    failing.run.side_effect = DatasetUpdateFailedError(_LEAK_MARKER)
+    with (
+        patch(_FIND, return_value=make_dataset()),
+        patch(_UPDATE, return_value=failing),
+        patch(_SANITIZATION_REQUIRED, return_value=guest),
+    ):
+        text, notifications = await call_update_capturing_logs(
+            mcp_server, dataset_id=1, description="new"
+        )
+
+    data = json.loads(text)
+    assert data["error"].startswith("Failed to update dataset: ")
+    assert_failure_text_for_principal(text, notifications, guest)
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_unexpected_error_text_not_sent(
+    mcp_server: FastMCP,
+) -> None:
+    """An unexpected error is re-raised; the tool's notification omits its text."""
+    failing = MagicMock()
+    failing.run.side_effect = RuntimeError(_LEAK_MARKER)
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with (
+        patch(_FIND, return_value=make_dataset()),
+        patch(_UPDATE, return_value=failing),
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            await client.call_tool(
+                "update_dataset",
+                {"request": {"dataset_id": 1, "description": "new"}},
+                raise_on_error=False,
+            )
+
+    assert any("details were logged on the server" in n for n in notifications)
+    assert all(_LEAK_MARKER not in notification for notification in notifications)
+
+
 @pytest.mark.asyncio
 async def test_update_dataset_rejects_unknown_main_dttm_col(
     mcp_server: FastMCP,
@@ -545,6 +659,7 @@ async def test_update_dataset_main_dttm_col_update_failure_is_partial(
     assert len(data["warnings"]) == 1
     assert "main_dttm_col was not changed to 'ds'" in data["warnings"][0]
     assert "rest of the update was saved" in data["warnings"][0]
+    assert "(Dataset could not be updated.)" in data["warnings"][0]
 
 
 @pytest.mark.asyncio

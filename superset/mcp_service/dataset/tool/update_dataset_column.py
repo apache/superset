@@ -32,6 +32,10 @@ from superset.mcp_service.dataset.schemas import (
     UpdateDatasetColumnRequest,
     UpdateDatasetColumnResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    report_tool_error,
+    tool_error_message,
+)
 
 
 def _is_calculated(column: Any) -> bool:
@@ -284,13 +288,17 @@ async def update_dataset_column(  # noqa: C901
         await ctx.warning("Dataset column validation failed: %s" % (messages,))
         return UpdateDatasetColumnResponse(error=str(messages))
     except DatasetUpdateFailedError as exc:
-        await ctx.error("Dataset column update failed: %s" % (str(exc),))
+        await report_tool_error(
+            ctx, "Dataset column update failed", exc, dataset_id=request.dataset_id
+        )
         return UpdateDatasetColumnResponse(
-            error=f"Failed to update column: {exc}",
+            error=tool_error_message("Failed to update column", exc)
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error updating dataset column: %s: %s"
-            % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error updating dataset column",
+            exc,
+            dataset_id=request.dataset_id,
         )
         raise

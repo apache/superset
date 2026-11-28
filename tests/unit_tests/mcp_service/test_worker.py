@@ -628,6 +628,44 @@ async def test_worker_audit_identity_reaches_caller(app: Any) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [True, False])
+async def test_worker_guest_principal_reaches_caller(app: Any, guest: bool) -> None:
+    """The error middleware reads the principal after the worker's context is gone."""
+    from superset.mcp_service.auth import _mcp_guest_var
+    from superset.security.guest_token import GuestUser
+
+    user: Any = (
+        GuestUser(
+            token={
+                "user": {"username": "guest"},
+                "resources": [],
+                "rls_rules": [],
+                "iat": 1,
+                "exp": 9_999_999_999,
+            },
+            roles=[],
+        )
+        if guest
+        else Mock(id=7, username="worker-user", is_active=True)
+    )
+
+    async def identify() -> bool:
+        return True
+
+    _mcp_guest_var.set(not guest)
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch(
+            "superset.mcp_service.auth._tool_denied_for_principal", return_value=False
+        ),
+    ):
+        wrapped = mcp_auth_hook(identify)
+        assert await wrapped() is True
+    assert _mcp_guest_var.get() is guest
+
+
+@pytest.mark.asyncio
 async def test_request_worker_reloads_user_and_preserves_request_context(
     app: Any,
 ) -> None:

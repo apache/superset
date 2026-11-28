@@ -36,6 +36,10 @@ from superset.mcp_service.chart.schemas import (
     RestoreChartRequest,
     RestoreChartResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -210,15 +214,11 @@ async def restore_chart(
             return RestoreChartResponse(success=False, error=msg, error_type="NotFound")
         except (CommandException, SQLAlchemyError, ValueError) as ex:
             _rollback()
-            await ctx.error("Chart restore failed: %s: %s" % (type(ex).__name__, ex))
-            return RestoreChartResponse(
+            await report_tool_error(ctx, "Chart restore failed", ex, chart_id=chart_id)
+            return internal_error_response(
+                RestoreChartResponse,
+                "Chart restore failed",
+                ex,
+                log=False,
                 success=False,
-                # Raw SQLAlchemy text can leak SQL or connection details; command
-                # and validation messages are user-facing by design.
-                error=(
-                    "Chart restore failed due to a database error."
-                    if isinstance(ex, SQLAlchemyError)
-                    else f"Chart restore failed: {ex}"
-                ),
-                error_type=type(ex).__name__,
             )

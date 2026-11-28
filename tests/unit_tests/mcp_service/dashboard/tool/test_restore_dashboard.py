@@ -31,6 +31,7 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 _FIND = "superset.daos.dashboard.DashboardDAO.find_by_id_or_uuid"
 _COMMAND = "superset.commands.dashboard.restore.RestoreDashboardCommand"
@@ -193,7 +194,67 @@ async def test_restore_dashboard_restore_failed(
     content = result.structured_content
     assert content["success"] is False
     assert content["permission_denied"] is False
-    assert content["error_type"] == "DashboardRestoreFailedError"
+    assert content["error_type"] == "GENERIC_COMMAND_ERROR"
+    assert content["error"].startswith("Dashboard restore failed: boom")
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+@pytest.mark.parametrize(
+    ("raised", "guest", "expected", "error_type"),
+    [
+        ("command", False, _LEAK_MARKER, "GENERIC_COMMAND_ERROR"),
+        ("command", True, str(GENERIC_ERROR_MESSAGE), "GENERIC_BACKEND_ERROR"),
+        ("value", False, "An unexpected error occurred.", "GENERIC_BACKEND_ERROR"),
+    ],
+)
+@patch(_COMMAND)
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dashboard_failure_error_text(
+    mock_find: Mock,
+    mock_command: Mock,
+    raised: str,
+    guest: bool,
+    expected: str,
+    error_type: str,
+    mcp_server: object,
+) -> None:
+    """Superset's own failure message reaches a signed-in user; other exception
+    text, and any text for an embedded guest, stays out of the response and
+    the ctx notifications."""
+    from superset.commands.dashboard.exceptions import DashboardRestoreFailedError
+
+    mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_command.return_value.run.side_effect = (
+        DashboardRestoreFailedError(_LEAK_MARKER)
+        if raised == "command"
+        else ValueError(_LEAK_MARKER)
+    )
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                "restore_dashboard", {"request": {"identifier": 1}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error"].startswith("Dashboard restore failed: ")
+    assert expected in content["error"]
+    assert content["error_type"] == error_type
+    assert any("Dashboard restore failed" in note for note in notifications)
+    if expected != _LEAK_MARKER:
+        assert _LEAK_MARKER not in str(content)
+        assert all(_LEAK_MARKER not in note for note in notifications)
 
 
 @patch(_COMMAND)
@@ -217,7 +278,10 @@ async def test_restore_dashboard_sqlalchemy_error_is_generic(
 
     content = result.structured_content
     assert content["success"] is False
-    assert content["error"] == "Dashboard restore failed due to a database error."
+    assert content["error"].startswith(
+        "Dashboard restore failed: A database error occurred."
+    )
+    assert content["error_type"] == "GENERIC_DB_ENGINE_ERROR"
     assert "secret-host" not in (content["error"] or "")
 
 

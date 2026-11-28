@@ -31,6 +31,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from superset.commands.exceptions import CommandException
 from superset.daos.base import ColumnOperatorEnum
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -44,7 +45,9 @@ from superset.mcp_service.privacy import (
     request_uses_chart_data_model_filter,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import UNEXPECTED_ERROR_MESSAGE
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 list_charts_module = importlib.import_module(
     "superset.mcp_service.chart.tool.list_charts"
@@ -607,3 +610,375 @@ async def test_datasource_id_filter_preserves_metadata_privacy(mcp_server: Any) 
         == DATA_MODEL_METADATA_ERROR_TYPE
     )
     list_dao.assert_not_called()
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+_TOOL_ERROR_CASES = pytest.mark.parametrize(
+    ("dao_target", "tool_name", "arguments", "summary", "raises"),
+    [
+        (
+            "superset.daos.chart.ChartDAO.list",
+            "list_charts",
+            {},
+            "Failed to list charts",
+            True,
+        ),
+    ],
+)
+
+
+@_TOOL_ERROR_CASES
+@pytest.mark.asyncio
+async def test_tool_errors_hide_exception_text(
+    mcp_server, dao_target, tool_name, arguments, summary, raises
+):
+    """Exception text goes to the server log, never to the client."""
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with patch(dao_target, side_effect=RuntimeError(_LEAK_MARKER)):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            if raises:
+                # The tool re-raises; rendering the raised error is the job
+                # of the error-handling middleware, not of the tool.
+                with pytest.raises(ToolError):
+                    await client.call_tool(tool_name, arguments)
+            else:
+                result = await client.call_tool(tool_name, arguments)
+                response = result.content[0].text
+                assert _LEAK_MARKER not in response
+                data = json.loads(response)
+                assert data["error_type"] == "InternalError"
+                assert data["error"].startswith(f"{summary}: ")
+                assert "logged on the server" in data["error"]
+
+    assert not any(_LEAK_MARKER in text for text in notifications)
+    assert any(
+        summary in text and "logged on the server" in text for text in notifications
+    )
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@_TOOL_ERROR_CASES
+@pytest.mark.asyncio
+async def test_tool_errors_report_superset_message_to_signed_in_users_only(
+    mcp_server, dao_target, tool_name, arguments, summary, raises, guest
+):
+    """A Superset exception's message reaches signed-in users, not guests."""
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch(dao_target, side_effect=CommandException(_LEAK_MARKER)),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            if raises:
+                with pytest.raises(ToolError):
+                    await client.call_tool(tool_name, arguments)
+                texts = list(notifications)
+            else:
+                result = await client.call_tool(tool_name, arguments)
+                data = json.loads(result.content[0].text)
+                assert data["error_type"] == "InternalError"
+                texts = [*notifications, data["error"]]
+
+    reported = [text for text in texts if summary in text]
+    assert reported
+    if guest:
+        assert not any(_LEAK_MARKER in text for text in texts)
+        assert all(str(GENERIC_ERROR_MESSAGE) in text for text in reported)
+    else:
+        assert all(f"{summary}: {_LEAK_MARKER}" in text for text in reported)
+
+
+@pytest.fixture
+def production_middleware():
+    """Install the middleware stack the server runs, around the shared app."""
+    from superset.mcp_service.server import build_middleware_list
+
+    original_middleware = list(mcp.middleware)
+    for middleware in build_middleware_list():
+        mcp.add_middleware(middleware)
+    try:
+        yield
+    finally:
+        mcp.middleware[:] = original_middleware
+
+
+@pytest.mark.parametrize(
+    ("make_error", "guest", "keeps_text"),
+    [
+        pytest.param(
+            lambda: CommandException(_LEAK_MARKER), True, False, id="command-guest"
+        ),
+        pytest.param(
+            lambda: CommandException(_LEAK_MARKER),
+            False,
+            True,
+            id="command-signed-in",
+        ),
+        pytest.param(lambda: ValueError(_LEAK_MARKER), True, False, id="value-guest"),
+        pytest.param(
+            lambda: ValueError(_LEAK_MARKER), False, False, id="value-signed-in"
+        ),
+        pytest.param(
+            lambda: ConnectionError(_LEAK_MARKER), True, False, id="connection-guest"
+        ),
+        pytest.param(
+            lambda: ConnectionError(_LEAK_MARKER),
+            False,
+            False,
+            id="connection-signed-in",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_reraised_response_hides_exception_text(
+    production_middleware, make_error, guest, keeps_text
+):
+    """The response a re-raised exception produces follows the tool rule too.
+
+    The tool re-raises after reporting; the middleware renders the error the
+    client receives, so the response text is classified like the notification:
+    Superset's own message for a signed-in user, nothing but a fixed or generic
+    message for an embedded guest or for an exception Superset did not write.
+    """
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch("superset.daos.chart.ChartDAO.list", side_effect=make_error()),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp, log_handler=log_handler) as client:
+            result = await client.call_tool("list_charts", {}, raise_on_error=False)
+
+    assert result.is_error
+    response = result.content[0].text
+    assert "list_charts" in response
+    assert any(_LEAK_MARKER in text for text in notifications) is keeps_text
+    assert (_LEAK_MARKER in response) is keeps_text
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in response
+    elif not keeps_text:
+        assert UNEXPECTED_ERROR_MESSAGE in response
+
+
+@pytest.mark.parametrize(
+    "make_error",
+    [
+        pytest.param(lambda: CommandException(_LEAK_MARKER), id="command"),
+        pytest.param(lambda: ValueError(_LEAK_MARKER), id="value"),
+        pytest.param(lambda: ConnectionError(_LEAK_MARKER), id="connection"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_reraised_response_hides_text_from_a_resolved_guest(
+    production_middleware, mock_auth, make_error
+):
+    """The principal is the one the call resolved, not a mocked flag.
+
+    The tool runs under its own app context, so the response is rendered
+    outside the context that holds the resolved guest.
+    """
+    from superset.security.guest_token import GuestUser
+
+    mock_auth.return_value = GuestUser(
+        token={
+            "user": {"username": "guest"},
+            "resources": [],
+            "rls_rules": [],
+            "iat": 1,
+            "exp": 9_999_999_999,
+        },
+        roles=[],
+    )
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch("superset.daos.chart.ChartDAO.list", side_effect=make_error()),
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+        ),
+    ):
+        async with Client(mcp, log_handler=log_handler) as client:
+            result = await client.call_tool("list_charts", {}, raise_on_error=False)
+
+    assert result.is_error
+    assert not any(_LEAK_MARKER in text for text in notifications)
+    assert _LEAK_MARKER not in result.content[0].text
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "request_input", "guidance"),
+    [
+        pytest.param(
+            "list_charts",
+            {"order_column": "not_a_sort_column"},
+            "Invalid order_column 'not_a_sort_column'. Allowed columns: id, "
+            "slice_name, viz_type, description, changed_on, "
+            "changed_on_delta_humanized, created_on",
+            id="order-column",
+        ),
+        pytest.param(
+            "list_charts",
+            {"select_columns": ["not_a_column"]},
+            "select_columns contains no valid columns",
+            id="select-columns",
+        ),
+        pytest.param(
+            "get_schema",
+            {"model_type": "report"},
+            "The Alerts & Reports feature is disabled on this instance.",
+            id="reports-disabled",
+        ),
+        pytest.param(
+            "get_catalog",
+            {"asset_type": "dashboards", "cursor": "!"},
+            "Invalid cursor",
+            id="malformed-cursor",
+        ),
+        pytest.param(
+            "get_catalog",
+            {
+                "asset_type": "dashboards",
+                "cursor": "eyJ2IjoxLCJ0IjoiY2hhcnRzIiwicyI6IiIsImEiOjF9",
+            },
+            "Invalid cursor: it does not match this asset_type and search. "
+            "Restart without a cursor.",
+            id="cross-asset-cursor",
+        ),
+    ],
+)
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
+@pytest.mark.asyncio
+async def test_real_validation_guidance_survives(
+    production_middleware: None,
+    mock_auth: Mock,
+    tool_name: str,
+    request_input: dict[str, Any],
+    guidance: str,
+    guest: bool,
+) -> None:
+    """Real tool refusals retain guidance only for the resolved signed-in user."""
+    from superset.security.guest_token import GuestUser
+    from tests.unit_tests.mcp_service.conftest import regular_user
+
+    mock_auth.return_value = regular_user(id=1, username="admin")
+    importlib.import_module("superset.mcp_service.catalog.tool.get_catalog")
+    importlib.import_module("superset.mcp_service.system.tool.get_schema")
+    if guest:
+        mock_auth.return_value = GuestUser(
+            token={
+                "user": {"username": "guest"},
+                "resources": [],
+                "rls_rules": [],
+                "iat": 1,
+                "exp": 9_999_999_999,
+            },
+            roles=[],
+        )
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch(
+            "superset.is_feature_enabled",
+            side_effect=lambda flag: guest and flag == "EMBEDDED_SUPERSET",
+        ),
+        patch("superset.mcp_service.catalog.tool.get_catalog._check_class_permission"),
+        patch("superset.daos.chart.ChartDAO.list") as dao_list,
+    ):
+        async with Client(mcp, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                tool_name, {"request": request_input}, raise_on_error=False
+            )
+
+    dao_list.assert_not_called()
+    assert result.is_error
+    response = result.content[0].text
+    if guest:
+        assert guidance not in response
+        assert not any(guidance in text for text in notifications)
+        if tool_name == "list_charts":
+            assert str(GENERIC_ERROR_MESSAGE) in response
+        else:
+            assert "Permission denied" in response
+    else:
+        assert guidance in response
+        assert UNEXPECTED_ERROR_MESSAGE not in response
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "list_dashboards",
+        "list_databases",
+        "list_datasets",
+        "list_queries",
+        "list_reports",
+        "list_rls_filters",
+        "list_roles",
+        "list_saved_queries",
+        "list_tags",
+        "list_tasks",
+        "list_themes",
+        "list_users",
+        "list_annotation_layers",
+        "list_layer_annotations",
+    ],
+)
+@pytest.mark.asyncio
+async def test_list_siblings_preserve_sort_guidance(
+    production_middleware: None, mock_auth: Mock, tool_name: str
+) -> None:
+    """Each shared list entry point carries host validation through middleware."""
+    from tests.unit_tests.mcp_service.conftest import regular_user
+
+    mock_auth.return_value = regular_user(id=1, username="admin")
+    request_input: dict[str, Any] = {"order_column": "not_a_sort_column"}
+    if tool_name == "list_layer_annotations":
+        request_input["layer_id"] = 1
+    with (
+        patch("superset.is_feature_enabled", return_value=True),
+        patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id"),
+        patch(
+            "superset.mcp_service.database.tool.list_databases."
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.dataset.tool.list_datasets."
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                tool_name, {"request": request_input}, raise_on_error=False
+            )
+
+    response = result.content[0].text
+    assert "Invalid order_column 'not_a_sort_column'. Allowed columns:" in response
+    assert UNEXPECTED_ERROR_MESSAGE not in response

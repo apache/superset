@@ -47,6 +47,7 @@ from superset.mcp_service.privacy import (
     request_uses_chart_data_model_filter,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -347,5 +348,5 @@ async def list_charts(
                 mode="json", context={"select_columns": columns_to_filter}
             )
     except Exception as e:
-        await ctx.error("Failed to list charts: %s" % (str(e),))
+        await report_tool_error(ctx, "Failed to list charts", e)
         raise

@@ -437,8 +437,7 @@ def generate_dashboard(  # noqa: C901
                 # scans both the Postgres constraint name
                 # (``dashboards_slug_key``) and the SQLite phrasing
                 # (``UNIQUE constraint failed: dashboards.slug``).
-                err_text = str(db_err).lower()
-                if request.slug and "slug" in err_text:
+                if request.slug and "slug" in str(db_err).lower():
                     return GenerateDashboardResponse(
                         dashboard=None,
                         dashboard_url=None,

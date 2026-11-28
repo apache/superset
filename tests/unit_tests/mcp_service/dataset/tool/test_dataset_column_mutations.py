@@ -56,6 +56,7 @@ from superset.mcp_service.dataset.tool.delete_dataset_column import (
 )
 from superset.models.core import Database
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 CREATE, UPDATE, DELETE = (
     "create_dataset_column",
@@ -138,6 +139,27 @@ async def call(tool: str, request: dict[str, Any]) -> dict[str, Any]:
     async with Client(mcp) as client:
         result = await client.call_tool(tool, {"request": request})
         return json.loads(result.content[0].text)
+
+
+LEAK_MARKER = "password=hunter2 host=db.internal"
+SANITIZATION_REQUIRED = "superset.utils.error_sanitization.is_sanitization_required"
+
+
+async def call_capturing_logs(
+    tool: str, request: dict[str, Any]
+) -> tuple[str, list[str]]:
+    """Call a tool and return its raw response text and the ctx notifications."""
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp, log_handler=log_handler) as client:
+        result = await client.call_tool(
+            tool, {"request": request}, raise_on_error=False
+        )
+    text = "".join(block.text for block in result.content if hasattr(block, "text"))
+    return text, notifications
 
 
 @pytest.mark.parametrize("field", ["column_name", "expression"])
@@ -483,6 +505,81 @@ async def test_delete_command_errors(
     assert result["column"] is None
     assert message in result["error"]
     assert not result.get("affected_charts")
+
+
+def assert_failure_text_for_principal(
+    error: str, text: str, notifications: list[str], guest: bool
+) -> None:
+    """A command's message reaches a signed-in user; a guest gets generic text."""
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in error
+        assert LEAK_MARKER not in text
+        assert all(LEAK_MARKER not in notification for notification in notifications)
+        assert any(str(GENERIC_ERROR_MESSAGE) in n for n in notifications)
+    else:
+        assert LEAK_MARKER in error
+        assert any(LEAK_MARKER in notification for notification in notifications)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", [CREATE, UPDATE])
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+async def test_update_command_failure_text_for_principal(
+    tool: str, guest: bool, dataset: MagicMock
+) -> None:
+    """A failed update command's message is shown to a signed-in user only."""
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(UPDATE_COMMAND) as command,
+        patch(SANITIZATION_REQUIRED, return_value=guest),
+    ):
+        command.return_value.run.side_effect = DatasetUpdateFailedError(LEAK_MARKER)
+        text, notifications = await call_capturing_logs(tool, request_for(tool))
+    error = json.loads(text)["error"]
+    assert error.startswith("Failed to ")
+    assert_failure_text_for_principal(error, text, notifications, guest)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guest", [False, True], ids=["signed_in", "guest"])
+async def test_delete_command_failure_text_for_principal(
+    guest: bool, dataset: MagicMock, references: MagicMock
+) -> None:
+    """A failed delete command's message is shown to a signed-in user only."""
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(DELETE_COMMAND) as command,
+        patch(SANITIZATION_REQUIRED, return_value=guest),
+    ):
+        command.return_value.run.side_effect = DatasetColumnDeleteFailedError(
+            LEAK_MARKER
+        )
+        text, notifications = await call_capturing_logs(DELETE, request_for(DELETE))
+    error = json.loads(text)["error"]
+    assert error.startswith("Failed to delete column: ")
+    assert_failure_text_for_principal(error, text, notifications, guest)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", TOOLS)
+async def test_unexpected_error_text_not_sent(
+    tool: str, dataset: MagicMock, references: MagicMock
+) -> None:
+    """A non-Superset exception's text stays in the server log.
+
+    The tool re-raises it for the server's error middleware, which owns the
+    response text; the tool's own notification must not carry it.
+    """
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(DELETE_COMMAND if tool == DELETE else UPDATE_COMMAND) as command,
+        patch(SANITIZATION_REQUIRED, return_value=False),
+    ):
+        command.return_value.run.side_effect = RuntimeError(LEAK_MARKER)
+        _, notifications = await call_capturing_logs(tool, request_for(tool))
+    assert notifications
+    assert all(LEAK_MARKER not in notification for notification in notifications)
+    assert any("details were logged on the server" in n for n in notifications)
 
 
 @pytest.mark.parametrize(

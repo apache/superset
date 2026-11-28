@@ -31,6 +31,7 @@ from superset.mcp_service.user.schemas import (
     UserError,
     UserInfo,
 )
+from superset.mcp_service.utils.tool_errors import report_tool_error
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +121,7 @@ async def get_user_info(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "User information retrieval failed: identifier=%s, error=%s, error_type=%s"
-            % (request.identifier, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx, "Failed to get user info", e, identifier=request.identifier
         )
         raise

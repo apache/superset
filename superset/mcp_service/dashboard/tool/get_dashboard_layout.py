@@ -45,6 +45,10 @@ from superset.mcp_service.dashboard.schemas import (
     GetDashboardLayoutRequest,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -305,12 +309,14 @@ async def get_dashboard_layout(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Dashboard layout retrieval failed: identifier=%s, error=%s, "
-            "error_type=%s" % (request.identifier, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx, "Failed to get dashboard layout", e, identifier=request.identifier
         )
-        return DashboardError(
-            error=f"Failed to get dashboard layout: {str(e)}",
+        return internal_error_response(
+            DashboardError,
+            "Failed to get dashboard layout",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

@@ -70,6 +70,7 @@ from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_MESSAGE,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import MCPValidationError
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 from superset.utils.hashing import hash_from_str
@@ -215,9 +216,9 @@ def decode_cursor(cursor: str, asset_type: str, search: str | None) -> int:
         padded = cursor + "=" * (-len(cursor) % 4)
         payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
     except (binascii.Error, UnicodeError, ValueError, TypeError) as ex:
-        raise ValueError("Invalid cursor") from ex
+        raise MCPValidationError("Invalid cursor") from ex
     if not isinstance(payload, dict):
-        raise ValueError("Invalid cursor")
+        raise MCPValidationError("Invalid cursor")
     after_id = payload.get("a")
     if (
         payload.get("v") != _CURSOR_VERSION
@@ -227,7 +228,7 @@ def decode_cursor(cursor: str, asset_type: str, search: str | None) -> int:
         or isinstance(after_id, bool)
         or after_id < 0
     ):
-        raise ValueError(
+        raise MCPValidationError(
             "Invalid cursor: it does not match this asset_type and search. "
             "Restart without a cursor."
         )

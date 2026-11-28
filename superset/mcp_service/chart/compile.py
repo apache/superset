@@ -63,9 +63,17 @@ from superset.mcp_service.common.error_schemas import (
     DatasetContext,
 )
 from superset.mcp_service.constants import CONNECTION_ERROR_TYPES
+from superset.mcp_service.utils.tool_errors import (
+    log_tool_exception,
+    safe_error,
+    tool_error_message,
+)
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
+
+_COMPILE_FAILED_SUMMARY = "Chart compile check failed"
+_COMPILE_DATABASE_SUMMARY = "Database connection error"
 
 
 @dataclass
@@ -223,53 +231,55 @@ def _compile_chart(  # noqa: C901
             else None
         )
         if database_failure is not None:
-            logger.warning(
-                "Database connection error during chart compile check: %s: %s",
-                type(exc).__name__,
-                str(exc),
-            )
+            log_tool_exception(_COMPILE_DATABASE_SUMMARY, exc, dataset_id=dataset_id)
+            message = tool_error_message(_COMPILE_DATABASE_SUMMARY, exc, query=True)
             return CompileResult(
                 success=False,
-                error=f"Database connection error: {exc}",
+                error=message,
                 error_code="CHART_COMPILE_FAILED",
                 tier="compile",
                 error_obj=_build_database_error(
-                    str(exc), annotation=database_failure == "annotation"
+                    safe_error(exc, query=True).message,
+                    annotation=database_failure == "annotation",
                 ),
             )
-        return CompileResult(
-            success=False,
-            error=str(exc),
-            error_code="CHART_COMPILE_FAILED",
-            tier="compile",
-            error_obj=_build_compile_error(str(exc)),
-        )
+        return _compile_failure(exc, dataset_id, datasource_type)
     except (
         CommandException,
         QueryObjectValidationError,
         ValueError,
         KeyError,
     ) as exc:
-        return CompileResult(
-            success=False,
-            error=str(exc),
-            error_code="CHART_COMPILE_FAILED",
-            tier="compile",
-            error_obj=_build_compile_error(str(exc)),
-        )
+        return _compile_failure(exc, dataset_id, datasource_type)
     except SQLAlchemyError as exc:
-        logger.warning(
-            "Database connection error during chart compile check: %s: %s",
-            type(exc).__name__,
-            str(exc),
-        )
+        log_tool_exception(_COMPILE_DATABASE_SUMMARY, exc, dataset_id=dataset_id)
+        message = tool_error_message(_COMPILE_DATABASE_SUMMARY, exc)
         return CompileResult(
             success=False,
-            error=f"Database connection error: {exc}",
+            error=message,
             error_code="CHART_COMPILE_FAILED",
             tier="compile",
-            error_obj=_build_database_error(str(exc)),
+            error_obj=_build_database_error(safe_error(exc).message),
         )
+
+
+def _compile_failure(
+    exc: BaseException, dataset_id: int, datasource_type: str
+) -> CompileResult:
+    """Log a compile-check failure and return its client-safe message."""
+    log_tool_exception(_COMPILE_FAILED_SUMMARY, exc, dataset_id=dataset_id)
+    message = safe_error(
+        exc,
+        query=True,
+        semantic=datasource_type == DatasourceType.SEMANTIC_VIEW.value,
+    ).message
+    return CompileResult(
+        success=False,
+        error=message,
+        error_code="CHART_COMPILE_FAILED",
+        tier="compile",
+        error_obj=_build_compile_error(message),
+    )
 
 
 def _adhoc_filter_column_valid(
@@ -734,16 +744,24 @@ def _native_reference_error(  # noqa: C901
     from superset.mcp_service.chart.chart_helpers import (
         build_query_dicts_from_form_data,
     )
-    from superset.mcp_service.chart.response_preflight import (
-        bounded_exception_message,
-    )
 
     try:
         queries = build_query_dicts_from_form_data(
             deepcopy(form_data), dataset_id, "table"
         )
     except (KeyError, TypeError, ValueError) as ex:
-        return _native_validation_error("query contract", bounded_exception_message(ex))
+        summary = "Native chart query contract could not be built for the dataset"
+        log_tool_exception(summary, ex, dataset_id=dataset_id)
+        return ChartGenerationError(
+            error_type="invalid_native_chart_reference",
+            message="Native chart query contract is incompatible with the dataset",
+            details=tool_error_message(summary, ex),
+            suggestions=[
+                "Choose a target dataset with a compatible schema",
+                "Provide a complete typed chart config using target-dataset fields",
+            ],
+            error_code="CHART_VALIDATION_FAILED",
+        )
 
     saved_metrics = [item["name"] for item in dataset_context.available_metrics]
 

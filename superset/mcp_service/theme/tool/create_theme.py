@@ -39,6 +39,7 @@ from superset.commands.theme.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.mcp_service.theme.schemas import CreateThemeRequest, CreateThemeResponse
+from superset.mcp_service.utils.tool_errors import report_tool_error
 from superset.themes.schemas import _sanitize_and_validate_theme_config
 from superset.utils import json
 
@@ -155,6 +156,5 @@ async def create_theme(
             error_type="CreateFailedError",
         )
     except Exception as exc:
-        logger.exception("Unexpected error in create_theme")
-        await ctx.error("Unexpected error: %s" % (type(exc).__name__,))
+        await report_tool_error(ctx, "Unexpected error in create_theme", exc)
         raise

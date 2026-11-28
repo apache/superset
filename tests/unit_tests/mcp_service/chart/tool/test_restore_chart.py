@@ -168,26 +168,55 @@ async def test_restore_chart_permission_denied(
     assert "permission" in (content["error"] or "").lower()
 
 
+async def _call_restore_capturing_logs(
+    mcp_server: object, identifier: int
+) -> tuple[dict[str, Any], list[str]]:
+    """Call restore_chart and return its structured content and ctx notifications."""
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        result = await client.call_tool(
+            "restore_chart", {"request": {"identifier": identifier}}
+        )
+    return result.structured_content, notifications
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["signed-in", "guest"])
 @patch(_COMMAND)
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_chart_restore_failed(
-    mock_find: Mock, mock_command: Mock, mcp_server: object
+    mock_find: Mock, mock_command: Mock, mcp_server: object, guest: bool
 ) -> None:
+    """Command failure text reaches signed-in users; guests get a generic one."""
     from superset.commands.chart.exceptions import ChartRestoreFailedError
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
     mock_find.return_value = _mock_chart(chart_id=10, slice_name="Sales")
-    mock_command.return_value.run.side_effect = ChartRestoreFailedError("boom")
+    mock_command.return_value.run.side_effect = ChartRestoreFailedError(
+        "restore blocked marker-5c1e"
+    )
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "restore_chart", {"request": {"identifier": 10}}
-        )
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
+    ):
+        content, notifications = await _call_restore_capturing_logs(mcp_server, 10)
 
-    content = result.structured_content
     assert content["success"] is False
     assert content["permission_denied"] is False
-    assert content["error_type"] == "ChartRestoreFailedError"
+    assert "Chart restore failed" in (content["error"] or "")
+    assert any("Chart restore failed" in text for text in notifications)
+    if guest:
+        assert str(GENERIC_ERROR_MESSAGE) in (content["error"] or "")
+        for text in [str(content), *notifications]:
+            assert "marker-5c1e" not in text
+    else:
+        assert content["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert "marker-5c1e" in (content["error"] or "")
 
 
 @patch(_COMMAND)
@@ -204,15 +233,15 @@ async def test_restore_chart_sqlalchemy_error_is_generic(
         "UPDATE slices SET deleted_at = NULL", {}, Exception("secret-host refused")
     )
 
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "restore_chart", {"request": {"identifier": 10}}
-        )
+    content, notifications = await _call_restore_capturing_logs(mcp_server, 10)
 
-    content = result.structured_content
     assert content["success"] is False
-    assert content["error"] == "Chart restore failed due to a database error."
-    assert "secret-host" not in (content["error"] or "")
+    assert content["error_type"] == "GENERIC_DB_ENGINE_ERROR"
+    assert "Chart restore failed" in (content["error"] or "")
+    assert "A database error occurred" in (content["error"] or "")
+    for text in [str(content), *notifications]:
+        assert "secret-host" not in text
+        assert "UPDATE slices" not in text
 
 
 @patch(_FIND)

@@ -668,6 +668,8 @@ class TestGenerateDashboard:
             assert "my-slug" in err
             assert "already in use" in err
             assert "different slug" in err or "Choose a different" in err
+            assert "dashboards_slug_key" not in err
+            assert "DETAIL" not in err
             assert result.structured_content["dashboard"] is None
             assert mock_db_session.rollback.call_count >= 1
 
@@ -721,6 +723,8 @@ class TestGenerateDashboard:
             assert err is not None
             assert "constraint" in err
             assert "slug" not in err.lower()
+            assert "dashboard_slices_slice_id_fkey" not in err
+            assert "INSERT INTO" not in err
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")

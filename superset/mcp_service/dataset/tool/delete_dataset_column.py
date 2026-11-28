@@ -37,6 +37,10 @@ from superset.mcp_service.dataset.tool.update_dataset_column import (
     _is_calculated,
     _serialize_column,
 )
+from superset.mcp_service.utils.tool_errors import (
+    report_tool_error,
+    tool_error_message,
+)
 from superset.utils import json
 
 # Chart config keys whose value is a column name or a list of column names.
@@ -253,13 +257,17 @@ async def delete_dataset_column(  # noqa: C901
             "to delete its columns.",
         )
     except DatasetColumnDeleteFailedError as exc:
-        await ctx.error("Dataset column delete failed: %s" % (str(exc),))
+        await report_tool_error(
+            ctx, "Dataset column delete failed", exc, dataset_id=request.dataset_id
+        )
         return DeleteDatasetColumnResponse(
-            error=f"Failed to delete column: {exc}",
+            error=tool_error_message("Failed to delete column", exc)
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error deleting dataset column: %s: %s"
-            % (type(exc).__name__, str(exc))
+        await report_tool_error(
+            ctx,
+            "Unexpected error deleting dataset column",
+            exc,
+            dataset_id=request.dataset_id,
         )
         raise

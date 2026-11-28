@@ -51,6 +51,7 @@ from superset.mcp_service.app import mcp
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 
 def _wrapped(value: str) -> str:
@@ -932,3 +933,103 @@ def test_unreadable_stale_tile_copies_as_missing_chart(
         "height": 50,
         "code": MISSING_CHART_PLACEHOLDER,
     }
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+async def _duplicate_with_notifications(
+    mcp_server: object,
+) -> tuple[dict[str, Any], list[str]]:
+    """Call duplicate_dashboard, returning its content and ctx notifications."""
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with patch("superset.db.session"):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+            )
+    return result.structured_content, notifications
+
+
+@pytest.mark.parametrize(
+    ("raised", "guest", "expected"),
+    [
+        ("copy", False, f"Failed to duplicate dashboard: {_LEAK_MARKER}"),
+        ("copy", True, f"Failed to duplicate dashboard: {GENERIC_ERROR_MESSAGE}"),
+        ("value", False, "metadata is invalid"),
+    ],
+)
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_copy_failure_error_text(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_cmd_cls: Mock,
+    raised: str,
+    guest: bool,
+    expected: str,
+    mcp_server: object,
+) -> None:
+    """Superset's own copy failure message reaches a signed-in user; other
+    exception text, and any text for an embedded guest, stays out of the
+    response and the ctx notifications."""
+    from superset.commands.dashboard.exceptions import DashboardCopyError
+
+    mock_get_by_id_or_slug.return_value = _mock_dashboard(
+        id=1, slices=[_mock_chart(id=10)]
+    )
+    mock_copy_cmd_cls.return_value.run.side_effect = (
+        DashboardCopyError(_LEAK_MARKER)
+        if raised == "copy"
+        else ValueError(_LEAK_MARKER)
+    )
+
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
+    ):
+        content, notifications = await _duplicate_with_notifications(mcp_server)
+
+    assert content["dashboard"] is None
+    assert expected in (content["error"] or "")
+    assert notifications
+    if _LEAK_MARKER not in expected:
+        assert _LEAK_MARKER not in str(content)
+        assert all(_LEAK_MARKER not in note for note in notifications)
+
+
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_unexpected_copy_failure_text_is_not_notified(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_cmd_cls: Mock,
+    mcp_server: object,
+) -> None:
+    """An unexpected failure is re-raised without notifying its text."""
+    from fastmcp.exceptions import ToolError
+
+    mock_get_by_id_or_slug.return_value = _mock_dashboard(
+        id=1, slices=[_mock_chart(id=10)]
+    )
+    mock_copy_cmd_cls.return_value.run.side_effect = RuntimeError(_LEAK_MARKER)
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(message.data))
+
+    with patch("superset.db.session"):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "duplicate_dashboard",
+                    {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+                )
+
+    assert any("Unexpected error duplicating dashboard" in n for n in notifications)
+    assert all(_LEAK_MARKER not in note for note in notifications)

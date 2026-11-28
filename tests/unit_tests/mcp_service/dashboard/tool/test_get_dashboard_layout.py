@@ -1155,3 +1155,69 @@ async def test_layout_empty_tab(
     else:
         assert len(data["tabs"]) == 1
         assert data["tabs"][0]["chart_ids"] == []
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_failure_hides_exception_text(
+    mock_find: Mock, mcp_server: FastMCP
+) -> None:
+    """Exception text goes to the server log, not to the response or ctx."""
+    leak_marker = "password=hunter2 host=db.internal"
+    mock_find.side_effect = RuntimeError(leak_marker)
+    notifications: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout", {"request": {"identifier": 1}}
+        )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InternalError"
+    assert data["error"].startswith("Failed to get dashboard layout: ")
+    assert leak_marker not in result.content[0].text
+    assert not any(leak_marker in text for text in notifications)
+    assert any("Failed to get dashboard layout" in text for text in notifications)
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_superset_error_reaches_signed_in_users_only(
+    mock_find: Mock, mcp_server: FastMCP, guest: bool
+) -> None:
+    """A Superset exception's message reaches signed-in users, not guests."""
+    from superset.commands.exceptions import CommandException
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    leak_marker = "password=hunter2 host=db.internal"
+    mock_find.side_effect = CommandException(leak_marker)
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=guest,
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            result = await client.call_tool(
+                "get_dashboard_layout", {"request": {"identifier": 1}}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["error_type"] == "InternalError"
+    reported = [data["error"]] + [
+        text for text in notifications if "Failed to get dashboard layout" in text
+    ]
+    assert len(reported) > 1
+    if guest:
+        expected = f"Failed to get dashboard layout: {GENERIC_ERROR_MESSAGE}"
+        assert all(expected in text for text in reported)
+        assert leak_marker not in result.content[0].text
+        assert not any(leak_marker in text for text in notifications)
+    else:
+        expected = f"Failed to get dashboard layout: {leak_marker}"
+        assert all(expected in text for text in reported)

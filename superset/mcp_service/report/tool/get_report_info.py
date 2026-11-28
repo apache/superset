@@ -33,6 +33,10 @@ from superset.mcp_service.report.schemas import (
     ReportInfo,
     serialize_report_object,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -112,17 +116,14 @@ async def get_report_info(
         return result
 
     except Exception as exc:  # noqa: BLE001
-        await ctx.error(
-            "Report information retrieval failed: identifier=%s, error=%s, "
-            "error_type=%s"
-            % (
-                request.identifier,
-                str(exc),
-                type(exc).__name__,
-            )
+        await report_tool_error(
+            ctx, "Failed to get report info", exc, identifier=request.identifier
         )
-        return ReportError(
-            error=f"Failed to get report info: {str(exc)}",
+        return internal_error_response(
+            ReportError,
+            "Failed to get report info",
+            exc,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

@@ -65,6 +65,7 @@ from superset.mcp_service.privacy import (
     SELF_REFERENCING_FILTER_COLUMNS,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import MCPValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +262,7 @@ async def get_schema(
         from superset import is_feature_enabled
 
         if not is_feature_enabled("ALERT_REPORTS"):
-            raise ValueError(
+            raise MCPValidationError(
                 "The Alerts & Reports feature is disabled on this instance."
             )
 
@@ -280,7 +281,7 @@ async def get_schema(
     factory = _SCHEMA_CORE_FACTORIES.get(request.model_type)
     if factory is None:
         await ctx.warning(f"Unsupported model_type: {request.model_type}")
-        raise ValueError(
+        raise MCPValidationError(
             f"Unsupported model_type: {request.model_type}. "
             f"Valid types are: {', '.join(_SCHEMA_CORE_FACTORIES.keys())}"
         )

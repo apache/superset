@@ -639,7 +639,68 @@ class TestCompileChart:
         result = _compile_chart({"metrics": []}, dataset_id=1)
 
         assert result.success is False
-        assert "invalid metric" in (result.error or "")
+        assert "invalid metric" not in (result.error or "")
+        assert "An unexpected error occurred" in (result.error or "")
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_hides_semantic_provider_text(
+        self, mock_factory_cls, mock_cmd_cls
+    ):
+        """Text a semantic provider raised never reaches the compile result."""
+        from superset.exceptions import QueryObjectValidationError
+        from superset.semantic_layers.exceptions import _PROVIDER_FAULT
+
+        exc = QueryObjectValidationError("password=hunter2 host=db.internal")
+        setattr(exc, _PROVIDER_FAULT, True)
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.side_effect = exc
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "hunter2" not in (result.error or "")
+        assert "An error occurred while fetching the data." in (result.error or "")
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_chart_config_error_keeps_guidance(
+        self, mock_factory_cls, mock_cmd_cls
+    ):
+        """A ValueError the chart query builder raises about the config is kept."""
+        from superset.mcp_service.chart.chart_helpers import (
+            _required_deck_spatial_cols,
+        )
+
+        mock_factory_cls.return_value.create.side_effect = (
+            lambda *args, **kwargs: _required_deck_spatial_cols({})
+        )
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "Spatial configuration is required for this chart" in (
+            result.error or ""
+        )
+
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_time_range_error_keeps_guidance(
+        self, mock_factory_cls, mock_cmd_cls
+    ):
+        """A ValueError the date parser raises about the time range is kept."""
+        from superset.utils.date_parser import get_since_until
+
+        mock_factory_cls.return_value.create.side_effect = (
+            lambda *args, **kwargs: get_since_until(
+                time_range="2025-01-01 : 2024-01-01"
+            )
+        )
+
+        result = _compile_chart({"metrics": []}, dataset_id=1)
+
+        assert result.success is False
+        assert "From date cannot be larger than to date" in (result.error or "")
 
 
 def _make_mock_chart(chart_id: int = 42) -> Mock:
@@ -1252,3 +1313,103 @@ async def test_saved_pie_default_name_metric_before_dimension() -> None:
     assert create.call_args.args[0]["slice_name"] == "total_revenue by region"
     assert result.chart.slice_name == "total_revenue by region"
     assert result.accessibility.alt_text == "Chart showing total_revenue by region"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("exc", "host_text"),
+    [
+        (ValueError("password=hunter2 host=db.internal"), "unexpected error"),
+        (SQLAlchemyError("password=hunter2 host=db.internal"), "database error"),
+    ],
+)
+async def test_generate_chart_failure_hides_exception_text(
+    exc: Exception, host_text: str
+) -> None:
+    """Generation failures reach the client and ctx only as host messages."""
+    request = GenerateChartRequest(
+        dataset_id="1",
+        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
+        save_chart=True,
+        generate_preview=False,
+    )
+    ctx = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.debug = AsyncMock()
+    ctx.warning = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            side_effect=exc,
+        ),
+        patch("superset.db.session", MagicMock()),
+    ):
+        result = await generate_chart(request, ctx=ctx)
+
+    assert result.success is False
+    error = result.error
+    client_text = str(error.model_dump() if hasattr(error, "model_dump") else error)
+    assert host_text in client_text
+    assert "Chart generation failed" in client_text
+    notifications = [
+        str(call.args[0])
+        for method in (ctx.info, ctx.debug, ctx.warning, ctx.error)
+        for call in method.await_args_list
+    ]
+    assert any("Chart generation failed" in n for n in notifications)
+    for text in [client_text, *notifications]:
+        assert "hunter2" not in text
+        assert "db.internal" not in text
+
+
+def _reject_empty_table_config(*args: Any, **kwargs: Any) -> Any:
+    """Raise the chart mapper's own ValueError about the caller's config."""
+    from superset.mcp_service.chart.chart_utils import map_table_config
+
+    return map_table_config(
+        TableChartConfig.model_construct(chart_type="table", columns=[])
+    )
+
+
+@pytest.mark.asyncio
+async def test_generate_chart_failure_keeps_chart_config_guidance() -> None:
+    """A chart mapper's validation text about the caller's config is returned."""
+    request = GenerateChartRequest(
+        dataset_id="1",
+        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
+        save_chart=True,
+        generate_preview=False,
+    )
+    ctx = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.debug = AsyncMock()
+    ctx.warning = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            side_effect=_reject_empty_table_config,
+        ),
+        patch("superset.db.session", MagicMock()),
+    ):
+        result = await generate_chart(request, ctx=ctx)
+
+    assert result.success is False
+    error = result.error
+    client_text = str(error.model_dump() if hasattr(error, "model_dump") else error)
+    assert "Table chart must have at least one column" in client_text

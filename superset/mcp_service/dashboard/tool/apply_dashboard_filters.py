@@ -56,6 +56,10 @@ from superset.mcp_service.dashboard.tool.manage_native_filters import (
     _value_label,
     current_native_filter_config,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 from superset.utils import json
 from superset.utils.core import apply_max_row_limit
 from superset.utils.number_format import format_smart_number
@@ -980,6 +984,34 @@ def _build_data_mask(
     return data_mask, summaries
 
 
+_BASE_PERMALINK_REJECTED = (
+    "Failed to use the base permalink: it was not found, has expired, belongs "
+    "to a different dashboard, or holds invalid filter state. Omit "
+    "base_permalink_key to start over."
+)
+
+
+def _base_permalink_rejection(exc: ValueError, dashboard_id: int) -> str:
+    """Return the client-facing reason a base permalink was rejected.
+
+    ``get_dashboard_permalink_data_mask`` raises a plain ``ValueError`` with one
+    of the reasons below, all written by Superset. Decoding stored state can
+    raise other ``ValueError`` types (such as ``JSONDecodeError``) whose text is
+    not Superset's, so anything else gets a fixed message.
+    """
+    reasons = (
+        "Base permalink was not found or has expired.",
+        f"Base permalink does not belong to dashboard {dashboard_id}.",
+        "Base permalink contains invalid dashboard state.",
+        "Base permalink contains an invalid dataMask.",
+    )
+    if type(exc) is ValueError:
+        for reason in reasons:
+            if str(exc) == reason:
+                return reason
+    return _BASE_PERMALINK_REJECTED
+
+
 @tool(
     tags=["core"],
     class_permission_name="Dashboard",
@@ -1119,8 +1151,14 @@ async def apply_dashboard_filters(
                     ),
                 )
             except ValueError as exc:
+                logger.warning(
+                    "Base permalink rejected for dashboard %s: %s",
+                    request.dashboard_id,
+                    exc,
+                )
                 return ApplyDashboardFiltersResponse(
-                    dashboard_id=request.dashboard_id, error=str(exc)
+                    dashboard_id=request.dashboard_id,
+                    error=_base_permalink_rejection(exc, dashboard.id),
                 )
             # An entry for a filter the dashboard no longer defines is stale:
             # opening the permalink drops it during hydration, but a live
@@ -1176,19 +1214,24 @@ async def apply_dashboard_filters(
             ),
         )
     except DashboardPermalinkCreateFailedError as exc:
-        await ctx.error("Failed to create dashboard permalink: %s" % (exc,))
-        return ApplyDashboardFiltersResponse(
+        await report_tool_error(
+            ctx,
+            "Failed to store the filtered dashboard state",
+            exc,
             dashboard_id=request.dashboard_id,
-            error=f"Failed to store the filtered dashboard state: {exc}",
+        )
+        return internal_error_response(
+            ApplyDashboardFiltersResponse,
+            "Failed to store the filtered dashboard state",
+            exc,
+            log=False,
+            dashboard_id=request.dashboard_id,
         )
     except Exception as exc:
-        await ctx.error(
-            "Unexpected error applying dashboard filters: %s: %s"
-            % (type(exc).__name__, exc)
-        )
-        logger.exception(
-            "Unexpected error applying filters to dashboard %s: %s",
-            request.dashboard_id,
+        await report_tool_error(
+            ctx,
+            "Unexpected error applying dashboard filters",
             exc,
+            dashboard_id=request.dashboard_id,
         )
         raise

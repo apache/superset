@@ -44,6 +44,10 @@ from superset.mcp_service.privacy import (
     requires_data_model_metadata_access,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -166,12 +170,14 @@ async def get_dashboard_datasets(
         return result
 
     except Exception as e:
-        await ctx.error(
-            "Dashboard datasets retrieval failed: identifier=%s, error=%s, "
-            "error_type=%s" % (request.identifier, str(e), type(e).__name__)
+        await report_tool_error(
+            ctx, "Failed to get dashboard datasets", e, identifier=request.identifier
         )
-        return DashboardError(
-            error=f"Failed to get dashboard datasets: {str(e)}",
+        return internal_error_response(
+            DashboardError,
+            "Failed to get dashboard datasets",
+            e,
+            log=False,
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )

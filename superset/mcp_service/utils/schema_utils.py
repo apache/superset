@@ -150,14 +150,16 @@ def parse_json_or_passthrough(
         logger.debug("Successfully parsed %s from JSON string", param_name)
         return parsed
     except (ValueError, TypeError) as e:
-        error_msg = (
-            f"Failed to parse {param_name} from JSON string: {e}. Received: {value!r}"
-        )
-
         if strict:
             raise JSONParseError(value, e, param_name) from None
 
-        logger.warning("%s. Returning original value.", error_msg)
+        logger.warning(
+            "Failed to parse %s from JSON string: %s. Received: %r. "
+            "Returning original value.",
+            param_name,
+            e,
+            value,
+        )
         return value
 
 

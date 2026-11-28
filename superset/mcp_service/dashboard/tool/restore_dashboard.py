@@ -29,6 +29,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
+    DashboardSlugConflictError,
 )
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -38,6 +39,11 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.dashboard.tool.governance_utils import (
     managed_dashboard_refusal,
+)
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+    safe_error,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,6 +103,17 @@ def _pre_restore_refusal(dashboard: "Dashboard") -> RestoreDashboardResponse | N
             error_type="NotDeleted",
         )
     return None
+
+
+def _restore_error_type(ex: Exception) -> str:
+    """Return the response ``error_type`` for a failed restore.
+
+    The caller can resolve a slug conflict by renaming a dashboard, so it keeps
+    a distinct error type; other failures use their ``SupersetErrorType``.
+    """
+    if isinstance(ex, DashboardSlugConflictError):
+        return "DashboardSlugConflictError"
+    return safe_error(ex).code
 
 
 @tool(
@@ -255,17 +272,17 @@ async def restore_dashboard(
             )
         except (CommandException, SQLAlchemyError, ValueError) as ex:
             _rollback()
-            await ctx.error(
-                "Dashboard restore failed: %s: %s" % (type(ex).__name__, ex)
+            await report_tool_error(
+                ctx,
+                "Dashboard restore failed",
+                ex,
+                dashboard_id=dashboard_id,
             )
-            return RestoreDashboardResponse(
+            return internal_error_response(
+                RestoreDashboardResponse,
+                "Dashboard restore failed",
+                ex,
+                log=False,
                 success=False,
-                # Raw SQLAlchemy text can leak SQL or connection details; command
-                # and validation messages are user-facing by design.
-                error=(
-                    "Dashboard restore failed due to a database error."
-                    if isinstance(ex, SQLAlchemyError)
-                    else f"Dashboard restore failed: {ex}"
-                ),
-                error_type=type(ex).__name__,
+                error_type=_restore_error_type(ex),
             )

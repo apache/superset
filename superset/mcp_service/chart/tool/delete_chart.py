@@ -38,6 +38,10 @@ from superset.mcp_service.chart.schemas import (
     DeleteChartRequest,
     DeleteChartResponse,
 )
+from superset.mcp_service.utils.tool_errors import (
+    internal_error_response,
+    report_tool_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -170,15 +174,7 @@ async def delete_chart(
             return DeleteChartResponse(success=False, error=msg, error_type="NotFound")
         except (CommandException, SQLAlchemyError, ValueError) as ex:
             _rollback()
-            await ctx.error("Chart delete failed: %s: %s" % (type(ex).__name__, ex))
-            # Raw SQLAlchemy text can leak SQL or connection details; command
-            # and validation messages are user-facing by design.
-            if isinstance(ex, SQLAlchemyError):
-                client_error = "Chart delete failed due to a database error."
-            else:
-                client_error = f"Chart delete failed: {ex}"
-            return DeleteChartResponse(
-                success=False,
-                error=client_error,
-                error_type=type(ex).__name__,
+            await report_tool_error(ctx, "Chart delete failed", ex, chart_id=chart_id)
+            return internal_error_response(
+                DeleteChartResponse, "Chart delete failed", ex, log=False, success=False
             )

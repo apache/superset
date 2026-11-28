@@ -21,11 +21,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.report.schemas import ListReportsRequest, ReportFilter
 from superset.utils import json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -256,7 +259,8 @@ async def test_list_reports_api_error(mock_list, mcp_server):
         )
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "InternalError"
-        assert "Report DAO error" in data["error"]
+        assert "Report DAO error" not in data["error"]
+        assert data["error"].startswith("Failed to list reports: ")
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
@@ -490,7 +494,8 @@ async def test_get_report_info_exception_returns_internal_error(mock_find, mcp_s
         )
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "InternalError"
-        assert "DB connection lost" in data["error"]
+        assert "DB connection lost" not in data["error"]
+        assert data["error"].startswith("Failed to get report info: ")
 
 
 def test_report_error_create_classmethod():
@@ -714,3 +719,99 @@ def test_report_filter_columns_match_schema_discovery_frozenset():
         f"REPORT_FILTER_COLUMNS {REPORT_FILTER_COLUMNS}. "
         "Update both together to stay in sync."
     )
+
+
+_LEAK_MARKER = "password=hunter2 host=db.internal"
+
+
+_TOOL_ERROR_CASES = pytest.mark.parametrize(
+    ("dao_target", "tool_name", "arguments", "summary", "raises"),
+    [
+        (
+            "superset.daos.report.ReportScheduleDAO.find_by_id",
+            "get_report_info",
+            {"request": {"identifier": 1}},
+            "Failed to get report info",
+            False,
+        ),
+        (
+            "superset.daos.report.ReportScheduleDAO.list",
+            "list_reports",
+            {},
+            "Failed to list reports",
+            False,
+        ),
+    ],
+)
+
+
+@_TOOL_ERROR_CASES
+@pytest.mark.asyncio
+async def test_tool_errors_hide_exception_text(
+    mcp_server, dao_target, tool_name, arguments, summary, raises
+):
+    """Exception text goes to the server log, never to the client."""
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with patch(dao_target, side_effect=RuntimeError(_LEAK_MARKER)):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            if raises:
+                # The tool re-raises; rendering the raised error is the job
+                # of the error-handling middleware, not of the tool.
+                with pytest.raises(ToolError):
+                    await client.call_tool(tool_name, arguments)
+            else:
+                result = await client.call_tool(tool_name, arguments)
+                response = result.content[0].text
+                assert _LEAK_MARKER not in response
+                data = json.loads(response)
+                assert data["error_type"] == "InternalError"
+                assert data["error"].startswith(f"{summary}: ")
+                assert "logged on the server" in data["error"]
+
+    assert not any(_LEAK_MARKER in text for text in notifications)
+    assert any(
+        summary in text and "logged on the server" in text for text in notifications
+    )
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@_TOOL_ERROR_CASES
+@pytest.mark.asyncio
+async def test_tool_errors_report_superset_message_to_signed_in_users_only(
+    mcp_server, dao_target, tool_name, arguments, summary, raises, guest
+):
+    """A Superset exception's message reaches signed-in users, not guests."""
+    notifications: list[str] = []
+
+    async def log_handler(message: object) -> None:
+        notifications.append(str(getattr(message, "data", message)))
+
+    with (
+        patch(dao_target, side_effect=CommandException(_LEAK_MARKER)),
+        patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ),
+    ):
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            if raises:
+                with pytest.raises(ToolError):
+                    await client.call_tool(tool_name, arguments)
+                texts = list(notifications)
+            else:
+                result = await client.call_tool(tool_name, arguments)
+                data = json.loads(result.content[0].text)
+                assert data["error_type"] == "InternalError"
+                texts = [*notifications, data["error"]]
+
+    reported = [text for text in texts if summary in text]
+    assert reported
+    if guest:
+        assert not any(_LEAK_MARKER in text for text in texts)
+        assert all(str(GENERIC_ERROR_MESSAGE) in text for text in reported)
+    else:
+        assert all(f"{summary}: {_LEAK_MARKER}" in text for text in reported)

@@ -1646,3 +1646,95 @@ class TestDestructiveDDLBlocking:
             assert data["success"] is False
             assert "Destructive DDL" in data["error"]
             ddl_mocks.execute.assert_not_called()
+
+    @staticmethod
+    def _notification_collector() -> tuple[list[str], Any]:
+        notifications: list[str] = []
+
+        async def log_handler(message: object) -> None:
+            notifications.append(str(getattr(message, "data", message)))
+
+        return notifications, log_handler
+
+    @pytest.mark.asyncio
+    async def test_parse_failure_hides_exception_text(self, ddl_mocks, mcp_server):
+        """The DDL pre-check never sends the parser's exception text to ctx."""
+        import sys
+
+        leak_marker = "password=hunter2 host=db.internal"
+        execute_sql_mod = sys.modules["superset.mcp_service.sql_lab.tool.execute_sql"]
+        notifications, log_handler = self._notification_collector()
+        with patch.object(
+            execute_sql_mod,
+            "SQLScript",
+            side_effect=Exception(f"parse error {leak_marker}"),
+        ):
+            async with Client(mcp_server, log_handler=log_handler) as client:
+                result = await client.call_tool(
+                    "execute_sql",
+                    {"request": {"database_id": 1, "sql": "SELECT 1"}},
+                )
+        data = result.structured_content
+        assert data["success"] is False
+        assert "could not be parsed" in data["error"]
+        assert leak_marker not in str(data)
+        assert not any(leak_marker in text for text in notifications)
+        assert any(
+            "DDL pre-check failed to parse SQL, blocking query" in text
+            for text in notifications
+        )
+        ddl_mocks.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_execution_failure_hides_exception_text(self, ddl_mocks, mcp_server):
+        """An unexpected execution failure is re-raised without ctx leaking it."""
+        leak_marker = "password=hunter2 host=db.internal"
+        ddl_mocks.execute.side_effect = RuntimeError(f"driver failure {leak_marker}")
+        notifications, log_handler = self._notification_collector()
+        async with Client(mcp_server, log_handler=log_handler) as client:
+            # The raised error is rendered by the error-handling middleware.
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "execute_sql",
+                    {"request": {"database_id": 1, "sql": "SELECT 1"}},
+                )
+        assert not any(leak_marker in text for text in notifications)
+        assert any(
+            "SQL execution failed" in text and "database_id=1" in text
+            for text in notifications
+        )
+
+    @pytest.mark.parametrize("guest", [False, True])
+    @pytest.mark.asyncio
+    async def test_engine_error_reaches_signed_in_users_only(
+        self, ddl_mocks, mcp_server, guest
+    ):
+        """The engine error of a failed query reaches signed-in users only.
+
+        Embedded guests get the generic message, as from the HTTP API.
+        """
+        from superset.exceptions import SupersetGenericDBErrorException
+        from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+        engine_error = "relation does not exist password=hunter2 host=db.internal"
+        ddl_mocks.execute.side_effect = SupersetGenericDBErrorException(engine_error)
+        notifications, log_handler = self._notification_collector()
+        with patch(
+            "superset.utils.error_sanitization.is_sanitization_required",
+            return_value=guest,
+        ):
+            async with Client(mcp_server, log_handler=log_handler) as client:
+                with pytest.raises(ToolError):
+                    await client.call_tool(
+                        "execute_sql",
+                        {"request": {"database_id": 1, "sql": "SELECT 1"}},
+                    )
+        reported = [text for text in notifications if "SQL execution failed" in text]
+        assert reported
+        if guest:
+            assert not any(engine_error in text for text in notifications)
+            assert all(str(GENERIC_ERROR_MESSAGE) in text for text in reported)
+        else:
+            assert all(
+                f"SQL execution failed: {engine_error}" in text for text in reported
+            )

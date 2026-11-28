@@ -61,6 +61,7 @@ from superset.mcp_service.privacy import (
     redact_chart_data_model_fields,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.utils.tool_errors import internal_error_response
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
@@ -80,8 +81,10 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
     try:
         form_data = utils_json.loads(cached_form_data)
     except (TypeError, ValueError) as e:
-        return ChartError(
-            error=f"Failed to parse cached form_data: {e}",
+        return internal_error_response(
+            ChartError,
+            "Failed to parse cached form_data",
+            e,
             error_type="ParseError",
         )
     if not isinstance(form_data, dict):

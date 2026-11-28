@@ -373,6 +373,7 @@ class WorkerCall:
         self.cancel_query: Callable[[], None] | None = None
         self.cancel_dispatched = False
         self.user_id: int | None = None
+        self.is_guest = False
         self.query_id: int | None = None
 
     def record_query(self, query_id: int) -> None:
@@ -753,9 +754,10 @@ async def run_in_worker(
         except (TimeoutError, WorkerDeadlineExceeded, asyncio.CancelledError) as exc:
             _handle_worker_timeout_or_cancel(exc, wrapped, call, seconds)
     finally:
-        from superset.mcp_service.auth import _mcp_user_id_var
+        from superset.mcp_service.auth import _mcp_guest_var, _mcp_user_id_var
 
         _mcp_user_id_var.set(call.user_id)
+        _mcp_guest_var.set(call.is_guest)
 
 
 class QueryCancellation:

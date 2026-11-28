@@ -33,6 +33,7 @@ fields ``primary_kind`` / ``secondary_kind``.
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from superset.mcp_service.chart.schemas import GenerateChartRequest
 from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
@@ -306,3 +307,42 @@ def test_chart_name_and_name_simultaneously_first_alias_wins() -> None:
     )
     # chart_name is the canonical field and takes precedence via AliasChoices
     assert req.chart_name == "Primary Name"
+
+
+@pytest.mark.parametrize(
+    ("exc", "host_text"),
+    [
+        (RuntimeError("password=hunter2 host=db.internal"), "unexpected error"),
+        (
+            OperationalError(
+                "password=hunter2 host=db.internal", None, Exception("boom")
+            ),
+            "database error",
+        ),
+    ],
+)
+def test_pipeline_system_error_hides_exception_text(
+    exc: Exception, host_text: str
+) -> None:
+    """An unexpected pipeline failure returns a host message, not its text."""
+    request_data = {
+        "dataset_id": 1,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "year"},
+            "y": [{"name": "sales", "aggregate": "SUM"}],
+        },
+    }
+
+    with patch.object(ValidationPipeline, "_get_dataset_context", side_effect=exc):
+        result = ValidationPipeline.validate_request_with_warnings(request_data)
+
+    assert result.is_valid is False
+    assert result.error is not None
+    dumped = result.error.model_dump()
+    client_text = str(dumped)
+    assert "hunter2" not in client_text
+    assert "db.internal" not in client_text
+    assert dumped["error_code"] == "VALIDATION_PIPELINE_ERROR"
+    assert "Validation pipeline error" in dumped["details"]
+    assert host_text in dumped["details"]
