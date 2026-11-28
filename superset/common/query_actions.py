@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import copy
+import re
 import time
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -295,6 +296,30 @@ def _prepare_samples_query(
     return query_obj
 
 
+# Column type families that engines commonly cannot use in an ORDER BY (e.g.
+# BigQuery rejects JSON, ARRAY, STRUCT and GEOGRAPHY). The raw type string is
+# matched because the generic type is not populated for these types on every
+# engine. The match is anchored to the start of the type string and to a word
+# boundary so orderable types that merely contain one of these words (e.g.
+# ``JSONB``, ``INTEGER[]``, ``bitmap``) stay eligible: a false positive only
+# matters when it excludes every column, in which case ordering is dropped.
+_UNORDERABLE_COLUMN_TYPE_PATTERN = re.compile(
+    r"^\s*(json|array|struct|record|map|geography|geometry|xml(?:type)?)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_orderable_column_type(column_type: Any) -> bool:
+    """
+    Whether a column can be used in ``ORDER BY``, judged from its raw type string.
+
+    Unknown types (missing or non-string) are treated as orderable.
+    """
+    if not isinstance(column_type, str):
+        return True
+    return _UNORDERABLE_COLUMN_TYPE_PATTERN.search(column_type) is None
+
+
 def _prepare_drill_detail_query(
     query_context: QueryContext,
     query_obj: QueryObject,
@@ -316,14 +341,23 @@ def _prepare_drill_detail_query(
     query_obj.metrics = None
     query_obj.post_processing = []
     qry_obj_cols = []
+    orderable_cols = []
     for o in datasource.columns:
         if isinstance(o, dict):
-            if column_name := o.get("column_name"):
-                qry_obj_cols.append(column_name)
+            column_name = o.get("column_name")
+            column_type = o.get("type")
+            if not column_name:
+                continue
         else:
-            qry_obj_cols.append(o.column_name)
+            column_name = o.column_name
+            column_type = getattr(o, "type", None)
+        qry_obj_cols.append(column_name)
+        if _is_orderable_column_type(column_type):
+            orderable_cols.append(column_name)
     query_obj.columns = qry_obj_cols
-    query_obj.orderby = [(query_obj.columns[0], True)]
+    # Order by the first orderable column so paging is deterministic; some
+    # engines (e.g. MSSQL) require an ORDER BY when paging with an OFFSET.
+    query_obj.orderby = [(orderable_cols[0], True)] if orderable_cols else []
     return query_obj
 
 
