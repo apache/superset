@@ -143,6 +143,8 @@ const FilterValue: FC<FilterValueProps> = ({
   validateStatus,
   clearAllTrigger,
   onClearAllComplete,
+  cascadeClearTrigger,
+  onCascadeClearComplete,
 }) => {
   const theme = useTheme() as SupersetTheme;
   const { id, targets, filterType } = filter;
@@ -493,6 +495,8 @@ const FilterValue: FC<FilterValueProps> = ({
       setFilterActive,
       clearAllTrigger,
       onClearAllComplete,
+      cascadeClearTrigger,
+      onCascadeClearComplete,
     }),
     [
       setDataMask,
@@ -503,6 +507,8 @@ const FilterValue: FC<FilterValueProps> = ({
       unsetFocusedFilter,
       clearAllTrigger,
       onClearAllComplete,
+      cascadeClearTrigger,
+      onCascadeClearComplete,
     ],
   );
 

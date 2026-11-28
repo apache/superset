@@ -17,7 +17,7 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore, { MockStoreEnhanced } from 'redux-mock-store';
+import createMockStore, { MockStoreEnhanced } from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -94,7 +94,7 @@ fetchMock.post(permalinkEndpoint, {
 fetchMock.delete(queryEndpoint, {}, { name: queryEndpoint });
 
 const renderList = (props = {}, storeOverrides = {}) => {
-  const store = configureStore([thunk])({
+  const store = createMockStore([thunk])({
     user: {
       ...mockUser,
       roles: { Admin: [['can_write', 'SavedQuery']] },
@@ -124,288 +124,285 @@ const findToastAction = (store: MockStoreEnhanced<unknown>, text: string) =>
     .getActions()
     .find(action => action.type === ADD_TOAST && action.payload?.text === text);
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('SavedQueryList', () => {
-  beforeEach(() => {
-    fetchMock.clearHistory();
-  });
+beforeEach(() => {
+  fetchMock.clearHistory();
+});
 
-  test('renders', async () => {
-    renderList();
-    expect(await screen.findByText('Saved queries')).toBeInTheDocument();
-  });
+test('renders', async () => {
+  renderList();
+  expect(await screen.findByText('Saved queries')).toBeInTheDocument();
+});
 
-  test('renders a ListView', async () => {
-    renderList();
-    expect(
-      await screen.findByTestId('saved_query-list-view'),
-    ).toBeInTheDocument();
-  });
+test('renders a ListView', async () => {
+  renderList();
+  expect(
+    await screen.findByTestId('saved_query-list-view'),
+  ).toBeInTheDocument();
+});
 
-  test('renders query information', async () => {
-    renderList();
+test('renders query information', async () => {
+  renderList();
 
-    // Wait for list to load
-    await screen.findByTestId('saved_query-list-view');
+  // Wait for list to load
+  await screen.findByTestId('saved_query-list-view');
 
-    // Wait for data to load
-    await waitFor(() => {
-      mockQueries.forEach(query => {
-        expect(screen.getByText(query.label)).toBeInTheDocument();
-        expect(
-          screen.getByText(query.database.database_name),
-        ).toBeInTheDocument();
-        expect(screen.getAllByText(query.schema)[0]).toBeInTheDocument();
-      });
+  // Wait for data to load
+  await waitFor(() => {
+    mockQueries.forEach(query => {
+      expect(screen.getByText(query.label)).toBeInTheDocument();
+      expect(
+        screen.getByText(query.database.database_name),
+      ).toBeInTheDocument();
+      expect(screen.getAllByText(query.schema)[0]).toBeInTheDocument();
     });
   });
+});
 
-  test('handles query deletion', async () => {
-    renderList();
+test('handles query deletion', async () => {
+  renderList();
 
-    // Wait for list to load
-    await screen.findByTestId('saved_query-list-view');
+  // Wait for list to load
+  await screen.findByTestId('saved_query-list-view');
 
-    // Wait for data and find delete button
-    const deleteButtons = await screen.findAllByTestId('delete-action');
-    fireEvent.click(deleteButtons[0]);
+  // Wait for data and find delete button
+  const deleteButtons = await screen.findAllByTestId('delete-action');
+  fireEvent.click(deleteButtons[0]);
 
-    // Confirm deletion
-    const deleteInput = screen.getByTestId('delete-modal-input');
-    fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+  // Confirm deletion
+  const deleteInput = screen.getByTestId('delete-modal-input');
+  fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
 
-    const confirmButton = screen.getByTestId('modal-confirm-button');
-    fireEvent.click(confirmButton);
+  const confirmButton = screen.getByTestId('modal-confirm-button');
+  fireEvent.click(confirmButton);
 
-    // Verify API call
-    await waitFor(() => {
-      expect(fetchMock.callHistory.calls(/saved_query\/0/)).toHaveLength(1);
-    });
+  // Verify API call
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(/saved_query\/0/)).toHaveLength(1);
+  });
+});
+
+test('handles search filtering', async () => {
+  renderList();
+
+  // Wait for list to load
+  await screen.findByTestId('saved_query-list-view');
+
+  // Find and use search input
+  const searchInput = screen.getByTestId('filters-search');
+  fireEvent.change(searchInput, { target: { value: 'test query' } });
+  fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+  // Verify API call
+  await waitFor(() => {
+    const lastCall = fetchMock.callHistory.lastCall(/saved_query\/\?q/);
+    expect(lastCall).toBeDefined();
+    expect(lastCall?.url).toContain('order_column');
+    expect(lastCall?.url).toContain('page');
+  });
+});
+
+test('fetches data', async () => {
+  renderList();
+  await waitFor(() => {
+    const lastCall = fetchMock.callHistory.lastCall(/saved_query\/\?q/);
+    expect(lastCall).toBeDefined();
+    expect(lastCall?.url).toContain('order_column');
+    expect(lastCall?.url).toContain('page');
+  });
+});
+
+test('handles sorting', async () => {
+  renderList();
+
+  // Wait for list to load
+  await screen.findByTestId('saved_query-list-view');
+
+  // Find and click sort header
+  const sortHeaders = screen.getAllByTestId('sort-header');
+  fireEvent.click(sortHeaders[0]);
+
+  // Verify API call includes sorting
+  await waitFor(() => {
+    const url = new URL(
+      fetchMock.callHistory.lastCall(/saved_query\/\?q/)?.url as string,
+    );
+    const params = new URLSearchParams(url.search);
+    const qParam = params.get('q');
+    expect(qParam).toContain('order_column:label');
+  });
+});
+
+test('shows/hides elements based on permissions', async () => {
+  // Mock info response without write permission
+  fetchMock.removeRoute(queriesInfoEndpoint);
+  fetchMock.get(
+    queriesInfoEndpoint,
+    { permissions: ['can_read'] },
+    { name: queriesInfoEndpoint },
+  );
+
+  // Mock list response
+  fetchMock.removeRoute(queriesEndpoint);
+  fetchMock.get(
+    queriesEndpoint,
+    { result: mockQueries, count: mockQueries.length },
+    { name: queriesEndpoint },
+  );
+
+  renderList();
+
+  // Wait for list to load
+  await screen.findByTestId('saved_query-list-view');
+
+  // Wait for data to load
+  await waitFor(() => {
+    expect(screen.getByText(mockQueries[0].label)).toBeInTheDocument();
   });
 
-  test('handles search filtering', async () => {
+  // Verify delete buttons are not shown
+  expect(screen.queryByTestId('delete-action')).not.toBeInTheDocument();
+});
+
+test('"+ Query" button pushes a router-relative path (subdirectory deployment)', async () => {
+  // Simulate SUPERSET_APP_ROOT=/superset. ensureAppRoot/makeUrl read
+  // applicationRoot() dynamically, so mocking it here makes the buggy code
+  // path (makeUrl() around history.push) produce '/superset/sqllab?new=true'
+  // instead of being a no-op. React Router's <Router basename> prefixes the
+  // app root on its own, so history.push MUST receive a path without the
+  // app-root prefix — otherwise navigation lands at /superset/superset/sqllab
+  // and shows a blank page (sc-103661).
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+
+  try {
     renderList();
 
-    // Wait for list to load
     await screen.findByTestId('saved_query-list-view');
 
-    // Find and use search input
-    const searchInput = screen.getByTestId('filters-search');
-    fireEvent.change(searchInput, { target: { value: 'test query' } });
-    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    // Scope to the create button's stable data-test: /query/i also matches the
+    // per-row "Query preview" and "Copy query URL" action buttons.
+    const queryButton = await screen.findByTestId('add-saved-query-button');
+    fireEvent.click(queryButton);
 
-    // Verify API call
     await waitFor(() => {
-      const lastCall = fetchMock.callHistory.lastCall(/saved_query\/\?q/);
-      expect(lastCall).toBeDefined();
-      expect(lastCall?.url).toContain('order_column');
-      expect(lastCall?.url).toContain('page');
+      // The MemoryRouter in renderList uses the default ('/') basename, so
+      // useLocation reflects exactly what history.push received. A correct
+      // router-relative push produces '/sqllab?new=true'; a buggy push that
+      // re-applied the app root would produce '/superset/sqllab?new=true'.
+      const location = screen.getByTestId('location-display').textContent;
+      expect(location).toBe('/sqllab?new=true');
     });
-  });
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
 
-  test('fetches data', async () => {
-    renderList();
-    await waitFor(() => {
-      const lastCall = fetchMock.callHistory.lastCall(/saved_query\/\?q/);
-      expect(lastCall).toBeDefined();
-      expect(lastCall?.url).toContain('order_column');
-      expect(lastCall?.url).toContain('page');
-    });
-  });
+test('opens a saved query in SQL Lab without copying a link', async () => {
+  // A prior test in this suite permanently swaps this route to read-only
+  // permissions, which would hide the edit action this test depends on.
+  fetchMock.removeRoute(queriesInfoEndpoint);
+  fetchMock.get(
+    queriesInfoEndpoint,
+    { permissions: ['can_write', 'can_read', 'can_export'] },
+    { name: queriesInfoEndpoint },
+  );
 
-  test('handles sorting', async () => {
-    renderList();
+  const clipboardCallback = jest.fn();
+  const originalClipboard = { ...global.navigator.clipboard };
+  // @ts-expect-error -- overriding a read-only browser API for the test
+  global.navigator.clipboard = {
+    write: clipboardCallback,
+    writeText: clipboardCallback,
+  };
 
-    // Wait for list to load
+  try {
+    const { store } = renderList();
     await screen.findByTestId('saved_query-list-view');
 
-    // Find and click sort header
-    const sortHeaders = screen.getAllByTestId('sort-header');
-    fireEvent.click(sortHeaders[0]);
+    const editButtons = await screen.findAllByTestId('edit-action');
+    fireEvent.click(editButtons[0]);
 
-    // Verify API call includes sorting
     await waitFor(() => {
-      const url = new URL(
-        fetchMock.callHistory.lastCall(/saved_query\/\?q/)?.url as string,
+      const location = screen.getByTestId('location-display').textContent;
+      expect(location).toMatch(/^\/sqllab\?savedQueryId=\d+$/);
+    });
+
+    expect(clipboardCallback).not.toHaveBeenCalled();
+    expect(findToastAction(store, 'Link Copied!')).toBeUndefined();
+  } finally {
+    // @ts-expect-error -- restoring the read-only browser API after the test
+    global.navigator.clipboard = originalClipboard;
+  }
+});
+
+test('opens a saved query from the preview modal without copying a link', async () => {
+  const savedQueryDetailEndpoint = /\/api\/v1\/saved_query\/\d+$/;
+  fetchMock.get(
+    savedQueryDetailEndpoint,
+    { result: mockQueries[0] },
+    { name: 'saved-query-detail' },
+  );
+
+  const clipboardCallback = jest.fn();
+  const originalClipboard = { ...global.navigator.clipboard };
+  // @ts-expect-error -- overriding a read-only browser API for the test
+  global.navigator.clipboard = {
+    write: clipboardCallback,
+    writeText: clipboardCallback,
+  };
+
+  try {
+    const { store } = renderList();
+    await screen.findByTestId('saved_query-list-view');
+
+    const previewButtons = await screen.findAllByTestId('preview-action');
+    fireEvent.click(previewButtons[0]);
+
+    const openInSqlLabButton = await screen.findByTestId('open-in-sql-lab');
+    fireEvent.click(openInSqlLabButton);
+
+    await waitFor(() => {
+      const location = screen.getByTestId('location-display').textContent;
+      expect(location).toMatch(/^\/sqllab\?savedQueryId=\d+$/);
+    });
+
+    expect(clipboardCallback).not.toHaveBeenCalled();
+    expect(findToastAction(store, 'Link Copied!')).toBeUndefined();
+  } finally {
+    // @ts-expect-error -- restoring the read-only browser API after the test
+    global.navigator.clipboard = originalClipboard;
+    fetchMock.removeRoute('saved-query-detail');
+  }
+});
+
+test('copies a permalink to the clipboard when using the copy action', async () => {
+  const clipboardCallback = jest.fn();
+  const originalClipboard = { ...global.navigator.clipboard };
+  // @ts-expect-error -- overriding a read-only browser API for the test
+  global.navigator.clipboard = {
+    write: clipboardCallback,
+    writeText: clipboardCallback,
+  };
+
+  try {
+    const { store } = renderList();
+    await screen.findByTestId('saved_query-list-view');
+
+    const copyButtons = await screen.findAllByTestId('copy-action');
+    fireEvent.click(copyButtons[0]);
+
+    await waitFor(() => {
+      expect(clipboardCallback).toHaveBeenCalledWith(
+        'http://localhost/permalink',
       );
-      const params = new URLSearchParams(url.search);
-      const qParam = params.get('q');
-      expect(qParam).toContain('order_column:label');
     });
-  });
 
-  test('shows/hides elements based on permissions', async () => {
-    // Mock info response without write permission
-    fetchMock.removeRoute(queriesInfoEndpoint);
-    fetchMock.get(
-      queriesInfoEndpoint,
-      { permissions: ['can_read'] },
-      { name: queriesInfoEndpoint },
-    );
-
-    // Mock list response
-    fetchMock.removeRoute(queriesEndpoint);
-    fetchMock.get(
-      queriesEndpoint,
-      { result: mockQueries, count: mockQueries.length },
-      { name: queriesEndpoint },
-    );
-
-    renderList();
-
-    // Wait for list to load
-    await screen.findByTestId('saved_query-list-view');
-
-    // Wait for data to load
     await waitFor(() => {
-      expect(screen.getByText(mockQueries[0].label)).toBeInTheDocument();
+      expect(findToastAction(store, 'Link Copied!')).toBeDefined();
     });
-
-    // Verify delete buttons are not shown
-    expect(screen.queryByTestId('delete-action')).not.toBeInTheDocument();
-  });
-
-  test('"+ Query" button pushes a router-relative path (subdirectory deployment)', async () => {
-    // Simulate SUPERSET_APP_ROOT=/superset. ensureAppRoot/makeUrl read
-    // applicationRoot() dynamically, so mocking it here makes the buggy code
-    // path (makeUrl() around history.push) produce '/superset/sqllab?new=true'
-    // instead of being a no-op. React Router's <Router basename> prefixes the
-    // app root on its own, so history.push MUST receive a path without the
-    // app-root prefix — otherwise navigation lands at /superset/superset/sqllab
-    // and shows a blank page (sc-103661).
-    const applicationRootSpy = jest
-      .spyOn(getBootstrapData, 'applicationRoot')
-      .mockReturnValue('/superset');
-
-    try {
-      renderList();
-
-      await screen.findByTestId('saved_query-list-view');
-
-      // Scope to the create button's stable data-test: /query/i also matches the
-      // per-row "Query preview" and "Copy query URL" action buttons.
-      const queryButton = await screen.findByTestId('add-saved-query-button');
-      fireEvent.click(queryButton);
-
-      await waitFor(() => {
-        // The MemoryRouter in renderList uses the default ('/') basename, so
-        // useLocation reflects exactly what history.push received. A correct
-        // router-relative push produces '/sqllab?new=true'; a buggy push that
-        // re-applied the app root would produce '/superset/sqllab?new=true'.
-        const location = screen.getByTestId('location-display').textContent;
-        expect(location).toBe('/sqllab?new=true');
-      });
-    } finally {
-      applicationRootSpy.mockRestore();
-    }
-  });
-
-  test('opens a saved query in SQL Lab without copying a link', async () => {
-    // A prior test in this suite permanently swaps this route to read-only
-    // permissions, which would hide the edit action this test depends on.
-    fetchMock.removeRoute(queriesInfoEndpoint);
-    fetchMock.get(
-      queriesInfoEndpoint,
-      { permissions: ['can_write', 'can_read', 'can_export'] },
-      { name: queriesInfoEndpoint },
-    );
-
-    const clipboardCallback = jest.fn();
-    const originalClipboard = { ...global.navigator.clipboard };
-    // @ts-expect-error -- overriding a read-only browser API for the test
-    global.navigator.clipboard = {
-      write: clipboardCallback,
-      writeText: clipboardCallback,
-    };
-
-    try {
-      const { store } = renderList();
-      await screen.findByTestId('saved_query-list-view');
-
-      const editButtons = await screen.findAllByTestId('edit-action');
-      fireEvent.click(editButtons[0]);
-
-      await waitFor(() => {
-        const location = screen.getByTestId('location-display').textContent;
-        expect(location).toMatch(/^\/sqllab\?savedQueryId=\d+$/);
-      });
-
-      expect(clipboardCallback).not.toHaveBeenCalled();
-      expect(findToastAction(store, 'Link Copied!')).toBeUndefined();
-    } finally {
-      // @ts-expect-error -- restoring the read-only browser API after the test
-      global.navigator.clipboard = originalClipboard;
-    }
-  });
-
-  test('opens a saved query from the preview modal without copying a link', async () => {
-    const savedQueryDetailEndpoint = /\/api\/v1\/saved_query\/\d+$/;
-    fetchMock.get(
-      savedQueryDetailEndpoint,
-      { result: mockQueries[0] },
-      { name: 'saved-query-detail' },
-    );
-
-    const clipboardCallback = jest.fn();
-    const originalClipboard = { ...global.navigator.clipboard };
-    // @ts-expect-error -- overriding a read-only browser API for the test
-    global.navigator.clipboard = {
-      write: clipboardCallback,
-      writeText: clipboardCallback,
-    };
-
-    try {
-      const { store } = renderList();
-      await screen.findByTestId('saved_query-list-view');
-
-      const previewButtons = await screen.findAllByTestId('preview-action');
-      fireEvent.click(previewButtons[0]);
-
-      const openInSqlLabButton = await screen.findByTestId('open-in-sql-lab');
-      fireEvent.click(openInSqlLabButton);
-
-      await waitFor(() => {
-        const location = screen.getByTestId('location-display').textContent;
-        expect(location).toMatch(/^\/sqllab\?savedQueryId=\d+$/);
-      });
-
-      expect(clipboardCallback).not.toHaveBeenCalled();
-      expect(findToastAction(store, 'Link Copied!')).toBeUndefined();
-    } finally {
-      // @ts-expect-error -- restoring the read-only browser API after the test
-      global.navigator.clipboard = originalClipboard;
-      fetchMock.removeRoute('saved-query-detail');
-    }
-  });
-
-  test('copies a permalink to the clipboard when using the copy action', async () => {
-    const clipboardCallback = jest.fn();
-    const originalClipboard = { ...global.navigator.clipboard };
-    // @ts-expect-error -- overriding a read-only browser API for the test
-    global.navigator.clipboard = {
-      write: clipboardCallback,
-      writeText: clipboardCallback,
-    };
-
-    try {
-      const { store } = renderList();
-      await screen.findByTestId('saved_query-list-view');
-
-      const copyButtons = await screen.findAllByTestId('copy-action');
-      fireEvent.click(copyButtons[0]);
-
-      await waitFor(() => {
-        expect(clipboardCallback).toHaveBeenCalledWith(
-          'http://localhost/permalink',
-        );
-      });
-
-      await waitFor(() => {
-        expect(findToastAction(store, 'Link Copied!')).toBeDefined();
-      });
-    } finally {
-      // @ts-expect-error -- restoring the read-only browser API after the test
-      global.navigator.clipboard = originalClipboard;
-    }
-  });
+  } finally {
+    // @ts-expect-error -- restoring the read-only browser API after the test
+    global.navigator.clipboard = originalClipboard;
+  }
 });

@@ -119,139 +119,136 @@ const renderPopover = (props: Partial<typeof defaultProps> = {}) =>
     },
   );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('AdhocFilterEditPopover', () => {
-  test('renders simple tab content by default', () => {
-    renderPopover();
+test('renders simple tab content by default', () => {
+  renderPopover();
 
-    expect(screen.getByRole('tablist')).toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(2);
-    // Fix: Update button count to match actual buttons (Close, Save, Resize)
-    expect(screen.getAllByRole('button')).toHaveLength(3);
-    expect(screen.getByText('Simple')).toBeInTheDocument();
+  expect(screen.getByRole('tablist')).toBeInTheDocument();
+  expect(screen.getAllByRole('tab')).toHaveLength(2);
+  // Fix: Update button count to match actual buttons (Close, Save, Resize)
+  expect(screen.getAllByRole('button')).toHaveLength(3);
+  expect(screen.getByText('Simple')).toBeInTheDocument();
+});
+
+test('renders sql tab content when the adhoc filter expressionType is sql', () => {
+  renderPopover({ adhocFilter: sqlAdhocFilter });
+
+  expect(screen.getByRole('tablist')).toBeInTheDocument();
+  expect(screen.getByText('Custom SQL')).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /custom sql/i })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
+
+test('renders error message when filter is faulty', () => {
+  renderPopover({ adhocFilter: faultyAdhocFilter });
+
+  expect(screen.getByRole('tablist')).toBeInTheDocument();
+  expect(screen.getAllByRole('tab')).toHaveLength(2);
+  // Error message is not present in the DOM, let's check for error state instead
+  expect(
+    screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+  ).toBeDisabled();
+});
+
+test('updates the filter when changes are made', async () => {
+  const onChange = jest.fn();
+  renderPopover({
+    onChange,
+    adhocFilter: sqlAdhocFilter,
   });
 
-  test('renders sql tab content when the adhoc filter expressionType is sql', () => {
-    renderPopover({ adhocFilter: sqlAdhocFilter });
+  // The SQL tab is preselected for a SQL filter; edit its expression
+  const sqlInput = screen.getByRole('textbox');
+  await userEvent.clear(sqlInput);
+  await userEvent.paste('COUNT(*) > 0');
 
-    expect(screen.getByRole('tablist')).toBeInTheDocument();
-    expect(screen.getByText('Custom SQL')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /custom sql/i })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  await userEvent.click(saveButton);
+
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({
+      sqlExpression: 'COUNT(*) > 0',
+      expressionType: ExpressionTypes.Sql,
+      clause: Clauses.Where,
+    }),
+  );
+});
+
+test('enables save button when valid changes are made', async () => {
+  renderPopover({ adhocFilter: simpleAdhocFilter });
+
+  // Find the subject select by its test id
+  const subjectSelect = screen.getByTestId('select-element');
+  await userEvent.click(subjectSelect);
+
+  // Select a value from the dropdown (scope to the listbox option, since the
+  // selected subject label also renders the text "value" in antd v6)
+  const valueOption = screen.getByRole('option', { name: 'value' });
+  await userEvent.click(valueOption);
+
+  // Find and update the value input
+  const valueInput = screen.getByTestId('adhoc-filter-simple-value');
+  await userEvent.clear(valueInput);
+  await userEvent.type(valueInput, '100');
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  expect(saveButton).toBeEnabled();
+});
+
+test('disables save button when filter is invalid', () => {
+  renderPopover({ adhocFilter: faultyAdhocFilter });
+
+  const saveButton = screen.getByTestId(
+    'adhoc-filter-edit-popover-save-button',
+  );
+  expect(saveButton).toBeDisabled();
+});
+
+test('disables save button when a boolean column has no value selected', async () => {
+  const booleanColumn = { type: 'BOOL', column_name: 'is_intro' };
+  renderPopover({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      clause: Clauses.Where,
+    }),
+    options: [booleanColumn],
+    datasource: { columns: [booleanColumn], filter_select: false },
   });
 
-  test('renders error message when filter is faulty', () => {
-    renderPopover({ adhocFilter: faultyAdhocFilter });
+  // Picking the subject resets the comparator to `undefined`; the value
+  // control is then left untouched, mirroring the reported repro.
+  await userEvent.click(screen.getByTestId('select-element'));
+  await userEvent.click(
+    await screen.findByRole('option', { name: /is_intro/ }),
+  );
 
-    expect(screen.getByRole('tablist')).toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(2);
-    // Error message is not present in the DOM, let's check for error state instead
-    expect(
-      screen.getByTestId('adhoc-filter-edit-popover-save-button'),
-    ).toBeDisabled();
-  });
+  expect(
+    screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+  ).toBeDisabled();
+});
 
-  test('updates the filter when changes are made', async () => {
-    const onChange = jest.fn();
-    renderPopover({
-      onChange,
-      adhocFilter: sqlAdhocFilter,
-    });
+test('initiates resize when resize handle is dragged', async () => {
+  const onResize = jest.fn();
+  renderPopover({ onResize });
 
-    // The SQL tab is preselected for a SQL filter; edit its expression
-    const sqlInput = screen.getByRole('textbox');
-    await userEvent.clear(sqlInput);
-    await userEvent.paste('COUNT(*) > 0');
+  const resizeHandle = screen.getByLabelText(/resize/i);
+  fireEvent.mouseDown(resizeHandle);
+  fireEvent.mouseMove(document, { clientX: 100, clientY: 100 });
+  fireEvent.mouseUp(document);
 
-    const saveButton = screen.getByRole('button', { name: /save/i });
-    await waitFor(() => expect(saveButton).toBeEnabled());
-    await userEvent.click(saveButton);
+  expect(onResize).toHaveBeenCalled();
+});
 
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sqlExpression: 'COUNT(*) > 0',
-        expressionType: ExpressionTypes.Sql,
-        clause: Clauses.Where,
-      }),
-    );
-  });
+test('closes popover when close button is clicked', async () => {
+  const onClose = jest.fn();
+  renderPopover({ onClose });
 
-  test('enables save button when valid changes are made', async () => {
-    renderPopover({ adhocFilter: simpleAdhocFilter });
-
-    // Find the subject select by its test id
-    const subjectSelect = screen.getByTestId('select-element');
-    await userEvent.click(subjectSelect);
-
-    // Select a value from the dropdown (scope to the listbox option, since the
-    // selected subject label also renders the text "value" in antd v6)
-    const valueOption = screen.getByRole('option', { name: 'value' });
-    await userEvent.click(valueOption);
-
-    // Find and update the value input
-    const valueInput = screen.getByTestId('adhoc-filter-simple-value');
-    await userEvent.clear(valueInput);
-    await userEvent.type(valueInput, '100');
-
-    const saveButton = screen.getByRole('button', { name: /save/i });
-    expect(saveButton).toBeEnabled();
-  });
-
-  test('disables save button when filter is invalid', () => {
-    renderPopover({ adhocFilter: faultyAdhocFilter });
-
-    const saveButton = screen.getByTestId(
-      'adhoc-filter-edit-popover-save-button',
-    );
-    expect(saveButton).toBeDisabled();
-  });
-
-  test('disables save button when a boolean column has no value selected', async () => {
-    const booleanColumn = { type: 'BOOL', column_name: 'is_intro' };
-    renderPopover({
-      adhocFilter: new AdhocFilter({
-        expressionType: ExpressionTypes.Simple,
-        clause: Clauses.Where,
-      }),
-      options: [booleanColumn],
-      datasource: { columns: [booleanColumn], filter_select: false },
-    });
-
-    // Picking the subject resets the comparator to `undefined`; the value
-    // control is then left untouched, mirroring the reported repro.
-    await userEvent.click(screen.getByTestId('select-element'));
-    await userEvent.click(
-      await screen.findByRole('option', { name: /is_intro/ }),
-    );
-
-    expect(
-      screen.getByTestId('adhoc-filter-edit-popover-save-button'),
-    ).toBeDisabled();
-  });
-
-  test('initiates resize when resize handle is dragged', async () => {
-    const onResize = jest.fn();
-    renderPopover({ onResize });
-
-    const resizeHandle = screen.getByLabelText(/resize/i);
-    fireEvent.mouseDown(resizeHandle);
-    fireEvent.mouseMove(document, { clientX: 100, clientY: 100 });
-    fireEvent.mouseUp(document);
-
-    expect(onResize).toHaveBeenCalled();
-  });
-
-  test('closes popover when close button is clicked', async () => {
-    const onClose = jest.fn();
-    renderPopover({ onClose });
-
-    // Use more specific selector to avoid ambiguity
-    const closeButton = screen.getByRole('button', { name: /^close$/i });
-    await userEvent.click(closeButton);
-    expect(onClose).toHaveBeenCalled();
-  });
+  // Use more specific selector to avoid ambiguity
+  const closeButton = screen.getByRole('button', { name: /^close$/i });
+  await userEvent.click(closeButton);
+  expect(onClose).toHaveBeenCalled();
 });
 
 test('a drilled bucket cannot be converted to raw Custom SQL that loses its grain', () => {

@@ -25,6 +25,7 @@ import builtins
 import logging
 import textwrap
 import threading
+import time
 import weakref
 from ast import literal_eval
 from collections.abc import Collection
@@ -36,9 +37,12 @@ from contextlib import (
     nullcontext,
     suppress,
 )
+from contextvars import ContextVar
 from copy import deepcopy
+from dataclasses import dataclass, field
 from functools import lru_cache
 from inspect import signature
+from time import monotonic
 from typing import (
     Any,
     Callable,
@@ -54,10 +58,14 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
+from cachelib.file import FileSystemCache
+from cachelib.redis import RedisCache
+from cachelib.simple import SimpleCache
 from flask import current_app as app, g, has_app_context
 from flask_appbuilder import Model
 from flask_babel import gettext as __
 from marshmallow.exceptions import ValidationError
+from redis.exceptions import WatchError
 from sqlalchemy import (
     Boolean,
     Column,
@@ -82,6 +90,7 @@ from sqlalchemy.orm import (
     Session,
     SessionTransaction,
 )
+from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -141,6 +150,56 @@ T = TypeVar("T")
 # different kwargs naturally falls through to a fresh engine.
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
+_DEFAULT_SCHEMA_CACHE_TIMEOUT = 3600
+# Wall-clock discovery times can be compared across workers. Renewals retain the
+# original time, including when discovery precedes the first cache-key lookup.
+_DEFAULT_SCHEMA_DISCOVERIES: weakref.WeakKeyDictionary[Engine, tuple[str, float]] = (
+    weakref.WeakKeyDictionary()
+)
+# Renew shared discovery without writing on every warm cache-key lookup. Holds the
+# monotonic time at which an engine may next attempt to publish.
+_DEFAULT_SCHEMA_NEXT_PUBLISH_AT: weakref.WeakKeyDictionary[Engine, float] = (
+    weakref.WeakKeyDictionary()
+)
+# Backoff after an unsuccessful publication, so a cache outage costs one attempt
+# per interval rather than one per lookup.
+_DEFAULT_SCHEMA_RETRY_INTERVAL = 60
+_DEFAULT_SCHEMA_CACHE_LOCK = threading.Lock()
+# Reads coalesce per key, independently of unrelated reads and publications.
+# Bound occupied slots even when a backend never returns, across retry windows.
+_DEFAULT_SCHEMA_CACHE_IO_CONDITION = threading.Condition()
+_DEFAULT_SCHEMA_CACHE_WAIT = 0.2
+_DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS = 16
+
+
+@dataclass
+class _DefaultSchemaCacheFlight:
+    """Share a read's deadline and retain late results until expiry."""
+
+    cache_key: str | None
+    deadline: float
+    completed: threading.Event = field(default_factory=threading.Event)
+    result: str | None = None
+    publication_key: str | None = None
+    expires_at: float = 0
+
+
+_DEFAULT_SCHEMA_CACHE_FLIGHTS: dict[str | None, _DefaultSchemaCacheFlight] = {}
+_DEFAULT_SCHEMA_CACHE_READS: ContextVar[list[tuple[Engine, str]] | None] = ContextVar(
+    "default_schema_cache_reads", default=None
+)
+
+
+@contextmanager
+def track_default_schema_cache_reads() -> Iterator[list[tuple[Engine, str]]]:
+    """Record shared discovery so result writers can detect live contradictions."""
+    reads: list[tuple[Engine, str]] = []
+    token = _DEFAULT_SCHEMA_CACHE_READS.set(reads)
+    try:
+        yield reads
+    finally:
+        _DEFAULT_SCHEMA_CACHE_READS.reset(token)
+
 
 # Engines that authenticate an embedded guest with the fallback credential. A failed
 # sign-in on them is logged for administrators (see
@@ -149,6 +208,264 @@ _EMBEDDED_FALLBACK_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
 # Set on an exception once its rejection is logged, so a path that both dispatches
 # ``handle_error`` and catches the error itself logs it once.
 _EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
+
+
+def _default_schema_cache_has_room() -> bool:
+    """Evict completed results, never occupied slots, before admitting another key.
+
+    The caller holds ``_DEFAULT_SCHEMA_CACHE_IO_CONDITION``.
+    """
+    if len(_DEFAULT_SCHEMA_CACHE_FLIGHTS) >= _DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS:
+        for key, pending in list(_DEFAULT_SCHEMA_CACHE_FLIGHTS.items()):
+            if pending.completed.is_set():
+                del _DEFAULT_SCHEMA_CACHE_FLIGHTS[key]
+    return len(_DEFAULT_SCHEMA_CACHE_FLIGHTS) < _DEFAULT_SCHEMA_CACHE_MAX_FLIGHTS
+
+
+def _reserve_default_schema_cache_flight(
+    cache_key: str | None, deadline: float, publication_key: str | None
+) -> tuple[_DefaultSchemaCacheFlight | None, bool]:
+    """Select or reserve a flight under ``_DEFAULT_SCHEMA_CACHE_IO_CONDITION``."""
+    if cache_key is None and any(
+        not pending.completed.is_set()
+        for pending in _DEFAULT_SCHEMA_CACHE_FLIGHTS.values()
+    ):
+        # Warm engines already have a schema; publication is best effort.
+        return None, False
+    pending = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(cache_key)
+    if pending is None:
+        publishing = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(None)
+        if publishing is not None and publishing.publication_key == cache_key:
+            # Publication has no schema result for readers. Skip duplicate I/O
+            # without spending the read budget waiting for a guaranteed miss.
+            return None, False
+    if pending is not None:
+        if not pending.completed.is_set():
+            return pending, False
+        if time.monotonic() < pending.expires_at:
+            return pending, False
+        del _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key]
+    if time.monotonic() >= deadline or not _default_schema_cache_has_room():
+        return None, False
+    flight = _DefaultSchemaCacheFlight(
+        cache_key, deadline, publication_key=publication_key
+    )
+    _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key] = flight
+    return flight, True
+
+
+def _run_default_schema_cache_operation(
+    operation: Callable[[], str | None],
+    *,
+    cache_key: str | None = None,
+    publication_key: str | None = None,
+) -> str | None:
+    """Coalesce reads within a bounded deadline; skip contended publications."""
+    application = app._get_current_object()
+    deadline = time.monotonic() + _DEFAULT_SCHEMA_CACHE_WAIT
+    with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
+        flight, start = _reserve_default_schema_cache_flight(
+            cache_key, deadline, publication_key
+        )
+        if flight is None:
+            return None
+        if not start:
+            pending = flight
+            remaining = min(deadline, pending.deadline) - time.monotonic()
+            if _DEFAULT_SCHEMA_CACHE_IO_CONDITION.wait_for(
+                pending.completed.is_set, timeout=max(0, remaining)
+            ):
+                return pending.result
+            return None
+
+    def finish() -> None:
+        """Release completed I/O slots, preserving successful reads that ran late."""
+        with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
+            completed_at = time.monotonic()
+            if (
+                cache_key is None
+                or flight.result is None
+                or completed_at <= flight.deadline
+            ):
+                del _DEFAULT_SCHEMA_CACHE_FLIGHTS[cache_key]
+            else:
+                flight.expires_at = completed_at + _DEFAULT_SCHEMA_RETRY_INTERVAL
+            flight.completed.set()
+            _DEFAULT_SCHEMA_CACHE_IO_CONDITION.notify_all()
+
+    def run() -> None:
+        """Keep the result available to every request that joined this flight."""
+        try:
+            with application.app_context():
+                flight.result = operation()
+        finally:
+            finish()
+
+    worker = threading.Thread(target=run, name="default-schema-cache", daemon=True)
+    try:
+        worker.start()
+    except Exception:  # pylint: disable=broad-except
+        finish()
+        logger.debug("Unable to start the default schema cache operation")
+        return None
+    if flight.completed.wait(timeout=max(0, deadline - time.monotonic())):
+        return flight.result
+    return None
+
+
+def _decode_default_schema_discovery(value: Any) -> tuple[str, float] | None:
+    """Read timestamped discovery, accepting untimestamped legacy cache entries."""
+    if isinstance(value, str):
+        return value, float("-inf")
+    if (
+        isinstance(value, dict)
+        and isinstance(value.get("schema"), str)
+        and isinstance(value.get("discovered_at"), (int, float))
+    ):
+        return value["schema"], value["discovered_at"]
+    return None
+
+
+def _record_default_schema_discovery(engine: Engine, schema: str) -> float:
+    """Retain when the dialect discovered this schema, not when it is renewed."""
+    with _DEFAULT_SCHEMA_CACHE_LOCK:
+        discovery = _DEFAULT_SCHEMA_DISCOVERIES.get(engine)
+        if discovery is None or discovery[0] != schema:
+            discovery = (schema, time.time())
+            _DEFAULT_SCHEMA_DISCOVERIES[engine] = discovery
+        return discovery[1]
+
+
+def _read_default_schema(cache_key: str) -> str | None:
+    """Read shared discovery without holding a request on an unresponsive cache."""
+
+    def read() -> str | None:
+        """Treat backend errors and invalid values as a cache miss."""
+        try:
+            discovery = _decode_default_schema_discovery(
+                cache_manager.cache.get(cache_key)
+            )
+            return discovery[0] if discovery is not None else None
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Unable to read the default schema cache")
+            return None
+
+    return _run_default_schema_cache_operation(read, cache_key=cache_key)
+
+
+def _replace_default_schema(
+    cache_key: str, value: dict[str, Any], expected: Any, timeout: int
+) -> bool:
+    """Replace a discovery only if the observed shared value is still current."""
+    cache = cache_manager.cache
+    backend = cache.cache
+    if isinstance(backend, RedisCache):
+        # Read from the primary: replicas cannot participate in WATCH/MULTI.
+        key = f"{backend._get_prefix()}{cache_key}"  # pylint: disable=protected-access
+        with backend._write_client.pipeline() as pipe:  # pylint: disable=protected-access
+            try:
+                pipe.watch(key)
+                if backend.serializer.loads(pipe.get(key)) != expected:
+                    return False
+                pipe.multi()
+                pipe.set(key, backend.serializer.dumps(value), ex=timeout)
+                pipe.execute()
+                return True
+            except WatchError:
+                return False
+    if isinstance(backend, SimpleCache):
+        # SimpleCache is process-local; use its own reentrant operation lock.
+        with backend._lock:  # pylint: disable=protected-access
+            if cache.get(cache_key) != expected:
+                return False
+            return bool(cache.set(cache_key, value, timeout=timeout))
+    compare_and_set = getattr(backend, "compare_and_set", None)
+    if callable(compare_and_set):
+        return bool(compare_and_set(cache_key, value, expected, timeout=timeout))
+    # An unknown backend can add missing entries, but cannot safely renew them.
+    return False
+
+
+def _publish_default_schema(
+    cache_key: str, schema: str, discovered_at: float, timeout: int
+) -> str | None:
+    """Publish discovery without renewing an older, contradictory schema."""
+    # FileSystemCache.add checks for existence before an unconditional set.
+    # It cannot safely create discoveries shared by multiple workers.
+    backend = cache_manager.cache.cache
+    if isinstance(backend, FileSystemCache):
+        return None
+    value = {"schema": schema, "discovered_at": discovered_at}
+    supports_add = True
+    try:
+        if isinstance(backend, RedisCache):
+            # Cachelib's add uses separate SETNX/EXPIRE calls. A late EXPIRE
+            # must not extend a newer worker's contradictory publication.
+            created = backend._write_client.set(  # pylint: disable=protected-access
+                f"{backend._get_prefix()}{cache_key}",  # pylint: disable=protected-access
+                backend.serializer.dumps(value),
+                nx=True,
+                ex=timeout,
+            )
+        else:
+            created = cache_manager.cache.add(cache_key, value, timeout=timeout)
+        if created:
+            return schema
+    except (AttributeError, NotImplementedError):
+        supports_add = False
+    shared_value = cache_manager.cache.get(cache_key)
+    if shared_value is None and supports_add:
+        return None
+    shared = _decode_default_schema_discovery(shared_value)
+    if shared is not None and shared[1] >= discovered_at:
+        if shared[0] != schema:
+            # A stale worker must neither replace nor extend newer discovery.
+            return shared[0]
+        value["discovered_at"] = shared[1]
+    return (
+        schema
+        if _replace_default_schema(cache_key, value, shared_value, timeout)
+        else None
+    )
+
+
+def _publish_default_schema_if_due(engine: Engine, cache_key: str, schema: str) -> None:
+    """
+    Publish or renew shared discovery when the engine's interval has elapsed.
+
+    A failed publication is retried after a short backoff. Cache I/O runs outside the
+    process-wide lock; concurrent lookups skip it while one attempt is in flight.
+    """
+    discovered_at = _record_default_schema_discovery(engine, schema)
+    with _DEFAULT_SCHEMA_CACHE_LOCK:
+        timestamp = monotonic()
+        due_at = _DEFAULT_SCHEMA_NEXT_PUBLISH_AT.get(engine)
+        if due_at is not None and timestamp < due_at:
+            return
+        _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = (
+            timestamp + _DEFAULT_SCHEMA_RETRY_INTERVAL
+        )
+
+    def publish() -> None:
+        """Complete publication and backoff bookkeeping outside the request."""
+        interval: float = _DEFAULT_SCHEMA_RETRY_INTERVAL
+        try:
+            published_schema = _publish_default_schema(
+                cache_key, schema, discovered_at, _DEFAULT_SCHEMA_CACHE_TIMEOUT
+            )
+            if published_schema is not None:
+                interval = _DEFAULT_SCHEMA_CACHE_TIMEOUT / 2
+                with _DEFAULT_SCHEMA_CACHE_IO_CONDITION:
+                    pending = _DEFAULT_SCHEMA_CACHE_FLIGHTS.get(cache_key)
+                    if pending is not None and pending.completed.is_set():
+                        # Do not let a retained late read contradict this publication.
+                        pending.result = published_schema
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Unable to write the default schema cache")
+        with _DEFAULT_SCHEMA_CACHE_LOCK:
+            _DEFAULT_SCHEMA_NEXT_PUBLISH_AT[engine] = timestamp + interval
+
+    _run_default_schema_cache_operation(publish, publication_key=cache_key)
 
 
 def _log_embedded_rejection(
@@ -586,11 +903,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         declared label, any other path its last segment. A missing or malformed
         `encrypted_extra` gives an empty dict.
         """
-        try:
-            config = json.loads(self.encrypted_extra or "{}")
-        except (TypeError, json.JSONDecodeError):
-            return {}
-
+        config = self._stored_encrypted_extra()
         spec = self.db_engine_spec
         labels = spec.encrypted_extra_sensitive_field_labels()
         return {
@@ -599,6 +912,40 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 config, spec.encrypted_extra_sensitive_field_paths()
             )
         }
+
+    def stored_secret_expirations(self) -> dict[str, dict[str, Any]]:
+        """
+        Expiry of each JWT stored at a sensitive field of `encrypted_extra`.
+
+        Keyed by concrete path like `stored_sensitive_fields`, as
+        `{"expires_at": <ISO 8601 UTC>, "expired": <bool>}`, read from the token's
+        unverified `exp` claim. Other values, and a missing or malformed
+        `encrypted_extra`, give no entry.
+        """
+        return json.get_sensitive_field_expirations(
+            self._stored_encrypted_extra(),
+            self.db_engine_spec.encrypted_extra_sensitive_field_paths(),
+        )
+
+    def _stored_encrypted_extra(self) -> dict[str, Any]:
+        """
+        `encrypted_extra` parsed as a dict; ``{}`` when missing or malformed.
+
+        The result is kept until the stored value changes, so the callers on one
+        request, such as the connection endpoint, share a single parse.
+        """
+        raw = self.encrypted_extra
+        cached = getattr(self, "_parsed_encrypted_extra", None)
+        if cached is not None and cached[0] == raw:
+            return cached[1]
+        try:
+            parsed = json.loads(raw or "{}")
+        except (TypeError, json.JSONDecodeError):
+            parsed = {}
+        if not isinstance(parsed, dict):
+            parsed = {}
+        self._parsed_encrypted_extra = (raw, parsed)
+        return parsed
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
@@ -967,6 +1314,30 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+        if cacheable:
+            # Private engines' per-call session SQL is not captured by URL or kwargs.
+            # Only reusable engines can share schema discovery. Hash the effective
+            # identity so cache keys and values contain no connection credentials.
+            engine.update_execution_options(
+                superset_engine_identity=cache_util.generate_cache_key(
+                    {
+                        "url": sqlalchemy_url.render_as_string(hide_password=False),
+                        "kwargs": repr(sorted(engine_kwargs.items())),
+                    }
+                )
+            )
+            engine_ref = weakref.ref(engine)
+
+            def record_schema_discovery(
+                dbapi_connection: Any, connection_record: Any
+            ) -> None:
+                """Record discovery even if execution precedes key collection."""
+                if (selected := engine_ref()) is not None:
+                    schema = selected.dialect.default_schema_name
+                    if schema is not None:
+                        _record_default_schema_discovery(selected, schema)
+
+            sqla.event.listen(engine, "connect", record_schema_discovery)
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
         if embedded_fallback:
             self._log_rejected_embedded_credential(engine)
@@ -1093,6 +1464,65 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
+    def get_default_schema_from_engine(self, catalog: str | None) -> str | None:
+        """Read the selected engine's default, discovering it only when unknown.
+
+        An inspector's default_schema_name is the value retained on the dialect,
+        but constructing the inspector checks out a connection. Reusing that
+        value lets cache keys collect their full macro/RLS context offline. This
+        shortcut is reserved for cache-key collection; other schema lookups use
+        the engine spec's inspector policy. Shared discovery survives worker
+        restarts for one hour, scoped to the database, catalog and effective
+        engine identity. Cache failures leave local discovery available.
+        Warm lookups renew shared discovery at most once per half-hour per engine.
+        Only a newer discovery can replace a differing timestamped shared value;
+        discovery times use the workers' wall clocks, which must be synchronized.
+        A failed publication is retried after a short backoff, outside
+        the process-wide lock. Shared-cache reads have independent per-key flights,
+        bounded waits and a process-wide slot limit. Late results survive until expiry;
+        hung operations retain their slots until I/O returns. SSH tunnels do not
+        share discovery because their local connection URLs contain ephemeral ports.
+        Cold-engine discovery retains the inspector's OAuth2 retry policy.
+        """
+
+        @contextmanager
+        def open_schema() -> Iterator[str | None]:
+            """Resolve before yielding so login failures can be retried."""
+            with self.get_sqla_engine(catalog=catalog) as engine:
+                identity = engine.get_execution_options().get(
+                    "superset_engine_identity"
+                )
+                cache_key = (
+                    cache_util.generate_cache_key(
+                        {
+                            "database_id": self.id,
+                            "catalog": catalog,
+                            "engine": identity,
+                        },
+                        key_prefix="database_default_schema:",
+                    )
+                    if self.id is not None
+                    and isinstance(identity, str)
+                    and not self.ssh_tunnel
+                    else None
+                )
+                schema = engine.dialect.default_schema_name
+                if schema is None and cache_key is not None:
+                    cached_schema = _read_default_schema(cache_key)
+                    if cached_schema is not None:
+                        if (reads := _DEFAULT_SCHEMA_CACHE_READS.get()) is not None:
+                            reads.append((engine, cached_schema))
+                        yield cached_schema
+                        return
+                if schema is None:
+                    schema = sqla.inspect(engine).default_schema_name
+                if schema is not None and cache_key is not None:
+                    _publish_default_schema_if_due(engine, cache_key, schema)
+                yield schema
+
+        with self._open_with_oauth2_retry(open_schema) as schema:
+            return schema
+
     def get_search_path(
         self, catalog: str | None, tables: Collection[str] = ()
     ) -> tuple[list[str], dict[str, list[str]]]:
@@ -1136,10 +1566,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         Builds a transient (unsaved) ``Query`` probe so the engine spec resolves
         the schema exactly as execution does -- running engine-specific per-query
-        security gates too -- then expunges it so the ``database`` backref's
-        ``cascade="all, delete-orphan"`` cannot autoflush this incomplete row
-        into the session. Centralizes the probe construction shared by the SQL
-        Lab executor, the cost-estimate command, and datasource denylist checks
+        security gates too. The database relationship is set without backref
+        events: the probe must neither enter the session nor mark the database
+        dirty and evict its cached engines on a later flush. Centralizes the
+        probe construction shared by the SQL Lab executor, the cost-estimate
+        command, and datasource denylist checks
         so the schema-resolution behavior stays in sync across these
         security-sensitive paths.
 
@@ -1152,15 +1583,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         from superset.models.sql_lab import Query
 
         probe_query = Query(
-            database=self,
             sql=sql,
             schema=schema or None,
             catalog=catalog,
             client_id=utils.shortid()[:10],
             user_id=utils.get_user_id(),
         )
-        if probe_query in db.session:
-            db.session.expunge(probe_query)
+        set_committed_value(probe_query, "database", self)
         return self.get_default_schema_for_query(probe_query, template_params)
 
     @staticmethod
@@ -1856,7 +2285,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         label_expected = label or sqla_col.name
         # add quotes to tables
         if self.db_engine_spec.get_allows_alias_in_select(self):
-            label = self.db_engine_spec.make_label_compatible(label_expected)
+            label = self.db_engine_spec.make_label_compatible(label_expected, self)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col

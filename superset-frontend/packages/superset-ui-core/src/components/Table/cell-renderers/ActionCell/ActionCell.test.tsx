@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
-import ActionCell, { appendDataToMenu } from './index';
+import { ActionCell, appendDataToMenu } from './index';
 import { exampleMenuOptions, exampleRow } from './fixtures';
 
 test('renders with default props', async () => {

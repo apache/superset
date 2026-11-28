@@ -99,6 +99,7 @@ class OpenObserveEngineSpec(BaseEngineSpec):
             "OpenObserve is an open-source observability platform for logs, "
             "metrics and traces, queried with SQL."
         ),
+        "logo": "openobserve.svg",
         "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["sqlalchemy-openobserve"],
         "connection_string": (

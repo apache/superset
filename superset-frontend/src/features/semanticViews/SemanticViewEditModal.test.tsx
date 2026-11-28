@@ -91,6 +91,19 @@ beforeEach(() => {
   mockedGet.mockResolvedValue({ json: MOCK_STRUCTURE });
 });
 
+test('exposes the description textarea by its accessible name', async () => {
+  render(<SemanticViewEditModal {...createProps()} />);
+
+  const description = await screen.findByRole('textbox', {
+    name: 'Description',
+  });
+  expect(screen.getByLabelText('Description')).toBe(description);
+  expect(description).toHaveValue('old description');
+  await userEvent.clear(description);
+  await userEvent.type(description, 'Updated description');
+  expect(description).toHaveValue('Updated description');
+});
+
 test('saves semantic view and refreshes list', async () => {
   mockedPut.mockResolvedValue({});
   const props = createProps();

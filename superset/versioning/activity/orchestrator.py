@@ -277,7 +277,8 @@ def get_activity(
     self_start_tx = first_tracked_tx(model_cls, path_id, path_entity.uuid)
     with _phase_timer(kind_key, "relationship_resolution_ms"):
         entity_windows = resolve_scope(path_kind, path_id, include, self_start_tx)
-    if not entity_windows:
+    include_archives = path_kind == "Dashboard" and include in {"all", "related"}
+    if not entity_windows and not include_archives:
         _emit_request_shape_attributes(
             kind_key,
             include=include,
@@ -296,7 +297,16 @@ def get_activity(
     # tombstone probes + impact counts on records the requester
     # can't see (the silent-filter contract).
     with _phase_timer(kind_key, "fetch_ms"):
-        records, truncated = fetch_change_records(entity_windows, since, until)
+        if include_archives:
+            records, truncated = fetch_change_records(
+                entity_windows,
+                since,
+                until,
+                dashboard_id=path_id,
+                dashboard_uuid=path_entity.uuid,
+            )
+        else:
+            records, truncated = fetch_change_records(entity_windows, since, until)
     with _phase_timer(kind_key, "visibility_filter_ms"):
         records = filter_records_by_visibility(records)
     with _phase_timer(kind_key, "denormalize_ms"):

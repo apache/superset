@@ -28,11 +28,14 @@ from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.semantic_layers.errors import SemanticQueryErrorCode
 from superset_core.semantic_layers.types import Dimension
 from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.commands.exceptions import CommandException
 from superset.common.tabular_query import (
     build_query_dict,
@@ -58,13 +61,21 @@ from superset.mcp_service.semantic_layer.schemas import (
     SemanticLayerError,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
+from superset.mcp_service.utils.error_sanitization import sanitize_for_log
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.mcp_service.utils.tool_errors import (
+    contains_provider_fault,
+    public_query_error,
+)
 from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
-from superset.semantic_layers.exceptions import normalize_provider_request_errors
+from superset.semantic_layers.exceptions import (
+    normalize_provider_request_errors,
+    provider_code,
+)
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -207,11 +218,20 @@ def _resolve_external_view(
             error_type="ConfigurationError",
         )
     try:
-        implementation.validate_selection_version(request.semantic_selection_version)
-    except ValueError as ex:
+        with provider_code():
+            implementation.validate_selection_version(
+                request.semantic_selection_version
+            )
+    except ValueError:
         return SemanticLayerError.create(
-            error=str(ex),
+            error=_(
+                "Saved semantic selections use a different identity format. "
+                "Reset the chart selections, explicitly reselect its metrics "
+                "and dimensions, and save the chart. Display titles cannot be "
+                "automatically mapped to member IDs."
+            ),
             error_type="ValidationError",
+            error_code=SemanticQueryErrorCode.INVALID_QUERY.value,
         )
 
     return _resolve_external_view_metadata(request, view)
@@ -247,9 +267,10 @@ def _resolve_external_view_metadata(
             error_type="ValidationError",
         )
 
-    valid_grains: dict[str, dict[str, str]] = _grains_by_column(
-        view.implementation.get_dimensions()
-    )
+    implementation: SemanticViewABC = view.implementation
+    with provider_code():
+        dimensions: set[Dimension] = implementation.get_dimensions()
+    valid_grains: dict[str, dict[str, str]] = _grains_by_column(dimensions)
     grain_column: str | None = request.time_column
     if request.time_grain:
         selected: list[str] = sorted(set(request.dimensions) & valid_dttm_columns)
@@ -525,9 +546,36 @@ async def _run_get_table_query(
     query_duration_ms = int((time.time() - start_time) * 1000)
 
     if result_error := validate_query_result_envelope(result):
+        if result_error.error_type == "InvalidQueryResult":
+            logger.warning(
+                "get_table query failed error_code=%s exc=%s",
+                "INVALID_QUERY_RESULT",
+                "InvalidQueryResult",
+            )
+            return SemanticLayerError.create(
+                error=result_error.error,
+                error_type="InvalidQueryResult",
+                error_code="INVALID_QUERY_RESULT",
+            )
+        error: ChartDataQueryFailedError = ChartDataQueryFailedError(result_error.error)
+        error_code, public_message, error_type = public_query_error(
+            error, semantic=not is_builtin
+        )
+        logger.warning(
+            "get_table query failed error_code=%s exc=%s",
+            error_code,
+            type(error).__name__,
+        )
+        if is_builtin:
+            logger.debug(
+                "get_table query detail: %s", sanitize_for_log(result_error.error)
+            )
+        else:
+            logger.debug("get_table semantic query detail: %s", type(error).__name__)
         return SemanticLayerError.create(
-            error=result_error.error,
-            error_type=result_error.error_type,
+            error=public_message,
+            error_type=error_type,
+            error_code=error_code,
         )
 
     await ctx.report_progress(5, 5, "Formatting results")
@@ -665,34 +713,57 @@ async def _get_table(
 
     except OAuth2RedirectError as exc:
         redirect_msg = build_oauth2_redirect_message(exc)
-        await ctx.error("OAuth2 redirect required: %s" % redirect_msg)
+        error_code: str = exc.error.error_type.value
+        logger.warning(
+            "get_table query failed error_code=%s exc=%s",
+            error_code,
+            type(exc).__name__,
+        )
+        await ctx.error("OAuth2 redirect required")
         return SemanticLayerError.create(
             error=redirect_msg,
             error_type="OAuth2Redirect",
+            error_code=error_code,
         )
 
     except OAuth2Error as exc:
-        error_text = bounded_exception_message(exc)
-        await ctx.error("OAuth2 error: %s" % error_text)
+        error_code, error_text, _error_type = public_query_error(
+            exc, semantic=not is_builtin
+        )
+        logger.warning(
+            "get_table query failed error_code=%s exc=%s",
+            error_code,
+            type(exc).__name__,
+        )
+        logger.debug("get_table query detail: %s", sanitize_for_log(error_text))
+        await ctx.error("OAuth2 error: %s" % error_code)
         return SemanticLayerError.create(
             error=f"OAuth2 authentication error: {error_text}",
             error_type="OAuth2Error",
+            error_code=error_code,
         )
 
-    except (CommandException, SupersetException) as exc:
-        error_text = bounded_exception_message(exc)
-        await ctx.error("Query failed: %s" % error_text)
-        return SemanticLayerError.create(
-            error=f"Query execution failed: {error_text}",
-            error_type="QueryError",
+    except (CommandException, SupersetException, SQLAlchemyError) as exc:
+        error_code, public_message, error_type = public_query_error(
+            exc, semantic=not is_builtin
         )
-
-    except SQLAlchemyError as exc:
-        error_text = bounded_exception_message(exc)
-        await ctx.error("Database error: %s" % error_text)
+        logger.warning(
+            "get_table query failed error_code=%s exc=%s",
+            error_code,
+            type(exc).__name__,
+        )
+        if contains_provider_fault(exc):
+            logger.debug("get_table provider failure: %s", type(exc).__name__)
+        else:
+            logger.debug(
+                "get_table query detail: %s",
+                sanitize_for_log(bounded_exception_message(exc)),
+            )
+        await ctx.error("Query failed: %s" % error_code)
         return SemanticLayerError.create(
-            error=f"Database error: {error_text}",
-            error_type="DatabaseError",
+            error=public_message,
+            error_type=error_type,
+            error_code=error_code,
         )
 
 
@@ -701,6 +772,7 @@ def _semantic_table_internal_error() -> SemanticLayerError:
     return SemanticLayerError.create(
         error="An internal error occurred while querying the semantic table.",
         error_type="InternalError",
+        error_code="GENERIC_BACKEND_ERROR",
     )
 
 

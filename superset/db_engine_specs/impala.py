@@ -79,6 +79,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     # A numeric key does not reveal its bucket size or timezone.
     partition_value_transform_default = None
+    # Impala tables are laid out as partition directories, so mirroring a filter
+    # onto the partition column lets the engine prune them.
+    supports_partition_filter_mapping = True
 
     metadata = {
         "description": (
@@ -102,7 +105,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         TimeGrain.MINUTE: "TRUNC({col}, 'MI')",
         TimeGrain.HOUR: "TRUNC({col}, 'HH')",
         TimeGrain.DAY: "TRUNC({col}, 'DD')",
-        TimeGrain.WEEK: "TRUNC({col}, 'WW')",
+        TimeGrain.WEEK: "TRUNC({col}, 'D')",
         TimeGrain.MONTH: "TRUNC({col}, 'MONTH')",
         TimeGrain.QUARTER: "TRUNC({col}, 'Q')",
         TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",

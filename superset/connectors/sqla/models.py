@@ -71,17 +71,19 @@ from sqlalchemy.types import JSON
 from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
+from superset.charts.query_mode import is_tree_query_mode
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    contains_jinja,
     declares_array_type,
     epoch_mapping_refusal,
     equality_mirrors_safely,
-    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
     known_mirror_verdict,
     mirrorable_operators,
     MirrorVerdictScope,
+    partition_mapping_supported,
     raw_instant_refusal,
     resolve_partition_mapping,
     value_round_trips,
@@ -92,7 +94,11 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.constants import EPOCH_FORMATS
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    reuse_discovered_default_schema,
+    TimestampExpression,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -332,6 +338,42 @@ def _physical_display_column(reference: dict[str, Any]) -> str | None:
         and reference.get("sqlExpression") == label
     ):
         return label
+    return None
+
+
+def _column_param_name(column_: Any) -> str | None:
+    """Return the column name a ``COLUMN_FORM_DATA_PARAMS`` entry refers to.
+
+    Entries are not uniformly shaped. Most params hold plain column names or
+    adhoc-column dicts, but ``order_by_cols`` holds ``[column, ascending]``
+    pairs -- canonically JSON *strings* (``'["col", false]'``), though older
+    writers persisted them as real lists. A raw list reaching ``set.update()``
+    raises ``TypeError: unhashable type: 'list'`` and 500s
+    ``GET /api/v1/dashboard/<id>/datasets``, which leaves the whole dashboard
+    without datasource metadata. Mirror the tolerance that
+    ``superset.common.form_data_query_context`` already applies: accept the
+    pair in either encoding and take the column half, which may itself be an
+    adhoc column. A string that is not valid JSON is a plain column name
+    (bracketed names such as ``[Revenue]`` are legal). Any other shape yields
+    ``None`` and is skipped rather than crashing the request.
+    """
+    if utils.is_adhoc_column(column_):
+        return utils.get_column_name(column_)
+    if isinstance(column_, str):
+        # A JSON-encoded ``[column, ascending]`` pair, or a plain column name.
+        if column_.startswith("["):
+            try:
+                parsed = json.loads(column_)
+            except (TypeError, ValueError):
+                return column_
+            return (
+                _column_param_name(parsed[0])
+                if parsed and isinstance(parsed, list)
+                else None
+            )
+        return column_
+    if isinstance(column_, (list, tuple)):
+        return _column_param_name(column_[0]) if column_ else None
     return None
 
 
@@ -805,6 +847,12 @@ class BaseDatasource(
         form_data: dict[str, Any], viz_type: str | None
     ) -> dict[str, Any]:
         """Exclude table controls retained while their query mode is hidden."""
+        if is_tree_query_mode({**form_data, "viz_type": viz_type}):
+            return (
+                {"columns": form_data["tree_columns"]}
+                if "tree_columns" in form_data
+                else {}
+            )
         if viz_type not in ("table", "ag-grid-table", "handlebars"):
             return form_data
         mode = form_data.get("query_mode")
@@ -939,22 +987,35 @@ class BaseDatasource(
                 column_names.update(query_context_column_names)
             else:
                 _columns = [
-                    (
-                        utils.get_column_name(column_)
-                        if utils.is_adhoc_column(column_)
-                        else column_
-                    )
+                    name
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column_ in utils.as_list(form_data.get(column_param) or [])
+                    if (name := _column_param_name(column_)) is not None
                 ]
                 column_names.update(_columns)
 
             # Full-access metadata retains hidden controls and query-only
             # dependencies. Only saved display controls supply authored labels.
-            display_columns, display_metrics = self._form_display_references(
-                form_data,
-                slc.viz_type or self._saved_display_form_data(slc).get("viz_type"),
+            viz_type = slc.viz_type or self._saved_display_form_data(slc).get(
+                "viz_type"
             )
+            display_columns, display_metrics = self._form_display_references(
+                form_data, viz_type
+            )
+            if is_tree_query_mode({**form_data, "viz_type": viz_type}):
+                tree_columns, _ = self._slice_display_references(slc)
+                display_columns.extend(tree_columns)
+                # API-created charts can omit mirrors, but child queries still
+                # need the storage formats of their IDs and links.
+                levels = form_data.get("levels")
+                if isinstance(levels, list):
+                    column_names.update(
+                        level[field]
+                        for level in levels
+                        if isinstance(level, dict)
+                        for field in ("id_column", "parent_column")
+                        if isinstance(level.get(field), str)
+                    )
             for references in (display_columns, display_metrics):
                 for reference in references:
                     if isinstance(reference, dict) and (
@@ -1441,7 +1502,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
         Historically a TableColumn object (from an ORM perspective) was tightly bound to
         a SqlaTable object, however with the introduction of the Query datasource this
-        is no longer true, i.e., the SqlaTable relationship is optional.
+        is no longer true, i.e., the SqlaTable relationship is optional. Tableless
+        Query columns retain exact result-set names, just like virtual dataset columns.
 
         Now the TableColumn is either directly associated with the Database object (
         which is unknown to the ORM) or indirectly via the SqlaTable object (courtesy of
@@ -1600,11 +1662,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             # surrounding operator precedence (e.g. COUNT(DISTINCT ...)).
             col = Grouping(literal_column(expression, type_=type_))
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            col = column(identifier, type_=type_)
         col = self.database.make_sqla_column_compatible(col, label)
         return col
 
@@ -1638,11 +1702,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            sqla_col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            sqla_col = column(identifier, type_=type_)
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
@@ -1683,11 +1749,13 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
-            identifier = db_engine_spec.prepare_identifier(
-                cast(str, self.column_name),
-                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            col = column(
+                db_engine_spec.prepare_identifier(
+                    cast(str, self.column_name),
+                    exact_case=not self.table or self.table.is_virtual,
+                ),
+                type_=type_,
             )
-            col = column(identifier, type_=type_)
         if (
             apply_dataset_offset
             and time_grain
@@ -2280,6 +2348,19 @@ class SqlaTable(
         return self.partition_filter_mapping_summary
 
     @property
+    def supports_partition_filter_mapping(self) -> bool:
+        """
+        Whether the editor should offer partition filter mapping for this dataset.
+
+        A structural property of the engine, not of the dataset: mirroring a
+        filter onto a partition column only prunes work on engines whose tables
+        are laid out as partition directories (Hive-family). The editor reads it
+        off the dataset payload so the dropdown never appears on an engine where
+        the concept does not exist.
+        """
+        return self.db_engine_spec.supports_partition_filter_mapping
+
+    @property
     def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
         """
         Self-contained summary of the mapping for the Explore indicator.
@@ -2306,20 +2387,20 @@ class SqlaTable(
         type bail-out is not part of that verdict, so it is checked here as
         `resolve_partition_mapping` checks it.
 
-        Gated on the feature flag for the same reason `resolve_partition_mapping`
-        is: with the flag off nothing is mirrored, so reporting an active mapping
-        would have the Explore indicator promise a predicate the query never
-        carries.
+        Gated by `partition_mapping_supported`, the same check
+        `resolve_partition_mapping` makes: with the flag off, or on an engine
+        that does not support partition filter mapping, nothing is mirrored, so
+        reporting an active mapping would have the Explore indicator promise a
+        predicate the query never carries.
         """
-        if not self.partition_column or not is_feature_enabled(
-            PARTITION_FILTER_MAPPING_FLAG
-        ):
+        if not self.partition_column or not partition_mapping_supported(self):
             return None
 
         columns_by_name = {column.column_name: column for column in self.columns}
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
         transform = mapped_column.partition_value_transform if mapped_column else None
+        partition_column = columns_by_name.get(self.partition_column)
         safety_refusal = epoch_mapping_refusal(
             self, mapped_column_name, self.partition_column, transform
         ) or raw_instant_refusal(
@@ -2327,8 +2408,9 @@ class SqlaTable(
         )
         active = bool(
             not safety_refusal
-            and self.partition_column in columns_by_name
-            and not declares_array_type(columns_by_name[self.partition_column].type)
+            and partition_column is not None
+            and not declares_array_type(partition_column.type)
+            and not contains_jinja(partition_column.expression)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
             and is_transform_active(transform, self.database.backend)
@@ -2541,8 +2623,7 @@ class SqlaTable(
             else:
                 sqla_column = column(
                     self.db_engine_spec.prepare_identifier(
-                        column_name,
-                        normalize_columns=bool(self.normalize_columns),
+                        column_name, exact_case=self.is_virtual
                     )
                 )
 
@@ -3253,6 +3334,7 @@ class SqlaTable(
                 return True
         return False
 
+    @reuse_discovered_default_schema()
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         """
         The cache key of a SqlaTable needs to consider any keys added by the parent
@@ -3279,6 +3361,8 @@ class SqlaTable(
             # which the Jinja template processor collects, and the mapping's own
             # identity is appended below. A miss falls through to SQL
             # generation, which probes.
+            # Propagate construction errors without changing the caller's
+            # metadata transaction or looking up a partial macro cache key.
             sqla_query = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 mirror_partition_filters=False,

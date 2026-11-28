@@ -72,7 +72,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ShadowTables:
-    """The four Continuum-managed Table objects the prune walks.
+    """The content shadows and activity tables the prune walks.
 
     Bundled here so the prune helper's signature stays at two arguments
     instead of five. The shape is set once at task entry by
@@ -83,6 +83,7 @@ class ShadowTables:
     child: list[sa.Table]
     m2m: sa.Table | None
     transaction: sa.Table
+    archive_scope: sa.Table | None = None
 
 
 def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
@@ -143,6 +144,11 @@ def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
         child=child_tables,
         m2m=m2m_table,
         transaction=tx_table,
+        archive_scope=(
+            metadata.tables.get("version_chart_archive_scope")
+            if metadata is not None
+            else None
+        ),
     )
 
 
@@ -436,6 +442,24 @@ def _run_prune_pass(
                 else 0
             )
 
+            # Scope rows do not anchor live content. Explicit cleanup also
+            # covers metadata-created schemas without the migration's FK.
+            archive_scope_rows = 0
+            if (
+                tx_ids
+                and tables.archive_scope is not None
+                and sa.inspect(conn).has_table(tables.archive_scope.name)
+            ):
+                for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
+                    archive_scope_rows += (
+                        conn.execute(
+                            sa.delete(tables.archive_scope).where(
+                                tables.archive_scope.c.transaction_id.in_(chunk)
+                            )
+                        ).rowcount
+                        or 0
+                    )
+
             # Drop the version_transaction rows themselves. ON DELETE
             # CASCADE on version_changes.transaction_id removes the
             # associated change records automatically. Same SQLite bind-
@@ -483,6 +507,7 @@ def _run_prune_pass(
         "pruned_parent_shadows": parent_rows,
         "pruned_child_shadows": child_rows,
         "pruned_m2m_shadows": m2m_rows,
+        "pruned_archive_scopes": archive_scope_rows,
     }
 
 
@@ -662,6 +687,7 @@ def _prune_old_versions_impl(
         "pruned_parent_shadows": 0,
         "pruned_child_shadows": 0,
         "pruned_m2m_shadows": 0,
+        "pruned_archive_scopes": 0,
     }
     total_retried: int = 0
     after_id: int = 0

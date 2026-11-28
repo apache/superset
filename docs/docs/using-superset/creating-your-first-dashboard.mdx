@@ -150,6 +150,26 @@ for how the column should be treated in the Explore workflow:
 
 <img src={useBaseUrl('/img/tutorial/tutorial_column_properties.png')} />
 
+#### Snowflake column name casing
+
+For physical Snowflake datasets, Superset uses the dialect's automatic identifier
+quoting, regardless of **Normalize column names**. Lowercase metadata such as
+`species` is referenced unquoted and resolves to Snowflake's uppercase `SPECIES`.
+Uppercase and mixed-case names retain the dialect's quoting. If a physical column
+was created with a case-sensitive lowercase name, use a calculated column with an
+explicitly quoted expression such as `"species"`.
+
+For virtual datasets and SQL Lab query datasources, Superset quotes exact result
+column names in column references, adhoc metric fallbacks, and the `TableColumn`
+timestamp paths (column-based time grains, legacy timeseries, and temporal
+filters). This preserves case-sensitive aliases such as
+`SELECT species AS "species" FROM iris` in those paths.
+
+The Explore x-axis (`BASE_AXIS`) on a SQL Lab `Query` uses a separate path,
+`Query.adhoc_column_to_sqla`, which builds the expression with `literal_column`.
+That path is unchanged from master: a lowercase timestamp expression such as
+`ts` still compiles to unquoted `DATE_TRUNC('MONTH', ts)` for a monthly grain.
+
 ### Superset semantic layer
 
 Superset has a thin semantic layer that adds many quality of life improvements for analysts.
@@ -602,6 +622,10 @@ These menu items respect your permissions: the dashboard export menu only appear
 ### Sharing a Specific Tab
 
 When a dashboard has tabs, each tab gets its own shareable URL. Navigate to the tab you want to share and copy the URL from your browser's address bar — the tab anchor is encoded in the URL so that anyone opening the link lands directly on that tab.
+
+When you return to a dashboard with selected native filters, those values apply to charts
+in each filter's configured scope. A filter scoped to one tab does not apply to charts
+outside that scope.
 
 ### Auto-Refresh
 

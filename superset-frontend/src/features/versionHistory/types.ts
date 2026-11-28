@@ -56,7 +56,7 @@ export interface ActivityRecord {
   changed_by: ActivityChangedBy | null;
   kind: string;
   operation: ActivityOperation;
-  path: Array<string | number>;
+  path: Array<string | number> | null;
   from_value: unknown;
   to_value: unknown;
   summary: string;

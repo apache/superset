@@ -35,6 +35,7 @@ export const DashboardCrossLinks = memo(
         ensureIsArray(dashboards).map((d: ChartLinkedDashboard) => ({
           title: d.dashboard_title,
           id: d.id,
+          archived: d.archived,
         })),
       [dashboards],
     );
