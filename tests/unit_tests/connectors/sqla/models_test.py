@@ -1909,6 +1909,42 @@ def test_data_for_slices_handles_missing_datasource(
     mock_slice.get_query_context.assert_not_called()
 
 
+def test_data_for_slices_keeps_tree_id_and_link_formats_without_mirrors(
+    mocker: MockerFixture,
+) -> None:
+    """Supply storage formats for child queries from API-created Tree charts."""
+    database = mocker.MagicMock()
+    database.id = 1
+    table = SqlaTable(
+        table_name="video_game_sales",
+        database=database,
+        columns=[
+            TableColumn(column_name="platform"),
+            TableColumn(column_name="year", is_dttm=True, python_date_format="%Y"),
+            TableColumn(
+                column_name="year_link", is_dttm=True, python_date_format="%Y%m%d"
+            ),
+        ],
+        metrics=[],
+    )
+    chart = mocker.MagicMock()
+    chart.viz_type = "ag-grid-table"
+    chart.form_data = {
+        "viz_type": "ag-grid-table",
+        "query_mode": "tree",
+        "levels": [
+            {"id_column": "platform"},
+            {"id_column": "year"},
+            {"id_column": "game", "parent_column": "year_link"},
+        ],
+    }
+    chart.query_context = json.dumps({"queries": [{"columns": ["platform"]}]})
+    result = table.data_for_slices([chart])
+    columns = {column["column_name"]: column for column in result["columns"]}
+    assert columns["year"]["python_date_format"] == "%Y"
+    assert columns["year_link"]["python_date_format"] == "%Y%m%d"
+
+
 @pytest.mark.parametrize(
     ("query", "expected"),
     [
