@@ -295,6 +295,46 @@ export default function transformProps(
     sortedYAxisValues.map((value, index) => [value, index]),
   );
 
+  // Heatmap cells are uniformly sized because both axes are categorical and
+  // divide the plot area evenly. Estimate a single cell's footprint so the
+  // in-cell value labels can be shrunk to fit (and hidden when they cannot).
+  // The plot area is approximated from the full chart size; exact margins
+  // (legend, axis labels) aren't known here but the estimate is close enough
+  // to drive font sizing.
+  const numXCategories = sortedXAxisValues.length;
+  const numYCategories = sortedYAxisValues.length;
+  const cellWidth = numXCategories > 0 ? width / numXCategories : width;
+  const cellHeight = numYCategories > 0 ? height / numYCategories : height;
+
+  // Size the value-label font to the widest value so no cell overflows.
+  // Approximate digit width as ~0.6em, clamp to a readable range, and hide
+  // the labels entirely when even the minimum size cannot fit.
+  const VALUE_LABEL_MAX_FONT_SIZE = 12;
+  const VALUE_LABEL_MIN_FONT_SIZE = 6;
+  const VALUE_LABEL_CHAR_WIDTH_RATIO = 0.6;
+  const VALUE_LABEL_PADDING = 4;
+  const longestValueLength = showValues
+    ? data.reduce((longest, row) => {
+        const formatted = valueFormatter(row[metricLabel] as number);
+        return Math.max(longest, formatted.length);
+      }, 0)
+    : 0;
+  const horizontalFitFontSize =
+    longestValueLength > 0
+      ? (cellWidth - VALUE_LABEL_PADDING) /
+        (longestValueLength * VALUE_LABEL_CHAR_WIDTH_RATIO)
+      : VALUE_LABEL_MAX_FONT_SIZE;
+  const verticalFitFontSize = cellHeight - VALUE_LABEL_PADDING;
+  const fittedValueFontSize = Math.floor(
+    Math.min(
+      VALUE_LABEL_MAX_FONT_SIZE,
+      horizontalFitFontSize,
+      verticalFitFontSize,
+    ),
+  );
+  const showValueLabels =
+    showValues && fittedValueFontSize >= VALUE_LABEL_MIN_FONT_SIZE;
+
   const series: HeatmapSeriesOption[] = [
     {
       name: metricLabel,
@@ -333,7 +373,8 @@ export default function transformProps(
         return [[xIndex, yIndex, metricValue]];
       }) as any,
       label: {
-        show: showValues,
+        show: showValueLabels,
+        fontSize: fittedValueFontSize,
         formatter: (params: CallbackDataParams) => {
           const paramsValue = params.value as (string | number)[];
           return valueFormatter(paramsValue?.[2] as number | null | undefined);
@@ -441,6 +482,10 @@ export default function transformProps(
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
         rotate: xAxisLabelRotation,
+        // Drop any labels that still collide after layout. This keeps
+        // narrow dashboard tiles readable, matching the behaviour that
+        // Explore's wider canvas gets from interval skipping alone.
+        hideOverlap: true,
       },
     },
     yAxis: {
@@ -449,6 +494,7 @@ export default function transformProps(
       axisLabel: {
         formatter: yAxisFormatter,
         interval: yscaleInterval === -1 ? 'auto' : yscaleInterval - 1,
+        hideOverlap: true,
       },
     },
   };
