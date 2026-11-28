@@ -28,7 +28,11 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { ensureIsArray } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type CartesianAxisModel from 'echarts/types/src/coord/cartesian/AxisModel';
 
@@ -52,7 +56,7 @@ import {
   SunburstChart,
   CustomChart,
 } from 'echarts/charts';
-import { CanvasRenderer } from 'echarts/renderers';
+import { CanvasRenderer, SVGRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
   TitleComponent,
@@ -98,6 +102,7 @@ const Styles = styled.div<EchartsStylesProps>`
 // eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
   CanvasRenderer,
+  SVGRenderer,
   BarChart,
   BoxplotChart,
   CandlestickChart,
@@ -210,15 +215,25 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
+        // WCAG 1.4.5: when ACCESSIBLE_CHART_RENDERING is enabled, use the
+        // SVG renderer so chart text stays as real text (scalable, recolors
+        // with theme tokens) instead of being rasterized into a canvas
+        // bitmap. Default stays on canvas because SVG can be slower for
+        // very large series; deployments that prioritise a11y opt in via
+        // the feature flag.
+        const renderer = isFeatureEnabled(FeatureFlag.AccessibleChartRendering)
+          ? 'svg'
+          : 'canvas';
         // Pass width and height to init to avoid "Can't get DOM width or height" warning
         // since the DOM element may not have its dimensions yet when init is called
         chartRef.current = init(divRef.current, null, {
           locale,
+          renderer,
           width,
           height,
         });
         // Paint marker for the report-screenshot readiness gate. `finished`
-        // is the only event that guarantees the canvas is fully drawn.
+        // is the only event that guarantees the chart is fully drawn.
         chartRef.current.on('finished', () => {
           divRef.current?.classList.add(ECHARTS_RENDER_FINISHED_CLASS);
         });
