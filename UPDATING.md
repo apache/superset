@@ -129,15 +129,19 @@ assists people when migrating to a new version.
   `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) is recommended, see the
   [websocket server README](superset-websocket/README.md).
 
-- [#39681](https://github.com/apache/superset/issues/39681): Charts whose
-  x-axis is a temporal column take their time bounds only from a
-  `TEMPORAL_RANGE` filter on that x-axis or from the time range; a chart with
-  neither no longer borrows the range of another datetime column. A time range,
-  such as a dashboard Time Range filter, replaces only the `TEMPORAL_RANGE`
-  filter on the chart's time column or x-axis, and is added as a filter on a
-  temporal x-axis that has none; filters on other datetime columns keep their
-  own ranges. Charts with neither a time column nor a temporal x-axis still
-  apply the time range to every `TEMPORAL_RANGE` filter.
+- [#39681](https://github.com/apache/superset/issues/39681): A time range
+  lands on a chart's time column instead of on every `TEMPORAL_RANGE` filter.
+  The time column is the chart's Time Column (granularity) or its x-axis,
+  including the datetime column a Custom SQL x-axis reads; a temporal groupby
+  of a table, pivot table or box plot is not one. A dashboard time range
+  replaces the `TEMPORAL_RANGE` filter on that column, or else fills the chart's
+  unbounded time filter, or else is added as a filter on a temporal x-axis;
+  filters on other datetime columns keep their own ranges, also in time
+  comparison queries and Drill to Detail. A time x-axis cross-filter's range
+  replaces the ranges on the cross-filtered column only. Without a time range,
+  a chart with a temporal x-axis takes its time bounds only from a filter on
+  that x-axis, no longer from another datetime column. Charts with no known
+  time column still apply a time range to every `TEMPORAL_RANGE` filter.
 
 - Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
 

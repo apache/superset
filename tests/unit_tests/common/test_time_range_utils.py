@@ -134,6 +134,28 @@ def test_time_range_selection_matches_adhoc_filter_column() -> None:
     assert get_time_range_from_filters(None, filters, [axis]) == "2001 : 2002"
 
 
+def test_time_range_selection_matches_the_column_a_custom_sql_axis_reads() -> None:
+    """A Custom SQL x-axis takes the range on the datetime column it reads."""
+    axis: AdhocColumn = {
+        "columnType": "BASE_AXIS",
+        "label": "day",
+        "sqlExpression": 'DATE("created_at")',
+    }
+    filters: list[dict[str, object]] = [
+        {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2000 : 2001"},
+        {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "2001 : 2002"},
+    ]
+    temporal_columns: set[str] = {"ds", "created_at"}
+    assert (
+        get_time_range_from_filters(None, filters, [axis], temporal_columns)
+        == "2001 : 2002"
+    )
+    assert (
+        get_time_range_from_filters(None, filters[:1], [axis], temporal_columns)
+        == NO_TIME_RANGE
+    )
+
+
 def test__get_since_until_from_time_range():
     assert get_since_until_from_time_range(time_range="2001 : 2002") == (
         datetime(2001, 1, 1),

@@ -99,6 +99,7 @@ from superset.common.grouping_sets import (
 )
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
+    get_column_identifiers,
     get_since_until_from_query_object,
     get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
@@ -2252,6 +2253,22 @@ WEEK_GRAINS = (
 )
 
 
+def _carries_compared_range(
+    flt: QueryObjectFilterClause, query_object: QueryObject, temporal_col: str | None
+) -> bool:
+    """Whether a temporal filter holds the range a time comparison replaces.
+
+    That is the time column's range, or the query's time range wherever it was
+    applied. Ranges of other datetime columns hold for every period, as they do
+    in the main query; without a time range, every temporal filter is replaced.
+    """
+    return flt.get("op") == FilterOperator.TEMPORAL_RANGE and (
+        query_object.time_range is None
+        or flt.get("val") == query_object.time_range
+        or temporal_col in get_column_identifiers(flt.get("col"))
+    )
+
+
 class ExploreMixin:  # pylint: disable=too-many-public-methods
     """
     Allows any flask_appbuilder.Model (Query, Table, etc.)
@@ -3573,17 +3590,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # Create a completely new filter list to preserve original filters
                 query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
-                # Remove any existing temporal filters that might conflict
-                query_object_clone.filter = [
-                    flt
-                    for flt in query_object_clone.filter
-                    if not (flt.get("op") == FilterOperator.TEMPORAL_RANGE)
-                ]
-
                 # Determine the temporal column with multiple fallback strategies
                 temporal_col = self._get_temporal_column_for_filter(
                     query_object, x_axis_label
                 )
+
+                # Remove the temporal filters carrying the compared range
+                query_object_clone.filter = [
+                    flt
+                    for flt in query_object_clone.filter
+                    if not _carries_compared_range(flt, query_object, temporal_col)
+                ]
 
                 # Always add a temporal filter for date range offsets
                 if temporal_col:
@@ -3612,14 +3629,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # the temporal filter so we run the query with the correct time range
                 if not dataframe_utils.is_datetime_series(df.get(index)):
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
+                    temporal_col = self._get_temporal_column_for_filter(
+                        query_object, x_axis_label
+                    )
 
                     # Find and update temporal filters
                     for flt in query_object_clone.filter:
-                        if flt.get(
-                            "op"
-                        ) == FilterOperator.TEMPORAL_RANGE and isinstance(
-                            flt.get("val"), str
-                        ):
+                        if _carries_compared_range(
+                            flt, query_object, temporal_col
+                        ) and isinstance(flt.get("val"), str):
                             time_range = cast(str, flt.get("val"))
                             (
                                 new_outer_from_dttm,

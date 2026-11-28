@@ -129,14 +129,17 @@ def _split_samples_form_data(
     """
     Separate the payload keys that describe the request from the query object.
 
-    ``viz_type`` and ``url_params`` belong on the form data: the former drives
-    result handling, the latter is what the ``url_param()`` Jinja macro reads.
+    ``viz_type``, ``x_axis`` and ``url_params`` belong on the form data: the
+    first drives result handling, the second scopes a time range to the chart's
+    time column, the last is what the ``url_param()`` Jinja macro reads.
     """
     form_data: dict[str, Any] = {"dashboardId": dashboard_id} if dashboard_id else {}
     if payload:
         payload = dict(payload)
         if "viz_type" in payload:
             form_data["viz_type"] = payload.pop("viz_type")
+        if (x_axis := payload.pop("x_axis", None)) is not None:
+            form_data["x_axis"] = x_axis
         if url_params := payload.pop("url_params", None):
             form_data["url_params"] = url_params
     return payload, form_data or None

@@ -24,7 +24,11 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.common.utils.time_range_utils import get_column_identifiers
+from superset.common.utils.time_range_utils import (
+    get_axis_temporal_columns,
+    get_column_identifiers,
+    get_temporal_column_names,
+)
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
@@ -35,7 +39,6 @@ from superset.superset_typing import Column
 from superset.utils.core import (
     DatasourceDict,
     DatasourceType,
-    get_base_axis_columns,
     is_adhoc_column,
     QueryObjectFilterClause,
 )
@@ -59,6 +62,11 @@ def _uses_stock_raise_for_access() -> bool:
 
 def create_query_object_factory() -> QueryObjectFactory:
     return QueryObjectFactory(current_app.config, DatasourceDAO())
+
+
+def _is_unbounded(value: object) -> bool:
+    """Whether a temporal filter value sets no range."""
+    return value is None or (isinstance(value, str) and is_no_time_range(value))
 
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
@@ -141,6 +149,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     force_query=force,
                     server_pagination=server_pagination,
                     preserve_null_row_limit=preserve_null_row_limit,
+                    x_axis=(form_data or {}).get("x_axis"),
                     **query_obj,
                 ),
             )
@@ -494,11 +503,14 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     ) -> None:
         """Apply the time range, retaining the source of dashboard overrides.
 
-        The range replaces the ``TEMPORAL_RANGE`` filters on the time column
-        (granularity) or the x-axis, so other datetime columns keep their own
-        ranges. A temporal x-axis without such a filter gets one, unless a time
-        column already carries the range. When neither column is known, every
-        ``TEMPORAL_RANGE`` filter takes the range.
+        A cross-filter's range replaces the ``TEMPORAL_RANGE`` filters on the
+        column it was issued for. Any other range replaces those on the chart's
+        time column (granularity) or x-axis, including a datetime column a
+        Custom SQL x-axis reads, so other datetime columns keep their own
+        ranges. Without such a filter and a time column, the range fills the
+        chart's unbounded ``TEMPORAL_RANGE`` filters, or else a filter added on a
+        temporal x-axis. When no such column is known, every ``TEMPORAL_RANGE``
+        filter takes the range.
         """
         extra_form_data: object = (form_data or {}).get("extra_form_data")
         dashboard_time_override: bool = (
@@ -508,39 +520,53 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         )
         if not query_object.time_range:
             return
-        granularity: object = getattr(query_object, "granularity", None)
-        base_axes: list[Column] = get_base_axis_columns(
-            getattr(query_object, "columns", None)
-        )
-        time_columns: set[str] = {
-            *get_column_identifiers(granularity),
-            *(get_column_identifiers(base_axes[0]) if base_axes else ()),
-        }
         temporal_filters: list[QueryObjectFilterClause] = [
             filter_object
             for filter_object in query_object.filter
             if filter_object["op"] == "TEMPORAL_RANGE"
         ]
+        cross_filter_columns: set[str] = {
+            identifier
+            for filter_object in (
+                extra_form_data.get("filters") or []
+                if isinstance(extra_form_data, dict)
+                else []
+            )
+            if isinstance(filter_object, dict)
+            and filter_object.get("op") == "TEMPORAL_RANGE"
+            and filter_object.get("val") == query_object.time_range
+            for identifier in get_column_identifiers(filter_object.get("col"))
+        }
+        granularity: object = getattr(query_object, "granularity", None)
+        x_axis: object = (form_data or {}).get("x_axis")
+        axis_columns: tuple[str, ...] = get_axis_temporal_columns(
+            x_axis, get_temporal_column_names(datasource)
+        )
+        time_columns: set[str] = cross_filter_columns or {
+            *get_column_identifiers(granularity),
+            *get_column_identifiers(x_axis),
+            *axis_columns,
+        }
         targets: list[QueryObjectFilterClause] = [
             filter_object
             for filter_object in temporal_filters
             if time_columns.intersection(get_column_identifiers(filter_object["col"]))
         ]
-        if not targets and not isinstance(granularity, str):
-            axis_column: object = (
-                cast(dict[str, object], base_axes[0]).get("sqlExpression")
-                if base_axes
-                else None
-            )
-            if datasource is not None and axis_column in {
-                column["column_name"]
-                if isinstance(column, dict)
-                else column.column_name
-                for column in datasource.columns
-                if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
-            }:
+        if (
+            not targets
+            and not cross_filter_columns
+            and not isinstance(granularity, str)
+        ):
+            # An unbounded range is the chart's time filter awaiting a range.
+            if unbounded := [
+                filter_object
+                for filter_object in temporal_filters
+                if _is_unbounded(filter_object.get("val"))
+            ]:
+                targets = unbounded
+            elif len(axis_columns) == 1:
                 axis_filter: QueryObjectFilterClause = {
-                    "col": cast(str, axis_column),
+                    "col": axis_columns[0],
                     "op": "TEMPORAL_RANGE",
                     "val": None,
                 }
@@ -551,10 +577,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             else:
                 targets = temporal_filters
         for filter_object in targets:
-            saved: object = filter_object.get("val")
-            was_unbounded: bool = saved is None or (
-                isinstance(saved, str) and is_no_time_range(saved)
-            )
+            was_unbounded: bool = _is_unbounded(filter_object.get("val"))
             filter_object["val"] = query_object.time_range
             if dashboard_time_override and was_unbounded:
                 filter_object["isExtra"] = True

@@ -17,7 +17,7 @@
 
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
@@ -3771,3 +3771,111 @@ def test_get_query_result_discards_a_result_stopped_mid_statement() -> None:
     mock_datasource.get_query_result.assert_called_once()
     assert result.status == QueryStatus.FAILED
     assert result.df.empty
+
+
+def _captured_offset_filters(
+    processor: QueryContextProcessor,
+    offset: str,
+    column: dict[str, Any] | str,
+    index: pd.Series,
+    filters: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Run one time offset and return the filters of the comparison query."""
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    datasource: Any = processor._qc_datasource
+    label: str = column if isinstance(column, str) else column["label"]
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+        "_get_temporal_column_for_filter",
+        "is_valid_date_range",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        columns=[cast(Any, column)],
+        metrics=["sum__num"],
+        time_range="2024-04-01 : 2024-07-01",
+        time_offsets=[offset],
+        filters=cast(Any, filters),
+    )
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame({label: index, "sum__num": [1.0] * len(index)})
+        result.query = "SELECT 1"
+        return result
+
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
+    )
+    with (
+        patch("superset.models.helpers.feature_flag_manager") as flags,
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as cache_manager,
+        patch.object(datasource, "get_time_grain", return_value=None),
+    ):
+        flags.is_feature_enabled.return_value = True
+        cache_manager.get.return_value = MagicMock(is_loaded=False)
+        datasource.processing_time_offsets(
+            pd.DataFrame({label: index, "sum__num": [1.0] * len(index)}),
+            query_object,
+            None,
+            None,
+            False,
+        )
+    return captured[0]["filter"]
+
+
+_SECONDARY_RANGE: dict[str, Any] = {
+    "col": "created_at",
+    "op": "TEMPORAL_RANGE",
+    "val": "2000-01-01 : 2001-01-01",
+}
+
+
+def test_date_range_offset_keeps_other_datetime_ranges(
+    processor: QueryContextProcessor,
+) -> None:
+    """The comparison replaces the time range only, as the main query applies it."""
+    filters = _captured_offset_filters(
+        processor,
+        "2024-01-01 : 2024-04-01",
+        {"columnType": "BASE_AXIS", "label": "ds", "sqlExpression": "ds"},
+        pd.Series(pd.to_datetime(["2024-04-01", "2024-05-01"])),
+        [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2024-04-01 : 2024-07-01"},
+            dict(_SECONDARY_RANGE),
+        ],
+    )
+    assert [(flt["col"], flt["val"]) for flt in filters] == [
+        ("created_at", "2000-01-01 : 2001-01-01"),
+        ("ds", "2024-01-01 00:00:00 : 2024-04-01 00:00:00"),
+    ]
+
+
+def test_relative_offset_shifts_only_the_time_range(
+    processor: QueryContextProcessor,
+) -> None:
+    """Other datetime ranges are not shifted when the index is not temporal."""
+    filters = _captured_offset_filters(
+        processor,
+        "1 year ago",
+        "country",
+        pd.Series(["a", "b"]),
+        [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2024-04-01 : 2024-07-01"},
+            dict(_SECONDARY_RANGE),
+        ],
+    )
+    assert [(flt["col"], flt["val"]) for flt in filters] == [
+        ("ds", "2023-04-01 00:00:00 : 2023-07-01 00:00:00"),
+        ("created_at", "2000-01-01 : 2001-01-01"),
+    ]

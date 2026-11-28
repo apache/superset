@@ -54,3 +54,21 @@ test('carries the chart url_params so url_param() renders like the chart', () =>
   } as QueryFormData);
   expect(payload?.url_params).toEqual({ tenant: 'zenda' });
 });
+
+test('carries the chart x-axis so the time range lands on it like the chart', () => {
+  const xAxis = { label: 'day', sqlExpression: 'DATE(created_at)' };
+  const payload = getDrillPayload({
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    x_axis: xAxis,
+  } as QueryFormData);
+  expect(payload?.x_axis).toEqual(xAxis);
+});
+
+test('omits the x-axis for charts without one', () => {
+  const payload = getDrillPayload({
+    datasource: '1__table',
+    viz_type: 'table',
+  } as QueryFormData);
+  expect(payload).not.toHaveProperty('x_axis');
+});
