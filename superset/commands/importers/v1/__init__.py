@@ -139,9 +139,17 @@ class ImportModelsCommand(BaseCommand):
                 # Extract detailed error information
                 if hasattr(ex, "messages") and isinstance(ex.messages, dict):
                     for file_name, errors in ex.messages.items():
-                        logger.warning(
-                            "Validation failed for %s: %s", file_name, errors
+                        # The "already exists, pass overwrite=true" check is
+                        # the expected outcome of a user re-importing without
+                        # the flag, not a server-side problem, so it's logged
+                        # at DEBUG; other validation failures (format/schema
+                        # issues) stay at WARNING since they can be bugs.
+                        log = (
+                            logger.debug
+                            if self._is_overwrite_rejection(errors)
+                            else logger.warning
                         )
+                        log("Validation failed for %s: %s", file_name, errors)
                         detailed_errors.append(f"{file_name}: {errors}")
                 else:
                     logger.warning("Import validation error: %s", ex)
@@ -155,6 +163,16 @@ class ImportModelsCommand(BaseCommand):
                     "then retry with the new file."
                 )
             raise CommandInvalidError(message, exceptions)
+
+    @staticmethod
+    def _is_overwrite_rejection(errors: Any) -> bool:
+        """
+        Whether a validation error is the expected "already exists, pass
+        `overwrite=true`" rejection raised by ``_prevent_overwrite_existing_model``,
+        as opposed to a format/schema validation failure.
+        """
+        messages = errors if isinstance(errors, list) else [errors]
+        return any("overwrite=true" in str(message) for message in messages)
 
     def _reused_dependency_uuids(self) -> set[str]:
         """
