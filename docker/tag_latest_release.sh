@@ -140,7 +140,7 @@ TAGS=($(split_string "$LATEST_TAGS" " "))
 compare_result=""
 
 # Iterate through the tags of the latest release
-for tag in "${TAGS[@]}"
+for tag in $(printf '%s\n' "${TAGS[@]}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
 do
   if [[ $tag == "latest" ]]; then
     continue

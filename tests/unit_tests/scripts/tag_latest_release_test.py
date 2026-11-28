@@ -84,3 +84,27 @@ def test_tag_latest_release_reads_every_decoration(tag, expected_output):
 
     assert "The current release with the latest tag is version 2.1.0" in result.stdout
     assert expected_output in result.stdout
+
+
+@pytest.mark.parametrize(
+    "tag, expected_output",
+    [
+        ("2.5.0", "This release tag 2.5.0 is older than the latest."),
+        ("3.0.1", "This release tag 3.0.1 is newer than the latest."),
+        ("3.0.0", "Versions are equal"),
+    ],
+)
+def test_tag_latest_release_compares_against_the_highest_tag(tag, expected_output):
+    """
+    A release commit can carry more than one version tag. Only the highest one
+    describes what `latest` currently points at, so that is the version the
+    candidate is compared against -- comparing against a lower tag as well would
+    let an older release claim to be newer and move `latest` backwards.
+    """
+    result = BashMock.tag_latest_release(
+        tag, latest_tag_list="(tag: latest, tag: 3.0.0, tag: 2.1.0)"
+    )
+
+    assert "The current release with the latest tag is version 3.0.0" in result.stdout
+    assert "version 2.1.0" not in result.stdout
+    assert expected_output in result.stdout
