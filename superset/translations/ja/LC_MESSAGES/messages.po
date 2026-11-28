@@ -133,10 +133,10 @@ msgid " near '%(highlight)s'"
 msgstr "「%(highlight)s」付近"
 
 msgid " to add calculated columns"
-msgstr "計算列を追加する"
+msgstr "計算列を追加"
 
 msgid " to add metrics"
-msgstr "メトリクスを追加する"
+msgstr "メトリクスを追加"
 
 msgid " to check for details."
 msgstr " 詳細を確認してください。"
@@ -268,7 +268,7 @@ msgid ""
 "override, or change the default datetime column."
 msgstr ""
 "%(name)s "
-"はパーティション列であると同時にデフォルトの日時列でもあるため、マッピングが自分自身を指し、無効のままになります。マッピング列のオーバーライドを設定するか、デフォルトの日時列を変更してください。"
+"はパーティション列であると同時に既定の日時列でもあるため、マッピングが自分自身を指し、無効のままになります。マッピング列のオーバーライドを設定するか、既定の日時列を変更してください。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1094,7 +1094,7 @@ msgstr "一時的な状態には TTL が必要です。"
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
-msgstr "バタフライチャートは、中央の軸から左右に伸びる水平バーを使って、カテゴリ間で2つのメトリクスを比較します。"
+msgstr "バタフライチャートは、中央の軸から左右に伸びる水平バーを使って、カテゴリー間で2つのメトリクスを比較します。"
 
 msgid ""
 "A candlestick chart shows opening, closing, high, and low values for each"
@@ -1182,10 +1182,10 @@ msgid ""
 msgstr "このダッシュボードを埋め込むことができるドメイン名のリスト。このフィールドを空のままにすると、任意のドメインからの埋め込みが許可されます。"
 
 msgid "A list of subjects who can alter the chart. Searchable by name."
-msgstr "チャートを変更できるサブジェクトのリスト。名前で検索できます。"
+msgstr "チャートを変更できる対象者のリスト。名前で検索できます。"
 
 msgid "A list of subjects who can view the chart. Searchable by name."
-msgstr "チャートを閲覧できるサブジェクトのリスト。名前で検索できます。"
+msgstr "チャートを閲覧できる対象者のリスト。名前で検索できます。"
 
 msgid "A list of tags that have been applied to this chart."
 msgstr "このチャートに適用されているタグのリスト。"
@@ -1338,7 +1338,7 @@ msgstr "セマンティックビューのプロバイダークエリは、チャ
 msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
-msgstr "Jinjaテンプレート構文を使用してクエリ内で利用可能になるパラメータのセット"
+msgstr "Jinjaテンプレート構文を使用してクエリ内で利用可能になるパラメーターのセット"
 
 #, python-format
 msgid ""
@@ -1422,11 +1422,10 @@ msgid ""
 msgstr ""
 "ウォーターフォールチャートは、正または負の値が順次導入されることによる\n"
 "          累積的な影響を理解するのに役立つ視覚化形式です。\n"
-"          これらの中間値は、時間ベースまたはカテゴリベースで表示できます。"
+"          これらの中間値は、時間ベースまたはカテゴリーベースで表示できます。"
 
-#, fuzzy
 msgid "A-Z"
-msgstr "キー順 (a-z)"
+msgstr "A-Z (昇順)"
 
 msgid "AND"
 msgstr "かつ"
@@ -1522,10 +1521,10 @@ msgid "Add %s view(s)"
 msgstr "%s 個のビューを追加"
 
 msgid "Add BCC Recipients"
-msgstr "BCCの追加"
+msgstr "BCCを追加"
 
 msgid "Add CC Recipients"
-msgstr "CCの追加"
+msgstr "CCを追加"
 
 msgid "Add CSS template"
 msgstr "CSSテンプレートを追加"
@@ -1575,7 +1574,7 @@ msgid "Add a new tab to create SQL Query"
 msgstr "SQLクエリ作成用の新しいタブを追加"
 
 msgid "Add additional custom parameters"
-msgstr "カスタムパラメータを追加"
+msgstr "カスタムパラメーターを追加"
 
 msgid "Add alert"
 msgstr "アラートを追加"
@@ -1790,7 +1789,7 @@ msgid_plural "Added to %s dashboards"
 msgstr[0] "%s 個のダッシュボードに追加済み"
 
 msgid "Additional Parameters"
-msgstr "追加パラメータ"
+msgstr "追加パラメーター"
 
 msgid "Additional fields may be required"
 msgstr "追加のフィールドが必要な場合があります"
@@ -1802,7 +1801,7 @@ msgid "Additional padding for legend."
 msgstr "凡例の追加パディング"
 
 msgid "Additional parameters"
-msgstr "追加パラメータ"
+msgstr "追加パラメーター"
 
 msgid "Additional settings."
 msgstr "詳細設定"
@@ -1923,7 +1922,7 @@ msgid ""
 "always keeps its own aggregation). Overriding a count or a distinct count"
 " sums the counted column instead, which fails outright on a non-numeric "
 "column."
-msgstr "サマリー行に使用する集計方法です。デフォルトでは各メトリクスが独自の集計方法を保持し、合計と平均はサマリー行に限って上書きします。上書きは単純なメトリクスに適用されます(カスタムSQLで作成されたメトリクスは常に独自の集計方法を保持します)。カウントまたは重複を除いたカウントを上書きすると、代わりにカウント対象の列が合計され、数値以外の列ではそのままエラーになります。"
+msgstr "サマリー行に使用する集計方法です。既定では各メトリクスが独自の集計方法を保持し、合計と平均はサマリー行に限って上書きします。上書きは単純なメトリクスに適用されます(カスタムSQLで作成されたメトリクスは常に独自の集計方法を保持します)。カウントまたは重複を除いたカウントを上書きすると、代わりにカウント対象の列が合計され、数値以外の列ではそのままエラーになります。"
 
 msgid "Alert"
 msgstr "アラート"
@@ -2029,8 +2028,6 @@ msgstr "アラートとレポートの設定"
 msgid "Alerts & Reports configuration could not be updated."
 msgstr "アラートとレポートの設定を更新できませんでした。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Alerts & Reports configuration parameters are invalid."
 msgstr "アラートとレポートの設定パラメーターが無効です。"
 
@@ -2217,7 +2214,7 @@ msgstr "時間比較を使用する場合は、期間(開始と終了の両方)�
 msgid ""
 "An engine must be specified when passing individual parameters to a "
 "database."
-msgstr "個別のパラメータをデータベースに渡す際は、エンジンを指定する必要があります。"
+msgstr "個別のパラメーターをデータベースに渡す際は、エンジンを指定する必要があります。"
 
 msgid "An error has occurred"
 msgstr "エラーが発生しました"
@@ -2589,7 +2586,7 @@ msgid "Annotation layer opacity"
 msgstr "注釈レイヤーの不透明度"
 
 msgid "Annotation layer parameters are invalid."
-msgstr "注釈レイヤーパラメータが無効です。"
+msgstr "注釈レイヤーパラメーターが無効です。"
 
 msgid "Annotation layer stroke"
 msgstr "注釈レイヤーの枠線"
@@ -2624,7 +2621,7 @@ msgid "Annotation not found."
 msgstr "注釈が見つかりません。"
 
 msgid "Annotation parameters are invalid."
-msgstr "注釈パラメータが無効です。"
+msgstr "注釈パラメーターが無効です。"
 
 msgid "Annotation source"
 msgstr "注釈ソース"
@@ -2682,10 +2679,8 @@ msgid ""
 "Learn about how to connect a database driver "
 msgstr "SQL Alchemy URI経由の接続を許可するデータベースを追加できます。データベースドライバーの接続方法についての詳細 "
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Application default"
-msgstr "アプリケーションのデフォルト"
+msgstr "アプリケーションの既定"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -2740,7 +2735,7 @@ msgstr "数値列に条件付き書式(色)を適用"
 msgid ""
 "Apply custom CSS to the dashboard. Use class names or element selectors "
 "to target specific components."
-msgstr "ダッシュボードにカスタムCSSを適用します。クラス名や要素セレクタを使用して、特定のコンポーネントを指定できます。"
+msgstr "ダッシュボードにカスタムCSSを適用します。クラス名や要素セレクターを使用して、特定のコンポーネントを指定できます。"
 
 msgid "Apply filters"
 msgstr "フィルターを適用"
@@ -2924,7 +2919,7 @@ msgid "Arrow"
 msgstr "矢印"
 
 msgid "Assign a set of parameters as"
-msgstr "パラメータセットの割り当て先"
+msgstr "パラメーターセットの割り当て先"
 
 msgid "Assist"
 msgstr "アシスト"
@@ -3085,7 +3080,7 @@ msgid "Bar orientation"
 msgstr "棒の向き"
 
 msgid "Base"
-msgstr "ベース"
+msgstr "基本"
 
 msgid "Base exponent"
 msgstr "基本の指数"
@@ -3198,7 +3193,7 @@ msgid ""
 "axes. When left empty, the bounds are dynamically defined based on the "
 "min/max of the data. Note that this feature will only expand the axis "
 "range. It won't narrow the data's extent."
-msgstr "数値型X軸の範囲。時系列軸やカテゴリ軸には適用されません。空のままにすると、データの最小値/最大値に基づいて動的に定義されます。この機能は軸の範囲を広げることはできますが、データの範囲を狭める(トリミングする)ことはできません。"
+msgstr "数値型X軸の範囲。時系列軸やカテゴリー軸には適用されません。空のままにすると、データの最小値/最大値に基づいて動的に定義されます。この機能は軸の範囲を広げることはできますが、データの範囲を狭める(トリミングする)ことはできません。"
 
 msgid ""
 "Bounds for the X-axis. Selected time merges with min/max date of the "
@@ -3247,7 +3242,7 @@ msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
-msgstr "指定したカテゴリごとに系列を分類します。これにより、各カテゴリが全体の値にどのように影響しているかを把握できます。"
+msgstr "指定したカテゴリーごとに系列を分類します。これにより、各カテゴリーが全体の値にどのように影響しているかを把握できます。"
 
 msgid "Bubble Chart"
 msgstr "バブルチャート"
@@ -3540,42 +3535,42 @@ msgid "Catalog"
 msgstr "カタログ"
 
 msgid "Categorical"
-msgstr "カテゴリ"
+msgstr "カテゴリー"
 
 msgid "Categorical Color"
-msgstr "カテゴリ色"
+msgstr "カテゴリー色"
 
 msgid "Categorical palette"
-msgstr "カテゴリパレット"
+msgstr "カテゴリーパレット"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Categories"
-msgstr "カテゴリ"
+msgstr "カテゴリー"
 
 msgid "Categories to group by on the x-axis."
-msgstr "X軸でグループ化するカテゴリ"
+msgstr "X軸でグループ化するカテゴリー"
 
 msgid "Category"
-msgstr "カテゴリ"
+msgstr "カテゴリー"
 
 msgid "Category Name"
-msgstr "カテゴリ名"
+msgstr "カテゴリー名"
 
 msgid "Category and Percentage"
-msgstr "カテゴリと割合 (%)"
+msgstr "カテゴリーと割合 (%)"
 
 msgid "Category and Value"
-msgstr "カテゴリと値"
+msgstr "カテゴリーと値"
 
 msgid "Category name"
-msgstr "カテゴリ名"
+msgstr "カテゴリー名"
 
 msgid "Category of target nodes"
-msgstr "ターゲットノードのカテゴリ"
+msgstr "ターゲットノードのカテゴリー"
 
 msgid "Category, Value and Percentage"
-msgstr "カテゴリ、値、割合 (%)"
+msgstr "カテゴリー、値、割合 (%)"
 
 msgid "Cell Padding"
 msgstr "セルの余白"
@@ -3665,7 +3660,7 @@ msgstr "ディメンション「%s」を変更しました"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed '%s' metric"
-msgstr "指標 '%s' を変更しました"
+msgstr "メトリクス '%s' を変更しました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -3682,10 +3677,8 @@ msgstr "ディメンションを変更しました"
 msgid "Changed a filter"
 msgstr "フィルターを変更しました"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Changed a metric"
-msgstr "指標を変更しました"
+msgstr "メトリクスを変更しました"
 
 msgid "Changed by"
 msgstr "最終更新者"
@@ -3765,7 +3758,7 @@ msgid ""
 "Changing this setting may change the casing for all columns in this "
 "dataset, which may break any existing charts and dashboard filters that "
 "reference the current column names."
-msgstr "この設定を変更すると、このデータセット内のすべての列の大文字・小文字が変わる場合があり、現在の列名を参照している既存のグラフやダッシュボードフィルターが動作しなくなる可能性があります。"
+msgstr "この設定を変更すると、このデータセット内のすべての列の大文字・小文字が変わる場合があり、現在の列名を参照している既存のチャートやダッシュボードフィルターが動作しなくなる可能性があります。"
 
 msgid "Changing this task is forbidden"
 msgstr "このタスクの変更は禁止されています"
@@ -3784,7 +3777,7 @@ msgstr "チャート"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Chart \"%(chart)s\" is used by alerts or reports: %(names)s."
-msgstr "グラフ \"%(chart)s\" はアラートまたはレポートで使用されています: %(names)s。"
+msgstr "チャート \"%(chart)s\" はアラートまたはレポートで使用されています: %(names)s。"
 
 #, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
@@ -3854,10 +3847,8 @@ msgstr "deck.glレイヤーの表示/非表示を制御するチャートカス�
 msgid "Chart customization value is required"
 msgstr "チャートのカスタマイズ値が必要です"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Chart description"
-msgstr "グラフの説明"
+msgstr "チャートの説明"
 
 msgid "Chart does not exist"
 msgstr "チャートが存在しません"
@@ -3886,13 +3877,11 @@ msgstr "チャートが見つかりません"
 msgid "Chart options"
 msgstr "チャート設定"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy
 msgid "Chart orientation"
-msgstr "グラフの向き"
+msgstr "チャートの向き"
 
 msgid "Chart parameters are invalid."
-msgstr "チャートパラメータが無効です。"
+msgstr "チャートパラメーターが無効です。"
 
 msgid "Chart properties"
 msgstr "チャートのプロパティ"
@@ -3900,15 +3889,11 @@ msgstr "チャートのプロパティ"
 msgid "Chart properties updated"
 msgstr "チャートのプロパティを更新しました"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Chart renamed"
-msgstr "グラフの名前を変更しました"
+msgstr "チャートの名前を変更しました"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid "Chart renamed to '%s'"
-msgstr "グラフの名前を '%s' に変更しました"
+msgstr "チャートの名前を '%s' に変更しました"
 
 msgid "Chart size"
 msgstr "チャートサイズ"
@@ -3919,10 +3904,8 @@ msgstr "チャートタイトル"
 msgid "Chart type"
 msgstr "チャート種類"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid "Chart updated: %s"
-msgstr "グラフを更新しました: %s"
+msgstr "チャートを更新しました: %s"
 
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "チャートは保存されましたが、選択したタブに追加できませんでした。"
@@ -3937,8 +3920,8 @@ msgid ""
 "'%(layer_name)s') was not found. Please verify that the chart exists and "
 "is accessible."
 msgstr ""
-"ID %(chart_id)s のグラフ(注釈レイヤー '%(layer_name)s' "
-"から参照)が見つかりませんでした。グラフが存在し、アクセス可能であることを確認してください。"
+"ID %(chart_id)s のチャート(注釈レイヤー '%(layer_name)s' "
+"から参照)が見つかりませんでした。チャートが存在し、アクセス可能であることを確認してください。"
 
 msgid "Charts"
 msgstr "チャート"
@@ -3979,15 +3962,11 @@ msgstr "日付パーティションを強制的に同じ高さにする場合は
 msgid "Check your email"
 msgstr "メールをご確認ください"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Checking charts and dashboards that use this dataset…"
-msgstr "このデータセットを使用しているグラフとダッシュボードを確認しています…"
+msgstr "このデータセットを使用しているチャートとダッシュボードを確認しています…"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Checking for affected charts and dashboards…"
-msgstr "影響を受けるグラフとダッシュボードを確認しています…"
+msgstr "影響を受けるチャートとダッシュボードを確認しています…"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -4111,7 +4090,7 @@ msgstr "バーに対して値を表示する位置を選択してください"
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
 "color based on a categorical color palette"
-msgstr "国をメトリクス値に基づいた濃淡で表示するか、カテゴリパレットに基づいた色を割り当てるかを選択します"
+msgstr "国をメトリクス値に基づいた濃淡で表示するか、カテゴリーパレットに基づいた色を割り当てるかを選択します"
 
 msgid "Choose..."
 msgstr "選択してください..."
@@ -4135,7 +4114,7 @@ msgid "Circle radar shape"
 msgstr "円形レーダー形状"
 
 msgid "Circular"
-msgstr "円形 (Circular)"
+msgstr "円形レイアウト"
 
 msgid ""
 "Classic row-by-column spreadsheet like view of a dataset. Use tables to "
@@ -4334,10 +4313,8 @@ msgstr "データパネルを閉じる"
 msgid "Collapse row"
 msgstr "行を折りたたむ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Collapse rows by default"
-msgstr "デフォルトで行を折りたたむ"
+msgstr "既定で行を折りたたむ"
 
 msgid "Collapse settings"
 msgstr "設定を折りたたむ"
@@ -4405,15 +4382,11 @@ msgstr "カラーフィールドは16進数カラー（#rrggbb）または 'rgb(
 msgid "Color for %s"
 msgstr "%s の色"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Color for bars on the left side of the chart"
-msgstr "グラフの左側のバーの色"
+msgstr "チャートの左側のバーの色"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Color for bars on the right side of the chart"
-msgstr "グラフの右側のバーの色"
+msgstr "チャートの右側のバーの色"
 
 msgid "Color for breakpoint"
 msgstr "境界点の色"
@@ -4599,10 +4572,8 @@ msgstr "読み込む列"
 msgid "Columns to show in the tooltip."
 msgstr "ツールチップに表示する列"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Columns viewers can choose to group charts by."
-msgstr "閲覧者がグラフのグループ化に選択できる列。"
+msgstr "閲覧者がチャートのグループ化に選択できる列。"
 
 msgid "Combine metrics"
 msgstr "メトリクスを結合"
@@ -5051,12 +5022,10 @@ msgstr "データベースドライバーを読み込めませんでした"
 msgid "Could not load database driver for: %(engine)s"
 msgstr "%(engine)s 用のデータベースドライバーを読み込めませんでした"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy
 msgid ""
 "Could not load metadata for this configuration; showing the default form."
 " See the server logs for details."
-msgstr "この構成のメタデータを読み込めませんでした。デフォルトのフォームを表示しています。詳細はサーバーログを参照してください。"
+msgstr "この構成のメタデータを読み込めませんでした。既定のフォームを表示しています。詳細はサーバーログを参照してください。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -5502,7 +5471,7 @@ msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr "ダッシュボード [%s] が作成され、チャート [%s] が追加されました"
 
 msgid "Dashboard cannot be copied due to invalid parameters."
-msgstr "パラメータが無効なため、ダッシュボードをコピーできません。"
+msgstr "パラメーターが無効なため、ダッシュボードをコピーできません。"
 
 msgid "Dashboard cannot be favorited."
 msgstr "ダッシュボードをお気に入りに追加できませんでした。"
@@ -5562,7 +5531,7 @@ msgid "Dashboard native filters could not be patched."
 msgstr "ダッシュボードのネイティブフィルターを更新できませんでした。"
 
 msgid "Dashboard parameters are invalid."
-msgstr "ダッシュボードパラメータが無効です。"
+msgstr "ダッシュボードパラメーターが無効です。"
 
 msgid "Dashboard properties"
 msgstr "ダッシュボードのプロパティ"
@@ -5740,7 +5709,7 @@ msgid "Database not found."
 msgstr "データベースが見つかりません。"
 
 msgid "Database parameters are invalid."
-msgstr "データベースパラメータが無効です。"
+msgstr "データベースパラメーターが無効です。"
 
 msgid "Database passwords"
 msgstr "データベースパスワード"
@@ -5827,7 +5796,7 @@ msgid "Dataset name"
 msgstr "データセット名"
 
 msgid "Dataset parameters are invalid."
-msgstr "データセットパラメータが無効です。"
+msgstr "データセットパラメーターが無効です。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -6173,12 +6142,10 @@ msgstr "グループを削除"
 msgid "Delete item"
 msgstr "項目を削除"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
 "Recently Archived and select Delete permanently."
-msgstr "有効なデータセットを削除または移動してください。アーカイブ済みのデータセットを削除するには、「最近アーカイブしたもの」を開き、「完全に削除」を選択してください。"
+msgstr "有効なデータセットを削除または移動してください。アーカイブ済みのデータセットを削除するには、「アーカイブ」を開き、「完全に削除」を選択してください。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -6352,14 +6319,12 @@ msgid ""
 "repoint them before deleting."
 msgstr "%s件の依存アセット（うち%s件はアーカイブ済み）により、削除がブロックされています。削除する前に、それらを削除するか参照先を変更してください。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "Deletion is blocked while any assets depend on the selected semantic "
 "views, including archived assets. Remove or repoint them first. Use "
 "Recently Archived to restore and repoint archived assets, or delete them "
 "permanently, or ask an admin for help."
-msgstr "選択したセマンティックビューに依存するアセットがある間（アーカイブ済みのアセットを含む）、削除はブロックされます。先にそれらを削除するか、参照先を変更してください。「最近アーカイブしたもの」を使用して、アーカイブ済みのアセットを復元して参照先を変更するか、完全に削除するか、管理者にお問い合わせください。"
+msgstr "選択したセマンティックビューに依存するアセットがある間（アーカイブ済みのアセットを含む）、削除はブロックされます。先にそれらを削除するか、参照先を変更してください。「アーカイブ」を使用して、アーカイブ済みのアセットを復元して参照先を変更するか、完全に削除するか、管理者にお問い合わせください。"
 
 msgid "Delimited long & lat single column"
 msgstr "単一の列に区切られた緯度・経度"
@@ -6386,10 +6351,8 @@ msgstr "連動先"
 msgid "Depends on"
 msgstr "依存先"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Deployment default"
-msgstr "デプロイメントのデフォルト"
+msgstr "デプロイメントの既定"
 
 msgid "Description"
 msgstr "説明"
@@ -6482,7 +6445,7 @@ msgstr "Y軸に使用するディメンション"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Dimension used for category labels on the vertical axis"
-msgstr "縦軸のカテゴリラベルに使用するディメンション"
+msgstr "縦軸のカテゴリーラベルに使用するディメンション"
 
 msgid "Dimension values"
 msgstr "ディメンション値"
@@ -6553,7 +6516,7 @@ msgstr "すべて表示"
 msgid ""
 "Display charts on a map. For using this plugin, users first have to "
 "create any other chart that can then be placed on the map."
-msgstr "地図上にグラフを表示します。このプラグインを使用するには、まず地図上に配置できる任意のグラフを作成する必要があります。"
+msgstr "地図上にチャートを表示します。このプラグインを使用するには、まず地図上に配置できる任意のチャートを作成する必要があります。"
 
 msgid "Display column in the chart"
 msgstr "チャートに列を表示"
@@ -6647,7 +6610,7 @@ msgid ""
 " Graph charts can be configured to be force-directed or circulate. If "
 "your data has a geospatial component, try the deck.gl Arc chart."
 msgstr ""
-"エンティティ間のつながりをグラフ構造で表示します。関係性のマッピングやネットワーク内の重要ノードの特定に便利です。力学的レイアウトや円形配置の設定が可能です。地理空間データの場合は、deck.gl"
+"エンティティ間のつながりをグラフ構造で表示します。関係性のマッピングやネットワーク内の重要ノードの特定に便利です。力学レイアウトや円形レイアウトの設定が可能です。地理空間データの場合は、deck.gl"
 " 円グラフも検討してください。"
 
 msgid "Distribute across"
@@ -6662,7 +6625,7 @@ msgstr "区切り線"
 msgid ""
 "Divides each category into subcategories based on the values in the "
 "dimension. It can be used to exclude intersections."
-msgstr "ディメンションの値に基づいて、各カテゴリをさらにサブカテゴリに分割します。共通部分の除外などに利用できます。"
+msgstr "ディメンションの値に基づいて、各カテゴリーをさらにサブカテゴリーに分割します。共通部分の除外などに利用できます。"
 
 msgid "Do you want a donut or a pie?"
 msgstr "ドーナツ型と円型のどちらにしますか？"
@@ -6722,7 +6685,7 @@ msgstr "下書き"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
-msgstr "%s フォルダをドラッグ"
+msgstr "%s フォルダーをドラッグ"
 
 msgid "Drag and drop components and charts to the dashboard"
 msgstr "コンポーネントやチャートをダッシュボードにドラッグ＆ドロップしてください"
@@ -7042,7 +7005,7 @@ msgid "Edit template"
 msgstr "テンプレートを編集"
 
 msgid "Edit template parameters"
-msgstr "テンプレートパラメータを編集"
+msgstr "テンプレートパラメーターを編集"
 
 msgid "Edit the dashboard"
 msgstr "ダッシュボードを編集"
@@ -7072,12 +7035,12 @@ msgid "Editors"
 msgstr "編集者"
 
 msgid "Editors is a list of subjects who can alter the dashboard."
-msgstr "編集者は、ダッシュボードを変更できるサブジェクトのリストです。"
+msgstr "編集者は、ダッシュボードを変更できる対象者のリストです。"
 
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "編集者は、ダッシュボードを変更できるサブジェクトのリストです。名前で検索できます。"
+msgstr "編集者は、ダッシュボードを変更できる対象者のリストです。名前で検索できます。"
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "データベース名が正しくないか、存在しません。"
@@ -7205,7 +7168,7 @@ msgid "Enable forecasting"
 msgstr "予測を有効にする"
 
 msgid "Enable graph roaming"
-msgstr "グラフのローミング(移動)を有効にする"
+msgstr "グラフの移動を有効にする"
 
 msgid "Enable icons"
 msgstr "アイコンを有効にする"
@@ -7278,15 +7241,15 @@ msgstr "で終わる (ILIKE %x)"
 
 #, python-format
 msgid "Engine \"%(engine)s\" cannot be configured through parameters."
-msgstr "エンジン「%(engine)s」はパラメータによる設定に対応していません。"
+msgstr "エンジン「%(engine)s」はパラメーターによる設定に対応していません。"
 
 msgid "Engine Parameters"
-msgstr "エンジンパラメータ"
+msgstr "エンジンパラメーター"
 
 msgid ""
 "Engine spec \"InvalidEngine\" does not support being configured via "
 "individual parameters."
-msgstr "エンジン仕様「InvalidEngine」は、個別のパラメータによる設定をサポートしていません。"
+msgstr "エンジン仕様「InvalidEngine」は、個別のパラメーターによる設定をサポートしていません。"
 
 msgid "Enter CA_BUNDLE"
 msgstr "CA_BUNDLE を入力"
@@ -7605,7 +7568,7 @@ msgid "Exclude selected values"
 msgstr "選択した値を除外"
 
 msgid "Excluded subjects"
-msgstr "除外されたサブジェクト"
+msgstr "除外された対象者"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -7692,7 +7655,7 @@ msgid ""
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
-"エポックからのミリ秒単位の時間パラメータ 'x' を使用した数式を指定してください。数式の評価には mathjs が使用されます。\n"
+"エポックからのミリ秒単位の時間パラメーター 'x' を使用した数式を指定してください。数式の評価には mathjs が使用されます。\n"
 "        例: '2x+5'"
 
 msgid "Experimental"
@@ -7881,7 +7844,7 @@ msgid "Extra Controls"
 msgstr "追加コントロール"
 
 msgid "Extra Parameters"
-msgstr "追加パラメータ"
+msgstr "追加パラメーター"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-brace-format
@@ -7899,15 +7862,15 @@ msgid "Extra field must be a mapping from string keys to values."
 msgstr "追加フィールドは、文字列キーから値へのマッピングである必要があります。"
 
 msgid "Extra parameters for use in jinja templated queries"
-msgstr "Jinjaテンプレートクエリで使用する追加パラメータ"
+msgstr "Jinjaテンプレートクエリで使用する追加パラメーター"
 
 msgid ""
 "Extra parameters that any plugins can choose to set for use in Jinja "
 "templated queries"
-msgstr "Jinjaテンプレートクエリで使用するためにプラグインが設定可能な追加パラメータ"
+msgstr "Jinjaテンプレートクエリで使用するためにプラグインが設定可能な追加パラメーター"
 
 msgid "Extra url parameters for use in Jinja templated queries"
-msgstr "Jinjaテンプレートクエリで使用する追加のURLパラメータ"
+msgstr "Jinjaテンプレートクエリで使用する追加のURLパラメーター"
 
 msgid "Extruded"
 msgstr "押し出し表示"
@@ -7916,7 +7879,7 @@ msgid "FEB"
 msgstr "2月"
 
 msgid "FRI"
-msgstr "金曜日"
+msgstr "金"
 
 msgid "Factor"
 msgstr "係数"
@@ -7925,7 +7888,7 @@ msgid "Factor to multiply the metric by"
 msgstr "メトリクスに乗算する係数"
 
 msgid "Fail login count"
-msgstr "ログイン失敗回数"
+msgstr "サインイン失敗回数"
 
 msgid "Failed"
 msgstr "失敗"
@@ -8523,13 +8486,13 @@ msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
 "filter will be applied to. For base filters, these are the subjects that "
 "the filter DOES NOT apply to, e.g. Admin if admin should see all data."
-msgstr "通常フィルターの場合、これらはフィルターが適用される対象（ユーザー、ロール、グループ）です。基本フィルターの場合、これらはフィルターが適用されない対象です。(例：管理者がすべてのデータを閲覧できるようにする場合のAdminとなります。)"
+msgstr "標準フィルターの場合、これらはフィルターが適用される対象（ユーザー、ロール、グループ）です。基本フィルターの場合、これらはフィルターが適用されない対象です。(例：管理者がすべてのデータを閲覧できるようにする場合のAdminとなります。)"
 
 msgid "Forbidden"
 msgstr "禁止されています"
 
 msgid "Force"
-msgstr "強制"
+msgstr "力学レイアウト"
 
 msgid "Force Time Grain as Max Interval"
 msgstr "時間単位を最大間隔として強制"
@@ -8543,7 +8506,7 @@ msgid ""
 msgstr "SQL Lab でCTASまたはCVASを実行する際、すべてのテーブルおよびビューを強制的にこのスキーマ内に作成します。"
 
 msgid "Force categorical"
-msgstr "強制的にカテゴリ化"
+msgstr "強制的にカテゴリー化"
 
 msgid "Force date format"
 msgstr "日付形式を強制"
@@ -8761,12 +8724,10 @@ msgstr "指定された休日の日付を取得します"
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "単一のデータベース接続で複数のカタログへのアクセスを許可します。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "Go to Recently Archived to restore and repoint archived assets, or delete"
 " them permanently, or ask an admin for help."
-msgstr "「最近アーカイブしたもの」に移動してアーカイブ済みアセットの復元と再関連付けを行うか、完全に削除してください。または管理者にお問い合わせください。"
+msgstr "「アーカイブ」に移動してアーカイブ済みアセットの復元と再関連付けを行うか、完全に削除してください。または管理者にお問い合わせください。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -8789,7 +8750,7 @@ msgid "Grain"
 msgstr "時間粒度"
 
 msgid "Graph Chart"
-msgstr "グラフチャート"
+msgstr "関係グラフ"
 
 msgid "Graph layout"
 msgstr "グラフレイアウト"
@@ -8798,16 +8759,16 @@ msgid "Gravity"
 msgstr "重力"
 
 msgid "Greater Than"
-msgstr "超える (＞)"
+msgstr "超える (>)"
 
 msgid "Greater Than or Equal"
-msgstr "以上 (≧)"
+msgstr "以上 (>=)"
 
 msgid "Greater or equal (>=)"
-msgstr "以上 ≧)"
+msgstr "以上 (>=)"
 
 msgid "Greater than (>)"
-msgstr "超える (＞)"
+msgstr "超える (>)"
 
 msgid "Grid"
 msgstr "グリッド"
@@ -8865,7 +8826,7 @@ msgstr "グループ"
 msgid ""
 "Groups remaining series into an \"Others\" category when series limit is "
 "reached. This prevents incomplete time series data from being displayed."
-msgstr "系列の上限に達した際、残りの系列を「その他」カテゴリにまとめます。これにより、一部の不完全な時系列データが表示されるのを防ぎます。"
+msgstr "系列の上限に達した際、残りの系列を「その他」カテゴリーにまとめます。これにより、一部の不完全な時系列データが表示されるのを防ぎます。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9067,8 +9028,8 @@ msgid ""
 "credentials."
 msgstr ""
 "PrestoまたはTrinoの場合、SQL "
-"Labのすべてのクエリは、現在ログインしているユーザーとして実行されるため、そのユーザーに実行権限が必要です。Hiveでhive.server2.enable.doAsが有効な場合、クエリはサービスアカウントとして実行されますが、hive.server2.proxy.userプロパティを介して現在ログインしているユーザーになりすまします。Databricksの場合、OAuth2を使用して現在ログインしているユーザーとして認証します。SnowflakeまたはGoogle"
-" Sheetsで、データベースにOAuth認証が構成されている場合、クエリは現在ログインしているユーザー自身のOAuth資格情報で実行されます。"
+"Labのすべてのクエリは、現在サインインしているユーザーとして実行されるため、そのユーザーに実行権限が必要です。Hiveでhive.server2.enable.doAsが有効な場合、クエリはサービスアカウントとして実行されますが、hive.server2.proxy.userプロパティを介して現在サインインしているユーザーになりすまします。Databricksの場合、OAuth2を使用して現在サインインしているユーザーとして認証します。SnowflakeまたはGoogle"
+" Sheetsで、データベースにOAuth認証が構成されている場合、クエリは現在サインインしているユーザー自身のOAuth資格情報で実行されます。"
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "メトリクスを指定した場合、その値に基づいて並べ替えされます"
@@ -9079,7 +9040,7 @@ msgid ""
 "If an account exists for that email address, a link to reset your "
 "password has been sent to it. If no email arrives, check your spam folder"
 " or contact your administrator."
-msgstr "そのメールアドレスのアカウントが存在する場合、パスワードをリセットするためのリンクが送信されています。メールが届かない場合は、迷惑メールフォルダを確認するか、管理者にお問い合わせください。"
+msgstr "そのメールアドレスのアカウントが存在する場合、パスワードをリセットするためのリンクが送信されています。メールが届かない場合は、迷惑メールフォルダーを確認するか、管理者にお問い合わせください。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9140,7 +9101,7 @@ msgid ""
 "Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, "
 "Snowflake and Google Sheets)"
 msgstr ""
-"ログイン中のユーザーになりすます (Presto、Trino、Drill、Hive、Databricks、Snowflake、Google "
+"サインイン中のユーザーになりすます (Presto、Trino、Drill、Hive、Databricks、Snowflake、Google "
 "Sheets)"
 
 msgid "Import"
@@ -9153,10 +9114,8 @@ msgstr "%s をインポート"
 msgid "Import Error"
 msgstr "インポートエラー"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Import annotation layer failed for an unknown reason"
-msgstr "不明な理由により、アノテーションレイヤーのインポートに失敗しました"
+msgstr "不明な理由により、注釈レイヤーのインポートに失敗しました"
 
 msgid "Import chart failed for an unknown reason"
 msgstr "不明な理由でチャートのインポートに失敗しました"
@@ -9220,7 +9179,7 @@ msgid "Include Series"
 msgstr "系列を含める"
 
 msgid "Include Template Parameters"
-msgstr "テンプレートパラメータを含める"
+msgstr "テンプレートパラメーターを含める"
 
 msgid "Include a description that will be sent with your report"
 msgstr "レポートと一緒に送信する説明文を含める"
@@ -9547,7 +9506,7 @@ msgstr "無効なタブID: %(tab_ids)s"
 # Machine-translated via backfill_po.py (gemma4-26b) [no refs]
 #, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr "カラム %(column)s の時間フィルタの値が無効です"
+msgstr "カラム %(column)s の時間フィルターの値が無効です"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -9843,7 +9802,7 @@ msgid "Last day"
 msgstr "最終日"
 
 msgid "Last login"
-msgstr "最終ログイン"
+msgstr "最終サインイン"
 
 msgid "Last modified"
 msgstr "最終更新日"
@@ -9943,12 +9902,10 @@ msgid ""
 "groupable column, including columns added to the dataset later."
 msgstr "空のままにするか、すべての列を選択したままにすると、ビューアは、後からデータセットに追加された列を含め、グループ化可能な任意の列でグループ化できます。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
-msgstr "このダッシュボードで非同期読み込みを強制的にオンまたはオフにする必要がない限り、デプロイメントのデフォルトのままにしてください。"
+msgstr "このダッシュボードで非同期読み込みを強制的にオンまたはオフにする必要がない限り、デプロイメントの既定のままにしてください。"
 
 msgid "Left"
 msgstr "左"
@@ -10052,16 +10009,16 @@ msgid "Length less than (<)"
 msgstr "長さが小さい (<)"
 
 msgid "Less Than"
-msgstr "未満 (＜)"
+msgstr "未満 (<)"
 
 msgid "Less Than or Equal"
-msgstr "以下 (≦)"
+msgstr "以下 (<=)"
 
 msgid "Less or equal (<=)"
-msgstr "以下 (≦)"
+msgstr "以下 (<=)"
 
 msgid "Less than (<)"
-msgstr "未満 (＜)"
+msgstr "未満 (<)"
 
 msgid "Liberty (OpenFreeMap)"
 msgstr "Liberty (OpenFreeMap)"
@@ -10144,7 +10101,7 @@ msgid ""
 " Line chart is a type of chart which displays information as a series of "
 "data points connected by straight line segments. It is a basic type of "
 "chart common in many fields."
-msgstr "折れ線グラフは、特定のカテゴリにわたる測定値を視覚化するために使用されます。データポイントを直線で結んで情報を表示する、あらゆる分野で一般的に使われる基本的なチャート形式です。"
+msgstr "折れ線グラフは、特定のカテゴリーにわたる測定値を視覚化するために使用されます。データポイントを直線で結んで情報を表示する、あらゆる分野で一般的に使われる基本的なチャート形式です。"
 
 msgid "Line charts on a map"
 msgstr "地図上の折れ線グラフ"
@@ -10314,16 +10271,16 @@ msgid "Logarithmic y-axis"
 msgstr "対数Y軸"
 
 msgid "Login"
-msgstr "ログイン"
+msgstr "サインイン"
 
 msgid "Login count"
-msgstr "ログイン回数"
+msgstr "サインイン回数"
 
 msgid "Login with"
 msgstr "次を使用してログイン"
 
 msgid "Logout"
-msgstr "ログアウト"
+msgstr "サインアウト"
 
 msgid "Logs"
 msgstr "ログ"
@@ -10404,7 +10361,7 @@ msgid ""
 msgstr "コントロールが正しく設定されており、データソースに選択した期間のデータが含まれていることを確認してください"
 
 msgid "Make the x-axis categorical"
-msgstr "X軸をカテゴリ型にする"
+msgstr "X軸をカテゴリー型にする"
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -10686,7 +10643,7 @@ msgid "Metadata"
 msgstr "メタデータ"
 
 msgid "Metadata Parameters"
-msgstr "メタデータパラメータ"
+msgstr "メタデータパラメーター"
 
 msgid "Metadata has been synced"
 msgstr "メタデータの同期が完了しました"
@@ -10950,10 +10907,10 @@ msgid "Missing OAuth2 token"
 msgstr "OAuth2トークンがありません"
 
 msgid "Missing URL parameter"
-msgstr "URLパラメータがありません"
+msgstr "URLパラメーターがありません"
 
 msgid "Missing URL parameters"
-msgstr "URLパラメータがありません"
+msgstr "URLパラメーターがありません"
 
 msgid "Mixed Chart"
 msgstr "混合チャート"
@@ -11621,10 +11578,8 @@ msgstr "列名を正規化する"
 msgid "Normalized"
 msgstr "正規化済み"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Normally the default datetime column, but none is set on this dataset."
-msgstr "通常はデフォルトの日時列ですが、このデータセットには設定されていません。"
+msgstr "通常は既定の日時列ですが、このデータセットには設定されていません。"
 
 msgid "Not Contains"
 msgstr "含まない"
@@ -11928,16 +11883,16 @@ msgstr "1つ以上のメトリクスが存在しません"
 
 #, python-format
 msgid "One or more parameters are missing: %(missing)s"
-msgstr "1つ以上のパラメータが不足しています：%(missing)s"
+msgstr "1つ以上のパラメーターが不足しています：%(missing)s"
 
 msgid "One or more parameters needed to configure a database are missing."
-msgstr "データベース設定に必要な1つ以上のパラメータが不足しています。"
+msgstr "データベース設定に必要な1つ以上のパラメーターが不足しています。"
 
 msgid "One or more parameters specified in the query are malformed."
-msgstr "クエリで指定された1つ以上のパラメータの形式が正しくありません。"
+msgstr "クエリで指定された1つ以上のパラメーターの形式が正しくありません。"
 
 msgid "One or more parameters specified in the query are missing."
-msgstr "クエリで指定された1つ以上のパラメータが不足しています。"
+msgstr "クエリで指定された1つ以上のパラメーターが不足しています。"
 
 msgid "Only Total"
 msgstr "合計のみ"
@@ -11970,7 +11925,7 @@ msgstr "宛先またはそのソースを信頼する場合にのみ続行して
 msgid ""
 "Only show the total value on the stacked chart, and not show on the "
 "selected category"
-msgstr "積み上げチャートにおいて、選択したカテゴリごとの値ではなく合計値のみを表示します"
+msgstr "積み上げチャートにおいて、選択したカテゴリーごとの値ではなく合計値のみを表示します"
 
 msgid "Only single queries supported"
 msgstr "単一のクエリのみをサポートしています"
@@ -12312,16 +12267,16 @@ msgid "Parallel Coordinates"
 msgstr "並行座標"
 
 msgid "Parameter error"
-msgstr "パラメータエラー"
+msgstr "パラメーターエラー"
 
 msgid "Parameters"
-msgstr "パラメータ"
+msgstr "パラメーター"
 
 msgid "Parameters "
-msgstr "パラメータ "
+msgstr "パラメーター "
 
 msgid "Parameters related to the view and perspective on the map"
-msgstr "地図上のビューと視点に関するパラメータ"
+msgstr "地図上のビューと視点に関するパラメーター"
 
 msgid "Parent"
 msgstr "親"
@@ -12524,7 +12479,7 @@ msgid "Physical (table or view)"
 msgstr "物理 (テーブルまたはビュー)"
 
 msgid "Pick a dimension from which categorical colors are defined"
-msgstr "カテゴリ色を定義するためのディメンションを選択"
+msgstr "カテゴリー色を定義するためのディメンションを選択"
 
 msgid "Pick a name to help you identify this database."
 msgstr "データベースを識別するための名前を付けてください。"
@@ -12610,7 +12565,7 @@ msgid ""
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
 "your query again."
 msgstr ""
-"クエリを確認し、すべてのテンプレートパラメータが二重中括弧(例: \"{{ ds "
+"クエリを確認し、すべてのテンプレートパラメーターが二重中括弧(例: \"{{ ds "
 "}}\")で囲まれていることを確認してください。その後、クエリを再実行してください。"
 
 #, python-format
@@ -12629,7 +12584,7 @@ msgid ""
 "Please check your template parameters for syntax errors and make sure "
 "they match across your SQL query and Set Parameters. Then, try running "
 "your query again."
-msgstr "テンプレートパラメータに構文エラーがないか確認し、SQLクエリとパラメータ設定の間で一致していることを確認してください。その後、クエリを再実行してください。"
+msgstr "テンプレートパラメーターに構文エラーがないか確認し、SQLクエリとパラメーター設定の間で一致していることを確認してください。その後、クエリを再実行してください。"
 
 msgid "Please choose a valid value"
 msgstr "有効な値を選択してください"
@@ -13145,10 +13100,8 @@ msgstr ""
 "従来の「時系列 - "
 "変化率」チャートのように、各系列を基準点からの変化率に再基準化します。チャート上の縦の基準線をドラッグして再インデックスできます。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy
 msgid "Recently Archived"
-msgstr "最近アーカイブされた項目"
+msgstr "アーカイブ"
 
 msgid "Recently modified"
 msgstr "更新日が新しい順"
@@ -13267,7 +13220,7 @@ msgid ""
 "referenced in the filter. Base filters apply filters to all queries "
 "except the subjects defined in the filter, and can be used to define what"
 " users can see if no RLS filters within a filter group apply to them."
-msgstr "通常のフィルターは、ユーザーがフィルターで参照されている対象と一致する場合、クエリにWHERE句を追加します。ベースフィルターは、フィルターで定義された対象を除くすべてのクエリにフィルターを適用し、フィルターグループ内のRLSフィルターがユーザーに適用されない場合に、そのユーザーに表示できる内容を定義するために使用できます。"
+msgstr "標準フィルターは、ユーザーがフィルターで参照されている対象と一致する場合、クエリにWHERE句を追加します。基本フィルターは、フィルターで定義された対象を除くすべてのクエリにフィルターを適用し、フィルターグループ内のRLSフィルターがユーザーに適用されない場合に、そのユーザーに表示できる内容を定義するために使用できます。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13519,7 +13472,7 @@ msgid "Report Schedule not found."
 msgstr "レポートスケジュールが見つかりません。"
 
 msgid "Report Schedule parameters are invalid."
-msgstr "レポートスケジュールのパラメータが無効です。"
+msgstr "レポートスケジュールのパラメーターが無効です。"
 
 msgid "Report Schedule reached a working timeout."
 msgstr "レポートスケジュールがタイムアウトに達しました。"
@@ -13914,7 +13867,7 @@ msgstr "ローズ種類"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Rotate category label"
-msgstr "カテゴリラベルを回転"
+msgstr "カテゴリーラベルを回転"
 
 msgid "Rotate x axis label"
 msgstr "X軸ラベルを回転"
@@ -14143,7 +14096,7 @@ msgid "SSH Tunnel"
 msgstr "SSHトンネル"
 
 msgid "SSH Tunnel configuration parameters"
-msgstr "SSHトンネル設定パラメータ"
+msgstr "SSHトンネル設定パラメーター"
 
 msgid "SSH Tunnel could not be deleted."
 msgstr "SSHトンネルを削除できませんでした。"
@@ -14155,7 +14108,7 @@ msgid "SSH Tunnel not found."
 msgstr "SSHトンネルが見つかりません。"
 
 msgid "SSH Tunnel parameters are invalid."
-msgstr "SSHトンネルのパラメータが無効です。"
+msgstr "SSHトンネルのパラメーターが無効です。"
 
 msgid "SSH Tunneling is not enabled"
 msgstr "SSHトンネリングが有効になっていません"
@@ -14340,7 +14293,7 @@ msgid "Saved query not found."
 msgstr "保存済みクエリが見つかりません。"
 
 msgid "Saved query parameters are invalid."
-msgstr "保存済みクエリのパラメータが無効です。"
+msgstr "保存済みクエリのパラメーターが無効です。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14940,7 +14893,7 @@ msgid ""
 " currencies, charts will fall back to neutral numeric formatting."
 msgstr ""
 "USD、EUR、GBP "
-"などの通貨コードが含まれる列を選択してください。これは、「通貨書式を自動検出」が有効になっている場合に、グラフを作成する際に使用されます。この列が設定されていない場合、またはグラフの指標に複数の通貨が含まれている場合、グラフは標準の数値書式に切り替わります。"
+"などの通貨コードが含まれる列を選択してください。これは、「通貨書式を自動検出」が有効になっている場合に、チャートを作成する際に使用されます。この列が設定されていない場合、またはチャートのメトリクスに複数の通貨が含まれている場合、チャートは標準の数値書式に切り替わります。"
 
 msgid "Select the fixed color"
 msgstr "固定色を選択"
@@ -15037,7 +14990,7 @@ msgid "Semantic layer does not exist"
 msgstr "セマンティックレイヤーが存在しません"
 
 msgid "Semantic layer parameters are invalid."
-msgstr "セマンティックレイヤーパラメータが無効です。"
+msgstr "セマンティックレイヤーパラメーターが無効です。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -15073,7 +15026,7 @@ msgid "Semantic view does not exist"
 msgstr "セマンティックビューが存在しません"
 
 msgid "Semantic view parameters are invalid."
-msgstr "セマンティックビューパラメータが無効です。"
+msgstr "セマンティックビューパラメーターが無効です。"
 
 msgid "Semantic view updated"
 msgstr "セマンティックビューが更新されました"
@@ -15215,12 +15168,10 @@ msgstr "自動更新を設定"
 msgid "Set filter mapping"
 msgstr "フィルターマッピングを設定"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "Set from the default datetime column above, so re-pointing that column "
 "moves the mapping with it."
-msgstr "上記のデフォルト日時列から設定されるため、その列を変更すると、マッピングも一緒に移動します。"
+msgstr "上記の既定日時列から設定されるため、その列を変更すると、マッピングも一緒に移動します。"
 
 msgid "Set local theme for testing"
 msgstr "テスト用のローカルテーマを設定"
@@ -15579,13 +15530,13 @@ msgstr "値の表示形式"
 msgid ""
 "Showcases a metric along with a comparison of value, change, and percent "
 "change for a selected time period."
-msgstr "選択した期間における指標と、その値、変化量、および変化率の比較を表示します。"
+msgstr "選択した期間におけるメトリクスと、その値、変化量、および変化率の比較を表示します。"
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
 "call attention to a KPI or the one thing you want your audience to focus "
 "on."
-msgstr "単一のメトリクスを中央に大きく表示します。「ビッグナンバー」は、KPIや視聴者に注目してほしい1つの指標を強調するのに最適です。"
+msgstr "単一のメトリクスを中央に大きく表示します。「ビッグナンバー」は、KPIや視聴者に注目してほしい1つのメトリクスを強調するのに最適です。"
 
 msgid ""
 "Showcases a single number accompanied by a simple line chart, to call "
@@ -15602,7 +15553,7 @@ msgstr "ファネルの進行に伴うメトリクスの変化を示します。
 msgid ""
 "Showcases the flow or link between categories using thickness of chords. "
 "The value and corresponding thickness can be different for each side."
-msgstr "コードの太さを用いて、カテゴリ間のフローやリンクを示します。値とその太さは左右で異なる場合があります。"
+msgstr "コードの太さを用いて、カテゴリー間のフローやリンクを示します。値とその太さは左右で異なる場合があります。"
 
 msgid ""
 "Showcases the progress of a single metric against a given target. The "
@@ -15620,10 +15571,10 @@ msgid "Shows or hides markers for the time series"
 msgstr "時系列データのマーカーを表示または非表示にします"
 
 msgid "Sign in"
-msgstr "ログイン"
+msgstr "サインイン"
 
 msgid "Sign in with"
-msgstr "でログイン"
+msgstr "でサインイン"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15736,10 +15687,8 @@ msgstr "実線"
 msgid "Solid background"
 msgstr "単色の背景"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "Some charts did not finish loading. The export may be incomplete."
-msgstr "一部のグラフの読み込みが完了しませんでした。エクスポートが不完全な可能性があります。"
+msgstr "一部のチャートの読み込みが完了しませんでした。エクスポートが不完全な可能性があります。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15948,7 +15897,7 @@ msgid "Source SQL"
 msgstr "ソースSQL"
 
 msgid "Source category"
-msgstr "ソースカテゴリ"
+msgstr "ソースカテゴリー"
 
 #, fuzzy
 msgid "Source location"
@@ -16052,13 +16001,11 @@ msgstr "開始日を時間範囲に含める"
 msgid "Start field selection"
 msgstr "フィールド選択を開始"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr "現在のメンバーIDを使用してフィールド選択を開始します。既存のフィールド選択、事前フィルター、並べ替え、デフォルト値、依存関係はすべてクリアされます。保存された表示タイトルを自動的に復元することはできません。"
+msgstr "現在のメンバーIDを使用してフィールド選択を開始します。既存のフィールド選択、事前フィルター、並べ替え、既定値、依存関係はすべてクリアされます。保存された表示タイトルを自動的に復元することはできません。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -16192,7 +16139,7 @@ msgid "Styling"
 msgstr "スタイリング"
 
 msgid "Subcategories"
-msgstr "サブカテゴリ"
+msgstr "サブカテゴリー"
 
 msgid "Subdomain"
 msgstr "サブドメイン"
@@ -16202,7 +16149,7 @@ msgid "Subgroup %s"
 msgstr "サブグループ %s"
 
 msgid "Subject"
-msgstr "サブジェクト"
+msgstr "対象者"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -16210,13 +16157,13 @@ msgid "Subject list"
 msgstr "対象リスト"
 
 msgid "Subject type"
-msgstr "サブジェクト種類"
+msgstr "対象者種類"
 
 msgid "Subjects"
-msgstr "サブジェクト"
+msgstr "対象者"
 
 msgid "Subjects are invalid"
-msgstr "サブジェクトが無効です"
+msgstr "対象者が無効です"
 
 msgid "Submit"
 msgstr "送信"
@@ -16505,7 +16452,7 @@ msgid "Tag name is invalid (cannot contain ':')"
 msgstr "タグ名が無効です (「:」は使用できません)"
 
 msgid "Tag parameters are invalid."
-msgstr "タグのパラメータが無効です。"
+msgstr "タグのパラメーターが無効です。"
 
 msgid "Tag updated"
 msgstr "タグを更新しました"
@@ -16521,13 +16468,13 @@ msgid "Tags"
 msgstr "タグ"
 
 msgid "Target"
-msgstr "目標"
+msgstr "ターゲット"
 
 msgid "Target Color"
 msgstr "目標の色"
 
 msgid "Target category"
-msgstr "目標のカテゴリー"
+msgstr "ターゲットカテゴリー"
 
 msgid "Target value"
 msgstr "目標値"
@@ -16559,7 +16506,7 @@ msgid ""
 msgstr "タスクは中止できません。タスクは進行中ですが、中止ハンドラーが登録されていません。"
 
 msgid "Task parameters are invalid."
-msgstr "タスクのパラメータが無効です。"
+msgstr "タスクのパラメーターが無効です。"
 
 msgid "Tasks"
 msgstr "タスク"
@@ -16580,12 +16527,12 @@ msgstr ""
 "{{columnLabel}}"
 
 msgid "Template parameters"
-msgstr "テンプレートパラメータ"
+msgstr "テンプレートパラメーター"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Template parameters must be a valid JSON object."
-msgstr "テンプレートパラメータは有効な JSON オブジェクトである必要があります。"
+msgstr "テンプレートパラメーターは有効な JSON オブジェクトである必要があります。"
 
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -16622,7 +16569,7 @@ msgid ""
 "Provide the real password to test a connection whose destination has "
 "changed."
 msgstr ""
-"この接続をテストすると、保存済みのパスワードを再利用したまま、実際の接続先(エンジンパラメータまたは SSH "
+"この接続をテストすると、保存済みのパスワードを再利用したまま、実際の接続先(エンジンパラメーターまたは SSH "
 "トンネルのエンドポイント)が変更されてしまいます。接続先が変更された接続をテストするには、実際のパスワードを入力してください。"
 
 msgid "Text"
@@ -16759,7 +16706,7 @@ msgstr ""
 "          ノードの高さは視覚化されたメトリクスに対応しており、値の分布と変化を明確に表現します。"
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
-msgstr "URL に dataset_id または slice_id パラメータがありません。"
+msgstr "URL に dataset_id または slice_id パラメーターがありません。"
 
 msgid "The X-axis is not on the filters list"
 msgstr "X軸がフィルターリストに含まれていません"
@@ -16799,7 +16746,7 @@ msgstr "チャートの背景色"
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
-msgstr "色の割り当てに使用されるソースノードのカテゴリ。ノードが複数のカテゴリに関連付けられている場合、最初のカテゴリのみが使用されます。"
+msgstr "色の割り当てに使用されるソースノードのカテゴリー。ノードが複数のカテゴリーに関連付けられている場合、最初のカテゴリーのみが使用されます。"
 
 msgid ""
 "The chart data is too large to download. Please try reducing the date "
@@ -16878,12 +16825,10 @@ msgstr "エッジのターゲット(終点)として使用する列。"
 msgid "The column was deleted or renamed in the database."
 msgstr "データベース内で列が削除されたか、名前が変更されました。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "The column whose filters are mirrored. It follows the default datetime "
 "column unless a different column holds the mapping."
-msgstr "フィルターをミラーリングする列です。別の列がマッピングを保持している場合を除き、デフォルトの日時列に従います。"
+msgstr "フィルターをミラーリングする列です。別の列がマッピングを保持している場合を除き、既定の日時列に従います。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17272,7 +17217,7 @@ msgstr "指定されたデータベースにオブジェクトが存在しませ
 #, python-format
 msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
-msgstr[0] "クエリ内のパラメータ %(parameters)s が定義されていません。"
+msgstr[0] "クエリ内のパラメーター %(parameters)s が定義されていません。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -17426,7 +17371,7 @@ msgid ""
 msgstr "これらの結果に関連付けられたクエリが見つかりませんでした。元のクエリを再実行する必要があります。"
 
 msgid "The query contains one or more malformed template parameters."
-msgstr "クエリに1つ以上の不正なテンプレートパラメータが含まれています。"
+msgstr "クエリに1つ以上の不正なテンプレートパラメーターが含まれています。"
 
 msgid "The query context datasource does not match the chart datasource"
 msgstr "クエリのコンテキストのデータソースが、チャートのデータソースと一致しません"
@@ -17438,7 +17383,7 @@ msgid ""
 "layer '%(layer_name)s') was not found. Please ensure the chart is "
 "properly configured and has a valid query context."
 msgstr ""
-"チャートID %(chart_id)s(アノテーションレイヤー '%(layer_name)s' "
+"チャートID %(chart_id)s(注釈レイヤー '%(layer_name)s' "
 "から参照)のクエリコンテキストが見つかりませんでした。チャートが正しく設定され、有効なクエリコンテキストがあることを確認してください。"
 
 msgid "The query couldn't be loaded"
@@ -17479,10 +17424,8 @@ msgid ""
 "rendered size is this value multiplied by Point Radius Scale."
 msgstr "ポイントフィーチャの半径は以下の単位で指定されたものとなります。最終的にレンダリングされるサイズは、この値に「ポイント半径スケール」を乗じたものになります。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
-#, fuzzy, python-format
 msgid "The remaining %s will be moved to Recently Archived."
-msgstr "残りの %s は「最近アーカイブしたもの」に移動されます。"
+msgstr "残りの %s は「アーカイブ」に移動されます。"
 
 msgid "The report has been created"
 msgstr "レポートを作成しました"
@@ -17835,21 +17778,17 @@ msgstr ""
 msgid "The user was updated successfully"
 msgstr "ユーザーを正常に更新しました"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "The user whose database credentials are used to run the alert condition "
 "query. Defaults to the \"Run as\" user."
-msgstr "アラート条件のクエリを実行する際に、そのデータベース認証情報が使用されるユーザーです。デフォルトは「実行ユーザー」です。"
+msgstr "アラート条件のクエリを実行する際に、そのデータベース認証情報が使用されるユーザーです。既定は「実行ユーザー」です。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid ""
 "The user whose permissions and database credentials are used to render "
 "this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
 "can pick another user."
 msgstr ""
-"この %s のレンダリングに、その権限とデータベース認証情報が使用されるユーザーです。アプリケーションのデフォルトでは "
+"この %s のレンダリングに、その権限とデータベース認証情報が使用されるユーザーです。アプリケーションの既定では "
 "ALERT_REPORTS_EXECUTORS が使用されます。他のユーザーを選択できるのは管理者のみです。"
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
@@ -17960,7 +17899,7 @@ msgstr "テーマが見つかりません。"
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Theme parameters are invalid."
-msgstr "テーマのパラメータが無効です。"
+msgstr "テーマのパラメーターが無効です。"
 
 msgid "Themes"
 msgstr "テーマ"
@@ -18235,29 +18174,23 @@ msgstr "選択したクエリ「%s」のプレビュー中に問題が発生し�
 msgid "There was an issue previewing the selected query. %s"
 msgstr "選択したクエリのプレビュー中に問題が発生しました。 %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
-msgstr "これらの%(type)sは「最近アーカイブ済み」に移動され、次回のクリーンアップ実行時に完全に削除される場合があります。"
+msgstr "これらの%(type)sは「アーカイブ」に移動され、次回のクリーンアップ実行時に完全に削除される場合があります。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived. You can recover them "
 "there within %(days)s day."
 msgid_plural ""
 "These %(type)s will be moved to Recently Archived. You can recover them "
 "there within %(days)s days."
-msgstr[0] "これらの%(type)sは「最近アーカイブ済み」に移動されます。%(days)s日以内であればそこから復元できます。"
+msgstr[0] "これらの%(type)sは「アーカイブ」に移動されます。%(days)s日以内であればそこから復元できます。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived. You can recover them "
 "there."
-msgstr "これらの%(type)sは「最近アーカイブ済み」に移動されます。そこから復元できます。"
+msgstr "これらの%(type)sは「アーカイブ」に移動されます。そこから復元できます。"
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "このフィルターが適用されるデータセットです。"
@@ -18283,29 +18216,23 @@ msgid ""
 "charts unavailable until it is recovered."
 msgstr "この%(type)sは%(charts)sで使用されています。アーカイブすると、復元されるまで依存するチャートが利用できなくなります。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
-msgstr "この%(type)sは「最近アーカイブ済み」に移動され、次回のクリーンアップ実行時に完全に削除される場合があります。"
+msgstr "この%(type)sは「アーカイブ」に移動され、次回のクリーンアップ実行時に完全に削除される場合があります。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived. You can recover it "
 "there within %(days)s day."
 msgid_plural ""
 "This %(type)s will be moved to Recently Archived. You can recover it "
 "there within %(days)s days."
-msgstr[0] "この%(type)sは「最近アーカイブ済み」に移動されます。%(days)s日以内であればそこから復元できます。"
+msgstr[0] "この%(type)sは「アーカイブ」に移動されます。%(days)s日以内であればそこから復元できます。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived. You can recover it "
 "there."
-msgstr "この%(type)sは「最近アーカイブ済み」に移動されます。そこから復元できます。"
+msgstr "この%(type)sは「アーカイブ」に移動されます。そこから復元できます。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18317,7 +18244,7 @@ msgstr "このCSSは@importを使用しているため、保存できません"
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
-msgstr "このGoogleスプレッドシート接続はログイン中のユーザーになりすましますが、そのユーザーにはメールアドレスがありません。"
+msgstr "このGoogleスプレッドシート接続はサインイン中のユーザーになりすましますが、そのユーザーにはメールアドレスがありません。"
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -18325,7 +18252,7 @@ msgid ""
 "and for power users who may want to alter specific parameters."
 msgstr ""
 "この JSON "
-"オブジェクトは、ダッシュボードの保存・上書き時に自動生成されます。参照用、あるいは特定のパラメータを手動で変更したいパワーユーザー向けに公開されています。"
+"オブジェクトは、ダッシュボードの保存・上書き時に自動生成されます。参照用、あるいは特定のパラメーターを手動で変更したいパワーユーザー向けに公開されています。"
 
 #, python-format
 msgid "This action will permanently delete %s."
@@ -18382,7 +18309,7 @@ msgid ""
 "not restore the transform."
 msgstr ""
 "この変更により、%s の値変換が破棄されます。保存すると、%s "
-"に対するフィルタはパーティション列に適用されなくなり、このデータセットのチャートはすべてのパーティションをスキャンしてタイムアウトする可能性があります。%s"
+"に対するフィルターはパーティション列に適用されなくなり、このデータセットのチャートはすべてのパーティションをスキャンしてタイムアウトする可能性があります。%s"
 " を再度選択しても変換は復元されません。"
 
 msgid ""
@@ -18452,10 +18379,8 @@ msgstr "このチャートは、復元された集計を使用するように更
 msgid "This chart will be restored to the following version:"
 msgstr "このチャートは次のバージョンに復元されます:"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "This column holds the mapping instead of the default datetime column."
-msgstr "この列は、デフォルトの日時列の代わりにマッピングを保持します。"
+msgstr "この列は、既定の日時列の代わりにマッピングを保持します。"
 
 #, python-format
 msgid "This column might be incompatible with current %s"
@@ -18511,7 +18436,7 @@ msgid ""
 "This dashboard is not published which means it will not show up in the "
 "list of dashboards. Favorite it to see it there or access it by using the"
 " URL directly."
-msgstr "このダッシュボードは公開されていないため、リストに表示されません。お気に入りに追加するか、URL を直接使用してアクセスしてください。"
+msgstr "このダッシュボードは未公開のため、リストに表示されません。お気に入りに追加するか、URL を直接使用してアクセスしてください。"
 
 msgid ""
 "This dashboard is not published, it will not show up in the list of "
@@ -18590,7 +18515,7 @@ msgid ""
 "This dataset is partitioned. Listing filter values without a time range "
 "reads every partition, so a time range is set by default. Clear it to "
 "list values from all time."
-msgstr "このデータセットはパーティション化されています。時間範囲なしでフィルタ値を一覧表示するとすべてのパーティションが読み込まれるため、デフォルトで時間範囲が設定されています。全期間の値を一覧表示するには、これをクリアしてください。"
+msgstr "このデータセットはパーティション化されています。時間範囲なしでフィルター値を一覧表示するとすべてのパーティションが読み込まれるため、既定で時間範囲が設定されています。全期間の値を一覧表示するには、これをクリアしてください。"
 
 msgid "This defines the element to be plotted on the chart"
 msgstr "チャートにプロットされる要素を定義します"
@@ -18616,7 +18541,7 @@ msgid ""
 "this operator."
 msgstr ""
 "このエンジンは、%(column)s の %(operator)s "
-"値をフィルタが保持する内容よりも少ない範囲で比較するため、パーティション列の述語で代替できる対応が存在しません。この演算子に対応させるには、エンジンが完全に比較する列をマッピングしてください。"
+"値をフィルターが保持する内容よりも少ない範囲で比較するため、パーティション列の述語で代替できる対応が存在しません。この演算子に対応させるには、エンジンが完全に比較する列をマッピングしてください。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
@@ -18646,12 +18571,10 @@ msgstr "このフィルターは既にレポート内に存在します"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
-msgstr "このフィルタは、クエリを高速化するためにパーティション列にも適用されます。生成されたSQLについては「クエリを表示」をご覧ください。"
+msgstr "このフィルターは、クエリを高速化するためにパーティション列にも適用されます。生成されたSQLについては「クエリを表示」をご覧ください。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy
 msgid "This filter isn't applied to any charts yet"
-msgstr "このフィルタはまだどのチャートにも適用されていません"
+msgstr "このフィルターはまだどのチャートにも適用されていません"
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -18690,7 +18613,7 @@ msgid ""
 "the clause `1 = 0` (always false)."
 msgstr ""
 "これは WHERE 句に追加される条件です。例えば特定クライアントのみの行を返す場合、`client_id = 9` と定義します。RLS "
-"フィルタロールに属さない限り何も表示させない場合は、`1 = 0` (常に偽) のベースフィルタを作成できます。"
+"フィルタロールに属さない限り何も表示させない場合は、`1 = 0` (常に偽) の基本フィルターを作成できます。"
 
 msgid "This is the default dark theme"
 msgstr "これは既定のダークテーマです"
@@ -18879,12 +18802,10 @@ msgstr "このテーマはローカルで設定されています"
 msgid "This theme is set locally for your session"
 msgstr "このテーマはこのセッションの間だけローカルに設定されています"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "This theme is the active default/dark theme - only Admins can edit it - "
 "Read Only"
-msgstr "このテーマは現在有効なデフォルト/ダークテーマです - 管理者のみ編集できます - 読み取り専用"
+msgstr "このテーマは現在有効な既定/ダークテーマです - 管理者のみ編集できます - 読み取り専用"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19327,7 +19248,7 @@ msgid "Transpose pivot"
 msgstr "ピボットを転置"
 
 msgid "Treat values as categorical."
-msgstr "値をカテゴリとして扱います。"
+msgstr "値をカテゴリーとして扱います。"
 
 msgid "Tree Chart"
 msgstr "ツリーチャート"
@@ -19404,7 +19325,7 @@ msgstr "長いセルを上記で設定した「最小幅」に合わせて切り
 msgid ""
 "Truncate the metric axis. Can be overridden by specifying a min or max "
 "bound."
-msgstr "指標軸を切り詰めます。最小値または最大値を指定することで上書きできます。"
+msgstr "メトリクス軸を切り詰めます。最小値または最大値を指定することで上書きできます。"
 
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "指定された日付を、指定された単位の精度で切り捨てます。"
@@ -19487,25 +19408,25 @@ msgid "Type to search all of them."
 msgstr "入力してすべてを検索します。"
 
 msgid "UI Configuration"
-msgstr "UI 設定"
+msgstr "UI設定"
 
 msgid "UI theme administration is not enabled."
-msgstr "UI テーマ管理が有効になっていません。"
+msgstr "UIテーマ管理が有効になっていません。"
 
 msgid "URL"
 msgstr "URL"
 
 msgid "URL Filters"
-msgstr "URL フィルター"
+msgstr "URLフィルター"
 
 msgid "URL Parameters"
-msgstr "URL パラメータ"
+msgstr "URLパラメーター"
 
 msgid "URL Slug"
 msgstr "URLスラッグ"
 
 msgid "URL parameters"
-msgstr "URLパラメータ"
+msgstr "URLパラメーター"
 
 msgid "UUID to track the execution status"
 msgstr "実行状況を追跡するためのUUID"
@@ -19569,7 +19490,7 @@ msgstr ""
 "Datastore Creator」のロールが設定されていることを確認してください。"
 
 msgid "Unable to create chart without a query id."
-msgstr "クエリ ID がないためチャートを作成できません。"
+msgstr "クエリIDがないためチャートを作成できません。"
 
 msgid ""
 "Unable to create report: User email address is required but not found. "
@@ -20016,7 +19937,7 @@ msgid ""
 "results — e.g. the median of a set of per-store averages. Query limits "
 "apply before a result aggregation runs."
 msgstr ""
-"セルと集計には各メトリクス自身の定義を使用する (SIP-216 以降のデフォルト) "
+"セルと集計には各メトリクス自身の定義を使用する (SIP-216 以降の既定) "
 "か、メトリクス自身のグループ化された結果に対して再度集計します (例: "
 "店舗ごとの平均値のセットの中央値)。クエリの制限は、結果の集計が実行される前に適用されます。"
 
@@ -20273,7 +20194,7 @@ msgid "Values dependent on"
 msgstr "依存先の値"
 
 msgid "Values less than this percentage will be grouped into the Other category."
-msgstr "このパーセンテージ未満の値は「その他」カテゴリにまとめられます。"
+msgstr "このパーセンテージ未満の値は「その他」カテゴリーにまとめられます。"
 
 msgid ""
 "Values selected in other filters will affect the filter options to only "
@@ -20322,10 +20243,8 @@ msgstr "すべてのチャートを表示"
 msgid "View as table"
 msgstr "テーブルとして表示"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "View in Recently Archived →"
-msgstr "「最近アーカイブされたもの」で表示 →"
+msgstr "「アーカイブ」で表示 →"
 
 msgid "View in SQL Lab"
 msgstr "SQL Lab で表示"
@@ -20358,7 +20277,7 @@ msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
-msgstr "閲覧者は、ダッシュボードを閲覧できるサブジェクトのリストです。閲覧者が定義されていない場合、適切なデータソース権限を持つすべてのユーザーがダッシュボードにアクセスできます。"
+msgstr "閲覧者は、ダッシュボードを閲覧できる対象者のリストです。閲覧者が定義されていない場合、適切なデータソース権限を持つすべてのユーザーがダッシュボードにアクセスできます。"
 
 msgid "Viewport"
 msgstr "ビューポート"
@@ -20658,7 +20577,7 @@ msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr "有効にすると、SQL Lab の結果を「探索」画面で視覚化できるようになります。"
 
 msgid "When only a primary metric is provided, a categorical color scale is used."
-msgstr "プライマリメトリクスのみが指定されている場合、カテゴリ別のカラースケールが使用されます。"
+msgstr "プライマリメトリクスのみが指定されている場合、カテゴリー別のカラースケールが使用されます。"
 
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
@@ -20879,7 +20798,7 @@ msgstr "選択したメトリクスに基づいて結果を降順で並べ替え
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
-msgstr "ツールチップを選択した指標に基づいて降順で並べ替えるかどうか。積み上げグラフでは、値は昇順で表示されます。"
+msgstr "ツールチップを選択したメトリクスに基づいて降順で並べ替えるかどうか。積み上げグラフでは、値は昇順で表示されます。"
 
 msgid "Whether to truncate metrics"
 msgstr "メトリクスを切り詰めるかどうか"
@@ -21255,10 +21174,8 @@ msgstr "このダッシュボードを編集する権限がありません。"
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "チャートを編集するための十分な権限がありません"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "You don't have access to annotation layers"
-msgstr "アノテーションレイヤーにアクセスできません"
+msgstr "注釈レイヤーにアクセスできません"
 
 msgid "You don't have access to one or more of the referenced datasources."
 msgstr "参照されているデータソースのうち、1つ以上に対してアクセス権がありません。"
@@ -21310,10 +21227,8 @@ msgstr "画像をエクスポートする権限がありません"
 msgid "You don't have permission to modify the value."
 msgstr "値を変更する権限がありません。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid "You don't have permission to view annotation layers."
-msgstr "アノテーションレイヤーを表示する権限がありません。"
+msgstr "注釈レイヤーを表示する権限がありません。"
 
 #, python-format
 msgid "You don't have the rights to alter %(resource)s"
@@ -21454,10 +21369,10 @@ msgid ""
 msgstr "データセットを変更しました。新しいデータセットと一致するデータ(列、メトリクス)を持つコントロール設定のみ保持されました。"
 
 msgid "Your account is activated. You can log in with your credentials."
-msgstr "アカウントが有効化されました。ログイン情報でログインできます。"
+msgstr "アカウントが有効化されました。登録済みのアカウント情報でサインインできます。"
 
 msgid "Your account is activated. You can sign in with your credentials."
-msgstr "アカウントが有効化されました。ログイン情報でログインできます。"
+msgstr "アカウントが有効化されました。登録済みのアカウント情報でサインインできます。"
 
 msgid "Your changes will be lost if you leave without saving."
 msgstr "保存せずに離れると、変更内容が失われます。"
@@ -21573,14 +21488,14 @@ msgid ""
 msgstr "お使いのロールには、パスワードの変更に必要なプロフィールページへのアクセス権がありません。管理者にお問い合わせください。"
 
 msgid "Your session has ended. Please sign in again."
-msgstr "セッションが終了しました。再度ログインしてください。"
+msgstr "セッションが終了しました。再度サインインしてください。"
 
 msgid "Your user information"
 msgstr "ユーザー情報"
 
 #, fuzzy
 msgid "Z-A"
-msgstr "Z-A"
+msgstr "Z-A (降順)"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIPファイルに複数のファイル形式が含まれています"
@@ -21626,7 +21541,7 @@ msgid ""
 "based on labels"
 msgstr ""
 "[任意] "
-"この第2メトリクスは、第1メトリクスに対する比率として色を定義するために使用されます。省略した場合、色はラベルに基づくカテゴリ別設定になります"
+"この第2メトリクスは、第1メトリクスに対する比率として色を定義するために使用されます。省略した場合、色はラベルに基づくカテゴリー別設定になります"
 
 msgid "[untitled customization]"
 msgstr "[無題のカスタマイズ]"
