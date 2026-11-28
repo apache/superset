@@ -33,6 +33,7 @@ import { t } from '@apache-superset/core/translation';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import { LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
@@ -881,6 +882,9 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       data-test-id={dashboardInfo.id}
       className="dashboard-header-container"
     >
+      <VisuallyHidden as="h1">
+        {editableTitleProps.title || t('Dashboard')}
+      </VisuallyHidden>
       <PageHeaderWithActions
         editableTitleProps={editableTitleProps}
         certificatiedBadgeProps={certifiedBadgeProps}

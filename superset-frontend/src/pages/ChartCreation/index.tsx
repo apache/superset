@@ -102,8 +102,14 @@ const StyledContainer = styled.div`
     padding-right: ${theme.padding}px;
     padding-bottom: ${theme.padding}px;
 
+    h1,
     h3 {
       padding-bottom: ${theme.paddingSM}px;
+    }
+
+    h1 {
+      margin: ${theme.marginMD}px 0;
+      font-size: ${theme.fontSizeLG}px;
     }
 
     & .dataset {
@@ -401,7 +407,7 @@ export const ChartCreation = ({ user }: ChartCreationProps) => {
 
   return (
     <StyledContainer>
-      <h3>{t('Create a new chart')}</h3>
+      <h1>{t('Create a new chart')}</h1>
       <Steps
         direction="vertical"
         size="small"

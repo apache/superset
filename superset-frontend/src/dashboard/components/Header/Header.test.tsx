@@ -306,6 +306,13 @@ test('should render the title', () => {
   );
 });
 
+test('should render the title as a screen-reader page heading', () => {
+  setup();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Dashboard Title' }),
+  ).toBeInTheDocument();
+});
+
 test('should render the editable title', () => {
   setup(editableState);
   expect(screen.getByDisplayValue('Dashboard Title')).toBeInTheDocument();
@@ -1438,7 +1445,10 @@ test('shows the localized title while it still names the current title', () => {
     },
   });
 
-  expect(screen.getByText('Tableau de bord')).toBeInTheDocument();
+  expect(screen.getAllByText('Tableau de bord').length).toBeGreaterThan(0);
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Tableau de bord' }),
+  ).toBeInTheDocument();
   expect(screen.queryByText('Dashboard Title')).not.toBeInTheDocument();
 });
 
@@ -1454,7 +1464,9 @@ test('falls back to the canonical title once a rename outdates the translation',
     },
   });
 
-  expect(screen.getByText('Dashboard Title')).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Dashboard Title' }),
+  ).toBeInTheDocument();
   expect(screen.queryByText('Tableau de bord')).not.toBeInTheDocument();
 });
 
