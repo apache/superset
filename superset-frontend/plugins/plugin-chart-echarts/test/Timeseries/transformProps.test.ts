@@ -5221,6 +5221,46 @@ test.each([
 });
 
 test.each([
+  [false, { minInterval: 60000, maxInterval: undefined }],
+  [true, { minInterval: 0, maxInterval: 60000 }],
+])(
+  'derives the x-axis interval from a minute time grain (forceMaxInterval: %s)',
+  (forceMaxInterval, expected) => {
+    const queriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+          intervalMs: 60000,
+        }),
+        {
+          colnames: ['Series A', '__timestamp'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+        },
+      ),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        ...baseFormDataHorizontalBar,
+        orientation: OrientationType.Vertical,
+        timeGrainSqla: TimeGranularity.MINUTE,
+        forceMaxInterval,
+      },
+      queriesData,
+    });
+
+    const { echartOptions } = transformProps(chartProps);
+    const xAxis = echartOptions.xAxis as {
+      type?: string;
+      minInterval?: number;
+      maxInterval?: number;
+    };
+    expect(xAxis.type).toBe('time');
+    expect(xAxis.minInterval).toBe(expected.minInterval);
+    expect(xAxis.maxInterval).toBe(expected.maxInterval);
+  },
+);
+
+test.each([
   ['a numeric string', '86400000', 86400000],
   ['a decimal value', 0.5, 0.5],
 ])('accepts %s as a minimum interval', (_label, value, expected) => {

@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -131,6 +133,42 @@ def test_should_run_async_requires_async_mode_flag() -> None:
     # Feature flag off → always sync.
     with patch("superset.charts.data.api.is_feature_enabled", return_value=False):
         assert api._should_run_async({"async_mode": True}, qc) is False
+
+
+@pytest.mark.parametrize(
+    ("query_result_types", "expected"),
+    [
+        ([None], True),
+        ([ChartDataResultType.FULL], True),
+        ([ChartDataResultType.TIMEGRAINS], False),
+        ([ChartDataResultType.COLUMNS], False),
+        ([ChartDataResultType.FULL, ChartDataResultType.TIMEGRAINS], False),
+    ],
+)
+def test_should_run_async_gates_on_effective_query_result_type(
+    query_result_types: list[ChartDataResultType | None], expected: bool
+) -> None:
+    """A full context carrying a metadata query is answered without a task."""
+    api: ChartDataRestApi = ChartDataRestApi()
+    qc: MagicMock = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+    # A query without its own result type inherits the context's.
+    qc.queries = [MagicMock(result_type=rt) for rt in query_result_types]
+
+    cache_manager: MagicMock
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        patch("superset.charts.data.api.get_user_id", return_value=1),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+        assert api._should_run_async({"async_mode": True}, qc) is expected
 
 
 def test_should_run_async_requires_subscribeable_identity() -> None:
@@ -456,6 +494,45 @@ def test_send_chart_response_excludes_timing_by_default(app: SupersetApp) -> Non
     body = json.loads(response.get_data(as_text=True))
     assert body == {"result": [{"data": [{"col1": 1}], "query": "SELECT 1"}]}
     assert "timing" not in query_payload
+
+
+def test_send_chart_response_serialize_timer_excludes_event_log_write(
+    app: SupersetApp,
+) -> None:
+    """
+    ``chart_data.response.serialize`` times json.dumps only: it is emitted
+    before the ``json_dumps`` log context exits and writes its event log.
+    """
+    result = _json_execution_result({"data": [{"col1": 1}], "query": "SELECT 1"})
+    events: list[str] = []
+
+    @contextmanager
+    def log_context(action: str) -> Iterator[None]:
+        events.append(f"log_enter:{action}")
+        yield
+        events.append(f"log_exit:{action}")
+
+    def emit_timing(key: str, value: float) -> None:
+        events.append(f"timer:{key}")
+
+    event_logger = MagicMock()
+    event_logger.log_context.side_effect = log_context
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=False,
+        ),
+        patch("superset.charts.data.api.event_logger", event_logger),
+        patch("superset.utils.timing_metrics.emit_timing", side_effect=emit_timing),
+    ):
+        ChartDataRestApi()._send_chart_response(result)
+
+    assert events == [
+        "log_enter:ChartDataRestApi.json_dumps",
+        "timer:chart_data.response.serialize",
+        "log_exit:ChartDataRestApi.json_dumps",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -1556,6 +1633,7 @@ def test_get_data_response_executes_when_not_streaming_up_front(
         app.test_request_context("/api/v1/chart/data"),
         patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
         patch.object(api, "_create_streaming_csv_response") as mock_stream,
+        patch.object(api, "_has_export_permission", return_value=True),
         patch.object(api, "_send_chart_response", return_value=sent),
     ):
         response = api._get_data_response(command, expected_rows=expected_rows)
@@ -1598,6 +1676,47 @@ def test_get_data_response_streaming_up_front_requires_export_permission(
     mock_stream.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+def test_tree_export_requires_permission_before_querying_parents(
+    app: SupersetApp, result_format: ChartDataResultFormat
+) -> None:
+    """Reject a Tree export before executing its parent query."""
+    command = _csv_export_command(result_format, num_queries=2)
+    context = command.query_context
+    context.form_data = {
+        "viz_type": "ag-grid-table",
+        "query_mode": "tree",
+        "tree_export": {
+            "query": {
+                "post_processing": [
+                    {
+                        "operation": "tree_rows",
+                        "options": {"levels": [{"id_column": "parent_id"}]},
+                    }
+                ]
+            }
+        },
+    }
+    context.queries[1].columns = ["parent_id"]
+    context.datasource = MagicMock(spec=SqlaTable)
+    context.datasource.query.return_value = MagicMock(
+        status="failed", error_message="Parent query failed"
+    )
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.object(api, "_has_export_permission", return_value=False),
+    ):
+        response = api._get_data_response(command)
+
+    context.datasource.query.assert_not_called()
+    command.execute.assert_not_called()
+    assert response.status_code == 403
+
+
 def test_get_data_response_executes_multi_query_export(
     app: SupersetApp,
 ) -> None:
@@ -1614,6 +1733,7 @@ def test_get_data_response_executes_multi_query_export(
         app.test_request_context("/api/v1/chart/data"),
         patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
         patch.object(api, "_create_streaming_csv_response") as mock_stream,
+        patch.object(api, "_has_export_permission", return_value=True),
         patch.object(api, "_send_chart_response", return_value=sent),
     ):
         response = api._get_data_response(command, expected_rows=380273)

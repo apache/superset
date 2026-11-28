@@ -18,6 +18,7 @@
 import copy
 from typing import Any, cast
 
+import pytest
 import yaml
 from marshmallow.exceptions import ValidationError
 from pytest_mock import MockerFixture
@@ -552,6 +553,67 @@ def test_prevent_overwrite_queries_only_bundle_uuids(
     assert exceptions == []
 
 
+def test_import_without_write_permission_keeps_existing_dashboard_charts(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An import performed without write permission must not modify an existing
+    dashboard's charts.
+
+    ``import_dashboard`` returns an existing dashboard unchanged when the caller
+    cannot write it; the bulk-assets chart-association rewrite must honor the
+    same per-object write check rather than reassigning the dashboard's charts
+    from the bundle position regardless of permission.
+    """
+    from superset import db, security_manager
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard, dashboard_slices
+    from superset.models.slice import Slice
+
+    engine = db.session.get_bind()
+    Slice.metadata.create_all(engine)  # pylint: disable=no-member
+
+    base_configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+    }
+
+    # Seed an existing dashboard (two charts) as a privileged caller.
+    can_access = mocker.patch.object(security_manager, "can_access", return_value=True)
+    ImportAssetsCommand._import(base_configs)
+    # Two separate transactions, as production does (``run()`` is wrapped in
+    # ``@transaction``); also avoids the dashboard_slices_version collision the
+    # other mutation tests hit when add + remove share a Continuum transaction.
+    db.session.commit()
+
+    dashboard = (
+        db.session.query(Dashboard)
+        .filter_by(uuid="c7bc10f4-6a2d-7569-caae-bbc91864ee11")
+        .one()
+    )
+    dashboard_id = dashboard.id
+    original_slice_ids = {s.id for s in dashboard.slices}
+    assert len(original_slice_ids) == 2
+
+    # A caller WITHOUT dashboard write permission imports a sparse bundle whose
+    # dashboard position drops one chart. The existing dashboard's charts must
+    # be left untouched.
+    can_access.return_value = False
+    sparse_bundle = copy.deepcopy(dashboards_config_2)  # same uuid, one chart
+    ImportAssetsCommand._import(sparse_bundle, sparse=True)
+
+    remaining_slice_ids = set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard_id
+            )
+        ).all()
+    )
+    assert remaining_slice_ids == original_slice_ids
+
+
 def test_import_removes_dashboard_charts(
     mocker: MockerFixture, session: Session
 ) -> None:
@@ -596,3 +658,43 @@ def test_import_removes_dashboard_charts(
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
+
+
+@pytest.mark.parametrize(
+    "denied", ["Database", "Dataset", "Chart", "Dashboard", "SavedQuery", "Annotation"]
+)
+def test_assets_import_preserves_permission_failures(
+    mocker: MockerFixture, session: Session, denied: str
+) -> None:
+    """The real transaction handler keeps each asset's permission status and reason."""
+    from superset import db, security_manager
+    from superset.commands.exceptions import ForbiddenError
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard
+
+    Dashboard.metadata.create_all(db.session.get_bind())
+    mocker.patch.object(
+        security_manager,
+        "can_access",
+        side_effect=lambda permission, resource: resource != denied,
+    )
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+        **copy.deepcopy(saved_queries_config),
+    }
+    configs["annotation_layers/example.yaml"] = {
+        "name": "Example annotations",
+        "version": "1.0.0",
+        "uuid": "12345678-1234-1234-1234-123456789abc",
+    }
+    contents = {name: yaml.safe_dump(config) for name, config in configs.items()}
+    contents["metadata.yaml"] = yaml.safe_dump({"version": "1.0.0", "type": "assets"})
+    with pytest.raises(ForbiddenError) as caught:
+        ImportAssetsCommand(contents).run()
+    assert caught.value.status == 403
+    assert "permission" in caught.value.message
+    assert "unknown reason" not in caught.value.message

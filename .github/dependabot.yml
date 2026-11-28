@@ -17,6 +17,7 @@ updates:
           - "actions/*"
     cooldown:
       default-days: 7
+    rebase-strategy: disabled
 
   - package-ecosystem: "npm"
     ignore:
@@ -55,6 +56,21 @@ updates:
       # hold comments). Remove this once the proxy code is updated to await
       # the async decompress() API.
       - dependency-name: "simple-zstd"
+      # Below entries are dependencies that are significantly difficult to upgrade to next major versions
+      # so we ignore them to avoid auto-opening of PRs and consume excessive CI resources
+      # If you manage to upgrade any of them, please remove the corresponding item
+      - dependency-name: "@reduxjs/toolkit"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-redux"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "d3"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dnd-html5-backend"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dnd"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-router-dom"
+        update-types: ["version-update:semver-major"]
     directories:
       - "/superset-frontend"
       - "/superset-embedded-sdk"
@@ -126,10 +142,12 @@ updates:
           - "oxlint"
           - "oxlint-tsgolint"
           - "react-resize-detector"
+          - "vitest"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
       default-days: 7
+    rebase-strategy: disabled
 
   - package-ecosystem: "pip"
     ignore:
@@ -155,6 +173,7 @@ updates:
         patterns: ["*"]
     cooldown:
       default-days: 7
+    rebase-strategy: disabled
 
   - package-ecosystem: "npm"
     directory: ".github/actions"
@@ -168,6 +187,7 @@ updates:
     versioning-strategy: increase
     cooldown:
       default-days: 7
+    rebase-strategy: disabled
 
   # Pinned Claude Code CLI used by backfill-translations.yml.
   - package-ecosystem: "npm"
@@ -181,6 +201,7 @@ updates:
     versioning-strategy: increase
     cooldown:
       default-days: 7
+    rebase-strategy: disabled
 
   - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
@@ -197,3 +218,4 @@ updates:
     versioning-strategy: increase
     cooldown:
       default-days: 7
+    rebase-strategy: disabled

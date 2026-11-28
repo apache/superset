@@ -23,7 +23,8 @@ Create Date: 2026-07-31 00:00:00.000000
 """
 
 import sqlalchemy as sa
-from alembic import op
+
+from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
 revision = "f3a8c1d2e9b7"
@@ -31,70 +32,65 @@ down_revision = "e7d93a524ff6"
 
 
 def upgrade() -> None:
-    """Add retry config and state columns to report_schedule."""
-    with op.batch_alter_table("report_schedule") as batch_op:
+    """Add retry config and state columns to report_schedule.
+
+    Columns that already exist are skipped, so a database that received them
+    under another revision (e.g. a backport) can be stamped back onto this
+    chain and upgrade without losing the stored values.
+    """
+    add_columns(
+        "report_schedule",
         # User-configurable
-        batch_op.add_column(
-            sa.Column(
-                "retry_on_failure",
-                sa.Boolean(),
-                nullable=False,
-                server_default="0",
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "retry_max_attempts",
-                sa.Integer(),
-                nullable=False,
-                server_default="3",
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "send_failed_reports",
-                sa.Boolean(),
-                nullable=False,
-                server_default="0",
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "retry_notify_owners",
-                sa.Boolean(),
-                nullable=False,
-                server_default="1",
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "retry_notify_recipients",
-                sa.Boolean(),
-                nullable=False,
-                server_default="0",
-            )
-        )
+        sa.Column(
+            "retry_on_failure",
+            sa.Boolean(),
+            nullable=False,
+            server_default="0",
+        ),
+        sa.Column(
+            "retry_max_attempts",
+            sa.Integer(),
+            nullable=False,
+            server_default="3",
+        ),
+        sa.Column(
+            "send_failed_reports",
+            sa.Boolean(),
+            nullable=False,
+            server_default="0",
+        ),
+        sa.Column(
+            "retry_notify_owners",
+            sa.Boolean(),
+            nullable=False,
+            server_default="1",
+        ),
+        sa.Column(
+            "retry_notify_recipients",
+            sa.Boolean(),
+            nullable=False,
+            server_default="0",
+        ),
         # Execution engine state
-        batch_op.add_column(
-            sa.Column(
-                "retry_attempt",
-                sa.Integer(),
-                nullable=False,
-                server_default="0",
-            )
-        )
-        batch_op.add_column(
-            sa.Column("retry_scheduled_dttm", sa.DateTime(), nullable=True)
-        )
+        sa.Column(
+            "retry_attempt",
+            sa.Integer(),
+            nullable=False,
+            server_default="0",
+        ),
+        sa.Column("retry_scheduled_dttm", sa.DateTime(), nullable=True),
+    )
 
 
 def downgrade() -> None:
     """Remove retry config and state columns from report_schedule."""
-    with op.batch_alter_table("report_schedule") as batch_op:
-        batch_op.drop_column("retry_scheduled_dttm")
-        batch_op.drop_column("retry_attempt")
-        batch_op.drop_column("retry_notify_recipients")
-        batch_op.drop_column("retry_notify_owners")
-        batch_op.drop_column("send_failed_reports")
-        batch_op.drop_column("retry_max_attempts")
-        batch_op.drop_column("retry_on_failure")
+    drop_columns(
+        "report_schedule",
+        "retry_scheduled_dttm",
+        "retry_attempt",
+        "retry_notify_recipients",
+        "retry_notify_owners",
+        "send_failed_reports",
+        "retry_max_attempts",
+        "retry_on_failure",
+    )

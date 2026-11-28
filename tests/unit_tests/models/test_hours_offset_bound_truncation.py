@@ -30,6 +30,8 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import date, datetime
+from typing import cast
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pytest
@@ -1172,3 +1174,164 @@ def test_adhoc_label_drill_comparator_is_not_coerced(
     with app.test_request_context():
         sql = table.get_query_str_extended(query_object.to_dict(), mutate=False).sql
     assert f"WHERE (DATETIME(ts, 'start of day')) {expected} " in sql
+
+
+@pytest.mark.parametrize("supports_sql_shift", [False, True])
+@pytest.mark.parametrize("dataset_timezone", ["America/Los_Angeles", "Asia/Kolkata"])
+@pytest.mark.parametrize("offset", [0, 1, -1])
+@pytest.mark.parametrize("operator", ["==", "!=", "<", "<=", ">", ">=", "IN", "NOT IN"])
+def test_grained_drill_with_valid_dataset_timezone_matches_displayed_bucket(
+    mocker: MockerFixture,
+    supports_sql_shift: bool,
+    dataset_timezone: str,
+    offset: int,
+    operator: str,
+) -> None:
+    """Displayed bucket labels are in the dataset timezone, so filters invert it."""
+    mocker.patch.object(
+        SqliteEngineSpec, "supports_temporal_column_shift", supports_sql_shift
+    )
+    raw_rows = [
+        "2026-08-01 12:30:00",
+        "2026-08-02 12:30:00",
+        "2026-08-03 12:30:00",
+    ]
+    table, _engine = _sqlite_dataset(mocker, offset, "TIMESTAMP", raw_rows)
+    table.extra = f'{{"timezone": "{dataset_timezone}"}}'
+    grouped = table.get_query_result(_physical_axis_query(table, time_grain="P1D"))
+    # Grouping truncates the stored UTC value; pandas then moves each label into
+    # the dataset timezone (which overrides the Hours offset).
+    zone = ZoneInfo(dataset_timezone)
+    expected_labels = [
+        pd.Timestamp(
+            pd.Timestamp(day).tz_localize("UTC").astimezone(zone).replace(tzinfo=None)
+        )
+        for day in ("2026-08-01", "2026-08-02", "2026-08-03")
+    ]
+    assert grouped.df["__timestamp"].tolist() == expected_labels
+    assert grouped.df["ct"].tolist() == [1, 1, 1]
+
+    def _value(label: pd.Timestamp) -> int:
+        return int(label.value // 10**6)
+
+    # Compare scalars to the middle bucket to distinguish inclusive boundaries.
+    # Membership selects nonadjacent buckets, so NOT IN keeps the middle one.
+    is_membership = operator in {"IN", "NOT IN"}
+    selected = expected_labels[::2] if is_membership else [expected_labels[1]]
+    values: FilterValues = (
+        _value(selected[0])
+        if not is_membership
+        else cast(FilterValues, [_value(x) for x in selected])
+    )
+    detail = table.get_query_result(
+        QueryObject(
+            datasource=table,
+            columns=["ts", "val"],
+            metrics=[],
+            is_timeseries=False,
+            filters=[
+                {
+                    "col": "ts",
+                    "op": operator,
+                    "grain": "P1D",
+                    "val": values,
+                }
+            ],
+        )
+    )
+    expected_raw = {
+        "==": raw_rows[1:2],
+        "!=": [raw_rows[0], raw_rows[2]],
+        "<": raw_rows[:1],
+        "<=": raw_rows[:2],
+        ">": raw_rows[2:],
+        ">=": raw_rows[1:],
+        "IN": [raw_rows[0], raw_rows[2]],
+        "NOT IN": [raw_rows[1]],
+    }[operator]
+    # A plain detail column is not a bucket label, so it keeps its stored UTC value.
+    assert sorted(pd.to_datetime(detail.df["ts"]).tolist()) == [
+        pd.Timestamp(value) for value in expected_raw
+    ]
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (1785628800000, 1785654000000),
+        (1785628800000.0, 1785654000000.0),
+        ("1785628800000", "1785654000000"),
+        ("2026-08-02T00:00:00", "2026-08-02 07:00:00"),
+        (datetime(2026, 8, 2), datetime(2026, 8, 2, 7)),
+        ([1785628800000, None], [1785654000000, None]),
+        (None, None),
+        (True, True),
+        ("not a date", "not a date"),
+    ],
+)
+def test_display_only_bucket_timezone_value_formats(
+    value: FilterValues | None, expected: FilterValues | None
+) -> None:
+    """A bucket label in the dataset timezone is converted back to UTC."""
+    assert (
+        ExploreMixin.filter_values_handler(
+            values=value,
+            operator="IN" if isinstance(value, list) else "==",
+            target_generic_type=GenericDataType.TEMPORAL,
+            is_list_target=isinstance(value, list),
+            temporal_timezone="America/Los_Angeles",
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize("as_iso_string", [False, True])
+@pytest.mark.parametrize("is_list_target", [False, True])
+def test_display_only_bucket_timezone_preserves_aware_values(
+    as_iso_string: bool, is_list_target: bool
+) -> None:
+    """Aware operands retain their wall time and offset, even inside a list."""
+    aware = datetime.fromisoformat("2026-08-02T00:00:00+05:30")
+    value = aware.isoformat() if as_iso_string else aware
+    result = ExploreMixin.filter_values_handler(
+        values=[value] if is_list_target else value,
+        operator="IN" if is_list_target else "==",
+        target_generic_type=GenericDataType.TEMPORAL,
+        is_list_target=is_list_target,
+        temporal_offset_hours=1,
+        temporal_timezone="America/Los_Angeles",
+    )
+    if is_list_target:
+        assert isinstance(result, list)
+        assert len(result) == 1
+        result = result[0]
+    if as_iso_string:
+        assert result == value
+    else:
+        assert isinstance(result, datetime)
+        # Datetime equality alone permits a different offset for the same instant.
+        assert result.isoformat() == aware.isoformat()
+
+
+@pytest.mark.parametrize(
+    "column_type,expected",
+    [("DATE", "2026-08-01"), ("TIMESTAMP", "2026-07-31 12:00:00")],
+)
+def test_grained_drill_value_conversion_skips_date_columns(
+    mocker: MockerFixture, app: Flask, column_type: str, expected: str
+) -> None:
+    """A DATE column has no time of day, so its labels are never zone-converted."""
+    table, _engine = _sqlite_dataset(mocker, 0, column_type, ["2026-08-01"])
+    table.extra = '{"timezone": "Pacific/Auckland"}'
+    query_object: QueryObjectDict = {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "is_timeseries": False,
+        "filter": [{"col": "ts", "op": "==", "val": 1785542400000, "grain": "P1D"}],
+        "metrics": [],
+        "columns": ["ts", "val"],
+    }
+    with app.test_request_context():
+        sql = table.get_query_str_extended(query_object, mutate=False).sql
+    assert f"= '{expected}'" in sql, sql

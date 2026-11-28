@@ -22,7 +22,9 @@ import {
   SqlaFormData,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import type { PieSeriesOption } from 'echarts/charts';
+import type { LegendComponentOption } from 'echarts/components';
 import type {
   LabelFormatterCallback,
   CallbackDataParams,
@@ -34,6 +36,7 @@ import transformProps, {
 } from '../../src/Pie/transformProps';
 import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
 import { LegendOrientation, LegendType } from '../../src/types';
+import { measureTextWidth } from '../../src/utils/series';
 
 const getGraphic = (transformed: ReturnType<typeof transformProps>) =>
   transformed.echartOptions.graphic as {
@@ -618,6 +621,175 @@ describe('legend sorting', () => {
   });
 });
 
+const LONG_CATEGORY = 'A very long category name that keeps on going';
+const OTHER_LONG_CATEGORY = 'Another very long category name for the pie';
+
+const getLongNameChartProps = (form: Partial<SqlaFormData> = {}, width = 800) =>
+  new ChartProps({
+    formData: {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      groupby: ['category'],
+      viz_type: 'pie',
+      show_labels: true,
+      ...form,
+    } as SqlaFormData,
+    width,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { category: LONG_CATEGORY, sum__num: 10 },
+          { category: OTHER_LONG_CATEGORY, sum__num: 20 },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+  }) as EchartsPieChartProps;
+
+const formatLongNameLabel = (
+  form: Partial<SqlaFormData>,
+  name = LONG_CATEGORY,
+) => {
+  const formatter = (
+    transformProps(getLongNameChartProps(form)).echartOptions
+      .series as PieSeriesOption[]
+  )[0]!.label?.formatter;
+  if (typeof formatter !== 'function') {
+    throw new Error('Expected a pie label formatter function');
+  }
+  return formatter({
+    name,
+    value: 10,
+    percent: 33.3,
+  } as CallbackDataParams);
+};
+
+const getLongNameLegend = (form: Partial<SqlaFormData> = {}, width = 800) =>
+  transformProps(getLongNameChartProps(form, width)).echartOptions
+    .legend as LegendComponentOption;
+
+test('pie labels are unchanged when label_max_width is 0', () => {
+  expect(
+    formatLongNameLabel({ label_max_width: 0, label_overflow: 'truncate' }),
+  ).toBe(LONG_CATEGORY);
+});
+
+test('pie labels never set ECharts label.width, keeping its viewport-aware limit', () => {
+  const { label } = (
+    transformProps(
+      getLongNameChartProps({
+        label_max_width: 120,
+        label_overflow: 'truncate',
+        labels_outside: true,
+      }),
+    ).echartOptions.series as PieSeriesOption[]
+  )[0]!;
+  expect(label).not.toHaveProperty('width');
+  expect(label).not.toHaveProperty('overflow');
+  expect(label).toEqual(
+    expect.objectContaining({ fontSize: supersetTheme.fontSizeSM }),
+  );
+});
+
+test('pie labels are truncated with an ellipsis to fit label_max_width', () => {
+  const formatted = formatLongNameLabel({
+    label_max_width: 120,
+    label_overflow: 'truncate',
+  });
+  expect(formatted).toMatch(/\.\.\.$/);
+  expect(LONG_CATEGORY.startsWith(formatted.slice(0, -3))).toBe(true);
+  expect(measureTextWidth(formatted, supersetTheme)).toBeLessThanOrEqual(120);
+});
+
+test('pie labels default to truncation when label_overflow is not set', () => {
+  expect(formatLongNameLabel({ label_max_width: 120 })).toMatch(/\.\.\.$/);
+});
+
+test('pie labels wrap onto lines that each fit label_max_width when breaking', () => {
+  const formatted = formatLongNameLabel({
+    label_max_width: 80,
+    label_overflow: 'break',
+  });
+  const lines = formatted.split('\n');
+  expect(lines.length).toBeGreaterThan(1);
+  expect(lines.join(' ')).toBe(LONG_CATEGORY);
+  lines.forEach(line =>
+    expect(measureTextWidth(line, supersetTheme)).toBeLessThanOrEqual(80),
+  );
+});
+
+test('pie label overflow keeps the line structure of multiline templates', () => {
+  const formatted = formatLongNameLabel({
+    label_max_width: 100,
+    label_overflow: 'truncate',
+    label_type: 'template',
+    label_template: '{name}\n{percent}',
+  });
+  const [nameLine, percentLine, ...rest] = formatted.split('\n');
+  expect(rest).toEqual([]);
+  expect(nameLine).toMatch(/\.\.\.$/);
+  expect(percentLine).toBe('33.30%');
+});
+
+test('pie legend truncates long names and shows them in a tooltip', () => {
+  const legend = getLongNameLegend();
+  // 800px wide scroll legend with selectors: well above the 250px cap.
+  expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 250 });
+  const formatter = legend.tooltip?.formatter;
+  expect(typeof formatter).toBe('function');
+  expect(
+    typeof formatter === 'function' &&
+      formatter(
+        {
+          componentType: 'legend',
+          legendIndex: 0,
+          name: `${LONG_CATEGORY} ${LONG_CATEGORY} ${LONG_CATEGORY}`,
+          $vars: ['name'],
+        },
+        '',
+      ),
+  ).toBe(`${LONG_CATEGORY} ${LONG_CATEGORY} ${LONG_CATEGORY}`);
+});
+
+test('pie legend text budget shrinks on narrow charts to leave room for legend controls', () => {
+  const legend = getLongNameLegend({}, 300);
+  // 300 - 16 gutter - 30 icon/gap - 80 pager - 122 selectors = 52
+  expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 52 });
+});
+
+test('pie vertical legends are truncated to the margin reserved for them', () => {
+  const legend = getLongNameLegend({
+    legendOrientation: LegendOrientation.Left,
+    legendType: LegendType.Scroll,
+    legendMargin: 150,
+  });
+  // 150px margin - 45px gutter
+  expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 105 });
+  expect(legend.tooltip).toEqual(expect.objectContaining({ show: true }));
+});
+
+test('pie legend keeps the hidden-slice legend state', () => {
+  const props = getLongNameChartProps();
+  props.legendState = { [LONG_CATEGORY]: false };
+  const legend = transformProps(props).echartOptions
+    .legend as LegendComponentOption;
+  expect(legend.selected).toEqual({ [LONG_CATEGORY]: false });
+});
+
+test('pie charts with a legend expose full slice names through ECharts ARIA', () => {
+  expect(transformProps(getLongNameChartProps()).echartOptions.aria).toEqual({
+    enabled: true,
+    label: { data: { maxCount: 2 } },
+  });
+  expect(
+    transformProps(getLongNameChartProps({ show_legend: false })).echartOptions
+      .aria,
+  ).toBeUndefined();
+});
+
 const getAngleChartProps = (
   donut: boolean,
   sweptAngle: number,
@@ -759,4 +931,177 @@ test('clamps the total anchor into the arc box for narrow arcs', () => {
   const graphic = getGraphic(transformProps(getAngleChartProps(true, 20, 100)));
   expect(graphic.x).toBe(400);
   expect(graphic.y).toBeCloseTo(421.37, 1);
+});
+
+const getDynamicTotalChartProps = ({
+  showTotal = true,
+  donut = true,
+  legendState,
+  filterState,
+  formData = {},
+  queriesData,
+}: {
+  showTotal?: boolean;
+  donut?: boolean;
+  legendState?: Record<string, boolean>;
+  filterState?: { selectedValues?: string[] };
+  formData?: Partial<SqlaFormData>;
+  queriesData?: Array<{ data: Array<Record<string, string | number>> }>;
+} = {}): EchartsPieChartProps =>
+  new ChartProps({
+    formData: {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      groupby: ['category'],
+      viz_type: 'pie',
+      show_total: showTotal,
+      donut,
+      ...formData,
+    } as SqlaFormData,
+    width: 800,
+    height: 600,
+    queriesData: queriesData || [
+      {
+        data: [
+          { category: 'A', sum__num: 10, sum__num__contribution: 0.1 },
+          { category: 'B', sum__num: 20, sum__num__contribution: 0.2 },
+          { category: 'C', sum__num: 30, sum__num__contribution: 0.3 },
+          { category: 'D', sum__num: 40, sum__num__contribution: 0.4 },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+    legendState,
+    filterState,
+  }) as EchartsPieChartProps;
+
+test('dynamic total sums all slices when legendState is undefined or all visible', () => {
+  const propsUndefined = getDynamicTotalChartProps();
+  expect(getGraphic(transformProps(propsUndefined)).style.text).toBe(
+    'Total: 100',
+  );
+
+  const propsAllTrue = getDynamicTotalChartProps({
+    legendState: { A: true, B: true, C: true, D: true },
+  });
+  expect(getGraphic(transformProps(propsAllTrue)).style.text).toBe(
+    'Total: 100',
+  );
+});
+
+test('dynamic total updates when one category is hidden', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { B: false },
+  });
+  const graphic = getGraphic(transformProps(props));
+  expect(graphic.style.text).toBe('Total: 80');
+});
+
+test('dynamic total works on both donut and standard pie', () => {
+  const donutProps = getDynamicTotalChartProps({
+    donut: true,
+    legendState: { A: false },
+  });
+  const donutGraphic = getGraphic(transformProps(donutProps));
+  expect(donutGraphic.style.text).toBe('Total: 90');
+
+  const pieProps = getDynamicTotalChartProps({
+    donut: false,
+    legendState: { A: false },
+  });
+  const pieGraphic = getGraphic(transformProps(pieProps));
+  expect(pieGraphic.style.text).toBe('Total: 90');
+});
+
+test('dynamic total treats slices omitted from partial legendState as visible', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { A: true, C: false },
+  });
+  const graphic = getGraphic(transformProps(props));
+  // A(10) + B(20) + D(40) = 70
+  expect(graphic.style.text).toBe('Total: 70');
+});
+
+test('dynamic total displays Total: 0 when all slices are hidden in legendState', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { A: false, B: false, C: false, D: false },
+  });
+  const graphic = getGraphic(transformProps(props));
+  expect(graphic.style.text).toBe('Total: 0');
+});
+
+test('dynamic total reflects legend isolation (single visible slice)', () => {
+  const props = getDynamicTotalChartProps({
+    legendState: { A: true, B: false, C: false, D: false },
+  });
+  expect(getGraphic(transformProps(props)).style.text).toBe('Total: 10');
+});
+
+test('dynamic total excludes or includes Other category value based on legendState when threshold_for_other is used', () => {
+  const otherQueriesData = [
+    {
+      data: [
+        { category: 'A', sum__num: 40, sum__num__contribution: 0.4 },
+        { category: 'B', sum__num: 35, sum__num__contribution: 0.35 },
+        { category: 'C', sum__num: 15, sum__num__contribution: 0.15 },
+        { category: 'D', sum__num: 10, sum__num__contribution: 0.1 },
+      ],
+    },
+  ];
+
+  // Keeping Other visible (no legendState or Other: true) includes otherSum (25)
+  const propsOtherVisible = getDynamicTotalChartProps({
+    formData: { threshold_for_other: 20 },
+    queriesData: otherQueriesData,
+    legendState: { [t('Other')]: true },
+  });
+  expect(getGraphic(transformProps(propsOtherVisible)).style.text).toBe(
+    'Total: 100',
+  );
+
+  // Hiding regular category 'A' while Other is visible
+  const propsHideA = getDynamicTotalChartProps({
+    formData: { threshold_for_other: 20 },
+    queriesData: otherQueriesData,
+    legendState: { A: false },
+  });
+  expect(getGraphic(transformProps(propsHideA)).style.text).toBe('Total: 60');
+
+  // Hiding Other in legendState excludes otherSum (25)
+  const propsOtherHidden = getDynamicTotalChartProps({
+    formData: { threshold_for_other: 20 },
+    queriesData: otherQueriesData,
+    legendState: { [t('Other')]: false },
+  });
+  expect(getGraphic(transformProps(propsOtherHidden)).style.text).toBe(
+    'Total: 75',
+  );
+});
+
+test('dynamic total does not affect total value when filterState.selectedValues is set', () => {
+  const propsWithFilter = getDynamicTotalChartProps({
+    filterState: { selectedValues: ['A'] },
+  });
+  expect(getGraphic(transformProps(propsWithFilter)).style.text).toBe(
+    'Total: 100',
+  );
+
+  const propsWithFilterAndLegend = getDynamicTotalChartProps({
+    filterState: { selectedValues: ['A'] },
+    legendState: { B: false },
+  });
+  expect(getGraphic(transformProps(propsWithFilterAndLegend)).style.text).toBe(
+    'Total: 80',
+  );
+});
+
+test('dynamic total keeps graphic as null when showTotal is false regardless of legendState', () => {
+  const props = getDynamicTotalChartProps({
+    showTotal: false,
+    legendState: { A: false },
+  });
+  const transformed = transformProps(props);
+  expect(transformed.echartOptions.graphic).toBeNull();
 });

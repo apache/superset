@@ -24,144 +24,137 @@ import {
 } from './types';
 import { getSelectExtraFormData } from '../../utils';
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('Select buildQuery', () => {
-  const formData: PluginFilterSelectQueryFormData = {
-    datasource: '5__table',
-    groupby: ['my_col'],
-    viz_type: 'filter_select',
-    sortAscending: undefined,
-    sortMetric: undefined,
-    filters: undefined,
-    enableEmptyFilter: false,
-    inverseSelection: false,
-    creatable: false,
-    multiSelect: false,
-    defaultToFirstItem: false,
-    searchAllOptions: false,
-    height: 100,
-    width: 100,
-  };
+const formData: PluginFilterSelectQueryFormData = {
+  datasource: '5__table',
+  groupby: ['my_col'],
+  viz_type: 'filter_select',
+  sortAscending: undefined,
+  sortMetric: undefined,
+  filters: undefined,
+  enableEmptyFilter: false,
+  inverseSelection: false,
+  creatable: false,
+  multiSelect: false,
+  defaultToFirstItem: false,
+  searchAllOptions: false,
+  height: 100,
+  width: 100,
+};
 
-  test('should build a default query', () => {
-    const queryContext = buildQuery(formData);
-    expect(queryContext.queries.length).toEqual(1);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['my_col']);
-    expect(query.filters).toEqual([]);
-    expect(query.metrics).toEqual([]);
-    expect(query.orderby).toEqual([]);
+test('should build a default query', () => {
+  const queryContext = buildQuery(formData);
+  expect(queryContext.queries.length).toEqual(1);
+  const [query] = queryContext.queries;
+  expect(query.columns).toEqual(['my_col']);
+  expect(query.filters).toEqual([]);
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
+
+test('should sort descending by metric', () => {
+  const queryContext = buildQuery({
+    ...formData,
+    sortMetric: 'my_metric',
+    sortAscending: false,
   });
+  expect(queryContext.queries.length).toEqual(1);
+  const [query] = queryContext.queries;
+  expect(query.columns).toEqual(['my_col']);
+  expect(query.metrics).toEqual(['my_metric']);
+  expect(query.orderby).toEqual([['my_metric', false]]);
+});
 
-  test('should sort descending by metric', () => {
-    const queryContext = buildQuery({
-      ...formData,
-      sortMetric: 'my_metric',
-      sortAscending: false,
-    });
-    expect(queryContext.queries.length).toEqual(1);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['my_col']);
-    expect(query.metrics).toEqual(['my_metric']);
-    expect(query.orderby).toEqual([['my_metric', false]]);
+test('should sort ascending by metric', () => {
+  const queryContext = buildQuery({
+    ...formData,
+    sortMetric: 'my_metric',
+    sortAscending: true,
   });
+  expect(queryContext.queries.length).toEqual(1);
+  const [query] = queryContext.queries;
+  expect(query.columns).toEqual(['my_col']);
+  expect(query.metrics).toEqual(['my_metric']);
+  expect(query.orderby).toEqual([['my_metric', true]]);
+});
 
-  test('should sort ascending by metric', () => {
-    const queryContext = buildQuery({
-      ...formData,
-      sortMetric: 'my_metric',
-      sortAscending: true,
-    });
-    expect(queryContext.queries.length).toEqual(1);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['my_col']);
-    expect(query.metrics).toEqual(['my_metric']);
-    expect(query.orderby).toEqual([['my_metric', true]]);
+test('should sort ascending by column', () => {
+  const queryContext = buildQuery({
+    ...formData,
+    sortAscending: true,
   });
+  expect(queryContext.queries.length).toEqual(1);
+  const [query] = queryContext.queries;
+  expect(query.columns).toEqual(['my_col']);
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([['my_col', true]]);
+});
 
-  test('should sort ascending by column', () => {
-    const queryContext = buildQuery({
-      ...formData,
-      sortAscending: true,
-    });
-    expect(queryContext.queries.length).toEqual(1);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['my_col']);
-    expect(query.metrics).toEqual([]);
-    expect(query.orderby).toEqual([['my_col', true]]);
+test('should sort descending by column', () => {
+  const queryContext = buildQuery({
+    ...formData,
+    sortAscending: false,
   });
+  expect(queryContext.queries.length).toEqual(1);
+  const [query] = queryContext.queries;
+  expect(query.columns).toEqual(['my_col']);
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([['my_col', false]]);
+});
 
-  test('should sort descending by column', () => {
-    const queryContext = buildQuery({
-      ...formData,
-      sortAscending: false,
-    });
-    expect(queryContext.queries.length).toEqual(1);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['my_col']);
-    expect(query.metrics).toEqual([]);
-    expect(query.orderby).toEqual([['my_col', false]]);
+test('should add text search parameter for string to query filter', () => {
+  const queryContext = buildQuery(formData, {
+    ownState: {
+      search: 'abc',
+      coltypeMap: { my_col: GenericDataType.String },
+    },
   });
+  expect(queryContext.queries.length).toEqual(1);
+  const [query] = queryContext.queries;
+  expect(query.filters).toEqual([{ col: 'my_col', op: 'ILIKE', val: '%abc%' }]);
+});
 
-  test('should add text search parameter for string to query filter', () => {
-    const queryContext = buildQuery(formData, {
+test('should not sort by the searched column', () => {
+  // Ordering by a high-cardinality column makes the engine sort every match
+  // before applying the row limit; the dropdown re-sorts the page anyway.
+  const queryContext = buildQuery(
+    { ...formData, sortAscending: true },
+    {
       ownState: {
         search: 'abc',
         coltypeMap: { my_col: GenericDataType.String },
       },
-    });
-    expect(queryContext.queries.length).toEqual(1);
-    const [query] = queryContext.queries;
-    expect(query.filters).toEqual([
-      { col: 'my_col', op: 'ILIKE', val: '%abc%' },
-    ]);
-  });
+    },
+  );
+  const [query] = queryContext.queries;
+  expect(query.orderby).toEqual([]);
+});
 
-  test('should not sort by the searched column', () => {
-    // Ordering by a high-cardinality column makes the engine sort every match
-    // before applying the row limit; the dropdown re-sorts the page anyway.
-    const queryContext = buildQuery(
-      { ...formData, sortAscending: true },
-      {
-        ownState: {
-          search: 'abc',
-          coltypeMap: { my_col: GenericDataType.String },
-        },
-      },
-    );
-    const [query] = queryContext.queries;
-    expect(query.orderby).toEqual([]);
-  });
-
-  test('should keep the sort metric while searching', () => {
-    // A sort metric decides which rows come back, so dropping it would change
-    // the result set rather than just its order.
-    const queryContext = buildQuery(
-      { ...formData, sortMetric: 'my_metric', sortAscending: false },
-      {
-        ownState: {
-          search: 'abc',
-          coltypeMap: { my_col: GenericDataType.String },
-        },
-      },
-    );
-    const [query] = queryContext.queries;
-    expect(query.orderby).toEqual([['my_metric', false]]);
-  });
-
-  test('should add text search parameter for numeric to query filter', () => {
-    const queryContext = buildQuery(formData, {
+test('should keep the sort metric while searching', () => {
+  // A sort metric decides which rows come back, so dropping it would change
+  // the result set rather than just its order.
+  const queryContext = buildQuery(
+    { ...formData, sortMetric: 'my_metric', sortAscending: false },
+    {
       ownState: {
-        search: '123',
-        coltypeMap: { my_col: GenericDataType.Numeric },
+        search: 'abc',
+        coltypeMap: { my_col: GenericDataType.String },
       },
-    });
-    expect(queryContext.queries.length).toEqual(1);
-    const [query] = queryContext.queries;
-    expect(query.filters).toEqual([
-      { col: 'my_col', op: 'ILIKE', val: '%123%' },
-    ]);
+    },
+  );
+  const [query] = queryContext.queries;
+  expect(query.orderby).toEqual([['my_metric', false]]);
+});
+
+test('should add text search parameter for numeric to query filter', () => {
+  const queryContext = buildQuery(formData, {
+    ownState: {
+      search: '123',
+      coltypeMap: { my_col: GenericDataType.Numeric },
+    },
   });
+  expect(queryContext.queries.length).toEqual(1);
+  const [query] = queryContext.queries;
+  expect(query.filters).toEqual([{ col: 'my_col', op: 'ILIKE', val: '%123%' }]);
 });
 
 test('getSelectExtraFormData generates IN filter by default', () => {

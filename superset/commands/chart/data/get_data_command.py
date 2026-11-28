@@ -29,7 +29,11 @@ from superset.commands.chart.exceptions import (
 from superset.common.chart_data import ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.query_context import QueryContext
-from superset.exceptions import CacheLoadError, QueryObjectValidationMessage
+from superset.exceptions import (
+    CacheLoadError,
+    QueryObjectValidationMessage,
+)
+from superset.semantic_layers.chart_types import validate_query_context_chart_type
 
 logger = logging.getLogger(__name__)
 
@@ -127,3 +131,4 @@ class ChartDataCommand(BaseCommand):
 
     def validate(self) -> None:
         self._query_context.raise_for_access()
+        validate_query_context_chart_type(self._query_context)

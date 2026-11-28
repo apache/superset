@@ -21,11 +21,18 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { SubjectType } from 'src/types/Subject';
 import DatasetUsageTab from '.';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 const mockChartsResponse = {
   result: [
@@ -122,6 +129,7 @@ beforeAll(() => {
 beforeEach(() => {
   fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
+  jest.mocked(isFeatureEnabled).mockReturnValue(false);
   // Mock scrollTo for all tests
   Element.prototype.scrollTo = jest.fn();
 });
@@ -275,7 +283,7 @@ test('shows loading state during pagination fetch', async () => {
   expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
 
   // Find next page button
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -311,7 +319,7 @@ test('calls onFetchCharts with correct pagination parameters', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -337,7 +345,7 @@ test('shows error toast when fetch fails', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -362,7 +370,7 @@ test('handles slow network without race condition', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -403,7 +411,7 @@ test('scrolls to top after data loads, not before', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -474,7 +482,7 @@ test('cleans up animation frame on unmount during loading', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
 
   await userEvent.click(nextButton);
 
@@ -519,7 +527,7 @@ test('handles AbortError without setState after unmount', async () => {
     totalCount: 100,
   });
 
-  const nextButton = screen.getByTitle('Next Page');
+  const nextButton = screen.getByRole('button', { name: 'Next Page' });
   await userEvent.click(nextButton);
 
   // Should be loading
@@ -663,7 +671,7 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is visible when not searching (check for page number listitem)
-  expect(screen.getByTitle('1')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
 
   const searchInput = screen.getByPlaceholderText(
     'Search charts by name, editor, or dashboard',
@@ -678,7 +686,9 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is hidden while searching
-  expect(screen.queryByTitle('Next Page')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Next Page' }),
+  ).not.toBeInTheDocument();
 
   await userEvent.clear(searchInput);
 
@@ -689,5 +699,92 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is restored
-  expect(screen.getByTitle('1')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
+});
+
+const dependencyNotice =
+  'Archived charts and dashboards may still depend on this dataset, including assets you cannot view. Archiving or permanently deleting this dataset can prevent those assets from working after they are recovered.';
+
+test.each([false, true])(
+  'shows the dependency notice with soft delete enabled (empty: %s)',
+  empty => {
+    jest
+      .mocked(isFeatureEnabled)
+      .mockImplementation(flag => flag === FeatureFlag.SoftDelete);
+    setupTest(empty ? { charts: [], totalCount: 0 } : {});
+
+    expect(screen.getByRole('alert')).toHaveTextContent(dependencyNotice);
+    expect(
+      within(screen.getByRole('alert')).queryByRole('button'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+test('omits the dependency notice with soft delete disabled', () => {
+  setupTest();
+  expect(screen.queryByText(dependencyNotice)).not.toBeInTheDocument();
+});
+
+test('labels archived charts and dashboards without navigation or edit attribution', () => {
+  setupTest({
+    charts: [
+      {
+        ...mockChartsResponse.result[0],
+        slice_name: 'Archived chart',
+        deleted_at: '2024-08-13T10:00:00Z',
+        deleted_at_delta_humanized: 'an hour ago',
+        changed_by: { id: 99, first_name: 'Previous', last_name: 'Editor' },
+        dashboards: [
+          { id: 10, dashboard_title: 'Archived dashboard', archived: true },
+          { id: 11, dashboard_title: 'Live dashboard' },
+        ],
+      },
+      {
+        ...mockChartsResponse.result[1],
+        dashboards: [
+          {
+            id: 12,
+            dashboard_title: 'Another archived dashboard',
+            archived: true,
+          },
+        ],
+      },
+    ],
+  });
+
+  const archivedTitle = screen.getByTestId('Archived chart-usage-chart-title');
+  expect(archivedTitle.closest('a')).toBeNull();
+  // The marker sits beside the ellipsized title so long names cannot clip it.
+  expect(archivedTitle).toHaveClass('archived-chart-title');
+  expect(archivedTitle.nextElementSibling).toHaveAttribute(
+    'aria-label',
+    'Archived',
+  );
+  expect(archivedTitle.nextElementSibling).toHaveTextContent('(archived)');
+  expect(screen.getByText('Archived dashboard').closest('a')).toBeNull();
+  expect(
+    screen.getByText('Another archived dashboard').closest('a'),
+  ).toBeNull();
+  expect(screen.getByRole('link', { name: /Live dashboard/ })).toHaveAttribute(
+    'href',
+    '/dashboard/11',
+  );
+  expect(screen.getByRole('link', { name: 'Test Chart 2' })).toHaveAttribute(
+    'href',
+    '/explore/2/',
+  );
+  expect(screen.getAllByLabelText('Archived')).toHaveLength(3);
+  const archivedDate = screen.getByText('an hour ago');
+  expect(archivedDate.previousElementSibling).toHaveTextContent('Archived');
+  expect(screen.queryByText('Previous Editor')).not.toBeInTheDocument();
+  expect(screen.queryByText('2 days ago')).not.toBeInTheDocument();
+});
+
+test('renders charts without dashboard metadata', () => {
+  setupTest({
+    charts: [{ ...mockChartsResponse.result[0], dashboards: undefined }],
+  });
+  expect(
+    screen.getByRole('link', { name: /Test Chart 1/ }),
+  ).toBeInTheDocument();
 });

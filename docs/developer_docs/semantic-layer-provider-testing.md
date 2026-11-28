@@ -59,8 +59,9 @@ separate integration tests.
 | `semantic_change_catalog` | No-argument callable changing the controlled source catalog: add a visible member on every call, without clearing provider caches. |
 | `semantic_provider_class` | `(importable_module_name, class_name)` of the layer for an isolated import and static-schema check. Dependencies must already be installed. |
 
-Required query cases are `identity`, `grain`, `null`, `not_null`, `or`, and
-`order_limit`. Use member names distinct from private IDs and display labels.
+Required query cases are `identity`, `grain`, `null`, `not_null`, `or`,
+`or_not_in`, `or_not_equals`, `or_not_like`, `or_not_ilike`, and `order_limit`.
+Use member names distinct from private IDs and display labels.
 For `grain`, use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required. When the catalog declares no grain-bearing dimension, the case skips with an explicit reason before looking up its fixture entry; such providers may omit the `grain` entry. This reports unexercised grain coverage, not a passing grain check.
 NULL and grouped-OR fixtures must select NULL and non-NULL branches observably;
 the `or` case must use the host-normalized shape: one `OrFilter` containing
@@ -74,6 +75,22 @@ The SQLite example uses a February lower bound, with A and NULL rows on both sid
 of that bound: the correct totals are NULL=1, A=5, B=8. This distinguishes either
 ordering of the outer AND and the OR group. A February C row with amount 6 must
 be excluded; dropping the OR group incorrectly adds C=6 to the result.
+The four exclusion cases use the same grouped shape, replacing `IN` with
+`NOT IN`, `!=`, `NOT LIKE`, or `NOT ILIKE`, respectively. The `NOT IN` operand
+must contain at least two non-NULL values; pattern operands must contain a
+wildcard. Keep an outer AND comparison and group by the filtered dimension,
+with both NULL and non-NULL groups in the expected result. Seed rows on both
+sides of the outer comparison and rows excluded by the negated leaf, so dropping
+the NULL branch, the group, its parentheses or the outer predicate changes the
+answer. A plain non-empty negated leaf still excludes NULL: it is the explicit
+`IS_NULL` branch that retains NULL rows in a user exclusion.
+The SQLite example expects NULL=1 and C=6 for `NOT IN {A, B}`; NULL=1, C=6,
+B=8 for `!= A`; and NULL=1, A=5, C=6 for `NOT LIKE 'B%'` and `NOT ILIKE 'b%'`.
+These are required conformance cases, not optional advertised capabilities.
+The example also has a January C row, so a lost pair of parentheses is observable
+whether the outer AND predicate appears before or after the OR group.
+Consumers upgrading the kit must provide the four fixture entries and review
+the new case IDs in any explicit case allowlist before certifying providers.
 Seed more result rows than the limit, in an order that differs from the requested
 sort. The suite compares exact Arrow column names, types, values and row order,
 without prescribing column order or field nullability.

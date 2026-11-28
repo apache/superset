@@ -70,7 +70,6 @@ import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import { nanoid } from 'nanoid';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
-  saveChartConfiguration,
   dashboardInfoChanged,
   SAVE_CHART_CONFIG_COMPLETE,
   provenSemanticDatasets,
@@ -577,14 +576,6 @@ export function saveDashboardRequest(
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
-      const { chartConfiguration, globalChartConfiguration } =
-        handleChartConfiguration();
-      dispatch(
-        saveChartConfiguration({
-          chartConfiguration,
-          globalChartConfiguration,
-        }),
-      );
       dispatch(saveDashboardFinished());
       navigateTo(`/dashboard/${(response.json as JsonObject).result?.id}/`);
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
@@ -622,7 +613,9 @@ export function saveDashboardRequest(
           }
         })
         .catch((error: Error) => {
-          dispatch(replaceDashboardSemanticDatasets(id, null, requestId));
+          // A settled failure has no proven columns, but must release queries
+          // waiting for this refresh. Keep the request-id guard for late replies.
+          dispatch(replaceDashboardSemanticDatasets(id, [], requestId));
           logging.error('Error fetching dashboard datasets:', error);
         });
       // syncing with the backend transformations of the metadata
@@ -766,6 +759,15 @@ export function saveDashboardRequest(
     (cleanedData.metadata as JsonObject).default_filters =
       safeStringify(serializedFilters);
     (cleanedData.metadata as JsonObject).filter_scopes = serializedFilterScopes;
+    // Send the cross-filter configuration with the copy itself. Saving it
+    // after the copy would write to the source dashboard, since that is
+    // still the one held in dashboardInfo, and bump its changed_on/changed_by.
+    const { chartConfiguration, globalChartConfiguration } =
+      handleChartConfiguration();
+    (cleanedData.metadata as JsonObject).chart_configuration =
+      chartConfiguration;
+    (cleanedData.metadata as JsonObject).global_chart_configuration =
+      globalChartConfiguration;
     const copyPayload = {
       dashboard_title: cleanedData.dashboard_title,
       css: cleanedData.css,
