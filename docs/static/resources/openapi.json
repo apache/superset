@@ -19106,6 +19106,138 @@
         ]
       }
     },
+    "/api/v1/css_template/export/": {
+      "get": {
+        "description": "A single id returns one .css file; multiple ids return a ZIP archive with one .css file per template.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_export_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "text/css": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "CSS template export"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Download CSS templates as raw CSS",
+        "tags": [
+          "CSS Templates"
+        ]
+      }
+    },
+    "/api/v1/css_template/import/": {
+      "post": {
+        "description": "Creates one CSS template per uploaded `.css` file. Each template is named after its file, without the `.css` extension, and its CSS is the file's contents. Every file creates a new template, so files sharing a name are all imported and existing templates are never overwritten. If any file is invalid, no templates are created.",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "formData": {
+                    "description": "One or more `.css` files to import",
+                    "items": {
+                      "format": "binary",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "formData"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "CSS templates imported"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Import CSS templates from CSS files",
+        "tags": [
+          "CSS Templates"
+        ]
+      }
+    },
     "/api/v1/css_template/related/{column_name}": {
       "get": {
         "parameters": [
