@@ -3831,6 +3831,9 @@ msgstr ""
 msgid "Closing value for each period."
 msgstr ""
 
+msgid "Cluster"
+msgstr ""
+
 msgid "Cluster label aggregator"
 msgstr ""
 
@@ -9430,6 +9433,9 @@ msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
 msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Materialize cluster to run queries on."
+msgstr ""
 
 msgid "Matrixify"
 msgstr ""
@@ -19175,6 +19181,9 @@ msgid "e.g. param1=value1&param2=value2"
 msgstr ""
 
 msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. quickstart"
 msgstr ""
 
 msgid "e.g. s3://my-bucket/athena-results/"

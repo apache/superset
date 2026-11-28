@@ -3808,6 +3808,7 @@ class BasicParametersType(TypedDict, total=False):
     database: str
     query: dict[str, Any]
     encryption: bool
+    materializedb_cluster: str
 
 
 class BasicPropertiesType(TypedDict):

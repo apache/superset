@@ -144,6 +144,7 @@ SQLGLOT_DIALECTS = {
     "impala": Dialects.HIVE,
     # "kustosql": ???
     # "kylin": ???
+    "materialize": Dialects.MATERIALIZE,
     "mariadb": Dialects.MYSQL,
     "motherduck": Dialects.DUCKDB,
     "mssql": Dialects.TSQL,
