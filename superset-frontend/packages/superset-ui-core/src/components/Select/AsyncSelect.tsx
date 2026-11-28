@@ -105,6 +105,24 @@ const Error = ({ error }: { error: string }) => (
 const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
   `${value};${page};${pageSize}`;
 
+const normalizeOptionLabel = (label: unknown): string | undefined =>
+  typeof label === 'string' || typeof label === 'number'
+    ? String(label).trim().toLowerCase()
+    : undefined;
+
+const hasMatchingLabel = (
+  options: SelectOptionsType,
+  label: string | number,
+  caseSensitive: boolean,
+): boolean =>
+  options.some(option =>
+    isObject(option) && Array.isArray((option as any).options)
+      ? hasMatchingLabel((option as any).options, label, caseSensitive)
+      : caseSensitive
+        ? utilsIsEqual(option, label, 'label')
+        : normalizeOptionLabel(option.label) === normalizeOptionLabel(label),
+  );
+
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -122,6 +140,7 @@ const AsyncSelect = forwardRef(
     {
       allowClear,
       allowNewOptions = false,
+      caseSensitiveNewOptionMatching = true,
       ariaLabel,
       autoClearSearchValue = true,
       fetchOnlyOnSearch,
@@ -265,6 +284,34 @@ const AsyncSelect = forwardRef(
     const [selectOptions, setSelectOptions] =
       useState<SelectOptionsType>(EMPTY_OPTIONS);
 
+    const isRedundantNewOption = useCallback(
+      (
+        opt: DefaultOptionType | AntdLabeledValue,
+        incomingData: SelectOptionsType,
+        currentValue: typeof selectValue,
+      ) => {
+        if (!isNewOption(opt)) {
+          return false;
+        }
+        // A differently cased new option the user already picked stays.
+        if (
+          !caseSensitiveNewOptionMatching &&
+          hasOption(opt.value as string | number, currentValue)
+        ) {
+          return false;
+        }
+        const label =
+          typeof opt.label === 'string' || typeof opt.label === 'number'
+            ? opt.label
+            : undefined;
+        return (
+          label !== undefined &&
+          hasMatchingLabel(incomingData, label, caseSensitiveNewOptionMatching)
+        );
+      },
+      [caseSensitiveNewOptionMatching],
+    );
+
     // add selected values to options list if they are not in it, keeping any
     // extra option props (aria-label, title, filter props) a labeled value has
     const fullSelectOptions = useMemo(() => {
@@ -275,10 +322,24 @@ const AsyncSelect = forwardRef(
             ? { ...seenOptionsRef.current.get(opt.value), ...opt }
             : { value: opt, label: String(opt) },
         );
-      return missingValues.length > 0
-        ? missingValues.concat(selectOptions)
-        : selectOptions;
-    }, [selectOptions, selectValue]);
+      const combined =
+        missingValues.length > 0
+          ? missingValues.concat(selectOptions)
+          : selectOptions;
+      if (caseSensitiveNewOptionMatching) {
+        return combined;
+      }
+      // A new option kept while selected becomes redundant once deselected.
+      const serverOptions = combined.filter(opt => !isNewOption(opt));
+      return combined.filter(
+        opt => !isRedundantNewOption(opt, serverOptions, selectValue),
+      );
+    }, [
+      caseSensitiveNewOptionMatching,
+      isRedundantNewOption,
+      selectOptions,
+      selectValue,
+    ]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
@@ -390,30 +451,6 @@ const AsyncSelect = forwardRef(
 
     fullSelectOptionsRef.current = fullSelectOptions;
 
-    const isRedundantNewOption = (
-      opt: DefaultOptionType | AntdLabeledValue,
-      incomingData: SelectOptionsType,
-    ) => {
-      if (!isNewOption(opt)) {
-        return false;
-      }
-      const label =
-        typeof opt.label === 'string' || typeof opt.label === 'number'
-          ? opt.label
-          : undefined;
-      return (
-        label !== undefined &&
-        incomingData.some(item => {
-          if (isObject(item) && Array.isArray((item as any).options)) {
-            return (item as any).options.some((child: any) =>
-              utilsIsEqual(child, label, 'label'),
-            );
-          }
-          return utilsIsEqual(item, label, 'label');
-        })
-      );
-    };
-
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
         let mergedData: SelectOptionsType = [];
@@ -427,7 +464,13 @@ const AsyncSelect = forwardRef(
                 if (dataValues.has(previousOption.value)) {
                   return false;
                 }
-                if (isRedundantNewOption(previousOption, data)) {
+                if (
+                  isRedundantNewOption(
+                    previousOption,
+                    data,
+                    selectValueRef.current,
+                  )
+                ) {
                   return false;
                 }
                 return true;
@@ -446,7 +489,7 @@ const AsyncSelect = forwardRef(
         }
         return mergedData;
       },
-      [sortComparatorForNoSearch],
+      [isRedundantNewOption, sortComparatorForNoSearch],
     );
 
     // All fetches go through here so every option returned is remembered.
@@ -544,7 +587,7 @@ const AsyncSelect = forwardRef(
                   opt =>
                     isNewOption(opt) &&
                     !dataValues.has(opt.value) &&
-                    !isRedundantNewOption(opt, data),
+                    !isRedundantNewOption(opt, data, selectValueRef.current),
                 );
                 return preservedNew
                   .concat(data)
@@ -583,6 +626,7 @@ const AsyncSelect = forwardRef(
       [
         allValuesLoaded,
         fetchOnlyOnSearch,
+        isRedundantNewOption,
         mergeData,
         internalOnError,
         fetchAndRememberOptions,
@@ -598,6 +642,7 @@ const AsyncSelect = forwardRef(
 
     const searchStateRef = useRef({
       allowNewOptions,
+      caseSensitiveNewOptionMatching,
       fullSelectOptions,
       selectValue,
       allValuesLoaded,
@@ -610,6 +655,7 @@ const AsyncSelect = forwardRef(
     useEffect(() => {
       searchStateRef.current = {
         allowNewOptions,
+        caseSensitiveNewOptionMatching,
         fullSelectOptions,
         selectValue,
         allValuesLoaded,
@@ -625,6 +671,7 @@ const AsyncSelect = forwardRef(
         debounce((search: string) => {
           const {
             allowNewOptions,
+            caseSensitiveNewOptionMatching,
             fullSelectOptions,
             selectValue,
             allValuesLoaded,
@@ -638,15 +685,20 @@ const AsyncSelect = forwardRef(
 
           if (allowNewOptions) {
             const unquotedSearch = stripSurroundingQuotes(searchValue);
+            const cleanSelectOptions = fullSelectOptions.filter(
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
+            );
+            // Unselected new options from earlier keystrokes are excluded, so
+            // correcting the casing of the search still offers a new option.
+            const hasMatch = caseSensitiveNewOptionMatching
+              ? hasOption(unquotedSearch, fullSelectOptions, true)
+              : hasMatchingLabel(cleanSelectOptions, unquotedSearch, false);
             const newOption = unquotedSearch &&
-              !hasOption(unquotedSearch, fullSelectOptions, true) && {
+              !hasMatch && {
                 label: unquotedSearch,
                 value: unquotedSearch,
                 isNewOption: true,
               };
-            const cleanSelectOptions = fullSelectOptions.filter(
-              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
-            );
             const newOptions = newOption
               ? [newOption, ...cleanSelectOptions]
               : cleanSelectOptions;
