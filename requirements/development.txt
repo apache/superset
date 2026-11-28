@@ -648,7 +648,7 @@ microsoft-teams-common==2.1.1
     #   microsoft-teams-apps
 msal==1.39.0
     # via microsoft-teams-apps
-msgpack==1.2.3
+msgpack==1.2.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1042,6 +1042,7 @@ rfc3339-validator==0.1.4
 rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   cyclopts
     #   fastmcp-slim
     #   flask-limiter

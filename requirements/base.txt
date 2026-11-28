@@ -237,7 +237,7 @@ marshmallow-union==0.1.15.post1
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.2.3
+msgpack==1.2.4
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
@@ -353,7 +353,9 @@ requests-cache==1.2.1
 rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rich==13.9.4
-    # via flask-limiter
+    # via
+    #   apache-superset (pyproject.toml)
+    #   flask-limiter
 rison==2.0.1
     # via apache-superset (pyproject.toml)
 rpds-py==0.25.0
