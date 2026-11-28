@@ -31,6 +31,7 @@ import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
+import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
 
@@ -331,7 +332,42 @@ const expectDrillToDetailByAll = async (
 
 beforeAll(() => {
   setupPlugins();
+  new AgGridTableChartPlugin()
+    .configure({ key: VizType.TableAgGrid })
+    .register();
 });
+
+function renderTableV2DrillMenu(queryMode: string, metrics: string[]) {
+  renderMenu({
+    formData: {
+      ...defaultFormData,
+      viz_type: VizType.TableAgGrid,
+      query_mode: queryMode,
+      metrics,
+      tree_metrics: ['count'],
+    },
+  });
+  return screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill to detail'))!;
+}
+
+test('Drill to detail stays disabled for Table V2 Raw mode with retained metrics', () => {
+  expect(renderTableV2DrillMenu('raw', ['count'])).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test.each([
+  ['aggregate', ['count']],
+  ['tree', []],
+] as [string, string[]][])(
+  'Drill to detail stays enabled for Table V2 %s mode',
+  async (mode, metrics) => {
+    await expectMenuItemEnabled(renderTableV2DrillMenu(mode, metrics));
+  },
+);
 
 test('dropdown menu for unsupported chart', async () => {
   renderMenu({ formData: unsupportedChartFormData });
